@@ -1150,7 +1150,7 @@ input[type=range] {
       <button type="button" class="tool" data-tool="cleat" title="Ajouter un taquet">
         <span aria-hidden="true">⊥</span><small>Taquet</small>
       </button>
-      <button type="button" class="tool" data-tool="buoy" title="Ajouter une bouée de navigation">
+      <button type="button" class="tool" data-tool="buoy" title="Ajouter une bouée de navigation ou un corps mort">
         <span aria-hidden="true">◆</span><small>Bouée</small>
       </button>
       <button type="button" class="tool" data-tool="obstacle" title="Dessiner une digue ou un quai">
@@ -1319,6 +1319,7 @@ input[type=range] {
               <option value="buoy_safe_water">Eaux saines</option>
               <option value="buoy_special_purpose">Marque spéciale</option>
               <option value="buoy_installation">Installation</option>
+              <option value="mooring">Corps mort · avec taquet</option>
             </select>
           </label>
           <label><span>Catégorie</span><select id="buoyCategory"></select></label>
@@ -1445,7 +1446,8 @@ input[type=range] {
           "buoy_isolated_danger",
           "buoy_lateral",
           "buoy_safe_water",
-          "buoy_special_purpose"
+          "buoy_special_purpose",
+          "mooring"
         ]);
         const BUOY_SHAPES = Object.freeze([
           "can",
@@ -1479,6 +1481,10 @@ input[type=range] {
           }),
           buoy_installation: Object.freeze({
             default: Object.freeze({ shape: "super-buoy", colours: Object.freeze(["yellow"]) })
+          }),
+          mooring: Object.freeze({
+            buoy: Object.freeze({ shape: "spherical", colours: Object.freeze(["yellow"]) }),
+            default: Object.freeze({ shape: "spherical", colours: Object.freeze(["yellow"]) })
           })
         });
         const EARTH_RADIUS = 63710088e-1;
@@ -1771,7 +1777,7 @@ input[type=range] {
             { max: 80 }
           );
           if (!BUOY_TYPES.includes(seamarkType)) {
-            addError(errors, `${path}.seamarkType`, "type de bou\xE9e OpenSeaMap inconnu", "enum");
+            addError(errors, `${path}.seamarkType`, "type de bou\xE9e ou d'amarrage inconnu", "enum");
           }
           const shape = requireString2(
             object.shape ?? "unknown",
@@ -2078,7 +2084,7 @@ input[type=range] {
           if (structureCount > MAX_STRUCTURES) {
             addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
           }
-          const parentById = new Map([...pontoons, ...catways].map((item) => [item.id, item]));
+          const parentById = new Map([...pontoons, ...catways, ...buoys].map((item) => [item.id, item]));
           const pontoonById = new Map(pontoons.map((item) => [item.id, item]));
           catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
           const cleats = requireArray(structures.cleats, "$.structures.cleats", errors).map((item, index) => {
@@ -2099,10 +2105,14 @@ input[type=range] {
                 maximum: 1e3
               })
             };
-            if (parent && (Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15 || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15)) {
+            const outsideParent = parent?.type === "buoy" ? Math.abs(localPosition.longitudinal) > parent.radius + 0.15 || Math.abs(localPosition.transverse) > parent.radius + 0.15 : parent && (Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15 || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15);
+            if (outsideParent) {
               addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry");
             }
             const z = requireNumber2(object.z, `${path}.z`, errors, { minimum: -10, maximum: 100 });
+            if (parent?.type === "buoy" && Math.abs(z - parent.height) > 0.2) {
+              addError(errors, `${path}.z`, "le taquet doit \xEAtre plac\xE9 au sommet de la bou\xE9e", "geometry");
+            }
             const orientation = requireNumber2(object.orientation, `${path}.orientation`, errors, {
               minimum: -Math.PI * 8,
               maximum: Math.PI * 8
@@ -2112,6 +2122,25 @@ input[type=range] {
           if (cleats.length > MAX_CLEATS) {
             addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
           }
+          buoys.forEach((buoy, index) => {
+            const buoyCleats = cleats.filter((cleat) => cleat.parentId === buoy.id);
+            if (buoy.seamarkType === "mooring" && buoyCleats.length !== 1) {
+              addError(
+                errors,
+                `$.structures.buoys[${index}]`,
+                "une bou\xE9e corps mort doit poss\xE9der exactement un taquet",
+                "reference"
+              );
+            }
+            if (buoy.seamarkType !== "mooring" && buoyCleats.length) {
+              addError(
+                errors,
+                `$.structures.buoys[${index}]`,
+                "seule une bou\xE9e corps mort peut porter un taquet",
+                "reference"
+              );
+            }
+          });
           const berths = requireArray(document2.berths, "$.berths", errors).map((item, index) => {
             const path = `$.berths[${index}]`;
             const object = requireObject(item, path, errors);
@@ -2242,6 +2271,7 @@ input[type=range] {
           normalized.structures.obstacles = clone3(obstacles);
           normalized.structures.landAreas = clone3(landAreas);
           normalized.structures.buoys = clone3(buoys);
+          normalized.structures.cleats = clone3(cleats);
           normalized.editor.defaultBerthWidth = finite(editor2.defaultBerthWidth) ? editor2.defaultBerthWidth : 4;
           normalized.bounds = geometryBounds(normalized);
           return options.freeze === false ? normalized : freezeDeep(normalized);
@@ -2385,7 +2415,11 @@ input[type=range] {
         function toRuntimeTopology(document2) {
           const kjp = normalizeDocument(document2, { freeze: false });
           const parents = new Map(
-            [...kjp.structures.pontoons, ...kjp.structures.catways].map((item) => [item.id, item])
+            [
+              ...kjp.structures.pontoons,
+              ...kjp.structures.catways,
+              ...kjp.structures.buoys
+            ].map((item) => [item.id, item])
           );
           const toSceneRectangle = (rectangle) => ({
             id: rectangle.id,
@@ -2407,15 +2441,19 @@ input[type=range] {
           });
           const cleats = kjp.structures.cleats.map((cleat) => {
             const parent = parents.get(cleat.parentId);
-            const point = localToWorld(parent, cleat.localPosition);
+            const buoyParent = parent.type === "buoy";
+            const point = buoyParent ? {
+              east: parent.position.east + cleat.localPosition.longitudinal,
+              north: parent.position.north + cleat.localPosition.transverse
+            } : localToWorld(parent, cleat.localPosition);
             return {
               id: cleat.id,
               parentId: cleat.parentId,
-              kind: parent.type === "catway" ? "catway" : "ponton",
+              kind: buoyParent ? "buoy" : parent.type === "catway" ? "catway" : "ponton",
               x: point.east,
               y: point.north,
               z: cleat.z,
-              orientation: parent.heading + cleat.orientation
+              orientation: (buoyParent ? 0 : parent.heading) + cleat.orientation
             };
           });
           const entry = kjp.navigation.entries[0];
@@ -2852,6 +2890,18 @@ input[type=range] {
           }
           return cleats;
         }
+        function cleatForMooringBuoy(document2, buoy) {
+          if (!buoy || buoy.seamarkType !== "mooring") {
+            throw new Error("Une bou\xE9e corps mort est requise pour cr\xE9er son taquet");
+          }
+          return {
+            id: createId("cleat", document2),
+            parentId: buoy.id,
+            localPosition: { longitudinal: 0, transverse: 0 },
+            z: Math.max(0.2, Number(buoy.height) || 1.2),
+            orientation: 0
+          };
+        }
         function createCatwayGroup(document2, parentId, parameters = {}) {
           const parent = document2.structures.pontoons.find((item) => item.id === parentId);
           if (!parent) throw new Error(`Ponton parent absent : ${parentId}`);
@@ -3138,7 +3188,7 @@ input[type=range] {
             for (const group of result.editor.catwayGroups) {
               group.memberIds = group.memberIds.filter((memberId) => memberId !== id);
             }
-          } else if (["pontoons", "catways"].includes(found.collection)) {
+          } else if (["pontoons", "catways", "buoys"].includes(found.collection)) {
             result.structures.cleats = result.structures.cleats.filter((item) => item.parentId !== id);
           } else if (found.collection === "berths") {
             result.staticBoats = result.staticBoats.filter((item) => item.berthId !== id);
@@ -3169,7 +3219,12 @@ input[type=range] {
             }));
           }
           if (found.collection === "entries") result.navigation.entries = [copy];
-          else found.items.push(copy);
+          else {
+            found.items.push(copy);
+            if (found.collection === "buoys" && copy.seamarkType === "mooring") {
+              result.structures.cleats.push(cleatForMooringBuoy(result, copy));
+            }
+          }
           return result;
         }
         class PortEditor {
@@ -3235,6 +3290,11 @@ input[type=range] {
             Object.assign(found.object, clone3(patch));
             let result = next;
             if (found.collection === "pontoons") result = updateChildGeometry(next, id);
+            if (found.collection === "buoys" && found.object.seamarkType === "mooring" && Object.hasOwn(patch, "height")) {
+              for (const cleat of next.structures.cleats) {
+                if (cleat.parentId === id) cleat.z = Math.max(0.2, Number(found.object.height) || 1.2);
+              }
+            }
             return this.commit(result, label);
           }
           remove(id) {
@@ -3322,6 +3382,7 @@ input[type=range] {
           snapPoint,
           distributePositions,
           cleatsForRectangle,
+          cleatForMooringBuoy,
           createCatwayGroup,
           redistributeCatwayGroup,
           inferBerths,
@@ -3373,6 +3434,10 @@ input[type=range] {
           "buoy_safe_water",
           "buoy_special_purpose"
         ]);
+        function isBuoySeamark(tags = {}) {
+          const seamarkType = tags["seamark:type"];
+          return NAVIGATION_BUOY_TYPES.has(seamarkType) || seamarkType === "mooring" && tags["seamark:mooring:category"] === "buoy";
+        }
         function clone3(value) {
           if (typeof structuredClone === "function") return structuredClone(value);
           return JSON.parse(JSON.stringify(value));
@@ -3474,6 +3539,7 @@ input[type=range] {
   relation["natural"="coastline"]${scope};
   relation["natural"="land"]${scope};
   node["seamark:type"~"^buoy_(cardinal|installation|isolated_danger|lateral|safe_water|special_purpose)$"]${scope};
+  node["seamark:type"="mooring"]["seamark:mooring:category"="buoy"]${scope};
 );
 out tags geom;`;
         }
@@ -3726,9 +3792,8 @@ out tags geom;`;
           const raw = [];
           for (const element of response?.elements || []) {
             const geographic = geometryForElement(element);
-            const seamarkType = element.tags?.["seamark:type"];
-            const isNavigationBuoy = NAVIGATION_BUOY_TYPES.has(seamarkType);
-            if (geographic.length < (isNavigationBuoy ? 1 : 2)) continue;
+            const buoySeamark = isBuoySeamark(element.tags);
+            if (geographic.length < (buoySeamark ? 1 : 2)) continue;
             const points = geographic.map((point) => projection.forward(point.latitude, point.longitude));
             const closed = closedGeometry(points);
             const fittedRectangle = closed ? orientedRectangle(points) : null;
@@ -3751,7 +3816,7 @@ out tags geom;`;
             const tags = item.tags;
             const sourceLabel = `${item.osm.type}/${item.osm.id}`;
             const seamarkType = tags["seamark:type"];
-            if (NAVIGATION_BUOY_TYPES.has(seamarkType)) {
+            if (isBuoySeamark(tags)) {
               const prefix = `seamark:${seamarkType}`;
               const category = tags[`${prefix}:category`] || "";
               const shape = tags[`${prefix}:shape`] || "unknown";
@@ -3764,7 +3829,7 @@ out tags geom;`;
                 shape,
                 colours,
                 name: tags["seamark:name"] || tags.name || "",
-                radius: shape === "super-buoy" ? 3 : seamarkType === "buoy_installation" ? 1.8 : 0.45,
+                radius: shape === "super-buoy" ? 3 : seamarkType === "buoy_installation" ? 1.8 : seamarkType === "mooring" ? 0.65 : 0.45,
                 height: ["spar", "pillar"].includes(shape) ? 2.2 : 1.45,
                 confidence: 0.99,
                 reason: `${seamarkType}${category ? ` \xB7 ${category}` : ""} selon OpenSeaMap`,
@@ -3933,6 +3998,7 @@ out tags geom;`;
         function integrateCandidates(document2, candidates2) {
           const next = clone3(document2);
           if (!Array.isArray(next.structures.buoys)) next.structures.buoys = [];
+          const editorCore = typeof module === "object" && module.exports ? require_port_editor_core() : globalThis.PortEditorCore;
           const existingSources = /* @__PURE__ */ new Set();
           for (const list of [
             next.structures.pontoons,
@@ -3957,10 +4023,14 @@ out tags geom;`;
             if (existingSources.has(key)) continue;
             const converted = candidateToObject(candidate, next);
             next.structures[converted.collection].push(converted.object);
+            if (converted.collection === "buoys" && converted.object.seamarkType === "mooring") {
+              next.structures.cleats.push(
+                editorCore.cleatForMooringBuoy(next, converted.object)
+              );
+            }
             existingSources.add(key);
             added += 1;
           }
-          const editorCore = typeof module === "object" && module.exports ? require_port_editor_core() : globalThis.PortEditorCore;
           for (let index = 0; index < next.structures.catways.length; index += 1) {
             const catway = next.structures.catways[index];
             if (catway.attachment || catway.parentId) continue;
@@ -41238,6 +41308,9 @@ out tags geom;`;
     ]),
     buoy_installation: Object.freeze([
       Object.freeze({ value: "", label: "Installation" })
+    ]),
+    mooring: Object.freeze([
+      Object.freeze({ value: "buoy", label: "Corps mort \xB7 bou\xE9e d\u2019amarrage" })
     ])
   });
   function resolvedBuoyAppearance(buoy) {
@@ -41556,11 +41629,17 @@ out tags geom;`;
     if (["pontoons", "catways"].includes(collection)) {
       geometry = new Polygon_default([rectangleMapCoordinates(object)]);
     } else if (collection === "cleats") {
-      const parent = [
+      const rectangleParent = [
         ...editor.document.structures.pontoons,
         ...editor.document.structures.catways
       ].find((item) => item.id === object.parentId);
-      const point = parent ? KJPCodec.localToWorld(parent, object.localPosition) : { east: 0, north: 0 };
+      const buoyParent = editor.document.structures.buoys?.find(
+        (item) => item.id === object.parentId
+      );
+      const point = rectangleParent ? KJPCodec.localToWorld(rectangleParent, object.localPosition) : buoyParent ? {
+        east: buoyParent.position.east + object.localPosition.longitudinal,
+        north: buoyParent.position.north + object.localPosition.transverse
+      } : { east: 0, north: 0 };
       geometry = new Point_default(localToMap(point));
     } else if (collection === "obstacles") {
       geometry = new LineString_default(object.points.map((point) => localToMap(point)));
@@ -41848,7 +41927,7 @@ out tags geom;`;
       berths: "Place",
       staticBoats: "Bateau g\xE9n\xE9rique",
       entries: "Entr\xE9e orient\xE9e",
-      buoys: "Bou\xE9e de navigation"
+      buoys: found.object.seamarkType === "mooring" ? "Bou\xE9e corps mort" : "Bou\xE9e de navigation"
     }[found.collection] || "Objet" : "Aucun objet s\xE9lectionn\xE9";
     if (!found) {
       $("#catwayGenerator").hidden = true;
@@ -42463,12 +42542,22 @@ out tags geom;`;
     if (found?.collection !== "buoys") return;
     const category = configureBuoyCategorySelect(event.target.value, "");
     const appearance = KJPCodec.recommendedBuoyAppearance(event.target.value, category);
-    editor.update(found.object.id, {
-      seamarkType: event.target.value,
-      category,
-      shape: appearance.shape,
-      colours: appearance.colours
-    }, "Modifier le type de bou\xE9e");
+    editor.transaction("Modifier le type de bou\xE9e", (next) => {
+      const buoy = next.structures.buoys.find((item) => item.id === found.object.id);
+      if (!buoy) return;
+      Object.assign(buoy, {
+        seamarkType: event.target.value,
+        category,
+        shape: appearance.shape,
+        colours: appearance.colours
+      });
+      next.structures.cleats = next.structures.cleats.filter(
+        (cleat) => cleat.parentId !== buoy.id
+      );
+      if (buoy.seamarkType === "mooring") {
+        next.structures.cleats.push(EditorCore.cleatForMooringBuoy(next, buoy));
+      }
+    });
     afterEdit({ selectId: found.object.id });
   });
   $("#buoyCategory").addEventListener("change", (event) => {

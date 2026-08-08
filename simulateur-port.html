@@ -5426,7 +5426,8 @@
     "buoy_isolated_danger",
     "buoy_lateral",
     "buoy_safe_water",
-    "buoy_special_purpose"
+    "buoy_special_purpose",
+    "mooring"
   ]);
   const BUOY_SHAPES = Object.freeze([
     "can",
@@ -5460,6 +5461,10 @@
     }),
     buoy_installation: Object.freeze({
       default: Object.freeze({ shape: "super-buoy", colours: Object.freeze(["yellow"]) })
+    }),
+    mooring: Object.freeze({
+      buoy: Object.freeze({ shape: "spherical", colours: Object.freeze(["yellow"]) }),
+      default: Object.freeze({ shape: "spherical", colours: Object.freeze(["yellow"]) })
     })
   });
   const EARTH_RADIUS = 6371008.8;
@@ -5783,7 +5788,7 @@
       { max: 80 }
     );
     if (!BUOY_TYPES.includes(seamarkType)) {
-      addError(errors, `${path}.seamarkType`, "type de bouée OpenSeaMap inconnu", "enum");
+      addError(errors, `${path}.seamarkType`, "type de bouée ou d'amarrage inconnu", "enum");
     }
     const shape = requireString(
       object.shape ?? "unknown",
@@ -6127,7 +6132,7 @@
     if (structureCount > MAX_STRUCTURES) {
       addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
     }
-    const parentById = new Map([...pontoons, ...catways].map(item => [item.id, item]));
+    const parentById = new Map([...pontoons, ...catways, ...buoys].map(item => [item.id, item]));
     const pontoonById = new Map(pontoons.map(item => [item.id, item]));
     catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
 
@@ -6149,13 +6154,22 @@
           maximum: 1000
         })
       };
-      if (parent && (
-        Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15
-        || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15
-      )) {
+      const outsideParent = parent?.type === "buoy"
+        ? (
+          Math.abs(localPosition.longitudinal) > parent.radius + 0.15
+          || Math.abs(localPosition.transverse) > parent.radius + 0.15
+        )
+        : parent && (
+          Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15
+          || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15
+        );
+      if (outsideParent) {
         addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry");
       }
       const z = requireNumber(object.z, `${path}.z`, errors, { minimum: -10, maximum: 100 });
+      if (parent?.type === "buoy" && Math.abs(z - parent.height) > 0.2) {
+        addError(errors, `${path}.z`, "le taquet doit être placé au sommet de la bouée", "geometry");
+      }
       const orientation = requireNumber(object.orientation, `${path}.orientation`, errors, {
         minimum: -Math.PI * 8,
         maximum: Math.PI * 8
@@ -6165,6 +6179,25 @@
     if (cleats.length > MAX_CLEATS) {
       addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
     }
+    buoys.forEach((buoy, index) => {
+      const buoyCleats = cleats.filter(cleat => cleat.parentId === buoy.id);
+      if (buoy.seamarkType === "mooring" && buoyCleats.length !== 1) {
+        addError(
+          errors,
+          `$.structures.buoys[${index}]`,
+          "une bouée corps mort doit posséder exactement un taquet",
+          "reference"
+        );
+      }
+      if (buoy.seamarkType !== "mooring" && buoyCleats.length) {
+        addError(
+          errors,
+          `$.structures.buoys[${index}]`,
+          "seule une bouée corps mort peut porter un taquet",
+          "reference"
+        );
+      }
+    });
 
     const berths = requireArray(document.berths, "$.berths", errors).map((item, index) => {
       const path = `$.berths[${index}]`;
@@ -6302,6 +6335,7 @@
     normalized.structures.obstacles = clone(obstacles);
     normalized.structures.landAreas = clone(landAreas);
     normalized.structures.buoys = clone(buoys);
+    normalized.structures.cleats = clone(cleats);
     normalized.editor.defaultBerthWidth = finite(editor.defaultBerthWidth)
       ? editor.defaultBerthWidth
       : 4;
@@ -6454,7 +6488,11 @@
   function toRuntimeTopology(document) {
     const kjp = normalizeDocument(document, { freeze: false });
     const parents = new Map(
-      [...kjp.structures.pontoons, ...kjp.structures.catways].map(item => [item.id, item])
+      [
+        ...kjp.structures.pontoons,
+        ...kjp.structures.catways,
+        ...kjp.structures.buoys
+      ].map(item => [item.id, item])
     );
     const toSceneRectangle = rectangle => ({
       id: rectangle.id,
@@ -6476,15 +6514,21 @@
     });
     const cleats = kjp.structures.cleats.map(cleat => {
       const parent = parents.get(cleat.parentId);
-      const point = localToWorld(parent, cleat.localPosition);
+      const buoyParent = parent.type === "buoy";
+      const point = buoyParent
+        ? {
+          east: parent.position.east + cleat.localPosition.longitudinal,
+          north: parent.position.north + cleat.localPosition.transverse
+        }
+        : localToWorld(parent, cleat.localPosition);
       return {
         id: cleat.id,
         parentId: cleat.parentId,
-        kind: parent.type === "catway" ? "catway" : "ponton",
+        kind: buoyParent ? "buoy" : parent.type === "catway" ? "catway" : "ponton",
         x: point.east,
         y: point.north,
         z: cleat.z,
-        orientation: parent.heading + cleat.orientation
+        orientation: (buoyParent ? 0 : parent.heading) + cleat.orientation
       };
     });
     const entry = kjp.navigation.entries[0];
@@ -7632,25 +7676,30 @@
           ...(topology.structures?.docks || []),
           ...(topology.structures?.catways || [])
         ];
-        const structureById = new Map(structures.map(structure => [structure.id, structure]));
+        const buoyStructures = topology.structures?.buoys || [];
+        const structureById = new Map(
+          [...structures, ...buoyStructures].map(structure => [structure.id, structure])
+        );
         const cleatIds = new Set();
         for (const cleat of topology.structures?.mooringCleats || []) {
           const parent = structureById.get(cleat.parentId);
           if (
             typeof cleat.id !== "string"
             || cleatIds.has(cleat.id)
-            || !["catway", "ponton"].includes(cleat.kind)
+            || !["catway", "ponton", "buoy"].includes(cleat.kind)
             || ![cleat.x, cleat.y, cleat.z, cleat.orientation].every(Number.isFinite)
           ) {
             errors.push(`taquet d'amarrage invalide : ${cleat.id || "sans identifiant"}`);
             continue;
           }
           cleatIds.add(cleat.id);
-          if (
-            !parent
-            || Math.abs(cleat.x - parent.x) > parent.w / 2 + 1e-9
-            || Math.abs(cleat.y - parent.y) > parent.h / 2 + 1e-9
-          ) {
+          const outsideParent = !parent || (cleat.kind === "buoy"
+            ? Math.hypot(cleat.x - parent.x, cleat.y - parent.y) > parent.radius + 1e-9
+            : (
+              Math.abs(cleat.x - parent.x) > parent.w / 2 + 1e-9
+              || Math.abs(cleat.y - parent.y) > parent.h / 2 + 1e-9
+            ));
+          if (outsideParent) {
             errors.push(`taquet ${cleat.id} hors de sa structure`);
           }
         }
@@ -10167,18 +10216,20 @@
 
     function harborMooringReport() {
       const failures = [];
-      const structures = [...docks, ...catways];
+      const structures = [...docks, ...catways, ...buoys];
       const parentById = new Map(structures.map(structure => [structure.id, structure]));
       const seen = new Set();
       for (const cleat of shoreCleats) {
         const parent = parentById.get(cleat.parentId);
         if (seen.has(cleat.id)) failures.push(`taquet dupliqué ${cleat.id}`);
         seen.add(cleat.id);
-        if (
-          !parent
-          || Math.abs(cleat.x - parent.x) > parent.w / 2 + 1e-9
-          || Math.abs(cleat.y - parent.y) > parent.h / 2 + 1e-9
-        ) {
+        const outsideParent = !parent || (cleat.kind === "buoy"
+          ? Math.hypot(cleat.x - parent.x, cleat.y - parent.y) > parent.radius + 1e-9
+          : (
+            Math.abs(cleat.x - parent.x) > parent.w / 2 + 1e-9
+            || Math.abs(cleat.y - parent.y) > parent.h / 2 + 1e-9
+          ));
+        if (outsideParent) {
           failures.push(`${cleat.id} hors de ${cleat.parentId}`);
         }
       }
@@ -10230,6 +10281,7 @@
         count: shoreCleats.length,
         catwayCleats: shoreCleats.filter(cleat => cleat.kind === "catway").length,
         pontoonCleats: shoreCleats.filter(cleat => cleat.kind === "ponton").length,
+        buoyCleats: shoreCleats.filter(cleat => cleat.kind === "buoy").length,
         initialLines
       };
     }
