@@ -2509,8 +2509,10 @@
 
   const DEG = Math.PI / 180;
   const KNOT = 0.514444;
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
+  const LEGACY_SCHEMA_VERSION = 1;
   const MODEL_CLASS = "displacement-sailing-monohull";
+  const FOUR_QUADRANT_SAMPLES = 32;
 
   function deepClone(value) {
     if (Array.isArray(value)) return value.map(deepClone);
@@ -2539,6 +2541,95 @@
       immersedDepth: canoeDraft * (0.46 + 0.54 * shape),
       shape
     }));
+  }
+
+  function createFourQuadrantTable(spec) {
+    const diameter = spec.diameter;
+    const pitchRatio = spec.pitch / diameter;
+    const geometryScale = (
+      Math.pow(Math.max(0.2, spec.expandedAreaRatio) / 0.55, 0.32)
+      * Math.pow(Math.max(0.35, pitchRatio) / 0.687, 0.28)
+      * Math.pow(Math.max(2, spec.blades) / 3, 0.12)
+    );
+    const thrust = [];
+    const torque = [];
+    const aheadKt = (spec.ktAhead ?? 0.19) * geometryScale;
+    const asternKt = (spec.ktAstern ?? 0.14) * geometryScale;
+    const aheadAdvance = spec.ktAdvanceAhead ?? 0.105;
+    const asternAdvance = spec.ktAdvanceAstern ?? 0.055;
+    const windmill = spec.ktWindmill ?? 0.035;
+    const torqueAhead = (spec.cqAhead ?? 0.0182) * geometryScale;
+    const torqueAstern = (spec.cqAstern ?? 0.0195) * geometryScale;
+    const torqueWindmill = (spec.cqWindmill ?? 0.0115) * geometryScale;
+    const torqueCross = spec.cqCross ?? 0.0035;
+
+    for (let index = 0; index < FOUR_QUADRANT_SAMPLES; index += 1) {
+      const beta = -Math.PI + index * Math.PI * 2 / FOUR_QUADRANT_SAMPLES;
+      const cosine = Math.cos(beta);
+      const sine = Math.sin(beta);
+      const kt0 = cosine >= 0 ? aheadKt : asternKt;
+      const ktAdvance = cosine >= 0 ? aheadAdvance : asternAdvance;
+
+      // Mise sous forme sans dimension de la loi quatre quadrants historique.
+      // Les valeurs sont figées dans chaque profil puis interpolées dans le
+      // cœur ; la table de couple est indépendante et rend possible le bilan
+      // mécanique moteur-arbre-hélice.
+      const ct = (
+        0.5266 * kt0 * cosine * Math.abs(cosine)
+        - 1.158 * ktAdvance * cosine * sine
+        - 2.546 * windmill * sine * Math.abs(sine)
+      );
+      const cqRotation = cosine >= 0 ? torqueAhead : torqueAstern;
+      const cq = (
+        cqRotation * cosine * Math.abs(cosine)
+        - torqueWindmill * sine * Math.abs(sine)
+        - torqueCross * cosine * sine
+      );
+      thrust.push(ct);
+      torque.push(cq);
+    }
+    return {
+      representation: "periodic-beta-table",
+      sampleCount: FOUR_QUADRANT_SAMPLES,
+      betaOriginRad: -Math.PI,
+      thrust,
+      torque,
+      source: spec.source || "calibrated low-order four-quadrant prior",
+      uncertainty: spec.uncertainty ?? 0.25
+    };
+  }
+
+  function propulsionMechanics(spec) {
+    const powerKw = spec.powerKw;
+    const maxRpm = spec.maxRpm ?? 3200;
+    const ratedTorque = powerKw * 1000 / (maxRpm * Math.PI * 2 / 60);
+    return {
+      engine: {
+        inertiaKgM2: spec.engineInertiaKgM2 ?? Math.max(0.07, powerKw * 0.0062),
+        frictionNm: spec.engineFrictionNm ?? Math.max(1.8, ratedTorque * 0.055),
+        governorKpNmPerRadS: spec.governorKpNmPerRadS ?? Math.max(0.84, ratedTorque / 40),
+        governorKiNmPerRad: spec.governorKiNmPerRad ?? Math.max(0.64, ratedTorque / 65),
+        torqueCurve: [
+          { rpm: 850, torqueNm: ratedTorque * 0.72 },
+          { rpm: 1500, torqueNm: ratedTorque * 0.96 },
+          { rpm: 2200, torqueNm: ratedTorque * 1.10 },
+          { rpm: 2800, torqueNm: ratedTorque * 1.06 },
+          { rpm: maxRpm, torqueNm: ratedTorque }
+        ]
+      },
+      shaft: {
+        inertiaKgM2: spec.shaftInertiaKgM2 ?? Math.max(0.012, Math.pow(spec.diameter, 5) * 1.35),
+        viscousFrictionNmPerRadS: spec.shaftViscousFrictionNmPerRadS ?? 0.018,
+        coulombFrictionNm: spec.shaftCoulombFrictionNm ?? 0.18
+      },
+      clutch: {
+        capacityEngineNm: spec.clutchCapacityEngineNm ?? ratedTorque * 1.65,
+        stiffnessNmPerRadS: spec.clutchStiffnessNmPerRadS ?? 0.82,
+        disengageTimeS: spec.disengageTimeS ?? 0.12,
+        neutralDwellS: spec.neutralDwellS ?? 0.18,
+        engageTimeS: spec.engageTimeS ?? 0.36
+      }
+    };
   }
 
   function aerodynamicPanels(scaleLength = 1, scaleArea = 1) {
@@ -2622,10 +2713,32 @@
     { id: "fender-stern-starboard", position: { x: -3.55, y: 1.821, z: 0.9 }, side: "starboard", preload: 0.01 }
   ];
 
+  const REFERENCE_PROPELLER_SPEC = {
+    diameter: 0.406,
+    pitch: 0.279,
+    blades: 3,
+    expandedAreaRatio: 0.55,
+    ktAhead: 0.19,
+    ktAstern: 0.14,
+    ktAdvanceAhead: 0.105,
+    ktAdvanceAstern: 0.055,
+    ktWindmill: 0.035,
+    cqAhead: 0.0173,
+    cqAstern: 0.0195,
+    cqWindmill: 0.0115,
+    source: "B3-55/P-D 0.69 low-order four-quadrant prior; calibrated envelope",
+    uncertainty: 0.25
+  };
+  const REFERENCE_MECHANICS = propulsionMechanics({
+    powerKw: 21.3,
+    maxRpm: 3200,
+    diameter: REFERENCE_PROPELLER_SPEC.diameter
+  });
+
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "3.0.3",
+    version: "4.0.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -2699,27 +2812,27 @@
         model: "Yanmar 3YM30",
         powerKw: 21.3,
         idleRpm: 850,
-        maxRpm: 3200
+        maxRpm: 3200,
+        dynamics: REFERENCE_MECHANICS.engine
       },
       gearbox: {
         model: "KM2P-1",
         ratioAhead: 2.62,
         ratioAstern: 3.06,
-        shaftTimeAhead: 0.58,
-        shaftTimeAstern: 0.66
+        efficiency: 0.94,
+        clutch: REFERENCE_MECHANICS.clutch
       },
       propeller: {
-        diameter: 0.406,
-        pitch: 0.279,
-        blades: 3,
-        expandedAreaRatio: 0.55,
-        ktAhead: 0.19,
-        ktAstern: 0.14,
-        ktAdvanceAhead: 0.105,
-        ktAdvanceAstern: 0.055,
-        ktWindmill: 0.035,
-        thrustCapAhead: 3100,
-        thrustCapAstern: 2050
+        diameter: REFERENCE_PROPELLER_SPEC.diameter,
+        pitch: REFERENCE_PROPELLER_SPEC.pitch,
+        blades: REFERENCE_PROPELLER_SPEC.blades,
+        expandedAreaRatio: REFERENCE_PROPELLER_SPEC.expandedAreaRatio,
+        shaft: REFERENCE_MECHANICS.shaft,
+        fourQuadrant: createFourQuadrantTable(REFERENCE_PROPELLER_SPEC),
+        safety: {
+          maximumThrustCoefficient: 2.2,
+          maximumTorqueCoefficient: 0.12
+        }
       },
       transverseWalk: {
         base: 0.045,
@@ -2744,10 +2857,14 @@
       },
       slipstreamSources: ["shaft-propeller"],
       slipstream: {
-        areaFraction: 0.36,
-        velocityFraction: 0.72,
-        turnEfficiency: 0.82,
-        momentumFactor: 1.08
+        stripCount: 5,
+        contractionRatio: 0.86,
+        downstreamVelocityFactor: 0.55,
+        upstreamVelocityFactor: 0.24,
+        swirlFraction: 0.055,
+        convectionTimeBoundsS: [0.05, 0.55],
+        flowStraightening: 0.92,
+        momentumSafetyFactor: 1.18
       }
     }],
     aerodynamics: {
@@ -2839,6 +2956,27 @@
   function scaledSyntheticProfile(spec) {
     const lengthScale = spec.loa / SUN_ODYSSEY_36I.geometry.loa;
     const areaScale = lengthScale * lengthScale;
+    const propellerSpec = {
+      diameter: spec.propulsor.diameter,
+      pitch: spec.propulsor.pitch,
+      blades: spec.propulsor.blades ?? 3,
+      expandedAreaRatio: spec.propulsor.expandedAreaRatio ?? 0.55,
+      ktAhead: spec.propulsor.ktAhead ?? 0.19,
+      ktAstern: spec.propulsor.ktAstern ?? 0.14,
+      ktAdvanceAhead: spec.propulsor.ktAdvanceAhead ?? 0.105,
+      ktAdvanceAstern: spec.propulsor.ktAdvanceAstern ?? 0.055,
+      ktWindmill: spec.propulsor.ktWindmill ?? 0.035,
+      cqAhead: spec.propulsor.cqAhead ?? 0.0182,
+      cqAstern: spec.propulsor.cqAstern ?? 0.0195,
+      cqWindmill: spec.propulsor.cqWindmill ?? 0.0115,
+      source: `${spec.provenance}; dedicated synthetic four-quadrant table`,
+      uncertainty: 0.3
+    };
+    const mechanics = propulsionMechanics({
+      powerKw: spec.propulsor.powerKw,
+      maxRpm: 3200,
+      diameter: spec.propulsor.diameter
+    });
     const cleats = REFERENCE_CLEATS.map(cleat => ({
       ...cleat,
       position: {
@@ -2858,7 +2996,7 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       id: spec.id,
-      version: "1.0.1",
+      version: "2.0.0",
       name: spec.name,
       modelClass: MODEL_CLASS,
       validity: {
@@ -2924,27 +3062,27 @@
           model: "synthetic-validation-engine",
           powerKw: spec.propulsor.powerKw,
           idleRpm: 850,
-          maxRpm: 3200
+          maxRpm: 3200,
+          dynamics: mechanics.engine
         },
         gearbox: {
           model: "synthetic-validation-gearbox",
           ratioAhead: spec.propulsor.gearAhead,
           ratioAstern: spec.propulsor.gearAstern,
-          shaftTimeAhead: spec.propulsor.shaftTimeAhead,
-          shaftTimeAstern: spec.propulsor.shaftTimeAstern
+          efficiency: 0.94,
+          clutch: mechanics.clutch
         },
         propeller: {
-          diameter: spec.propulsor.diameter,
-          pitch: spec.propulsor.pitch,
-          blades: 3,
-          expandedAreaRatio: 0.55,
-          ktAhead: 0.19,
-          ktAstern: 0.14,
-          ktAdvanceAhead: 0.105,
-          ktAdvanceAstern: 0.055,
-          ktWindmill: 0.035,
-          thrustCapAhead: spec.propulsor.thrustCapAhead,
-          thrustCapAstern: spec.propulsor.thrustCapAstern
+          diameter: propellerSpec.diameter,
+          pitch: propellerSpec.pitch,
+          blades: propellerSpec.blades,
+          expandedAreaRatio: propellerSpec.expandedAreaRatio,
+          shaft: mechanics.shaft,
+          fourQuadrant: createFourQuadrantTable(propellerSpec),
+          safety: {
+            maximumThrustCoefficient: 2.2,
+            maximumTorqueCoefficient: 0.12
+          }
         },
         transverseWalk: { base: 0.045, gain: 0.16 }
       }],
@@ -2966,10 +3104,14 @@
         },
         slipstreamSources: ["shaft-propeller"],
         slipstream: {
-          areaFraction: 0.36,
-          velocityFraction: 0.72,
-          turnEfficiency: 0.82,
-          momentumFactor: 1.08
+          stripCount: 5,
+          contractionRatio: 0.86,
+          downstreamVelocityFactor: 0.55,
+          upstreamVelocityFactor: 0.24,
+          swirlFraction: 0.055,
+          convectionTimeBoundsS: [0.05, 0.55],
+          flowStraightening: 0.92,
+          momentumSafetyFactor: 1.18
         }
       }],
       aerodynamics: {
@@ -3139,11 +3281,92 @@
     );
   }
 
-  function validateVesselProfile(rawProfile) {
+  function upgradeLegacyProfile(rawProfile) {
+    if (!rawProfile || rawProfile.schemaVersion !== LEGACY_SCHEMA_VERSION) {
+      return deepClone(rawProfile);
+    }
+    const upgraded = deepClone(rawProfile);
+    upgraded.schemaVersion = SCHEMA_VERSION;
+    for (const propulsor of upgraded.propulsors || []) {
+      const propeller = propulsor.propeller || {};
+      const mechanics = propulsionMechanics({
+        powerKw: propulsor.engine?.powerKw || 1,
+        maxRpm: propulsor.engine?.maxRpm || 3200,
+        diameter: propeller.diameter || 0.3,
+        engageTimeS: Math.max(
+          0.2,
+          Math.min(0.8, propulsor.gearbox?.shaftTimeAhead || 0.36)
+        )
+      });
+      propulsor.engine.dynamics ||= mechanics.engine;
+      propulsor.gearbox.efficiency ||= 0.94;
+      propulsor.gearbox.clutch ||= mechanics.clutch;
+      propeller.shaft ||= mechanics.shaft;
+      propeller.fourQuadrant ||= createFourQuadrantTable({
+        diameter: propeller.diameter,
+        pitch: propeller.pitch,
+        blades: propeller.blades,
+        expandedAreaRatio: propeller.expandedAreaRatio,
+        ktAhead: propeller.ktAhead,
+        ktAstern: propeller.ktAstern,
+        ktAdvanceAhead: propeller.ktAdvanceAhead,
+        ktAdvanceAstern: propeller.ktAdvanceAstern,
+        ktWindmill: propeller.ktWindmill,
+        source: "legacy schema 1 deterministic adapter",
+        uncertainty: 0.35
+      });
+      propeller.safety ||= {
+        maximumThrustCoefficient: 2.2,
+        maximumTorqueCoefficient: 0.12
+      };
+    }
+    for (const rudder of upgraded.rudders || []) {
+      const legacy = rudder.slipstream || {};
+      rudder.slipstream = {
+        stripCount: legacy.stripCount || 5,
+        contractionRatio: legacy.contractionRatio || 0.86,
+        downstreamVelocityFactor: (
+          legacy.downstreamVelocityFactor
+          || legacy.velocityFraction
+          || 0.72
+        ),
+        upstreamVelocityFactor: legacy.upstreamVelocityFactor || 0.24,
+        swirlFraction: legacy.swirlFraction || 0.055,
+        convectionTimeBoundsS: legacy.convectionTimeBoundsS || [0.05, 0.55],
+        flowStraightening: legacy.flowStraightening || 0.92,
+        momentumSafetyFactor: (
+          legacy.momentumSafetyFactor
+          || Math.max(1.05, legacy.momentumFactor || 1.18)
+        ),
+        legacyAreaFraction: legacy.areaFraction || 0.36
+      };
+    }
+    upgraded.provenance ||= { values: {} };
+    upgraded.provenance.values ||= {};
+    upgraded.provenance.values["schema.adapter"] = {
+      sourceType: "estimated",
+      source: "deterministic schema 1 to schema 2 compatibility adapter",
+      unit: "none",
+      uncertainty: 0.35,
+      domain: "temporary compatibility; replace with an explicit profile"
+    };
+    return upgraded;
+  }
+
+  function validateVesselProfile(profileInput) {
     const errors = [];
     const warnings = [];
-    if (!rawProfile || typeof rawProfile !== "object") {
+    if (!profileInput || typeof profileInput !== "object") {
       return { ok: false, errors: ["Le profil doit être un objet."], warnings };
+    }
+    const legacyInput = profileInput.schemaVersion === LEGACY_SCHEMA_VERSION;
+    const rawProfile = legacyInput
+      ? upgradeLegacyProfile(profileInput)
+      : profileInput;
+    if (legacyInput) {
+      warnings.push(
+        "Profil schemaVersion 1 adapté vers la version 2 : fournir des courbes propulsion explicites."
+      );
     }
     for (const path of REQUIRED_PATHS) {
       const value = valueAtPath(rawProfile, path);
@@ -3209,11 +3432,80 @@
       }
     }
     const propulsorIds = new Set((rawProfile.propulsors || []).map(item => item.id));
+    for (const propulsor of rawProfile.propulsors || []) {
+      const engine = propulsor.engine || {};
+      const dynamics = engine.dynamics || {};
+      const gearbox = propulsor.gearbox || {};
+      const clutch = gearbox.clutch || {};
+      const propeller = propulsor.propeller || {};
+      const table = propeller.fourQuadrant || {};
+      const shaft = propeller.shaft || {};
+      const positiveValues = [
+        engine.powerKw,
+        engine.idleRpm,
+        engine.maxRpm,
+        dynamics.inertiaKgM2,
+        dynamics.governorKpNmPerRadS,
+        dynamics.governorKiNmPerRad,
+        gearbox.ratioAhead,
+        gearbox.ratioAstern,
+        gearbox.efficiency,
+        clutch.capacityEngineNm,
+        clutch.stiffnessNmPerRadS,
+        clutch.disengageTimeS,
+        clutch.neutralDwellS,
+        clutch.engageTimeS,
+        propeller.diameter,
+        propeller.pitch,
+        propeller.expandedAreaRatio,
+        shaft.inertiaKgM2
+      ];
+      if (!positiveValues.every(value => Number.isFinite(value) && value > 0)) {
+        errors.push(`Chaîne propulsive incomplète ou non positive : ${propulsor.id}.`);
+      }
+      if (
+        !Array.isArray(dynamics.torqueCurve)
+        || dynamics.torqueCurve.length < 2
+        || dynamics.torqueCurve.some(point => (
+          !Number.isFinite(point.rpm)
+          || !Number.isFinite(point.torqueNm)
+          || point.rpm < 0
+          || point.torqueNm <= 0
+        ))
+      ) {
+        errors.push(`Courbe de couple moteur invalide : ${propulsor.id}.`);
+      }
+      if (
+        table.representation !== "periodic-beta-table"
+        || !Number.isInteger(table.sampleCount)
+        || table.sampleCount < 8
+        || !Array.isArray(table.thrust)
+        || !Array.isArray(table.torque)
+        || table.thrust.length !== table.sampleCount
+        || table.torque.length !== table.sampleCount
+        || ![...table.thrust, ...table.torque].every(Number.isFinite)
+      ) {
+        errors.push(`Table quatre quadrants invalide : ${propulsor.id}.`);
+      }
+    }
     for (const rudder of rawProfile.rudders || []) {
       for (const sourceId of rudder.slipstreamSources || []) {
         if (!propulsorIds.has(sourceId)) {
           errors.push(`Le safran ${rudder.id} référence une hélice inconnue : ${sourceId}.`);
         }
+      }
+      const slipstream = rudder.slipstream || {};
+      if (
+        !Number.isInteger(slipstream.stripCount)
+        || slipstream.stripCount < 3
+        || slipstream.stripCount > 15
+        || !Number.isFinite(slipstream.contractionRatio)
+        || slipstream.contractionRatio <= 0
+        || !Array.isArray(slipstream.convectionTimeBoundsS)
+        || slipstream.convectionTimeBoundsS.length !== 2
+        || !slipstream.convectionTimeBoundsS.every(value => Number.isFinite(value) && value > 0)
+      ) {
+        errors.push(`Paramètres de jet invalides : ${rudder.id}.`);
       }
     }
     const halfLength = (rawProfile.geometry?.loa || 0) / 2;
@@ -3265,10 +3557,19 @@
       enginePowerKw: propulsor.engine.powerKw,
       idleRpm: propulsor.engine.idleRpm,
       maxRpm: propulsor.engine.maxRpm,
+      engineDynamics: deepClone(propulsor.engine.dynamics),
       gearAhead: propulsor.gearbox.ratioAhead,
       gearAstern: propulsor.gearbox.ratioAstern,
-      shaftTimeAhead: propulsor.gearbox.shaftTimeAhead,
-      shaftTimeAstern: propulsor.gearbox.shaftTimeAstern,
+      gearEfficiency: propulsor.gearbox.efficiency,
+      clutch: deepClone(propulsor.gearbox.clutch),
+      shaftTimeAhead: (
+        propulsor.gearbox.shaftTimeAhead
+        || propulsor.gearbox.clutch.engageTimeS
+      ),
+      shaftTimeAstern: (
+        propulsor.gearbox.shaftTimeAstern
+        || propulsor.gearbox.clutch.engageTimeS
+      ),
       ...deepClone(propulsor.propeller),
       walkBase: propulsor.transverseWalk?.base || 0,
       walkGain: propulsor.transverseWalk?.gain || 0
@@ -3292,10 +3593,11 @@
       rate: rudder.rateDegS * DEG,
       span: rudder.span,
       slipstreamSources: [...(rudder.slipstreamSources || [])],
-      slipstreamAreaFraction: rudder.slipstream.areaFraction,
-      slipstreamVelocityFraction: rudder.slipstream.velocityFraction,
-      slipstreamTurnEfficiency: rudder.slipstream.turnEfficiency,
-      slipstreamMomentumFactor: rudder.slipstream.momentumFactor
+      slipstreamAreaFraction: rudder.slipstream.legacyAreaFraction || 0.36,
+      slipstreamVelocityFraction: rudder.slipstream.downstreamVelocityFactor,
+      slipstreamTurnEfficiency: rudder.slipstream.flowStraightening,
+      slipstreamMomentumFactor: rudder.slipstream.momentumSafetyFactor,
+      slipstream: deepClone(rudder.slipstream)
     };
   }
 
@@ -3323,7 +3625,9 @@
     if (!report.ok) {
       throw new Error(`Profil bateau invalide : ${report.errors.join(" ; ")}`);
     }
-    const raw = deepClone(rawProfile);
+    const raw = rawProfile.schemaVersion === LEGACY_SCHEMA_VERSION
+      ? upgradeLegacyProfile(rawProfile)
+      : deepClone(rawProfile);
     const appendages = raw.appendages.map(flattenAppendage);
     const propulsors = raw.propulsors.map(flattenPropulsor);
     const rudders = raw.rudders.map(flattenRudder);
@@ -3452,6 +3756,7 @@
     RAW_PROFILES,
     COMPILED_PROFILES,
     DEFAULT_PROFILE,
+    upgradeLegacyProfile,
     validateVesselProfile,
     compileVesselProfile,
     applyCalibrationPatch
@@ -3479,6 +3784,7 @@
   const RHO_AIR = 1.225;
   const MAX_STEP = 1 / 120;
   const EPSILON = 1e-9;
+  const PHYSICS_VERSION = "4.0.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -3493,6 +3799,45 @@
   };
   const finite = value => Number.isFinite(value) ? value : 0;
   const hypot2 = (x, y) => Math.hypot(x, y);
+
+  function samplePeriodicCurve(values, origin, angle) {
+    const count = values.length;
+    if (!count) return 0;
+    const period = Math.PI * 2;
+    let offset = (angle - origin) % period;
+    if (offset < 0) offset += period;
+    const coordinate = offset * count / period;
+    const index = Math.floor(coordinate);
+    const t = coordinate - index;
+    const at = item => values[(item % count + count) % count];
+    const p0 = at(index - 1);
+    const p1 = at(index);
+    const p2 = at(index + 1);
+    const p3 = at(index + 2);
+    return 0.5 * (
+      2 * p1
+      + (-p0 + p2) * t
+      + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t
+      + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t
+    );
+  }
+
+  function interpolateCurve(points, coordinate, xKey, yKey) {
+    if (!points.length) return 0;
+    if (coordinate <= points[0][xKey]) return points[0][yKey];
+    for (let index = 1; index < points.length; index += 1) {
+      const right = points[index];
+      if (coordinate <= right[xKey]) {
+        const left = points[index - 1];
+        const t = (
+          (coordinate - left[xKey])
+          / Math.max(EPSILON, right[xKey] - left[xKey])
+        );
+        return left[yKey] + (right[yKey] - left[yKey]) * t;
+      }
+    }
+    return points[points.length - 1][yKey];
+  }
 
   function deepClone(value) {
     if (Array.isArray(value)) return value.map(deepClone);
@@ -3728,43 +4073,7 @@
     const advance = finite(input.advanceSpeed);
     const diameter = propeller.diameter;
     const nAbs = Math.abs(n);
-    const kt0 = n >= 0 ? propeller.ktAhead : propeller.ktAstern;
-    const ktAdvance = n >= 0
-      ? propeller.ktAdvanceAhead
-      : propeller.ktAdvanceAstern;
-
-    /*
-     * Approximation quatre quadrants homogène d'ordre deux. Les trois termes
-     * dépendent uniquement de l'angle d'avance hydrodynamique une fois
-     * normalisés par Va² + (0,7 π n D)². Contrairement à un unique Kt(J),
-     * cette écriture reste finie à régime nul et distingue explicitement
-     * crash-back et backing.
-     */
-    const rotationTerm = kt0 * n * nAbs;
-    const advanceTerm = ktAdvance * n * advance / Math.max(0.05, diameter);
-    const windmillTerm = (
-      propeller.ktWindmill
-      * advance
-      * Math.abs(advance)
-      / Math.max(0.0025, diameter * diameter)
-    );
-    let thrust = RHO_WATER * Math.pow(diameter, 4) * (
-      rotationTerm - advanceTerm - windmillTerm
-    );
-    thrust = clamp(
-      thrust,
-      -propeller.thrustCapAstern,
-      propeller.thrustCapAhead
-    );
     const diskArea = Math.PI * diameter * diameter / 4;
-    let inducedVelocity = 0;
-    if (n > 0 && thrust > 0) {
-      inducedVelocity = (
-        Math.sqrt(Math.max(0, advance * advance + 2 * thrust / (RHO_WATER * diskArea)))
-        - Math.abs(advance)
-      );
-      inducedVelocity = Math.max(0, inducedVelocity);
-    }
     const advanceRatio = nAbs > 0.01
       ? clamp(advance / (nAbs * diameter), -12, 12)
       : 0;
@@ -3773,26 +4082,65 @@
     const hydrodynamicPitchAngle = referenceSpeedSquared > EPSILON
       ? Math.atan2(advance, tangentialSpeed)
       : 0;
-    const thrustCoefficient = referenceSpeedSquared > EPSILON
-      ? thrust / (
-        0.5
-        * RHO_WATER
-        * referenceSpeedSquared
-        * diskArea
+    const table = propeller.fourQuadrant;
+    const rawThrustCoefficient = referenceSpeedSquared > EPSILON
+      ? samplePeriodicCurve(
+        table.thrust,
+        table.betaOriginRad,
+        hydrodynamicPitchAngle
       )
       : 0;
+    const rawTorqueCoefficient = referenceSpeedSquared > EPSILON
+      ? samplePeriodicCurve(
+        table.torque,
+        table.betaOriginRad,
+        hydrodynamicPitchAngle
+      )
+      : 0;
+    const thrustCoefficient = clamp(
+      rawThrustCoefficient,
+      -propeller.safety.maximumThrustCoefficient,
+      propeller.safety.maximumThrustCoefficient
+    );
+    const torqueCoefficient = clamp(
+      rawTorqueCoefficient,
+      -propeller.safety.maximumTorqueCoefficient,
+      propeller.safety.maximumTorqueCoefficient
+    );
+    const dynamic = 0.5 * RHO_WATER * referenceSpeedSquared * diskArea;
+    const thrust = dynamic * thrustCoefficient;
+    const torque = dynamic * diameter * torqueCoefficient;
+    let inducedVelocity = 0;
+    if (Math.abs(thrust) > EPSILON) {
+      inducedVelocity = Math.sign(thrust) * (
+        Math.sqrt(
+          Math.max(0, advance * advance + 2 * Math.abs(thrust) / (RHO_WATER * diskArea))
+        )
+        - Math.abs(advance)
+      );
+    }
     const quadrant = n >= 0
       ? (advance >= 0 ? "ahead" : "crash-ahead")
       : (advance > 0 ? "crash-back" : "backing");
     return {
       thrust,
+      torque,
       inducedVelocity,
       advanceRatio,
       hydrodynamicPitchAngle,
       thrustCoefficient,
+      torqueCoefficient,
+      rawThrustCoefficient,
+      rawTorqueCoefficient,
+      safetyLimitActive: (
+        Math.abs(rawThrustCoefficient - thrustCoefficient) > 1e-10
+        || Math.abs(rawTorqueCoefficient - torqueCoefficient) > 1e-10
+      ),
       quadrant,
       shaftRps: n,
-      diskArea
+      diskArea,
+      shaftPower: torque * n * Math.PI * 2,
+      usefulPower: thrust * advance
     };
   }
 
@@ -4135,22 +4483,60 @@
     let simulationTime = 0;
 
     function defaultState() {
-      const propulsionUnits = profile.propulsors.map(propulsor => ({
-        id: propulsor.id,
-        commandActual: 0,
-        engineRpm: propulsor.idleRpm,
-        shaftRps: 0,
-        thrust: 0,
-        advanceRatio: 0,
-        inducedVelocity: 0
-      }));
+      const propulsionUnits = profile.propulsors.map(propulsor => {
+        const idleOmega = propulsor.idleRpm * Math.PI * 2 / 60;
+        return {
+          id: propulsor.id,
+          commandActual: 0,
+          requestedGear: 0,
+          engagedGear: 0,
+          gearState: "neutral",
+          shiftTimer: 0,
+          clutchEngagement: 0,
+          governorIntegralNm: propulsor.engineDynamics.frictionNm,
+          engineOmega: idleOmega,
+          engineRpm: propulsor.idleRpm,
+          shaftOmega: 0,
+          shaftRps: 0,
+          engineTorque: propulsor.engineDynamics.frictionNm,
+          clutchTorque: 0,
+          shaftDriveTorque: 0,
+          propellerTorque: 0,
+          enginePower: 0,
+          shaftPower: 0,
+          thrust: 0,
+          advanceRatio: 0,
+          inducedVelocity: 0,
+          hydrodynamicPitchAngle: 0,
+          thrustCoefficient: 0,
+          torqueCoefficient: 0,
+          safetyLimitActive: false
+        };
+      });
+      const slipstreams = [];
+      for (const rudder of profile.rudders) {
+        for (const propulsorId of rudder.slipstreamSources) {
+          slipstreams.push({
+            id: `${propulsorId}->${rudder.id}`,
+            propulsorId,
+            rudderId: rudder.id,
+            axialVelocity: 0,
+            tangentialVelocity: 0,
+            targetAxialVelocity: 0,
+            targetTangentialVelocity: 0,
+            convectionTimeS: rudder.slipstream.convectionTimeBoundsS[1],
+            downstream: false
+          });
+        }
+      }
       const primaryPropulsion = propulsionUnits[0];
       return {
         pose: { east: 0, north: 0, heading: Math.PI / 2 },
         velocity: { u: 0, v: 0, r: 0 },
         propulsion: {
           ...primaryPropulsion,
-          units: propulsionUnits
+          units: propulsionUnits,
+          slipstreams
         },
         controls: { throttleTarget: 0, rudderTarget: 0, rudderActual: 0 },
         moorings: [],
@@ -4543,76 +4929,162 @@
       return { ...units[0], units };
     }
 
+    function slipstreamCoverage(propulsor, rudder, stripZ) {
+      const longitudinalDistance = Math.abs(rudder.x - propulsor.x);
+      const contractionProgress = smoothstep(
+        0,
+        Math.max(EPSILON, 4 * propulsor.diameter),
+        longitudinalDistance
+      );
+      const wakeRadius = 0.5 * propulsor.diameter * (
+        1 - (1 - rudder.slipstream.contractionRatio) * contractionProgress
+      );
+      const stripHalfHeight = rudder.span / rudder.slipstream.stripCount / 2;
+      const radialDistance = Math.hypot(
+        rudder.y - propulsor.y,
+        stripZ - propulsor.z
+      );
+      return {
+        fraction: 1 - smoothstep(
+          Math.max(0, wakeRadius - stripHalfHeight),
+          wakeRadius + stripHalfHeight,
+          radialDistance
+        ),
+        wakeRadius,
+        radialDistance
+      };
+    }
+
     function addRudderForces(accumulator, relative, candidateState, propellers) {
       const units = [];
+      const propellerById = new Map(propellers.units.map(unit => [unit.id, unit]));
+      const profilePropellerById = new Map(profile.propulsors.map(unit => [unit.id, unit]));
+      const wakeById = new Map(
+        (candidateState.propulsion.slipstreams || []).map(link => [link.id, link])
+      );
       for (const rudder of profile.rudders) {
         const localU = relative.u - relative.r * rudder.y;
         const localV = relative.v + relative.r * rudder.x;
         const delta = candidateState.controls.rudderActual;
-        const overlap = clamp(rudder.slipstreamAreaFraction, 0, 1);
-        const washedArea = rudder.area * overlap;
-        const free = foilModel({
-          u: localU,
-          v: localV,
-          delta,
-          area: rudder.area,
-          aspectRatio: rudder.aspectRatio,
-          efficiency: rudder.efficiency,
-          cd0: rudder.cd0,
-          normalCd90: rudder.normalCd90,
-          stallStart: rudder.stallStart,
-          stallEnd: rudder.stallEnd
-        });
-        const washedWithoutPropeller = {
-          X: free.X * overlap,
-          Y: free.Y * overlap
-        };
-        const upstream = propellers.units.filter(propeller => (
-          rudder.slipstreamSources.includes(propeller.id)
-          && propeller.thrust > 0
-        ));
-        const wash = upstream.reduce(
-          (sum, propeller) => sum + (
-            propeller.inducedVelocity * rudder.slipstreamVelocityFraction
-          ),
-          0
-        );
-        const washedWithPropeller = foilModel({
-          u: localU + wash,
-          v: localV,
-          delta,
-          area: washedArea,
-          aspectRatio: rudder.aspectRatio,
-          efficiency: rudder.efficiency,
-          cd0: rudder.cd0,
-          normalCd90: rudder.normalCd90,
-          stallStart: rudder.stallStart,
-          stallEnd: rudder.stallEnd
-        });
-        let extraX = washedWithPropeller.X - washedWithoutPropeller.X;
-        let extraY = washedWithPropeller.Y - washedWithoutPropeller.Y;
-        let momentumLimits = { axialLoss: 0, side: 0, recovery: 0 };
-        const upstreamThrust = upstream.reduce(
-          (sum, propeller) => sum + propeller.thrust,
-          0
-        );
-        if (upstreamThrust > 0) {
-          const momentum = upstreamThrust * overlap;
-          const turn = Math.min(
-            Math.abs(delta) * rudder.slipstreamTurnEfficiency,
-            48 * DEG
-          );
-          const factor = rudder.slipstreamMomentumFactor;
-          momentumLimits = {
-            axialLoss: momentum * (0.04 + factor * (1 - Math.cos(turn))),
-            side: momentum * factor * Math.sin(turn),
-            recovery: momentum * 0.12
+        const stripCount = rudder.slipstream.stripCount;
+        const stripArea = rudder.area / stripCount;
+        const strips = [];
+        let freeX = 0;
+        let freeY = 0;
+        let wakeX = 0;
+        let wakeY = 0;
+        let coverageSum = 0;
+        let axialSum = 0;
+        let tangentialSum = 0;
+        for (let stripIndex = 0; stripIndex < stripCount; stripIndex += 1) {
+          const stripZ = rudder.z + (
+            stripIndex + 0.5 - stripCount / 2
+          ) * rudder.span / stripCount;
+          let axialVelocity = 0;
+          let tangentialVelocity = 0;
+          let stripCoverage = 0;
+          const sources = [];
+          for (const propulsorId of rudder.slipstreamSources) {
+            const propulsor = profilePropellerById.get(propulsorId);
+            const wake = wakeById.get(`${propulsorId}->${rudder.id}`);
+            if (!propulsor || !wake) continue;
+            const geometry = slipstreamCoverage(propulsor, rudder, stripZ);
+            const coverage = geometry.fraction;
+            const verticalRatio = clamp(
+              (stripZ - propulsor.z) / Math.max(EPSILON, geometry.wakeRadius),
+              -1,
+              1
+            );
+            axialVelocity += wake.axialVelocity * coverage;
+            tangentialVelocity += (
+              wake.tangentialVelocity * verticalRatio * coverage
+            );
+            stripCoverage = Math.max(stripCoverage, coverage);
+            sources.push({
+              id: propulsorId,
+              coverage,
+              wakeRadius: geometry.wakeRadius,
+              radialDistance: geometry.radialDistance,
+              axialVelocity: wake.axialVelocity,
+              tangentialVelocity: wake.tangentialVelocity,
+              downstream: wake.downstream
+            });
+          }
+          const free = foilModel({
+            u: localU,
+            v: localV,
+            delta,
+            area: stripArea,
+            aspectRatio: rudder.aspectRatio,
+            efficiency: rudder.efficiency,
+            cd0: rudder.cd0,
+            normalCd90: rudder.normalCd90,
+            stallStart: rudder.stallStart,
+            stallEnd: rudder.stallEnd
+          });
+          const localFlow = {
+            u: localU + axialVelocity,
+            v: localV + tangentialVelocity * rudder.slipstream.flowStraightening
           };
-          extraX = clamp(extraX, -momentumLimits.axialLoss, momentumLimits.recovery);
-          extraY = clamp(extraY, -momentumLimits.side, momentumLimits.side);
+          const force = foilModel({
+            ...localFlow,
+            delta,
+            area: stripArea,
+            aspectRatio: rudder.aspectRatio,
+            efficiency: rudder.efficiency,
+            cd0: rudder.cd0,
+            normalCd90: rudder.normalCd90,
+            stallStart: rudder.stallStart,
+            stallEnd: rudder.stallEnd
+          });
+          freeX += free.X;
+          freeY += free.Y;
+          wakeX += force.X;
+          wakeY += force.Y;
+          coverageSum += stripCoverage;
+          axialSum += axialVelocity;
+          tangentialSum += tangentialVelocity;
+          strips.push({
+            index: stripIndex,
+            z: stripZ,
+            area: stripArea,
+            coverage: stripCoverage,
+            freeFlow: { u: localU, v: localV },
+            localFlow,
+            axialVelocity,
+            tangentialVelocity,
+            force: { X: force.X, Y: force.Y },
+            sources
+          });
         }
-        const X = free.X + extraX;
-        const Y = free.Y + extraY;
+        let extraX = wakeX - freeX;
+        let extraY = wakeY - freeY;
+        const availableMomentum = rudder.slipstreamSources.reduce((sum, id) => {
+          const propeller = propellerById.get(id);
+          const propulsor = profilePropellerById.get(id);
+          const wake = wakeById.get(`${id}->${rudder.id}`);
+          if (!propeller || !propulsor || !wake) return sum;
+          const diskArea = Math.PI * propulsor.diameter * propulsor.diameter / 4;
+          const convectedMomentum = RHO_WATER * diskArea * (
+            wake.axialVelocity * wake.axialVelocity
+            + wake.tangentialVelocity * wake.tangentialVelocity
+          );
+          return sum + Math.max(Math.abs(propeller.thrust), convectedMomentum);
+        }, 0);
+        const momentumLimit = (
+          availableMomentum * rudder.slipstream.momentumSafetyFactor
+        );
+        const incrementMagnitude = Math.hypot(extraX, extraY);
+        const momentumProtectionActive = (
+          momentumLimit > EPSILON && incrementMagnitude > momentumLimit
+        );
+        if (momentumProtectionActive) {
+          const scale = momentumLimit / incrementMagnitude;
+          extraX *= scale;
+          extraY *= scale;
+        }
+        const X = freeX + extraX;
+        const Y = freeY + extraY;
         accumulator.add(
           profile.rudders.length === 1 ? "Safran" : `Safran · ${rudder.id}`,
           X * calibration.rudder,
@@ -4622,14 +5094,28 @@
           0,
           "passive"
         );
+        const overlap = coverageSum / stripCount;
+        const wash = axialSum / stripCount;
         units.push({
           id: rudder.id,
           wash,
           overlap,
+          localFreeFlow: { u: localU, v: localV },
+          inducedFlow: {
+            axial: wash,
+            tangential: tangentialSum / stripCount
+          },
+          strips,
           force: { X, Y },
-          freeForce: { X: free.X, Y: free.Y },
+          freeForce: { X: freeX, Y: freeY },
           propellerIncrement: { X: extraX, Y: extraY },
-          momentumLimits
+          momentumProtectionActive,
+          momentumLimits: {
+            resultant: momentumLimit,
+            axialLoss: momentumLimit,
+            side: momentumLimit,
+            recovery: momentumLimit
+          }
         });
       }
       return { ...units[0], units };
@@ -4980,6 +5466,59 @@
       };
     }
 
+    function advanceGearState(actuator, propulsor, requestedGear, dt) {
+      const clutch = propulsor.clutch;
+      actuator.requestedGear = requestedGear;
+      const beginDisengagement = () => {
+        actuator.gearState = "disengaging";
+        actuator.shiftTimer = clutch.disengageTimeS;
+      };
+
+      if (actuator.gearState === "ahead" || actuator.gearState === "astern") {
+        if (requestedGear !== actuator.engagedGear) beginDisengagement();
+      } else if (actuator.gearState === "engaging-ahead" || actuator.gearState === "engaging-astern") {
+        if (requestedGear !== actuator.engagedGear) {
+          beginDisengagement();
+        } else {
+          actuator.clutchEngagement = clamp(
+            actuator.clutchEngagement + dt / clutch.engageTimeS,
+            0,
+            1
+          );
+          actuator.shiftTimer = Math.max(0, actuator.shiftTimer - dt);
+          if (actuator.clutchEngagement >= 1 - 1e-9) {
+            actuator.clutchEngagement = 1;
+            actuator.gearState = actuator.engagedGear > 0 ? "ahead" : "astern";
+          }
+        }
+      } else if (actuator.gearState === "disengaging") {
+        actuator.clutchEngagement = clamp(
+          actuator.clutchEngagement - dt / clutch.disengageTimeS,
+          0,
+          1
+        );
+        actuator.shiftTimer = Math.max(0, actuator.shiftTimer - dt);
+        if (actuator.clutchEngagement <= 1e-9) {
+          actuator.clutchEngagement = 0;
+          actuator.engagedGear = 0;
+          actuator.gearState = "neutral";
+          actuator.shiftTimer = clutch.neutralDwellS;
+        }
+      } else {
+        actuator.gearState = "neutral";
+        actuator.clutchEngagement = 0;
+        actuator.engagedGear = 0;
+        actuator.shiftTimer = Math.max(0, actuator.shiftTimer - dt);
+        if (requestedGear !== 0 && actuator.shiftTimer <= 1e-9) {
+          actuator.engagedGear = requestedGear;
+          actuator.gearState = requestedGear > 0
+            ? "engaging-ahead"
+            : "engaging-astern";
+          actuator.shiftTimer = clutch.engageTimeS;
+        }
+      }
+    }
+
     function advanceActuators(input, dt) {
       const throttleTarget = clamp(finite(input.throttle), -1, 1);
       const rudderTarget = clamp(
@@ -4995,6 +5534,7 @@
         -profile.rudder.rate * dt,
         profile.rudder.rate * dt
       );
+      const water = waterKinematics(state);
       for (let index = 0; index < profile.propulsors.length; index += 1) {
         const propulsor = profile.propulsors[index];
         const actuator = state.propulsion.units[index];
@@ -5008,31 +5548,279 @@
         ) {
           actuator.commandActual = 0;
         }
-        const command = actuator.commandActual;
-        const engaged = Math.abs(command) > 0.012;
-        const engineRpm = engaged
-          ? propulsor.idleRpm + (
-            propulsor.maxRpm - propulsor.idleRpm
-          ) * Math.pow(clamp(Math.abs(command), 0, 1), 0.72)
-          : propulsor.idleRpm;
-        const gear = command >= 0
-          ? propulsor.gearAhead
-          : propulsor.gearAstern;
-        const shaftTarget = engaged
-          ? Math.sign(command) * engineRpm / 60 / gear
+        const requestedGear = Math.abs(throttleTarget) > 0.012
+          ? Math.sign(throttleTarget)
           : 0;
-        const shaftTau = command < 0
-          ? propulsor.shaftTimeAstern
-          : propulsor.shaftTimeAhead;
-        actuator.shaftRps += (
-          shaftTarget - actuator.shaftRps
-        ) * (1 - Math.exp(-dt / shaftTau));
-        if (!engaged && Math.abs(actuator.shaftRps) < 0.002) {
-          actuator.shaftRps = 0;
+        advanceGearState(actuator, propulsor, requestedGear, dt);
+
+        const transmissionActive = (
+          actuator.gearState === "ahead"
+          || actuator.gearState === "astern"
+          || actuator.gearState === "engaging-ahead"
+          || actuator.gearState === "engaging-astern"
+        );
+        const commandMagnitude = transmissionActive
+          ? clamp(Math.abs(actuator.commandActual), 0, 1)
+          : 0;
+        const targetRpm = propulsor.idleRpm + (
+          propulsor.maxRpm - propulsor.idleRpm
+        ) * Math.pow(commandMagnitude, 0.72);
+        const dynamics = propulsor.engineDynamics;
+        const shaft = propulsor.shaft;
+        const localU = water.relative.u - water.relative.r * propulsor.y;
+        const targetOmega = targetRpm * Math.PI * 2 / 60;
+        const currentRpm = Math.max(0, actuator.engineOmega * 60 / (Math.PI * 2));
+        const maximumTorque = interpolateCurve(
+          dynamics.torqueCurve,
+          currentRpm,
+          "rpm",
+          "torqueNm"
+        );
+        const speedError = targetOmega - actuator.engineOmega;
+        const governorIntegralBefore = actuator.governorIntegralNm;
+        actuator.governorIntegralNm = clamp(
+          actuator.governorIntegralNm
+            + dynamics.governorKiNmPerRad * speedError * dt,
+          0,
+          maximumTorque
+        );
+        let engineTorque = clamp(
+          actuator.governorIntegralNm
+            + dynamics.governorKpNmPerRadS * speedError,
+          0,
+          maximumTorque
+        );
+        let engineFriction = dynamics.frictionNm * clamp(
+          actuator.engineOmega / Math.max(EPSILON, targetOmega * 0.35),
+          0,
+          1.35
+        );
+        let propeller = propellerModel({
+          shaftRps: actuator.shaftOmega / (Math.PI * 2),
+          advanceSpeed: localU
+        }, propulsor);
+        let shaftFriction = (
+          shaft.viscousFrictionNmPerRadS * actuator.shaftOmega
+          + shaft.coulombFrictionNm * Math.tanh(actuator.shaftOmega / 0.5)
+        );
+
+        let engineOmega = actuator.engineOmega + (
+          (engineTorque - engineFriction) / dynamics.inertiaKgM2
+        ) * dt;
+        let shaftOmega = actuator.shaftOmega + (
+          (-propeller.torque - shaftFriction) / shaft.inertiaKgM2
+        ) * dt;
+        let clutchImpulse = 0;
+        let shaftDriveTorque = 0;
+        const fullyCoupled = (
+          (actuator.gearState === "ahead" || actuator.gearState === "astern")
+          && actuator.clutchEngagement >= 1 - 1e-9
+        );
+        if (fullyCoupled) {
+          const ratio = actuator.engagedGear > 0
+            ? propulsor.gearAhead
+            : propulsor.gearAstern;
+          const direction = actuator.engagedGear;
+          const efficiency = propulsor.gearEfficiency;
+          const reflectedInertia = (
+            dynamics.inertiaKgM2
+            + shaft.inertiaKgM2 / (ratio * ratio * efficiency)
+          );
+          const lockedShaftOmega = direction * actuator.engineOmega / ratio;
+          const provisionalEngineTorque = clamp(
+            governorIntegralBefore
+              + dynamics.governorKpNmPerRadS * speedError,
+            0,
+            maximumTorque
+          );
+          const provisionalPropeller = propellerModel({
+            shaftRps: lockedShaftOmega / (Math.PI * 2),
+            advanceSpeed: localU
+          }, propulsor);
+          const provisionalShaftFriction = (
+            shaft.viscousFrictionNmPerRadS * lockedShaftOmega
+            + shaft.coulombFrictionNm * Math.tanh(lockedShaftOmega / 0.5)
+          );
+          const provisionalAcceleration = (
+            provisionalEngineTorque
+            - engineFriction
+            - direction * (
+              provisionalPropeller.torque + provisionalShaftFriction
+            ) / (ratio * efficiency)
+          ) / reflectedInertia;
+          const midpointEngineOmega = (
+            actuator.engineOmega + provisionalAcceleration * dt * 0.5
+          );
+          const midpointShaftOmega = direction * midpointEngineOmega / ratio;
+          const midpointRpm = Math.max(
+            0,
+            midpointEngineOmega * 60 / (Math.PI * 2)
+          );
+          const midpointMaximumTorque = interpolateCurve(
+            dynamics.torqueCurve,
+            midpointRpm,
+            "rpm",
+            "torqueNm"
+          );
+          const midpointSpeedError = targetOmega - midpointEngineOmega;
+          actuator.governorIntegralNm = clamp(
+            governorIntegralBefore
+              + dynamics.governorKiNmPerRad * midpointSpeedError * dt,
+            0,
+            midpointMaximumTorque
+          );
+          engineTorque = clamp(
+            actuator.governorIntegralNm
+              + dynamics.governorKpNmPerRadS * midpointSpeedError,
+            0,
+            midpointMaximumTorque
+          );
+          engineFriction = dynamics.frictionNm * clamp(
+            midpointEngineOmega / Math.max(EPSILON, targetOmega * 0.35),
+            0,
+            1.35
+          );
+          propeller = propellerModel({
+            shaftRps: midpointShaftOmega / (Math.PI * 2),
+            advanceSpeed: localU
+          }, propulsor);
+          shaftFriction = (
+            shaft.viscousFrictionNmPerRadS * midpointShaftOmega
+            + shaft.coulombFrictionNm * Math.tanh(midpointShaftOmega / 0.5)
+          );
+          const acceleration = (
+            engineTorque
+            - engineFriction
+            - direction * (propeller.torque + shaftFriction) / (ratio * efficiency)
+          ) / reflectedInertia;
+          engineOmega = actuator.engineOmega + acceleration * dt;
+          shaftOmega = direction * engineOmega / ratio;
+          const clutchTorque = (
+            engineTorque - engineFriction - dynamics.inertiaKgM2 * acceleration
+          );
+          clutchImpulse = clutchTorque * dt;
+          shaftDriveTorque = direction * ratio * efficiency * clutchTorque;
+        } else if (actuator.engagedGear !== 0 && actuator.clutchEngagement > 0) {
+          const ratio = actuator.engagedGear > 0
+            ? propulsor.gearAhead
+            : propulsor.gearAstern;
+          const direction = actuator.engagedGear;
+          const slip = engineOmega - direction * ratio * shaftOmega;
+          const inverseEffectiveInertia = (
+            1 / dynamics.inertiaKgM2
+            + ratio * ratio * propulsor.gearEfficiency / shaft.inertiaKgM2
+          );
+          const idealImpulse = slip / Math.max(EPSILON, inverseEffectiveInertia);
+          const maximumImpulse = (
+            propulsor.clutch.capacityEngineNm
+            * actuator.clutchEngagement
+            * dt
+          );
+          clutchImpulse = clamp(idealImpulse, -maximumImpulse, maximumImpulse);
+          engineOmega -= clutchImpulse / dynamics.inertiaKgM2;
+          shaftOmega += (
+            direction
+            * ratio
+            * propulsor.gearEfficiency
+            * clutchImpulse
+            / shaft.inertiaKgM2
+          );
+          shaftDriveTorque = (
+            direction
+            * ratio
+            * propulsor.gearEfficiency
+            * clutchImpulse
+            / Math.max(EPSILON, dt)
+          );
         }
-        actuator.engineRpm = engineRpm;
+        const minimumRunningOmega = propulsor.idleRpm * 0.52 * Math.PI * 2 / 60;
+        const maximumRunningOmega = propulsor.maxRpm * Math.PI * 2 / 60;
+        actuator.engineOmega = clamp(
+          engineOmega,
+          minimumRunningOmega,
+          maximumRunningOmega
+        );
+        if (fullyCoupled) {
+          const ratio = actuator.engagedGear > 0
+            ? propulsor.gearAhead
+            : propulsor.gearAstern;
+          actuator.shaftOmega = actuator.engagedGear * actuator.engineOmega / ratio;
+        } else {
+          actuator.shaftOmega = Math.abs(shaftOmega) < 1e-5 ? 0 : shaftOmega;
+        }
+        actuator.engineRpm = actuator.engineOmega * 60 / (Math.PI * 2);
+        actuator.shaftRps = actuator.shaftOmega / (Math.PI * 2);
+        actuator.engineTorque = engineTorque;
+        actuator.clutchTorque = clutchImpulse / Math.max(EPSILON, dt);
+        actuator.shaftDriveTorque = shaftDriveTorque;
+        actuator.propellerTorque = propeller.torque;
+        actuator.enginePower = engineTorque * actuator.engineOmega;
+        actuator.shaftPower = propeller.torque * actuator.shaftOmega;
       }
       Object.assign(state.propulsion, state.propulsion.units[0]);
+    }
+
+    function advanceSlipstreams(dt) {
+      const water = waterKinematics(state);
+      const propulsorById = new Map(
+        profile.propulsors.map((propulsor, index) => [
+          propulsor.id,
+          { profile: propulsor, actuator: state.propulsion.units[index] }
+        ])
+      );
+      const rudderById = new Map(profile.rudders.map(rudder => [rudder.id, rudder]));
+      for (const wake of state.propulsion.slipstreams || []) {
+        const source = propulsorById.get(wake.propulsorId);
+        const rudder = rudderById.get(wake.rudderId);
+        if (!source || !rudder) continue;
+        const { profile: propulsor, actuator } = source;
+        const localU = water.relative.u - water.relative.r * propulsor.y;
+        const model = propellerModel({
+          shaftRps: actuator.shaftRps,
+          advanceSpeed: localU
+        }, propulsor);
+        const longitudinalOffset = rudder.x - propulsor.x;
+        const acceleratedWaterDirection = -Math.sign(model.thrust);
+        const downstream = (
+          Math.abs(model.thrust) > EPSILON
+          && longitudinalOffset * acceleratedWaterDirection > 0
+        );
+        const velocityFactor = downstream
+          ? rudder.slipstream.downstreamVelocityFactor
+          : rudder.slipstream.upstreamVelocityFactor;
+        const targetAxialVelocity = model.inducedVelocity * velocityFactor;
+        const rotationSign = propulsor.rotation === "left" ? 1 : -1;
+        const targetTangentialVelocity = (
+          rotationSign
+          * Math.sign(actuator.shaftRps)
+          * Math.abs(targetAxialVelocity)
+          * rudder.slipstream.swirlFraction
+          * environment.propWalk
+        );
+        const convectionSpeed = Math.max(
+          0.15,
+          Math.abs(localU) + Math.abs(targetAxialVelocity)
+        );
+        const [minimumTime, maximumTime] = rudder.slipstream.convectionTimeBoundsS;
+        const convectionTimeS = clamp(
+          Math.abs(longitudinalOffset) / convectionSpeed,
+          minimumTime,
+          maximumTime
+        );
+        const blend = 1 - Math.exp(-dt / convectionTimeS);
+        wake.axialVelocity += (
+          targetAxialVelocity - wake.axialVelocity
+        ) * blend;
+        wake.tangentialVelocity += (
+          targetTangentialVelocity - wake.tangentialVelocity
+        ) * blend;
+        if (Math.abs(wake.axialVelocity) < 1e-8) wake.axialVelocity = 0;
+        if (Math.abs(wake.tangentialVelocity) < 1e-8) wake.tangentialVelocity = 0;
+        wake.targetAxialVelocity = targetAxialVelocity;
+        wake.targetTangentialVelocity = targetTangentialVelocity;
+        wake.convectionTimeS = convectionTimeS;
+        wake.downstream = downstream;
+      }
     }
 
     function midpointState(base, acceleration, dt) {
@@ -5216,6 +6004,7 @@
 
     function advanceOne(input, dt) {
       advanceActuators(input, dt);
+      advanceSlipstreams(dt);
       advanceMooringLengths(dt);
       const first = evaluateForces(state, dt);
       const middle = midpointState(state, first.acceleration, dt);
@@ -5240,8 +6029,15 @@
         const model = second.propeller.units[index];
         Object.assign(state.propulsion.units[index], {
           thrust: model.thrust,
+          propellerTorque: model.torque,
           advanceRatio: model.advanceRatio,
-          inducedVelocity: model.inducedVelocity
+          inducedVelocity: model.inducedVelocity,
+          hydrodynamicPitchAngle: model.hydrodynamicPitchAngle,
+          thrustCoefficient: model.thrustCoefficient,
+          torqueCoefficient: model.torqueCoefficient,
+          safetyLimitActive: model.safetyLimitActive,
+          shaftPower: model.shaftPower,
+          usefulPower: model.usefulPower
         });
       }
       Object.assign(state.propulsion, state.propulsion.units[0]);
@@ -5289,7 +6085,7 @@
           id: profile.id,
           version: profile.version,
           schemaVersion: profile.schemaVersion,
-          physicsVersion: "3.1.0"
+          physicsVersion: PHYSICS_VERSION
         },
         pose: state.pose,
         velocity: state.velocity,
@@ -5369,7 +6165,7 @@
   }
 
   return Object.freeze({
-    VERSION: "3.1.0",
+    VERSION: PHYSICS_VERSION,
     DEG,
     KNOT,
     RHO_WATER,
@@ -5384,6 +6180,7 @@
     createSimulator,
     computeMassMatrix,
     massMatrixIsPositiveDefinite,
+    samplePeriodicCurve,
     propellerModel,
     foilModel,
     bodyToWorld,
