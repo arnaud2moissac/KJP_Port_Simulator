@@ -635,11 +635,12 @@
     }
 
     .environment-readout {
-      pointer-events: none;
+      --flow-chip-width: 174px;
       position: absolute;
       z-index: 3;
       top: 14px;
       right: 14px;
+      width: var(--flow-chip-width);
       display: grid;
       gap: 5px;
     }
@@ -648,13 +649,159 @@
       display: flex;
       align-items: center;
       gap: 9px;
-      min-width: 158px;
+      width: 100%;
+      min-width: 0;
       padding: 7px 9px;
       border: 1px solid var(--line);
       border-radius: 13px;
       background: var(--hud-bg);
       backdrop-filter: blur(14px);
       box-shadow: var(--shadow);
+      pointer-events: none;
+    }
+
+    .flow-chip[hidden],
+    .mooring-gauge-panel[hidden] { display: none; }
+
+    .mooring-gauge-panel {
+      width: 100%;
+      max-height: min(368px, calc(100vh - 270px));
+      padding: 6px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--hud-bg);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      pointer-events: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line-strong) transparent;
+    }
+
+    .mooring-gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .mooring-gauge {
+      position: relative;
+      min-width: 0;
+      height: 160px;
+      padding: 15px 3px 15px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, .025);
+      color: var(--muted);
+      cursor: ns-resize;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .mooring-gauge:hover,
+    .mooring-gauge.is-active {
+      border-color: var(--cyan);
+      background: var(--cyan-soft);
+    }
+
+    .mooring-gauge:focus-visible {
+      outline: none;
+      box-shadow: var(--focus);
+    }
+
+    .mooring-gauge-label,
+    .mooring-gauge-values {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 7px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mooring-gauge-label {
+      top: 3px;
+      color: var(--ink);
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .mooring-gauge-values {
+      bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      gap: 2px;
+    }
+    .mooring-gauge-values .actual-value { color: var(--ink); }
+    .mooring-gauge-values .target-value { color: var(--cyan); font-weight: 700; }
+
+    .mooring-gauge-track {
+      position: absolute;
+      top: 17px;
+      bottom: 16px;
+      left: 50%;
+      width: 5px;
+      border-radius: 999px;
+      background: var(--track-bg);
+      transform: translateX(-50%);
+    }
+
+    .mooring-gauge-band,
+    .mooring-gauge-stretch {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .mooring-gauge-band {
+      top: var(--band-start);
+      height: var(--band-size);
+      min-height: 2px;
+      background: var(--cyan);
+      opacity: .78;
+    }
+
+    .mooring-gauge-stretch {
+      top: var(--stretch-start);
+      height: var(--stretch-size);
+      min-height: var(--stretch-minimum, 0);
+      background: var(--amber);
+      box-shadow: 0 0 7px var(--amber-soft);
+    }
+
+    .mooring-gauge-handle {
+      position: absolute;
+      width: 0;
+      height: 0;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .mooring-gauge-handle.actual {
+      top: var(--actual-position);
+      right: 8px;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 8px solid var(--ink);
+      filter: drop-shadow(0 0 2px var(--hud-bg));
+    }
+
+    .mooring-gauge-handle.target {
+      top: var(--target-position);
+      left: 8px;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+      border-right: 9px solid var(--cyan);
+      filter: drop-shadow(0 0 2px var(--hud-bg));
     }
 
     .flow-arrow {
@@ -1522,7 +1669,12 @@
         pointer-events: auto;
       }
 
-      .environment-readout { display: none; }
+      .environment-readout {
+        top: 10px;
+        right: 10px;
+      }
+      .environment-readout > .flow-chip:nth-child(1),
+      .environment-readout > .flow-chip:nth-child(2) { display: none; }
       .control-dock { bottom: 12px; }
     }
 
@@ -1694,7 +1846,7 @@
           </div>
         </div>
 
-        <div class="environment-readout" aria-hidden="true">
+        <div class="environment-readout">
           <div class="flow-chip">
             <div class="flow-arrow" id="windArrow"></div>
             <div class="flow-copy">
@@ -1709,12 +1861,15 @@
               <span id="currentChipDirection">vient du 000°</span>
             </div>
           </div>
-          <div class="flow-chip">
+          <div class="flow-chip" id="mooringChip" hidden>
             <div class="flow-arrow mooring" aria-hidden="true"></div>
             <div class="flow-copy">
               <strong>Aussières · <span id="mooringChipValue">0</span></strong>
               <span id="mooringChipState">aucune frappée</span>
             </div>
+          </div>
+          <div class="mooring-gauge-panel" id="mooringGaugePanel" aria-label="Réglage des longueurs d'aussières" hidden>
+            <div class="mooring-gauge-grid" id="mooringGaugeGrid"></div>
           </div>
         </div>
 
@@ -2509,8 +2664,9 @@
 
   const DEG = Math.PI / 180;
   const KNOT = 0.514444;
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
   const LEGACY_SCHEMA_VERSION = 1;
+  const PREVIOUS_SCHEMA_VERSION = 2;
   const MODEL_CLASS = "displacement-sailing-monohull";
   const FOUR_QUADRANT_SAMPLES = 32;
 
@@ -2738,7 +2894,7 @@
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "4.0.0",
+    version: "5.1.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -2907,7 +3063,14 @@
       payOutRate: 1.2,
       tautTolerance: 0.02,
       solverTolerance: 0.001,
-      solverIterations: 8
+      solverIterations: 8,
+      elasticity: {
+        workingStrain: 0.15,
+        workingLoadN: 12000,
+        dampingRatio: 0.35,
+        hardeningGain: 8,
+        maximumStrain: 0.20
+      }
     },
     provenance: {
       values: {
@@ -2948,6 +3111,13 @@
           unit: "m",
           uncertainty: 0.03,
           domain: "pare-battages de diamètre 0,35 m"
+        },
+        "mooring.elasticity": {
+          sourceType: "calibrated",
+          source: "Generic 14 mm polyester mooring line; 15% calibrated working strain at 30% of a 40 kN breaking load",
+          unit: "strain,N",
+          uncertainty: 0.25,
+          domain: "cruising-yacht mooring at low speed; no rupture or chafe"
         }
       }
     }
@@ -2996,7 +3166,7 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       id: spec.id,
-      version: "2.0.0",
+      version: "3.1.0",
       name: spec.name,
       modelClass: MODEL_CLASS,
       validity: {
@@ -3148,7 +3318,14 @@
         payOutRate: 1.2,
         tautTolerance: 0.02,
         solverTolerance: 0.001,
-        solverIterations: 8
+        solverIterations: 8,
+        elasticity: {
+          workingStrain: 0.15,
+          workingLoadN: spec.mooringWorkingLoadN,
+          dampingRatio: 0.35,
+          hardeningGain: 8,
+          maximumStrain: 0.20
+        }
       },
       provenance: {
         values: {
@@ -3201,6 +3378,7 @@
     },
     rudder: { x: -2.85, area: 0.42, span: 0.80, aspectRatio: 1.52 },
     contact: { fenderStiffness: 26000, hullStiffness: 54000, forceLimit: 42000 },
+    mooringWorkingLoadN: 6000,
     provenance: "Geometric and Froude-scaled lower-bound validation profile"
   });
 
@@ -3241,6 +3419,7 @@
     },
     rudder: { x: -6.15, area: 1.72, span: 1.72, aspectRatio: 1.72 },
     contact: { fenderStiffness: 105000, hullStiffness: 210000, forceLimit: 185000 },
+    mooringWorkingLoadN: 24000,
     provenance: "Geometric and Froude-scaled upper-bound validation profile"
   });
 
@@ -3282,12 +3461,16 @@
   }
 
   function upgradeLegacyProfile(rawProfile) {
-    if (!rawProfile || rawProfile.schemaVersion !== LEGACY_SCHEMA_VERSION) {
+    if (
+      !rawProfile
+      || ![LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION].includes(rawProfile.schemaVersion)
+    ) {
       return deepClone(rawProfile);
     }
     const upgraded = deepClone(rawProfile);
+    const sourceVersion = upgraded.schemaVersion;
     upgraded.schemaVersion = SCHEMA_VERSION;
-    for (const propulsor of upgraded.propulsors || []) {
+    for (const propulsor of sourceVersion === LEGACY_SCHEMA_VERSION ? upgraded.propulsors || [] : []) {
       const propeller = propulsor.propeller || {};
       const mechanics = propulsionMechanics({
         powerKw: propulsor.engine?.powerKw || 1,
@@ -3320,7 +3503,7 @@
         maximumTorqueCoefficient: 0.12
       };
     }
-    for (const rudder of upgraded.rudders || []) {
+    for (const rudder of sourceVersion === LEGACY_SCHEMA_VERSION ? upgraded.rudders || [] : []) {
       const legacy = rudder.slipstream || {};
       rudder.slipstream = {
         stripCount: legacy.stripCount || 5,
@@ -3343,9 +3526,20 @@
     }
     upgraded.provenance ||= { values: {} };
     upgraded.provenance.values ||= {};
+    upgraded.mooring ||= {};
+    upgraded.mooring.elasticity ||= {
+      workingStrain: 0.15,
+      workingLoadN: Math.max(3000, 12000 * Math.pow(
+        Math.max(500, upgraded.mass?.displacement || 6500) / 6500,
+        2 / 3
+      )),
+      dampingRatio: 0.35,
+      hardeningGain: 8,
+      maximumStrain: 0.20
+    };
     upgraded.provenance.values["schema.adapter"] = {
       sourceType: "estimated",
-      source: "deterministic schema 1 to schema 2 compatibility adapter",
+      source: `deterministic schema ${sourceVersion} to schema 3 compatibility adapter`,
       unit: "none",
       uncertainty: 0.35,
       domain: "temporary compatibility; replace with an explicit profile"
@@ -3359,13 +3553,14 @@
     if (!profileInput || typeof profileInput !== "object") {
       return { ok: false, errors: ["Le profil doit être un objet."], warnings };
     }
-    const legacyInput = profileInput.schemaVersion === LEGACY_SCHEMA_VERSION;
+    const legacyInput = [LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION]
+      .includes(profileInput.schemaVersion);
     const rawProfile = legacyInput
       ? upgradeLegacyProfile(profileInput)
       : profileInput;
     if (legacyInput) {
       warnings.push(
-        "Profil schemaVersion 1 adapté vers la version 2 : fournir des courbes propulsion explicites."
+        `Profil schemaVersion ${profileInput.schemaVersion} adapté vers la version 3 : vérifier les paramètres d'élasticité des aussières.`
       );
     }
     for (const path of REQUIRED_PATHS) {
@@ -3394,7 +3589,12 @@
       "mooring.haulInRate",
       "mooring.payOutRate",
       "mooring.tautTolerance",
-      "mooring.solverTolerance"
+      "mooring.solverTolerance",
+      "mooring.elasticity.workingStrain",
+      "mooring.elasticity.workingLoadN",
+      "mooring.elasticity.dampingRatio",
+      "mooring.elasticity.hardeningGain",
+      "mooring.elasticity.maximumStrain"
     ];
     for (const path of positivePaths) {
       const value = valueAtPath(rawProfile, path);
@@ -3411,6 +3611,14 @@
       || rawProfile.mooring.solverIterations < 1
     ) {
       errors.push("mooring.solverIterations doit être un entier strictement positif.");
+    }
+    if (
+      Number.isFinite(rawProfile.mooring?.elasticity?.workingStrain)
+      && Number.isFinite(rawProfile.mooring?.elasticity?.maximumStrain)
+      && rawProfile.mooring.elasticity.maximumStrain
+        <= rawProfile.mooring.elasticity.workingStrain
+    ) {
+      errors.push("mooring.elasticity.maximumStrain doit dépasser workingStrain.");
     }
     if (rawProfile.geometry?.lwl > rawProfile.geometry?.loa) {
       errors.push("geometry.lwl ne peut pas dépasser geometry.loa.");
@@ -3625,7 +3833,7 @@
     if (!report.ok) {
       throw new Error(`Profil bateau invalide : ${report.errors.join(" ; ")}`);
     }
-    const raw = rawProfile.schemaVersion === LEGACY_SCHEMA_VERSION
+    const raw = [LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION].includes(rawProfile.schemaVersion)
       ? upgradeLegacyProfile(rawProfile)
       : deepClone(rawProfile);
     const appendages = raw.appendages.map(flattenAppendage);
@@ -3784,7 +3992,7 @@
   const RHO_AIR = 1.225;
   const MAX_STEP = 1 / 120;
   const EPSILON = 1e-9;
-  const PHYSICS_VERSION = "4.0.0";
+  const PHYSICS_VERSION = "5.0.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -3799,6 +4007,40 @@
   };
   const finite = value => Number.isFinite(value) ? value : 0;
   const hypot2 = (x, y) => Math.hypot(x, y);
+
+  function mooringElasticLaw(elasticity, restLength, distance) {
+    const length = Math.max(0.05, finite(restLength));
+    const extension = Math.max(0, finite(distance) - length);
+    const strain = extension / length;
+    const workingStrain = Math.max(EPSILON, finite(elasticity?.workingStrain));
+    const workingLoadN = Math.max(0, finite(elasticity?.workingLoadN));
+    const hardeningGain = Math.max(0, finite(elasticity?.hardeningGain));
+    const ratio = strain / workingStrain;
+    const hardeningRatio = Math.max(0, ratio - 1);
+    const tension = extension > 0
+      ? workingLoadN * (ratio + hardeningGain * hardeningRatio ** 3)
+      : 0;
+    const tangentStiffness = (
+      workingLoadN
+      / (workingStrain * length)
+      * (1 + 3 * hardeningGain * hardeningRatio ** 2)
+    );
+    const elasticEnergy = extension > 0
+      ? workingLoadN * length * workingStrain * (
+        0.5 * ratio * ratio
+        + hardeningGain * hardeningRatio ** 4 / 4
+      )
+      : 0;
+    return {
+      extension,
+      strain,
+      tension,
+      tangentStiffness,
+      elasticEnergy,
+      workingLoadN,
+      workingStrain
+    };
+  }
 
   function samplePeriodicCurve(values, origin, angle) {
     const count = values.length;
@@ -4627,11 +4869,18 @@
         east: deltaEast * inverseDistance,
         north: deltaNorth * inverseDistance
       };
-      const normalBody = worldToBody(
+      const horizontalScale = distance > EPSILON
+        ? horizontalDistance / distance
+        : 0;
+      const horizontalNormalBody = worldToBody(
         normalWorld.east,
         normalWorld.north,
         candidateState.pose.heading
       );
+      const normalBody = {
+        u: horizontalNormalBody.u * horizontalScale,
+        v: horizontalNormalBody.v * horizontalScale
+      };
       const jacobian = [
         normalBody.u,
         normalBody.v,
@@ -4647,6 +4896,7 @@
         horizontalDistance,
         distance,
         verticalDelta,
+        horizontalScale,
         normalWorld,
         normalBody,
         jacobian,
@@ -4657,10 +4907,23 @@
     function updateMooringDiagnostics() {
       for (const mooring of state.moorings) {
         const geometry = mooringGeometry(mooring);
+        const elastic = mooringElasticLaw(
+          profile.mooring.elasticity,
+          mooring.length,
+          geometry.distance
+        );
         mooring.distance = geometry.distance;
         mooring.horizontalDistance = geometry.horizontalDistance;
         mooring.slack = Math.max(0, mooring.length - geometry.distance);
-        mooring.taut = mooring.slack <= profile.mooring.tautTolerance;
+        mooring.extension = elastic.extension;
+        mooring.strain = elastic.strain;
+        mooring.elasticEnergy = elastic.elasticEnergy;
+        mooring.workingLoadN = elastic.workingLoadN;
+        mooring.workingStrain = elastic.workingStrain;
+        mooring.taut = (
+          mooring.slack <= profile.mooring.tautTolerance
+          || mooring.tension > EPSILON
+        );
       }
     }
 
@@ -4722,6 +4985,11 @@
         return { ok: false, reason: "aussière trop courte pour les taquets" };
       }
       const slack = Math.max(0, length - geometry.distance);
+      const elastic = mooringElasticLaw(
+        profile.mooring.elasticity,
+        length,
+        geometry.distance
+      );
       const mooring = {
         ...draft,
         length,
@@ -4729,12 +4997,19 @@
         lengthRate: 0,
         horizontalLimitRate: 0,
         horizontalLimit,
+        verticalDistance,
         horizontalDistance: geometry.horizontalDistance,
         distance: geometry.distance,
         slack,
+        extension: elastic.extension,
+        strain: elastic.strain,
+        elasticEnergy: elastic.elasticEnergy,
+        workingLoadN: elastic.workingLoadN,
+        workingStrain: elastic.workingStrain,
         taut: slack <= profile.mooring.tautTolerance,
         tension: 0,
-        impulse: 0
+        impulse: 0,
+        guardActive: false
       };
       state.moorings.push(mooring);
       return { ok: true, mooring: deepClone(mooring) };
@@ -5855,49 +6130,91 @@
       for (const mooring of state.moorings) {
         mooring.impulse = 0;
         mooring.tension = 0;
+        mooring.guardActive = false;
       }
-      const tolerance = profile.mooring.solverTolerance;
+      const constraints = [];
+      for (const mooring of state.moorings) {
+        const geometry = mooringGeometry(mooring);
+        if (geometry.distance <= EPSILON) continue;
+        const inverseMassJacobian = solveMass(
+          massProperties.matrix,
+          geometry.jacobian
+        );
+        const effectiveInverseMass = (
+          geometry.jacobian[0] * inverseMassJacobian[0]
+          + geometry.jacobian[1] * inverseMassJacobian[1]
+          + geometry.jacobian[2] * inverseMassJacobian[2]
+        );
+        if (effectiveInverseMass <= EPSILON) continue;
+        const restLength = Math.max(0.05, mooring.length);
+        const extension = Math.max(0, geometry.distance - restLength);
+        const strain = extension / restLength;
+        const elasticity = profile.mooring.elasticity;
+        const ratio = strain / elasticity.workingStrain;
+        const hardeningRatio = Math.max(0, ratio - 1);
+        const elasticTension = extension > 0
+          ? elasticity.workingLoadN * (
+            ratio + elasticity.hardeningGain * hardeningRatio ** 3
+          )
+          : 0;
+        const stiffness = Math.max(
+          EPSILON,
+          elasticity.workingLoadN
+            / (elasticity.workingStrain * restLength)
+            * (1 + 3 * elasticity.hardeningGain * hardeningRatio ** 2)
+        );
+        const effectiveMass = 1 / effectiveInverseMass;
+        const damping = (
+          2
+          * elasticity.dampingRatio
+          * Math.sqrt(stiffness * effectiveMass)
+        );
+        const softnessDenominator = Math.max(EPSILON, damping + dt * stiffness);
+        constraints.push({
+          mooring,
+          geometry,
+          jacobian: geometry.jacobian,
+          inverseMassJacobian,
+          effectiveInverseMass,
+          gap: geometry.distance - restLength,
+          softness: 1 / (dt * softnessDenominator),
+          biasVelocity: elasticTension / softnessDenominator
+        });
+      }
       for (let iteration = 0; iteration < profile.mooring.solverIterations; iteration += 1) {
-        for (const mooring of state.moorings) {
-          const geometry = mooringGeometry(mooring);
-          if (geometry.horizontalDistance <= EPSILON) continue;
-          const gap = mooring.horizontalLimit - geometry.horizontalDistance;
-          const allowedOutwardSpeed = gap >= 0
-            ? Math.max(0, gap - tolerance) / Math.max(dt, EPSILON)
-            : -0.24 * (-gap - tolerance) / Math.max(dt, EPSILON);
-          const violation = geometry.pointVelocity - allowedOutwardSpeed;
-          if (violation <= EPSILON && mooring.impulse <= EPSILON) continue;
-          const inverseMassJacobian = solveMass(
-            massProperties.matrix,
-            geometry.jacobian
+        for (const constraint of constraints) {
+          const { mooring, jacobian } = constraint;
+          const pointVelocity = (
+            jacobian[0] * state.velocity.u
+            + jacobian[1] * state.velocity.v
+            + jacobian[2] * state.velocity.r
           );
-          const effectiveInverseMass = (
-            geometry.jacobian[0] * inverseMassJacobian[0]
-            + geometry.jacobian[1] * inverseMassJacobian[1]
-            + geometry.jacobian[2] * inverseMassJacobian[2]
-          );
-          if (effectiveInverseMass <= EPSILON) continue;
+          if (
+            constraint.gap < -profile.mooring.tautTolerance
+            && constraint.gap + pointVelocity * dt <= 0
+            && mooring.impulse <= EPSILON
+          ) continue;
           const previousImpulse = mooring.impulse;
           mooring.impulse = Math.max(
             0,
-            previousImpulse + violation / effectiveInverseMass
+            previousImpulse + (
+              pointVelocity
+              + constraint.biasVelocity
+              - constraint.softness * previousImpulse
+            ) / (constraint.effectiveInverseMass + constraint.softness)
           );
           const deltaImpulse = mooring.impulse - previousImpulse;
           if (Math.abs(deltaImpulse) <= EPSILON) continue;
-          const response = solveMass(
-            massProperties.matrix,
-            geometry.jacobian.map(value => -value * deltaImpulse)
-          );
-          state.velocity.u += response[0];
-          state.velocity.v += response[1];
-          state.velocity.r += response[2];
+          state.velocity.u -= constraint.inverseMassJacobian[0] * deltaImpulse;
+          state.velocity.v -= constraint.inverseMassJacobian[1] * deltaImpulse;
+          state.velocity.r -= constraint.inverseMassJacobian[2] * deltaImpulse;
         }
       }
       const forces = [];
-      for (const mooring of state.moorings) {
+      for (const constraint of constraints) {
+        const { mooring, geometry } = constraint;
         mooring.tension = mooring.impulse / Math.max(dt, EPSILON);
         if (mooring.tension <= EPSILON) continue;
-        const geometry = mooringGeometry(mooring);
         const X = -geometry.normalBody.u * mooring.tension;
         const Y = -geometry.normalBody.v * mooring.tension;
         const N = mooring.boatPoint.x * Y - mooring.boatPoint.y * X;
@@ -5915,7 +6232,10 @@
           power: X * localU + Y * localV,
           category: "mooring",
           mooringId: mooring.id,
-          tension: mooring.tension
+          tension: mooring.tension,
+          extension: Math.max(0, geometry.distance - mooring.length),
+          strain: Math.max(0, geometry.distance - mooring.length)
+            / Math.max(0.05, mooring.length)
         });
       }
       return forces;
@@ -5946,9 +6266,16 @@
             profile.mooring.payOutRate * dt
           );
         }
+        if (Math.abs(delta) <= EPSILON) {
+          mooring.lengthRate = 0;
+          mooring.horizontalLimitRate = 0;
+          continue;
+        }
         const previousHorizontalLimit = mooring.horizontalLimit;
         mooring.length += delta;
-        const verticalDistance = Math.abs(mooringGeometry(mooring).verticalDelta);
+        const verticalDistance = Number.isFinite(mooring.verticalDistance)
+          ? mooring.verticalDistance
+          : Math.abs(mooring.boatPoint.z - mooring.shorePoint.z);
         mooring.horizontalLimit = Math.sqrt(Math.max(
           0,
           mooring.length * mooring.length - verticalDistance * verticalDistance
@@ -5963,13 +6290,16 @@
     function solveMooringPositions() {
       if (!state.moorings.length) return;
       const tolerance = profile.mooring.solverTolerance;
+      const maximumStrain = profile.mooring.elasticity.maximumStrain;
       for (let iteration = 0; iteration < profile.mooring.solverIterations; iteration += 1) {
         let maximumViolation = 0;
         for (const mooring of state.moorings) {
           const geometry = mooringGeometry(mooring);
-          const violation = geometry.horizontalDistance - mooring.horizontalLimit;
+          const maximumDistance = mooring.length * (1 + maximumStrain);
+          const violation = geometry.distance - maximumDistance;
           maximumViolation = Math.max(maximumViolation, violation);
-          if (violation <= tolerance || geometry.horizontalDistance <= EPSILON) continue;
+          if (violation <= tolerance || geometry.distance <= EPSILON) continue;
+          mooring.guardActive = true;
           const inverseMassJacobian = solveMass(
             massProperties.matrix,
             geometry.jacobian
@@ -6100,7 +6430,12 @@
           waterSpeed,
           pivotWaterX,
           pivotGroundX,
-          groundVelocity: groundWorld
+          groundVelocity: groundWorld,
+          mooringGuardActive: state.moorings.some(mooring => mooring.guardActive),
+          mooringElasticEnergy: state.moorings.reduce(
+            (sum, mooring) => sum + (mooring.elasticEnergy || 0),
+            0
+          )
         },
         massMatrix: massProperties.matrix,
         time: simulationTime
@@ -6181,6 +6516,7 @@
     computeMassMatrix,
     massMatrixIsPositiveDefinite,
     samplePeriodicCurve,
+    mooringElasticLaw,
     propellerModel,
     foilModel,
     bodyToWorld,
@@ -7684,6 +8020,8 @@
           mooringTaut: "#ffbf69",
           mooringSelected: "#62dbe3",
           cleat: "#eadfbe",
+          boatCleat: "#f0b763",
+          boatCleatOutline: "#06171e",
           cleatEligible: "#82d1a0",
           cleatDisabled: "rgba(207,198,174,.34)",
           rudder: "#c8a2ff",
@@ -7790,6 +8128,8 @@
           mooringTaut: "#bd4f1d",
           mooringSelected: "#006b82",
           cleat: "#465b60",
+          boatCleat: "#9a5200",
+          boatCleatOutline: "#18333d",
           cleatEligible: "#00705b",
           cleatDisabled: "rgba(70,91,96,.3)",
           rudder: "#6541a8",
@@ -7929,6 +8269,10 @@
       current: [],
       selected: null,
       hover: null,
+      activeLineId: null,
+      gaugePointer: null,
+      gaugeSignature: "",
+      lastScrolledGaugeId: null,
       serial: 1,
       hitTargets: {
         cleats: [],
@@ -9955,6 +10299,10 @@
       moorings.current.length = 0;
       moorings.selected = null;
       moorings.hover = null;
+      moorings.activeLineId = null;
+      moorings.gaugePointer = null;
+      moorings.gaugeSignature = "";
+      moorings.lastScrolledGaugeId = null;
       moorings.serial = 1;
       scenarioState.elapsed = 0;
       scenarioState.score = 100;
@@ -11998,6 +12346,7 @@
       latestPhysicsSnapshot = physicsSimulator.snapshot();
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
       moorings.selected = null;
+      syncMooringGauges();
       showStageToast(
         isExpectedSpring
           ? `Garde frappée · ${fmt(result.mooring.slack, 1)} m de mou à reprendre.`
@@ -12019,6 +12368,8 @@
       }
       latestPhysicsSnapshot = physicsSimulator.snapshot();
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+      if (moorings.activeLineId === id) moorings.activeLineId = null;
+      syncMooringGauges();
       showStageToast("Aussière larguée.", "ok", 1300);
       return true;
     }
@@ -12028,6 +12379,7 @@
       if (!result.ok) return result;
       latestPhysicsSnapshot = physicsSimulator.snapshot();
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+      syncMooringGauges();
       return result;
     }
 
@@ -12127,6 +12479,7 @@
       }
       const selected = moorings.selected
         && endpointKey(endpoint) === endpointKey(moorings.selected);
+      const boatCleat = endpoint.type === "boat";
       const eligible = endpointEligible(endpoint);
       const challenge = scenarios[ui.scenarioId]?.mooringChallenge;
       const guided = Boolean(
@@ -12150,11 +12503,22 @@
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.lineCap = "round";
-      ctx.lineWidth = selected ? 3.8 : guided ? 3.3 : skipperBoatCleat ? 3.2 : eligible ? 2.4 : 1.5;
-      if (selected || skipperBoatCleat || guided) {
-        ctx.globalAlpha = selected ? 0.25 : guided ? 0.22 : 0.16;
+      const coreWidth = selected
+        ? 3.8
+        : guided
+          ? 3.3
+          : skipperBoatCleat
+            ? 3.6
+            : boatCleat
+              ? 2.8
+              : eligible
+                ? 2.4
+                : 1.5;
+      ctx.lineWidth = coreWidth;
+      if (selected || boatCleat || guided) {
+        ctx.globalAlpha = selected ? 0.25 : guided ? 0.22 : 0.14;
         ctx.beginPath();
-        ctx.arc(top.x, top.y, selected ? 9 : guided ? 8 : 7, 0, Math.PI * 2);
+        ctx.arc(top.x, top.y, selected ? 9 : guided ? 8 : skipperBoatCleat ? 8 : 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
@@ -12163,6 +12527,13 @@
       ctx.lineTo(top.x, top.y);
       ctx.moveTo(first.x, first.y);
       ctx.lineTo(second.x, second.y);
+      if (boatCleat) {
+        ctx.strokeStyle = visualPalette().semantic.boatCleatOutline;
+        ctx.lineWidth = coreWidth + 3.2;
+        ctx.stroke();
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = coreWidth;
       ctx.stroke();
       ctx.restore();
       moorings.hitTargets.cleats.push({
@@ -12205,10 +12576,13 @@
         if (projected.length < 2 || projected.some(point => !point)) continue;
         const hovered = moorings.hover?.type === "line" && moorings.hover.id === line.id;
         const adjusting = (
-          camera.pointer?.mode === "mooring"
-          && camera.pointer?.mooringHit?.type === "line"
-          && camera.pointer.mooringHit.id === line.id
-          && camera.pointer.dragged
+          moorings.activeLineId === line.id
+          || (
+            camera.pointer?.mode === "mooring"
+            && camera.pointer?.mooringHit?.type === "line"
+            && camera.pointer.mooringHit.id === line.id
+            && camera.pointer.dragged
+          )
         );
         const color = line.taut ? semantic.mooringTaut : semantic.mooringSlack;
         drawScreenPath(
@@ -12241,7 +12615,7 @@
           { type: "boat", id: cleat.id },
           boatCleatWorld(cleat),
           boatMotion.heading,
-          semantic.cleat
+          semantic.boatCleat
         );
       }
     }
@@ -12590,6 +12964,156 @@
       return { level: "ok", text: "Donnez de courtes impulsions et observez la réponse avant de corriger une seconde fois." };
     }
 
+    function mooringGaugeLabel(line) {
+      const station = line.boatCleatId.startsWith("bow-")
+        ? "AV"
+        : line.boatCleatId.startsWith("stern-")
+          ? "AR"
+          : "M";
+      const side = line.boatCleatId.endsWith("-port") ? "B" : "T";
+      const peers = moorings.current.filter(
+        candidate => candidate.boatCleatId === line.boatCleatId
+      );
+      const ordinal = peers.length > 1 ? peers.indexOf(line) + 1 : "";
+      return `${station} ${side}${ordinal}`;
+    }
+
+    function createMooringGauge(line) {
+      const gauge = document.createElement("div");
+      gauge.className = "mooring-gauge";
+      gauge.dataset.mooringId = line.id;
+      gauge.tabIndex = 0;
+      gauge.setAttribute("role", "slider");
+      gauge.setAttribute("aria-orientation", "vertical");
+      gauge.innerHTML = `
+        <span class="mooring-gauge-label"></span>
+        <span class="mooring-gauge-track" aria-hidden="true">
+          <span class="mooring-gauge-band"></span>
+          <span class="mooring-gauge-stretch"></span>
+          <span class="mooring-gauge-handle actual"></span>
+          <span class="mooring-gauge-handle target"></span>
+        </span>
+        <span class="mooring-gauge-values">
+          <span class="actual-value"></span>
+          <strong class="target-value"></strong>
+        </span>
+      `;
+      return gauge;
+    }
+
+    function updateMooringGauge(gauge, line) {
+      const minimumLength = Math.max(
+        0.05,
+        Math.abs((line.boatPoint?.z || 0) - (line.shorePoint?.z || 0))
+      );
+      const targetLength = Number.isFinite(line.targetLength)
+        ? line.targetLength
+        : line.length;
+      const actualLength = Number.isFinite(line.distance)
+        ? line.distance
+        : line.length;
+      const unstretchedLength = Number.isFinite(line.length)
+        ? line.length
+        : actualLength;
+      const range = 10;
+      const rangeMinimum = clamp(
+        targetLength - range / 2,
+        0,
+        MOORING_POLICY.maximumLength - range
+      );
+      const rangeMaximum = rangeMinimum + range;
+      const position = value => clamp(
+        (rangeMaximum - value) / range * 100,
+        0,
+        100
+      );
+      const actualPosition = position(actualLength);
+      const targetPosition = position(targetLength);
+      const unstretchedPosition = position(unstretchedLength);
+      const bandStart = Math.min(actualPosition, targetPosition);
+      const stretchStart = Math.min(actualPosition, unstretchedPosition);
+
+      gauge.style.setProperty("--actual-position", `${actualPosition}%`);
+      gauge.style.setProperty("--target-position", `${targetPosition}%`);
+      gauge.style.setProperty("--band-start", `${bandStart}%`);
+      gauge.style.setProperty("--band-size", `${Math.abs(actualPosition - targetPosition)}%`);
+      gauge.style.setProperty("--stretch-start", `${stretchStart}%`);
+      gauge.style.setProperty("--stretch-size", `${Math.abs(actualPosition - unstretchedPosition)}%`);
+      gauge.style.setProperty(
+        "--stretch-minimum",
+        line.extension > 1e-4 ? "2px" : "0"
+      );
+      gauge.classList.toggle("is-active", moorings.activeLineId === line.id);
+      gauge.querySelector(".mooring-gauge-label").textContent = mooringGaugeLabel(line);
+      gauge.querySelector(".mooring-gauge-values .actual-value").textContent = `R ${fmt(actualLength, 1)}`;
+      gauge.querySelector(".mooring-gauge-values .target-value").textContent = `C ${fmt(targetLength, 1)}`;
+      gauge.dataset.actualLength = actualLength.toFixed(3);
+      gauge.dataset.targetLength = targetLength.toFixed(3);
+      gauge.dataset.rangeMinimum = rangeMinimum.toFixed(3);
+      gauge.dataset.rangeMaximum = rangeMaximum.toFixed(3);
+      gauge.dataset.actualPosition = actualPosition.toFixed(3);
+      gauge.dataset.targetPosition = targetPosition.toFixed(3);
+      gauge.dataset.markerShape = "triangles";
+      gauge.setAttribute("aria-label", `Aussière ${mooringGaugeLabel(line)}, longueur réglée`);
+      gauge.setAttribute("aria-valuemin", minimumLength.toFixed(1));
+      gauge.setAttribute("aria-valuemax", MOORING_POLICY.maximumLength.toFixed(1));
+      gauge.setAttribute("aria-valuenow", targetLength.toFixed(1));
+      gauge.setAttribute(
+        "aria-valuetext",
+        `${fmt(targetLength, 1)} mètres de consigne, ${fmt(actualLength, 1)} mètres réels`
+      );
+      gauge.title = [
+        `${mooringGaugeLabel(line)} · consigne ${fmt(targetLength, 1)} m`,
+        `réelle ${fmt(actualLength, 1)} m`,
+        `non étirée ${fmt(unstretchedLength, 1)} m`,
+        `allongement ${fmt((line.strain || 0) * 100, 1)} %`,
+        `tension ${fmt((line.tension || 0) / 1000, 1)} kN`
+      ].join(" · ");
+    }
+
+    function syncMooringGauges() {
+      const chip = $("#mooringChip");
+      const panel = $("#mooringGaugePanel");
+      const grid = $("#mooringGaugeGrid");
+      const hasLines = moorings.current.length > 0;
+      chip.hidden = !hasLines;
+      panel.hidden = !hasLines;
+      if (!hasLines) {
+        grid.replaceChildren();
+        moorings.gaugeSignature = "";
+        moorings.activeLineId = null;
+        return;
+      }
+      const signature = moorings.current.map(line => line.id).join("\u001f");
+      if (signature !== moorings.gaugeSignature) {
+        grid.replaceChildren(...moorings.current.map(createMooringGauge));
+        moorings.gaugeSignature = signature;
+      }
+      for (const line of moorings.current) {
+        const gauge = Array.from(grid.children).find(
+          candidate => candidate.dataset.mooringId === line.id
+        );
+        if (gauge) updateMooringGauge(gauge, line);
+      }
+      if (
+        moorings.activeLineId
+        && moorings.lastScrolledGaugeId !== moorings.activeLineId
+      ) {
+        const activeGauge = Array.from(grid.children).find(
+          candidate => candidate.dataset.mooringId === moorings.activeLineId
+        );
+        activeGauge?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        moorings.lastScrolledGaugeId = moorings.activeLineId;
+      }
+    }
+
+    function adjustMooringGaugeTarget(id, targetLength) {
+      const rounded = Math.round(targetLength * 10) / 10;
+      const result = setInteractiveMooringLength(id, rounded);
+      if (result.ok) moorings.activeLineId = id;
+      return result;
+    }
+
     function updateInterface() {
       const relative = waterVelocityBody();
       /*
@@ -12613,6 +13137,7 @@
       setText("#mooringChipState", moorings.current.length
         ? `${tautCount} tendue${tautCount === 1 ? "" : "s"}`
         : "aucune frappée");
+      syncMooringGauges();
 
       const rudderDeg = controls.rudderTarget * RAD;
       const rudderSide = Math.abs(rudderDeg) < .5 ? "" : rudderDeg > 0 ? " Bâb." : " Trib.";
@@ -13237,6 +13762,98 @@
       return "grab";
     }
 
+    const mooringGaugePanel = $("#mooringGaugePanel");
+    mooringGaugePanel.addEventListener("pointerdown", event => {
+      const gauge = event.target.closest(".mooring-gauge");
+      if (!gauge || event.button !== 0) return;
+      const line = moorings.current.find(candidate => candidate.id === gauge.dataset.mooringId);
+      if (!line) return;
+      event.preventDefault();
+      event.stopPropagation();
+      gauge.focus({ preventScroll: true });
+      moorings.activeLineId = line.id;
+      moorings.lastScrolledGaugeId = null;
+      moorings.gaugePointer = {
+        pointerId: event.pointerId,
+        gauge,
+        id: line.id,
+        startY: event.clientY,
+        initialTarget: line.targetLength ?? line.length,
+        adjustedTarget: null
+      };
+      try {
+        gauge.setPointerCapture(event.pointerId);
+      } catch {
+        // Les pointeurs tactiles synthétiques ne sont pas toujours capturables.
+      }
+    });
+
+    mooringGaugePanel.addEventListener("pointermove", event => {
+      const pointer = moorings.gaugePointer;
+      if (!pointer || pointer.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      const deltaY = event.clientY - pointer.startY;
+      if (Math.abs(deltaY) < 2) return;
+      const result = adjustMooringGaugeTarget(
+        pointer.id,
+        pointer.initialTarget - deltaY * MOORING_POLICY.lengthDragMetersPerPixel
+      );
+      if (result.ok) pointer.adjustedTarget = result.mooring.targetLength;
+    });
+
+    const finishMooringGaugeDrag = event => {
+      const pointer = moorings.gaugePointer;
+      if (!pointer || pointer.pointerId !== event.pointerId) return;
+      event.preventDefault();
+      if (pointer.adjustedTarget !== null) {
+        showStageToast(
+          `Longueur d'aussière réglée · ${fmt(pointer.adjustedTarget, 1)} m.`,
+          "ok",
+          1300
+        );
+      }
+      moorings.gaugePointer = null;
+    };
+    mooringGaugePanel.addEventListener("pointerup", finishMooringGaugeDrag);
+    mooringGaugePanel.addEventListener("pointercancel", finishMooringGaugeDrag);
+    mooringGaugePanel.addEventListener("pointerover", event => {
+      const gauge = event.target.closest(".mooring-gauge");
+      if (!gauge || moorings.gaugePointer) return;
+      moorings.activeLineId = gauge.dataset.mooringId;
+      moorings.lastScrolledGaugeId = moorings.activeLineId;
+    });
+    mooringGaugePanel.addEventListener("pointerout", event => {
+      const gauge = event.target.closest(".mooring-gauge");
+      if (
+        !gauge
+        || moorings.gaugePointer
+        || gauge.contains(event.relatedTarget)
+      ) return;
+      if (moorings.activeLineId === gauge.dataset.mooringId) {
+        moorings.activeLineId = null;
+      }
+    });
+    mooringGaugePanel.addEventListener("keydown", event => {
+      const gauge = event.target.closest(".mooring-gauge");
+      if (!gauge || !["ArrowUp", "ArrowDown", "PageUp", "PageDown"].includes(event.key)) return;
+      const line = moorings.current.find(candidate => candidate.id === gauge.dataset.mooringId);
+      if (!line) return;
+      event.preventDefault();
+      const direction = event.key === "ArrowUp" || event.key === "PageUp" ? 1 : -1;
+      const increment = event.key.startsWith("Page") ? 0.5 : 0.1;
+      const result = adjustMooringGaugeTarget(
+        line.id,
+        (line.targetLength ?? line.length) + direction * increment
+      );
+      if (result.ok) {
+        showStageToast(
+          `Longueur d'aussière réglée · ${fmt(result.mooring.targetLength, 1)} m.`,
+          "ok",
+          900
+        );
+      }
+    });
+
     canvas.addEventListener("pointerdown", event => {
       event.preventDefault();
       canvas.focus();
@@ -13249,6 +13866,10 @@
       const mooringLine = mooringHit?.type === "line"
         ? moorings.current.find(line => line.id === mooringHit.id)
         : null;
+      if (mooringLine) {
+        moorings.activeLineId = mooringLine.id;
+        moorings.lastScrolledGaugeId = null;
+      }
       camera.pointer = {
         id: event.pointerId,
         x: event.clientX,
@@ -13380,12 +14001,14 @@
         moorings.selected = null;
       }
       camera.pointer = null;
+      if (!moorings.gaugePointer) moorings.activeLineId = null;
       moorings.hover = findMooringHit(event.clientX, event.clientY, event.pointerType);
       canvas.style.cursor = cursorForMooringHit(moorings.hover);
     });
     canvas.addEventListener("pointercancel", () => {
       camera.pointer = null;
       moorings.hover = null;
+      if (!moorings.gaugePointer) moorings.activeLineId = null;
       canvas.style.cursor = "grab";
     });
     canvas.addEventListener("pointerleave", () => {
@@ -13746,6 +14369,7 @@
           attachSpeedKn: calibration.mooringAttachSpeedKn
         },
         selected: moorings.selected ? { ...moorings.selected } : null,
+        activeLineId: moorings.activeLineId,
         boatCleats: BOAT_PROFILE.cleats.map(cleat => ({
           ...cleat,
           lineCount: boatCleatLineCount(cleat.id),
@@ -13769,10 +14393,37 @@
           cleats: moorings.hitTargets.cleats.length,
           lines: moorings.hitTargets.lines.length
         },
+        gauges: {
+          hidden: $("#mooringGaugePanel").hidden,
+          chipHidden: $("#mooringChip").hidden,
+          count: $("#mooringGaugeGrid").children.length,
+          columns: getComputedStyle($("#mooringGaugeGrid")).gridTemplateColumns
+            .split(" ").filter(Boolean).length,
+          panelWidth: $("#mooringGaugePanel").getBoundingClientRect().width,
+          chipWidth: $("#mooringChip").getBoundingClientRect().width,
+          scrollHeight: $("#mooringGaugePanel").scrollHeight,
+          clientHeight: $("#mooringGaugePanel").clientHeight,
+          itemHeight: $("#mooringGaugeGrid").firstElementChild
+            ?.getBoundingClientRect().height || 0,
+          items: Array.from($("#mooringGaugeGrid").children).map(gauge => ({
+            id: gauge.dataset.mooringId,
+            active: gauge.classList.contains("is-active"),
+            target: gauge.getAttribute("aria-valuenow"),
+            actual: gauge.dataset.actualLength,
+            rangeMinimum: gauge.dataset.rangeMinimum,
+            rangeMaximum: gauge.dataset.rangeMaximum,
+            actualPosition: gauge.dataset.actualPosition,
+            targetPosition: gauge.dataset.targetPosition,
+            markerShape: gauge.dataset.markerShape,
+            label: gauge.querySelector(".mooring-gauge-label")?.textContent || ""
+          }))
+        },
         colors: {
           slack: semantic.mooringSlack,
           taut: semantic.mooringTaut,
           selected: semantic.mooringSelected,
+          boatCleat: semantic.boatCleat,
+          boatCleatOutline: semantic.boatCleatOutline,
           eligible: semantic.cleatEligible
         }
       };
@@ -13889,6 +14540,10 @@
           latestPhysicsSnapshot = physicsSimulator.snapshot();
           moorings.current = [];
           moorings.selected = null;
+          moorings.activeLineId = null;
+          moorings.gaugePointer = null;
+          moorings.gaugeSignature = "";
+          syncMooringGauges();
           return mooringReport();
         },
         scenarioReport: () => Object.fromEntries(
