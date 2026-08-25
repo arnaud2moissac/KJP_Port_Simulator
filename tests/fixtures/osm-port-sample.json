@@ -1,0 +1,72 @@
+{
+  "version": 0.6,
+  "generator": "fixture-kjp",
+  "elements": [
+    {
+      "type": "way",
+      "id": 1001,
+      "tags": {
+        "man_made": "pier",
+        "floating": "yes",
+        "name": "Panne A"
+      },
+      "geometry": [
+        { "lat": 47.586000, "lon": -3.030000 },
+        { "lat": 47.586080, "lon": -3.029500 },
+        { "lat": 47.586160, "lon": -3.029000 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 1002,
+      "tags": {
+        "man_made": "pier",
+        "floating": "yes"
+      },
+      "geometry": [
+        { "lat": 47.586080, "lon": -3.029500 },
+        { "lat": 47.585990, "lon": -3.029480 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 2001,
+      "tags": {
+        "man_made": "breakwater",
+        "height": "4.5"
+      },
+      "geometry": [
+        { "lat": 47.585500, "lon": -3.031000 },
+        { "lat": 47.585300, "lon": -3.029500 },
+        { "lat": 47.585100, "lon": -3.028700 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 3001,
+      "tags": {
+        "natural": "land"
+      },
+      "geometry": [
+        { "lat": 47.586500, "lon": -3.031000 },
+        { "lat": 47.586800, "lon": -3.030500 },
+        { "lat": 47.586600, "lon": -3.029900 },
+        { "lat": 47.586500, "lon": -3.031000 }
+      ]
+    },
+    {
+      "type": "node",
+      "id": 4001,
+      "lat": 47.585780,
+      "lon": -3.028850,
+      "tags": {
+        "seamark:type": "buoy_lateral",
+        "seamark:name": "Basse Kerisper",
+        "seamark:buoy_lateral:category": "starboard",
+        "seamark:buoy_lateral:shape": "conical",
+        "seamark:buoy_lateral:colour": "green",
+        "seamark:buoy_lateral:system": "iala-a"
+      }
+    }
+  ]
+}

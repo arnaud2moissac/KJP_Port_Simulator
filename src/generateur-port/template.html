@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4f2ea">
+  <meta name="generator-map-engine" content="OpenLayers 10.10.0">
+  <title>Portance · Générateur communautaire de ports</title>
+  <style>
+/*__PORT_GENERATOR_CSS__*/
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <span class="eyebrow">Portance · atelier communautaire</span>
+          <h1>Construire un port navigable</h1>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="header-edit-actions" aria-label="Historique et suppression">
+          <button type="button" class="button ghost header-edit-button" id="undoButton" aria-label="Annuler" title="Annuler (Ctrl/⌘ Z)">
+            <span aria-hidden="true">↶</span><span class="header-edit-label">Annuler</span>
+          </button>
+          <button type="button" class="button ghost header-edit-button" id="redoButton" aria-label="Rétablir" title="Rétablir (Ctrl/⌘ Maj Z)">
+            <span aria-hidden="true">↷</span><span class="header-edit-label">Rétablir</span>
+          </button>
+          <button type="button" class="button ghost header-edit-button danger" id="deleteButton" aria-label="Supprimer l’objet sélectionné" title="Supprimer">
+            <span aria-hidden="true">⌫</span><span class="header-edit-label">Supprimer</span>
+          </button>
+        </div>
+        <span class="save-state" id="saveState">Brouillon local</span>
+        <button type="button" class="button ghost" id="newPortButton" aria-label="Créer un nouveau port">
+          <span class="new-port-label">Nouveau port</span><span class="new-port-short" aria-hidden="true">＋</span>
+        </button>
+        <button type="button" class="button ghost" id="importButton">Importer .kjp</button>
+        <input type="file" id="importInput" accept=".kjp,application/json" hidden>
+        <button type="button" class="button primary" id="exportButton">Exporter .kjp</button>
+      </div>
+    </header>
+
+    <nav class="tool-rail" aria-label="Outils d’édition">
+      <button type="button" class="tool active" data-tool="select" title="Sélectionner (V)">
+        <span aria-hidden="true">↖</span><small>Sélection</small>
+      </button>
+      <button type="button" class="tool" data-tool="pontoon" title="Ajouter un ponton">
+        <span aria-hidden="true">▬</span><small>Ponton</small>
+      </button>
+      <button type="button" class="tool" data-tool="catway" title="Ajouter un catway">
+        <span aria-hidden="true">━</span><small>Catway</small>
+      </button>
+      <button type="button" class="tool" data-tool="cleat" title="Ajouter un taquet">
+        <span aria-hidden="true">⊥</span><small>Taquet</small>
+      </button>
+      <button type="button" class="tool" data-tool="buoy" title="Ajouter une bouée de navigation ou un corps mort">
+        <span aria-hidden="true">◆</span><small>Bouée</small>
+      </button>
+      <button type="button" class="tool" data-tool="obstacle" title="Dessiner une digue ou un quai">
+        <span aria-hidden="true">⌁</span><small>Digue</small>
+      </button>
+      <button type="button" class="tool" data-tool="land" title="Dessiner une zone non navigable">
+        <span aria-hidden="true">⬟</span><small>Terre</small>
+      </button>
+      <button type="button" class="tool" data-tool="boat" title="Ajouter un bateau générique">
+        <span aria-hidden="true">◢</span><small>Bateau</small>
+      </button>
+      <button type="button" class="tool" data-tool="visitor" title="Ajouter une place visiteurs">
+        <span aria-hidden="true">V</span><small>Visiteur</small>
+      </button>
+      <button type="button" class="tool" data-tool="entry" title="Placer et orienter l’entrée">
+        <span aria-hidden="true">↗</span><small>Entrée</small>
+      </button>
+    </nav>
+
+    <aside class="left-panel panel" id="locationPanel">
+      <section class="panel-section">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">01 · Localiser</span>
+            <h2>Carte de travail</h2>
+          </div>
+          <button type="button" class="icon-button" id="collapseLeft" aria-label="Replier le panneau">‹</button>
+        </div>
+        <button type="button" class="button map-consent" id="enableMapsButton">
+          Afficher les cartes en ligne
+        </button>
+        <form id="searchForm" class="stack-form">
+          <label>
+            <span>Rechercher un lieu</span>
+            <div class="inline-field">
+              <input id="placeSearch" type="search" placeholder="Ex. Port de Camaret" autocomplete="off">
+              <button type="submit" class="button square" aria-label="Lancer la recherche">⌕</button>
+            </div>
+          </label>
+        </form>
+        <form id="coordinateForm" class="coordinate-grid">
+          <label><span>Latitude</span><input id="latitudeInput" type="number" step="0.000001" value="47.586000"></label>
+          <label><span>Longitude</span><input id="longitudeInput" type="number" step="0.000001" value="-3.030000"></label>
+          <button type="submit" class="button ghost">Centrer</button>
+        </form>
+      </section>
+
+      <section class="panel-section">
+        <span class="eyebrow">02 · Calques</span>
+        <div class="layer-row">
+          <label><input type="checkbox" id="osmLayerToggle" checked> OpenStreetMap</label>
+        </div>
+        <div class="layer-row">
+          <label><input type="checkbox" id="seamarkLayerToggle" checked> OpenSeaMap</label>
+        </div>
+        <div class="layer-row layer-row-satellite">
+          <label><input type="checkbox" id="orthoLayerToggle"> Satellite</label>
+          <div class="layer-opacity">
+            <input id="orthoOpacity" type="range" min="0" max="100" value="45" aria-label="Opacité du satellite IGN">
+            <output id="orthoOpacityValue" for="orthoOpacity">45 %</output>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section analysis-section">
+        <span class="eyebrow">03 · Reconstruire</span>
+        <h2>Topologie OpenStreetMap</h2>
+        <p>Analyse l’emprise visible ou le polygone tracé, limitée à 2 × 2 km. Les objets restent candidats jusqu’à votre confirmation.</p>
+        <div class="analysis-scope-actions">
+          <button type="button" class="button ghost" id="drawAnalysisPolygon">Tracer l’emprise</button>
+          <button type="button" class="button ghost" id="clearAnalysisPolygon" disabled>Effacer</button>
+        </div>
+        <div class="analysis-scope-status" id="analysisScopeStatus">Emprise visible de la carte</div>
+        <button type="button" class="button primary full" id="analyzeButton">Analyser cette zone</button>
+        <div class="analysis-stats" id="analysisStats">Aucune zone analysée</div>
+      </section>
+    </aside>
+
+    <main class="map-workspace">
+      <div id="map" class="map" role="application" aria-label="Carte d’édition métrique du port"></div>
+      <div class="map-scale-note" id="mapScaleNote">Repère local · 1 unité = 1 m</div>
+      <div class="selection-metrics" id="selectionMetrics" hidden></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <button type="button" class="panel-reopen panel-reopen-left" id="expandLeft"
+        aria-label="Afficher le panneau de localisation" aria-controls="locationPanel">›</button>
+      <button type="button" class="panel-reopen panel-reopen-right" id="expandRight"
+        aria-label="Afficher le panneau de propriétés" aria-controls="propertiesPanel">‹</button>
+    </main>
+
+    <aside class="candidate-drawer panel" id="candidateDrawer" hidden aria-label="Candidats OpenStreetMap">
+      <div class="candidate-header">
+        <div>
+          <span class="eyebrow">Reconstruction assistée</span>
+          <h2>Candidats à confirmer</h2>
+        </div>
+        <button type="button" class="icon-button" id="closeCandidates" aria-label="Fermer">×</button>
+      </div>
+      <div class="candidate-bulk" aria-label="Sélection rapide">
+        <div class="candidate-bulk-heading">
+          <span id="candidateSelectionCount">0 / 0 sélectionné</span>
+          <button type="button" class="button ghost" id="selectAllCandidates">Tout sélectionner</button>
+        </div>
+        <div class="candidate-category-actions">
+          <button type="button" class="button ghost" data-candidate-category="pontoon">Pontons</button>
+          <button type="button" class="button ghost" data-candidate-category="catway">Catways</button>
+          <button type="button" class="button ghost" data-candidate-category="obstacle">Digues / quais</button>
+          <button type="button" class="button ghost" data-candidate-category="land">Terre</button>
+          <button type="button" class="button ghost" data-candidate-category="buoy">Bouées</button>
+        </div>
+      </div>
+      <section class="decomposition-preview" id="decompositionPreview" hidden>
+        <div>
+          <span class="eyebrow">Découpe ponton</span>
+          <strong id="decompositionSummary"></strong>
+          <p id="decompositionDetails"></p>
+        </div>
+        <div class="decomposition-actions">
+          <button type="button" class="button ghost" id="cancelDecomposition">Annuler</button>
+          <button type="button" class="button primary" id="confirmDecomposition">Créer les objets</button>
+        </div>
+      </section>
+      <div class="candidate-list" id="candidateList"></div>
+      <div class="candidate-footer">
+        <button type="button" class="button ghost" id="rejectCandidates">Tout désélectionner</button>
+        <button type="button" class="button primary" id="integrateCandidates">Intégrer la sélection</button>
+      </div>
+    </aside>
+
+    <aside class="right-panel panel" id="propertiesPanel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">Propriétés</span>
+          <h2 id="inspectorTitle">Aucun objet sélectionné</h2>
+        </div>
+        <button type="button" class="icon-button" id="collapseRight" aria-label="Replier le panneau">›</button>
+      </div>
+
+      <div id="emptyInspector" class="empty-inspector">
+        <span class="empty-symbol">⌖</span>
+        <p>Sélectionnez un objet sur la carte pour afficher ses dimensions et ses réglages.</p>
+      </div>
+
+      <form id="objectInspector" class="inspector-form" hidden>
+        <label><span>Nom / identifiant</span><input id="objectId" readonly></label>
+        <div class="two-columns">
+          <label><span id="lengthPropertyLabel">Longueur (m)</span><input data-property="length" type="number" min="0.2" step="0.1"></label>
+          <label><span id="widthPropertyLabel">Largeur (m)</span><input data-property="width" type="number" min="0.1" step="0.1"></label>
+        </div>
+        <div class="two-columns">
+          <label><span id="headingPropertyLabel">Angle (°)</span><input data-property="headingDeg" type="number" step="1"></label>
+          <label><span id="heightPropertyLabel">Hauteur (m)</span><input data-property="height" type="number" min="0.05" step="0.05"></label>
+        </div>
+        <label id="verticalLevelField"><span id="verticalLevelLabel">Altitude de base (m)</span><input data-property="verticalLevel" type="number" step="0.05"></label>
+        <div class="two-columns">
+          <label><span>Est (m)</span><input data-property="east" type="number" step="0.1"></label>
+          <label><span>Nord (m)</span><input data-property="north" type="number" step="0.1"></label>
+        </div>
+        <label class="visitor-field"><input id="visitorToggle" type="checkbox"> Place visiteurs</label>
+        <label class="visitor-field"><span>Nom de la place</span><input id="visitorName" type="text" maxlength="120"></label>
+        <div class="buoy-fields" id="buoyFields" hidden>
+          <label><span>Type OpenSeaMap</span>
+            <select id="buoySeamarkType">
+              <option value="buoy_lateral">Latérale</option>
+              <option value="buoy_cardinal">Cardinale</option>
+              <option value="buoy_isolated_danger">Danger isolé</option>
+              <option value="buoy_safe_water">Eaux saines</option>
+              <option value="buoy_special_purpose">Marque spéciale</option>
+              <option value="buoy_installation">Installation</option>
+              <option value="mooring">Corps mort · avec taquet</option>
+            </select>
+          </label>
+          <label><span>Catégorie</span><select id="buoyCategory"></select></label>
+          <label><span>Forme</span>
+            <select id="buoyShape">
+              <option value="can">Cylindrique</option>
+              <option value="conical">Conique</option>
+              <option value="spherical">Sphérique</option>
+              <option value="pillar">Pilier</option>
+              <option value="spar">Espar</option>
+              <option value="barrel">Tonneau</option>
+              <option value="super-buoy">Super-bouée</option>
+              <option value="unknown">Non précisée</option>
+            </select>
+          </label>
+        </div>
+        <div class="inspector-actions">
+          <button type="button" class="button ghost" id="duplicateButton">Dupliquer</button>
+          <button type="button" class="button ghost" id="generateCleatsButton">Générer les taquets</button>
+        </div>
+        <div class="two-columns" id="cleatGenerationFields">
+          <label><span>Répartition taquets</span>
+            <select id="cleatGenerationMode">
+              <option value="count">Nombre / bord</option>
+              <option value="spacing">Espacement</option>
+            </select>
+          </label>
+          <label><span>Nombre ou mètres</span><input id="cleatGenerationValue" type="number" min="1" step="1" value="3"></label>
+        </div>
+        <div class="group-actions" id="groupActions" hidden>
+          <button type="button" class="button ghost" id="editSeriesButton">Modifier la série</button>
+          <button type="button" class="button ghost" id="detachCatwayButton">Détacher ce catway</button>
+        </div>
+      </form>
+
+      <section class="panel-section compact-section" id="catwayGenerator">
+        <span class="eyebrow">Série automatique</span>
+        <h2>Catways du ponton sélectionné</h2>
+        <div class="two-columns">
+          <label><span>Mode</span>
+            <select id="catwayMode"><option value="spacing">Entraxe</option><option value="count">Nombre</option></select>
+          </label>
+          <label><span>Deux côtés</span>
+            <select id="catwaySide"><option value="both">Oui</option><option value="port">Bâbord</option><option value="starboard">Tribord</option></select>
+          </label>
+        </div>
+        <div class="two-columns">
+          <label id="catwayCountField"><span>Nombre</span><input id="catwayCount" type="number" min="1" max="80" value="8"></label>
+          <label id="catwaySpacingField"><span>Entraxe (m)</span><input id="catwaySpacing" type="number" min="2" step="0.5" value="10"></label>
+        </div>
+        <div class="two-columns">
+          <label><span>Marge début</span><input id="catwayMarginStart" type="number" min="0" step="0.5" value="4"></label>
+          <label><span>Marge fin</span><input id="catwayMarginEnd" type="number" min="0" step="0.5" value="0"></label>
+        </div>
+        <div class="two-columns">
+          <label><span>Longueur (m)</span><input id="catwayLength" type="number" min="2" step="0.5" value="10"></label>
+          <label><span>Largeur (m)</span><input id="catwayWidth" type="number" min="0.3" step="0.1" value="0.6"></label>
+        </div>
+        <button type="button" class="button primary full" id="createCatwaySeries">Créer la série</button>
+      </section>
+
+      <section class="panel-section compact-section">
+        <span class="eyebrow">Places et ambiance</span>
+        <div class="occupancy-line">
+          <label for="occupancyRate">Occupation</label>
+          <output id="occupancyValue">62 %</output>
+        </div>
+        <input id="occupancyRate" type="range" min="0" max="100" value="62">
+        <label><span>Largeur des places (m)</span><input id="berthWidth" type="number" min="2.8" max="20" step="0.1" value="4.0"></label>
+        <div class="inspector-actions">
+          <button type="button" class="button ghost" id="computeBerthsButton">Calculer les places</button>
+          <button type="button" class="button ghost" id="populateBoatsButton">Placer les bateaux</button>
+        </div>
+      </section>
+
+      <details class="metadata-panel">
+        <summary>Informations du port</summary>
+        <form id="metadataForm" class="inspector-form">
+          <label><span>Nom du port *</span><input id="portName" required maxlength="240" value="Nouveau port"></label>
+          <label><span>Auteur</span><input id="portAuthor" maxlength="240"></label>
+          <label><span>Source</span><input id="portSource" maxlength="500" value="OpenStreetMap"></label>
+          <label><span>URL capitainerie</span><input id="harborMasterUrl" type="url" placeholder="https://…"></label>
+          <label><span>Horaires</span><textarea id="openingHours" rows="2"></textarea></label>
+          <label><span>Préconisation courant</span><textarea id="currentAdvice" rows="2"></textarea></label>
+          <label><span>Commentaire</span><textarea id="portComment" rows="3"></textarea></label>
+        </form>
+      </details>
+    </aside>
+
+    <footer class="status-bar">
+      <span id="objectCount">0 structure · 0 bateau</span>
+      <span id="cursorPosition">Est 0,0 m · Nord 0,0 m</span>
+      <span>Les cartes ne sont jamais incluses dans le fichier KJP.</span>
+    </footer>
+  </div>
+
+  <script>
+/*__PORT_GENERATOR_JS__*/
+  </script>
+</body>
+</html>

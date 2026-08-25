@@ -1,0 +1,33 @@
+{
+  "name": "kjp-port-simulator",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Simulateur pédagogique et générateur communautaire de ports KJP",
+  "devDependencies": {
+    "esbuild": "0.25.11",
+    "ol": "10.10.0",
+    "playwright": "1.61.1"
+  },
+  "scripts": {
+    "build:simulator": "node scripts/build-simulateur-port.js",
+    "build:port-generator": "node scripts/build-port-generator.js",
+    "check:build": "node scripts/build-simulateur-port.js --check",
+    "check:port-generator": "node scripts/build-port-generator.js --check",
+    "audit:wind-current": "node scripts/audit-wind-current.js",
+    "audit:dynamic-mooring": "node scripts/audit-dynamic-mooring.js",
+    "check:wind-current": "node scripts/audit-wind-current.js --check",
+    "test:ports": "node --test tests/ports/*.test.js",
+    "test:physics:core": "node --test tests/physics/port-physics.test.js",
+    "test:physics:environment": "node --test tests/physics/wind-current-profiles.test.js",
+    "test:physics:contacts": "node --test tests/physics/port-obstacles.test.js",
+    "test:physics": "node --test --test-concurrency=1 tests/physics/*.test.js",
+    "test:e2e": "node --test tests/simulateur-port.test.js",
+    "test:port-generator": "node --test tests/port-generator.test.js",
+    "check:simulator": "npm run check:build",
+    "check:generator": "npm run check:port-generator",
+    "verify:physics": "npm run check:build && npm run test:physics",
+    "verify:simulator": "npm run check:build && npm run test:physics && npm run test:e2e",
+    "verify:port-generator": "npm run check:port-generator && npm run test:ports && npm run test:port-generator",
+    "verify:release": "npm run check:build && npm run check:port-generator && npm run test:ports && npm run test:physics && npm run test:e2e && npm run test:port-generator"
+  }
+}

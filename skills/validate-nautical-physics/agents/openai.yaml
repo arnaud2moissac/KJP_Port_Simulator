@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validation physique nautique"
+  short_description: "Audit et validation de moteurs nautiques"
+  default_prompt: "Utilise $validate-nautical-physics pour classer le risque de ce changement, vérifier les invariants concernés et choisir des tests physiques proportionnels."

@@ -1,0 +1,20 @@
+{
+  "format": "KJP-LARGE-FIXTURE-DEFINITION",
+  "schemaVersion": 1,
+  "generatorVersion": "1.0.0",
+  "seed": 20260730,
+  "origin": {
+    "latitude": 47.586,
+    "longitude": -3.03
+  },
+  "counts": {
+    "pontoons": 1000,
+    "catways": 1000,
+    "staticBoats": 1000
+  },
+  "grid": {
+    "columns": 50,
+    "rowPitchMeters": 28,
+    "columnPitchMeters": 28
+  }
+}
