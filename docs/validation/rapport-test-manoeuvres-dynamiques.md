@@ -5,8 +5,8 @@
 **Plausible mais non calibré.** L'audit qualifie un modèle pédagogique, sans mesures instrumentées propres au Sun Odyssey 36i. Les seuils de temps expriment l'utilité de la manœuvre pour un équipage, pas une homologation du bateau réel.
 
 - Profil : `sun-odyssey-36i-pedagogical` 5.2.0, schéma 3, physique 5.1.0.
-- Révision Git : `49bf9ec`.
-- Généré le : 2026-08-24T16:42:40.566Z.
+- Révision Git : `9b5d063`.
+- Généré le : 2026-08-25T15:30:12.881Z.
 - Commande : `npm run audit:dynamic-mooring`.
 
 ## Contrat et géométrie

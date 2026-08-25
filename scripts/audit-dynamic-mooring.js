@@ -12,7 +12,12 @@ const { execFileSync } = require("node:child_process");
 const Physics = require("../src/simulateur-port/physics-core.js");
 
 const ROOT = path.resolve(__dirname, "..");
-const REPORT_PATH = path.join(ROOT, "rapport-test-manoeuvres-dynamiques.md");
+const REPORT_PATH = path.join(
+  ROOT,
+  "docs",
+  "validation",
+  "rapport-test-manoeuvres-dynamiques.md"
+);
 const PROFILE = Physics.DEFAULT_PROFILE;
 const HEADING = 0;
 const MATRIX_DURATION_S = 180;
