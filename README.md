@@ -10,7 +10,9 @@ Les deux livrables sont des fichiers HTML autonomes. Le simulateur fonctionne ho
 ![Vue générale du simulateur](docs/images/01-navigation-generale.jpg)
 
 ## Essayer immédiatement
+https://arnaud2moissac.github.io/KJP_Port_Simulator/simulateur-port.html
 
+ou
 1. Téléchargez ou clonez le dépôt.
 2. Ouvrez `simulateur-port.html` dans un navigateur récent.
 3. Choisissez une situation ou un défi, larguez les amarres si nécessaire, puis manœuvrez avec les flèches ou les commandes tactiles.
@@ -18,6 +20,9 @@ Les deux livrables sont des fichiers HTML autonomes. Le simulateur fonctionne ho
 Le [guide utilisateur](docs/guide-utilisateur.md) présente la prise en main, les aussières, les pendilles méditerranéennes et les principes du moteur physique sans répéter toute l'interface.
 
 Pour créer un port, ouvrez `generateur-port.html`, dessinez ou analysez une zone OpenStreetMap, définissez son entrée, puis exportez un fichier `.kjp`. La structure du format est décrite dans [ports/KJP.md](ports/KJP.md).
+
+https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html
+
 
 ## Développer
 
