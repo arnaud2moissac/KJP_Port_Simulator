@@ -1,7 +1,7 @@
 {
   "name": "kjp-port-simulator",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Simulateur pédagogique et générateur communautaire de ports KJP",
   "devDependencies": {
     "esbuild": "0.25.11",
