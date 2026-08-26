@@ -121,7 +121,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(browserReport.id, portTopology.id);
   });
 
-  await t.test("les préférences par défaut sont le thème nuit, le son actif et 0,5 nd pour frapper", async () => {
+  await t.test("les préférences par défaut sont le thème nuit, le son actif et moins de 0,6 nd pour frapper", async () => {
     const defaults = await page.evaluate(() => ({
       theme: window.__PORTANCE_TEST__.visualThemeReport(),
       audio: window.__PORTANCE_TEST__.engineAudioReport(),
@@ -140,10 +140,10 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(defaults.audio.started, true);
     assert.equal(defaults.audio.button.pressed, "true");
     assert.match(defaults.audio.button.ariaLabel, /Couper le son/);
-    assert.equal(defaults.mooring.policy.defaultAttachSpeedKn, .5);
-    assert.equal(defaults.mooring.policy.attachSpeedKn, .5);
-    assert.equal(defaults.attachInput, "0.5");
-    assert.equal(defaults.attachReadout, "0,5 nd");
+    assert.equal(defaults.mooring.policy.defaultAttachSpeedKn, .6);
+    assert.equal(defaults.mooring.policy.attachSpeedKn, .6);
+    assert.equal(defaults.attachInput, "0.6");
+    assert.equal(defaults.attachReadout, "0,6 nd");
   });
 
   await t.test("la navigation reste prioritaire et les commandes ne débordent plus du header", async () => {
@@ -856,11 +856,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.geometryReport());
     assert.equal(report.ok, true, report.failures.join("\n"));
     assert.deepEqual(report.counts, {
-      docks: 4,
+      docks: 5,
       catways: 30,
-      mooringCleats: 220,
-      staticBoats: 16,
-      scenarios: 8
+      mooringCleats: 226,
+      staticBoats: 18,
+      scenarios: 10
     });
     assert.equal(report.connections.length, 30);
     assert.ok(report.connections.every(connection => (
@@ -888,10 +888,10 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
   await t.test("les taquets du port sont métriques, réalistes et référencés", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.geometryReport().mooring);
     assert.equal(report.ok, true, report.failures.join("\n"));
-    assert.equal(report.count, 220);
+    assert.equal(report.count, 226);
     assert.equal(report.catwayCleats, 180);
     assert.equal(report.pontoonCleats, 40);
-    assert.equal(report.initialLines.length, 8);
+    assert.equal(report.initialLines.length, 10);
     assert.ok(report.initialLines.every(line => line.length <= 20));
 
     const parents = new Map([
@@ -902,7 +902,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     for (const cleat of portTopology.structures.mooringCleats) {
       assert.equal(ids.has(cleat.id), false, `taquet dupliqué ${cleat.id}`);
       ids.add(cleat.id);
-      assert.ok(["catway", "ponton"].includes(cleat.kind));
+      assert.ok(["catway", "ponton", "quay"].includes(cleat.kind));
       assert.ok([cleat.x, cleat.y, cleat.z, cleat.orientation].every(Number.isFinite));
       const parent = parents.get(cleat.parentId);
       assert.ok(parent, `parent absent pour ${cleat.id}`);
@@ -941,8 +941,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
         cleared,
         restored,
         policy: {
-          attachAt: api.mooringActionAllowed("attach", .5),
-          attachAbove: api.mooringActionAllowed("attach", .50001),
+          attachBelow: api.mooringActionAllowed("attach", .5999),
+          attachAtLimit: api.mooringActionAllowed("attach", .6),
           detachAt: api.mooringActionAllowed("detach", 3),
           detachAbove: api.mooringActionAllowed("detach", 3.00001)
         }
@@ -956,10 +956,55 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(result.states.free.length, 0);
     assert.equal(result.cleared, 0);
     assert.equal(result.restored.length, 2);
-    assert.equal(result.policy.attachAt.ok, true);
-    assert.equal(result.policy.attachAbove.ok, false);
+    assert.equal(result.policy.attachBelow.ok, true);
+    assert.equal(result.policy.attachAtLimit.ok, false);
     assert.equal(result.policy.detachAt.ok, true);
     assert.equal(result.policy.detachAbove.ok, false);
+  });
+
+  await t.test("les pendilles intégrées se prennent, deviennent porteuses puis se libèrent immédiatement", async () => {
+    const result = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      const departure = api.loadScenario("medDeparture");
+      const strongWind = api.replayPendilleStrongWind();
+      api.loadScenario("medDeparture");
+      const initial = {
+        pendilles: departure.pendilles,
+        lines: departure.moorings.current,
+        phase: departure.scenario.phase,
+        windSpeedKn: departure.environment.windSpeedKn,
+        strongWindSpeedKn: strongWind.environment.windSpeedKn,
+        replayButtonHidden: document.querySelector("#strongWindReplay").hidden
+      };
+      const released = api.releasePendille("pendille-med-2");
+      const clear = released.snapshot.pendilles.find(item => item.id === "pendille-med-2");
+      api.reset({ x: -90, y: 37.5, heading: -Math.PI / 2 });
+      const pickup = api.pickupPendille("pendille-med-2", "bow-starboard");
+      const secured = api.advance(12);
+      return {
+        initial,
+        released: released.result,
+        clear,
+        pickup: pickup.result,
+        securedPendille: secured.pendilles.find(item => item.id === "pendille-med-2"),
+        securedLine: secured.moorings.current.find(line => line.sourceType === "pendille")
+      };
+    });
+    assert.equal(result.initial.pendilles.length, 3);
+    assert.equal(result.initial.pendilles.find(item => item.id === "pendille-med-2").state, "secured");
+    assert.equal(result.initial.lines.filter(line => line.sourceType === "pendille").length, 1);
+    assert.equal(result.initial.phase, "release-leeward");
+    assert.equal(result.initial.windSpeedKn, 10);
+    assert.equal(result.initial.strongWindSpeedKn, 15);
+    assert.equal(result.initial.replayButtonHidden, true);
+    assert.equal(result.released.ok, true);
+    assert.equal(result.clear.state, "available");
+    assert.equal(result.clear.danger, false);
+    assert.equal(result.pickup.ok, true);
+    assert.equal(result.securedPendille.state, "secured");
+    assert.equal(result.securedLine.sourceType, "pendille");
+    assert.equal(result.securedLine.workingLoadN, 12000);
+    assert.ok(result.securedLine.maximumLength > 20);
   });
 
   await t.test("la calibration experte règle effectivement le seuil de pose des aussières", async () => {
@@ -968,42 +1013,42 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       element.open = true;
     });
     const input = page.locator("#mooringAttachSpeed");
-    assert.equal(await input.inputValue(), "0.5");
-    assert.equal(
-      await page.locator('[data-value-for="mooringAttachSpeed"]').textContent(),
-      "0,5 nd"
-    );
-
-    await input.evaluate(element => {
-      element.value = "0.6";
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    const calibrated = await page.evaluate(() => {
-      const api = window.__PORTANCE_TEST__;
-      return {
-        at: api.mooringActionAllowed("attach", .6),
-        above: api.mooringActionAllowed("attach", .60001),
-        report: api.mooringReport()
-      };
-    });
-    assert.equal(calibrated.at.ok, true);
-    assert.equal(calibrated.at.maximum, .6);
-    assert.equal(calibrated.above.ok, false);
-    assert.equal(calibrated.report.policy.attachSpeedKn, .6);
+    assert.equal(await input.inputValue(), "0.6");
     assert.equal(
       await page.locator('[data-value-for="mooringAttachSpeed"]').textContent(),
       "0,6 nd"
     );
 
     await input.evaluate(element => {
-      element.value = "0.5";
+      element.value = "0.7";
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const calibrated = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      return {
+        below: api.mooringActionAllowed("attach", .6999),
+        atLimit: api.mooringActionAllowed("attach", .7),
+        report: api.mooringReport()
+      };
+    });
+    assert.equal(calibrated.below.ok, true);
+    assert.equal(calibrated.below.maximum, .7);
+    assert.equal(calibrated.atLimit.ok, false);
+    assert.equal(calibrated.report.policy.attachSpeedKn, .7);
+    assert.equal(
+      await page.locator('[data-value-for="mooringAttachSpeed"]').textContent(),
+      "0,7 nd"
+    );
+
+    await input.evaluate(element => {
+      element.value = "0.6";
       element.dispatchEvent(new Event("input", { bubbles: true }));
     });
     assert.equal(
       (await page.evaluate(
         () => window.__PORTANCE_TEST__.mooringReport()
       )).policy.attachSpeedKn,
-      .5
+      .6
     );
   });
 
@@ -1504,7 +1549,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       portTopology.structures.catways.map(catway => [catway.id, catway])
     );
     const intervals = new Map();
-    for (const boat of portTopology.staticBoats) {
+    for (const boat of portTopology.staticBoats.filter(item => item.mooringType !== "pendille")) {
       assert.ok(["south", "north"].includes(boat.berthSlot));
       assert.ok(Number.isFinite(boat.berthRow));
       const catway = catwayById.get(boat.catwayId);
@@ -1646,7 +1691,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     for (const [id, scenario] of Object.entries(report)) {
       assert.equal(
         scenario.environment.windSpeedKn,
-        id === "mooring" ? 8 : 0,
+        id === "mooring" ? 8 : ["medDock", "medDeparture"].includes(id) ? 10 : 0,
         `${id}: vent initial inattendu`
       );
       assert.equal(scenario.environment.currentSpeedKn, 0, `${id}: courant initial non nul`);
@@ -1688,7 +1733,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("le moteur scientifique est intégré avec une masse définie positive", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.physicsReport());
-    assert.equal(report.version, "5.1.0");
+    assert.equal(report.version, "5.2.0");
     const matrix = report.mass.matrix;
     assert.equal(matrix.length, 3);
     assert.equal(matrix[1][2], matrix[2][1]);
@@ -2159,6 +2204,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       ["dockForward", "dockReverse", "approach"]
     );
     assert.ok(desktop.options.includes("mooring"));
+    assert.ok(desktop.options.includes("medDock"));
+    assert.ok(desktop.options.includes("medDeparture"));
     assert.match(desktop.wind, /^0(?:,0)? nd$/);
     assert.match(desktop.current, /^0(?:,0)? nd$/);
     assert.match(desktop.rpm, /^\d+$/);

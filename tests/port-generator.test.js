@@ -211,7 +211,7 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       };
     });
     exported = report.text;
-    assert.equal(report.document.schemaVersion, 2);
+    assert.equal(report.document.schemaVersion, 3);
     assert.equal(report.document.structures.pontoons.length, 1);
     assert.equal(report.document.structures.catways.length, 8);
     assert.ok(report.document.structures.catways.every(catway => (
@@ -230,6 +230,37 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.ok(report.rendered.features > 50);
     assert.match(exported, /^(\{\n  "berths")/);
     assert.doesNotMatch(exported, /data:image|tileData|imageBlob/i);
+  });
+
+  await t.test("une série de pendilles crée places, prises, corps-morts et taquets liés", async () => {
+    await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      const document = api.loadDemonstration();
+      api.select(document.structures.pontoons[0].id);
+    });
+    await page.locator("#pendilleMode").selectOption("count");
+    await page.locator("#pendilleCount").fill("3");
+    await page.locator("#createPendilleSeries").click();
+    const report = await page.evaluate(() => {
+      const document = window.__KJP_GENERATOR_TEST__.snapshot();
+      return {
+        pendilles: document.structures.pendilles,
+        groups: document.editor.pendilleGroups,
+        berths: document.berths.filter(berth => berth.pendilleId),
+        boats: document.staticBoats.filter(boat => boat.berthId?.startsWith("berth-")),
+        exportText: window.__KJP_GENERATOR_TEST__.exportText()
+      };
+    });
+    assert.equal(report.pendilles.length, 3);
+    assert.equal(report.groups.length, 1);
+    assert.equal(report.berths.length, 3);
+    assert.ok(report.boats.length >= 3);
+    assert.ok(report.pendilles.every(item => (
+      item.anchor.depth === 3
+      && item.line.workingStrain === 0.15
+      && item.line.maximumLength <= 200
+    )));
+    assert.doesNotThrow(() => Codec.parse(report.exportText));
   });
 
   await t.test("import → réexport reste strictement identique", async () => {

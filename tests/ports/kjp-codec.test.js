@@ -128,7 +128,7 @@ test("codec KJP: export → import → réexport exactement équivalent", () => 
   const second = Codec.serialize(parsed);
   assert.equal(second, first);
   assert.equal(parsed.format, "KJP");
-  assert.equal(parsed.schemaVersion, 2);
+  assert.equal(parsed.schemaVersion, 3);
   assert.ok(Object.isFrozen(parsed));
   assert.ok(Object.isFrozen(parsed.structures.catways));
   assert.equal(parsed.structures.buoys.length, 1);
@@ -161,6 +161,61 @@ test("nouveau port: valeurs de quai, places et catways conformes aux défauts m�
   assert.equal(generated.group.parameters.width, 0.6);
 });
 
+test("pendilles: une série reste liée au quai et traverse KJP → runtime sans discontinuité", () => {
+  const document = Codec.createEmpty({
+    id: "med-port",
+    name: "Port méditerranéen",
+    latitude: 43.3,
+    longitude: 5.36,
+    generatorVersion: "test"
+  });
+  document.structures.pontoons.push({
+    id: "quay-med",
+    type: "pontoon",
+    center: { east: 0, north: 0 },
+    length: 32,
+    width: 2,
+    heading: 0,
+    height: 0.6,
+    vertical: Editor.verticalWithDeck(0.6, 0.6)
+  });
+  document.navigation.entries.push({
+    id: "entry-med",
+    name: "Entrée",
+    position: { east: 0, north: -40 },
+    heading: 0
+  });
+  const editor = new Editor.PortEditor(document);
+  editor.addPendilleGroup("quay-med", {
+    mode: "count",
+    count: 3,
+    waterSide: "right",
+    marginStart: 4,
+    marginEnd: 4,
+    berthWidth: 4,
+    berthLength: 14,
+    anchorDistance: 18,
+    depth: 3
+  });
+  assert.equal(editor.document.structures.pendilles.length, 3);
+  assert.equal(editor.document.berths.length, 3);
+  assert.equal(editor.document.staticBoats.length, 3);
+  const parsed = Codec.parse(Codec.serialize(editor.document));
+  const runtime = Codec.toRuntimeTopology(parsed);
+  assert.equal(runtime.structures.pendilles.length, 3);
+  for (const pendille of runtime.structures.pendilles) {
+    assert.ok(Number.isFinite(pendille.pickupPoint.east));
+    assert.ok(Number.isFinite(pendille.anchorPoint.north));
+    assert.equal(pendille.anchorPoint.z, -3);
+    assert.ok(pendille.maximumLength <= 200);
+  }
+  const firstBefore = runtime.structures.pendilles[0].pickupPoint;
+  editor.update("quay-med", { center: { east: 12, north: -5 }, heading: Math.PI / 6 });
+  const moved = Codec.toRuntimeTopology(Codec.parse(Codec.serialize(editor.document)));
+  const firstAfter = moved.structures.pendilles[0].pickupPoint;
+  assert.ok(Math.hypot(firstAfter.east - firstBefore.east, firstAfter.north - firstBefore.north) > 5);
+});
+
 test("codec KJP: les anciens documents v1 sans tableau de bouées restent compatibles", () => {
   const document = createValidPort();
   document.schemaVersion = 1;
@@ -176,8 +231,19 @@ test("codec KJP: les anciens documents v1 sans tableau de bouées restent compat
   }
   const parsed = Codec.parse(JSON.stringify(document));
   assert.deepEqual(parsed.structures.buoys, []);
-  assert.equal(parsed.schemaVersion, 2);
+  assert.equal(parsed.schemaVersion, 3);
   assert.ok(parsed.structures.catways.every(catway => catway.attachment?.parentId === "pontoon-main"));
+});
+
+test("codec KJP: un document v2 migre vers v3 avec des pendilles vides", () => {
+  const document = createValidPort();
+  document.schemaVersion = 2;
+  delete document.structures.pendilles;
+  delete document.editor.pendilleGroups;
+  const parsed = Codec.parse(JSON.stringify(document));
+  assert.equal(parsed.schemaVersion, 3);
+  assert.deepEqual(parsed.structures.pendilles, []);
+  assert.deepEqual(parsed.editor.pendilleGroups, []);
 });
 
 test("codec KJP: limites, références, versions et contenu malveillant sont refusés avec un chemin", () => {

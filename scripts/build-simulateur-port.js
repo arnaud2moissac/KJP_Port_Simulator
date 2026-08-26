@@ -47,7 +47,7 @@ function validateTopology(topologyRelativePath) {
       if (
         typeof cleat.id !== "string"
         || ids.has(cleat.id)
-        || !["catway", "ponton"].includes(cleat.kind)
+        || !["catway", "ponton", "quay"].includes(cleat.kind)
         || ![cleat.x, cleat.y, cleat.z, cleat.orientation].every(Number.isFinite)
       ) {
         errors.push(`taquet d'amarrage invalide : ${cleat.id || "sans identifiant"}`);

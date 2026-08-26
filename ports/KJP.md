@@ -1,4 +1,4 @@
-# KJP 2 — format communautaire de port
+# KJP 3 — format communautaire de port
 
 KJP est un document JSON UTF-8 non exécutable. Il ne contient ni JavaScript,
 ni HTML, ni tuile, ni orthophoto. Les cartes restent des aides visuelles du
@@ -10,8 +10,8 @@ de licence, de date, d’emprise et d’identifiants OSM.
 ```json
 {
   "format": "KJP",
-  "schemaVersion": 2,
-  "generatorVersion": "1.0.0",
+  "schemaVersion": 3,
+  "generatorVersion": "1.1.0",
   "metadata": {},
   "georeference": {},
   "sources": [],
@@ -46,6 +46,11 @@ zone de 4 km.
   visible entre les deux objets.
 - `structures.cleats` stocke `parentId` et une `localPosition` longitudinale /
   transversale. Le taquet suit ainsi la transformation de son parent.
+- `structures.pendilles` décrit une prise au quai, un corps-mort immergé et le
+  profil mécanique de la ligne porteuse. La prise est liée au bord d’un
+  rectangle ou à une station d’un quai en polyligne ; le corps-mort est défini
+  par sa distance normale et sa profondeur. La longueur maximale peut atteindre
+  200 m, indépendamment de la limite de 20 m des aussières embarquées.
 - `structures.obstacles` contient des polylignes métriques avec `width`,
   `height`, un bloc `vertical` en mode fixe et un type `breakwater`, `groyne`,
   `quay` ou `obstacle`.
@@ -55,7 +60,8 @@ zone de 4 km.
   image satellite.
 - `navigation.entries` contient exactement un point d’entrée avec position et
   cap.
-- `editor.catwayGroups` conserve les paramètres de séries automatiques ;
+- `editor.catwayGroups` et `editor.pendilleGroups` conservent les paramètres de
+  séries automatiques ;
   `occupancyRate` et `occupancySeed` rendent le remplissage reproductible.
 
 ## Sécurité et limites
@@ -77,9 +83,10 @@ valide en une seule opération, au neutre, sans vent ni courant, et ne le garde
 qu’en mémoire. Exporter, importer puis réexporter sans modification produit le
 même texte canonique.
 
-Les documents KJP 1 sont migrés en mémoire avant validation. La migration
-explicite leurs altitudes et restaure les raccords des catways appartenant à un
-groupe paramétrique. Une réexportation produit toujours un document KJP 2.
+Les documents KJP 1 et 2 sont migrés en mémoire avant validation. La migration
+explicite leurs altitudes, restaure les raccords des catways appartenant à un
+groupe paramétrique et initialise une liste de pendilles vide. Une
+réexportation produit toujours un document KJP 3.
 
 ## Données OpenStreetMap / OpenSeaMap
 

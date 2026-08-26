@@ -19,7 +19,11 @@
   const RHO_AIR = 1.225;
   const MAX_STEP = 1 / 120;
   const EPSILON = 1e-9;
-  const PHYSICS_VERSION = "5.1.0";
+  // Portée opérationnelle de 1,5 m, augmentée de 0,3 m pour absorber le fait
+  // que la prise KJP représente le centre de sa boucle sur le ponton.
+  const PENDILLE_PICKUP_REACH_M = 1.8;
+  const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
+  const PHYSICS_VERSION = "5.2.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -749,7 +753,35 @@
     let lastForces = [];
     let lastContactSamples = [];
     let activeContactIds = new Set();
+    let pendilleById = new Map();
+    let activePendilleIds = new Set();
     let simulationTime = 0;
+    const hullPickupOutline = (() => {
+      const halfBeam = profile.dimensions.beam / 2;
+      const halfLength = profile.dimensions.lengthOverall / 2;
+      const sections = [...profile.geometry.hullSections].sort((left, right) => left.x - right.x);
+      const starboard = sections.map(section => ({
+        east: section.x,
+        north: halfBeam * section.breadthFactor
+      }));
+      const port = [...sections].reverse().map(section => ({
+        east: section.x,
+        north: -halfBeam * section.breadthFactor
+      }));
+      return [
+        { east: -halfLength, north: 0 },
+        ...starboard,
+        { east: halfLength, north: 0 },
+        ...port
+      ];
+    })();
+
+    function normalizedMooringElasticity(definition = {}) {
+      return {
+        ...profile.mooring.elasticity,
+        ...(definition.elasticity || {})
+      };
+    }
 
     function defaultState() {
       const propulsionUnits = profile.propulsors.map(propulsor => {
@@ -809,6 +841,7 @@
         },
         controls: { throttleTarget: 0, rudderTarget: 0, rudderActual: 0 },
         moorings: [],
+        pendilles: [],
         contacts: {
           current: [],
           maxImpact: 0,
@@ -834,11 +867,19 @@
       lastForces = [];
       lastContactSamples = [];
       activeContactIds = new Set();
+      pendilleById = new Map();
+      activePendilleIds = new Set();
       simulationTime = 0;
       for (const mooring of initialState.moorings || []) {
         const result = attachMooring(mooring);
         if (!result.ok) {
           throw new Error(`Aussière initiale invalide (${mooring.id || "sans identifiant"}) : ${result.reason}`);
+        }
+      }
+      for (const pendille of initialState.pendilles || []) {
+        const result = registerPendille(pendille);
+        if (!result.ok) {
+          throw new Error(`Pendille initiale invalide (${pendille.id || "sans identifiant"}) : ${result.reason}`);
         }
       }
       return snapshot();
@@ -935,7 +976,7 @@
       for (const mooring of state.moorings) {
         const geometry = mooringGeometry(mooring);
         const elastic = mooringElasticLaw(
-          profile.mooring.elasticity,
+          mooring.elasticity || profile.mooring.elasticity,
           mooring.length,
           geometry.distance
         );
@@ -991,7 +1032,13 @@
           east: shorePoint.east,
           north: shorePoint.north,
           z: shorePoint.z
-        }
+        },
+        sourceType: definition.sourceType === "pendille" ? "pendille" : "mooring",
+        facilityId: definition.facilityId || null,
+        maximumLength: Number.isFinite(definition.maximumLength)
+          ? Number(definition.maximumLength)
+          : profile.mooring.maxLength,
+        elasticity: normalizedMooringElasticity(definition)
       };
       const geometry = mooringGeometry(draft);
       const length = definition.length === undefined
@@ -1000,20 +1047,29 @@
       if (!Number.isFinite(length) || length < 0.05) {
         return { ok: false, reason: "longueur invalide" };
       }
-      if (length > profile.mooring.maxLength + EPSILON) {
-        return { ok: false, reason: "longueur supérieure à 20 m" };
+      if (draft.maximumLength <= 0.05 || draft.maximumLength > 200) {
+        return { ok: false, reason: "longueur maximale invalide" };
+      }
+      if (length > draft.maximumLength + EPSILON) {
+        return { ok: false, reason: `longueur supérieure à ${draft.maximumLength.toFixed(1)} m` };
       }
       const verticalDistance = Math.abs(geometry.verticalDelta);
-      if (length + EPSILON < verticalDistance) {
+      const maximumExtendedLength = length * (
+        1 + Math.max(0, draft.elasticity.maximumStrain)
+      );
+      if (maximumExtendedLength + EPSILON < verticalDistance) {
         return { ok: false, reason: "longueur inférieure à la différence de hauteur" };
       }
-      const horizontalLimit = Math.sqrt(Math.max(0, length * length - verticalDistance * verticalDistance));
+      const horizontalLimit = Math.sqrt(Math.max(
+        0,
+        maximumExtendedLength * maximumExtendedLength - verticalDistance * verticalDistance
+      ));
       if (geometry.horizontalDistance > horizontalLimit + profile.mooring.solverTolerance) {
         return { ok: false, reason: "aussière trop courte pour les taquets" };
       }
       const slack = Math.max(0, length - geometry.distance);
       const elastic = mooringElasticLaw(
-        profile.mooring.elasticity,
+        draft.elasticity,
         length,
         geometry.distance
       );
@@ -1055,14 +1111,14 @@
       const targetLength = clamp(
         numericLength,
         minimumLength,
-        profile.mooring.maxLength
+        mooring.maximumLength || profile.mooring.maxLength
       );
       mooring.targetLength = targetLength;
       return {
         ok: true,
         clamped: Math.abs(targetLength - numericLength) > EPSILON,
         minimumLength,
-        maximumLength: profile.mooring.maxLength,
+        maximumLength: mooring.maximumLength || profile.mooring.maxLength,
         mooring: deepClone(mooring)
       };
     }
@@ -1071,13 +1127,335 @@
       const index = state.moorings.findIndex(mooring => mooring.id === id);
       if (index < 0) return { ok: false, reason: "aussière inconnue" };
       const [mooring] = state.moorings.splice(index, 1);
+      lastForces = lastForces.filter(force => force.mooringId !== id);
       return { ok: true, mooring: deepClone(mooring) };
     }
 
     function clearMoorings() {
       const count = state.moorings.length;
       state.moorings.length = 0;
+      lastForces = lastForces.filter(force => force.category !== "mooring");
+      for (const pendille of state.pendilles) {
+        if (pendille.state === "secured") {
+          pendille.state = "available";
+          pendille.boatCleatId = null;
+          pendille.mooringId = null;
+          pendille.progress = 0;
+          activePendilleIds.delete(pendille.id);
+        }
+      }
       return count;
+    }
+
+    function validWorldPoint(point) {
+      return point && [point.east, point.north, point.z].every(Number.isFinite);
+    }
+
+    function registerPendille(definition = {}) {
+      if (!state) return { ok: false, reason: "simulateur non initialisé" };
+      const id = typeof definition.id === "string" && definition.id
+        ? definition.id
+        : `pendille-${state.pendilles.length + 1}`;
+      if (state.pendilles.some(item => item.id === id)) {
+        return { ok: false, reason: "identifiant déjà utilisé" };
+      }
+      if (!validWorldPoint(definition.pickupPoint) || !validWorldPoint(definition.anchorPoint)) {
+        return { ok: false, reason: "prise ou corps-mort invalide" };
+      }
+      const maximumLength = Number(definition.maximumLength);
+      if (!Number.isFinite(maximumLength) || maximumLength <= 0.05 || maximumLength > 200) {
+        return { ok: false, reason: "longueur maximale invalide" };
+      }
+      const pendille = {
+        id,
+        berthId: definition.berthId || null,
+        parentId: definition.parentId || null,
+        connectionEnd: definition.connectionEnd === "stern" ? "stern" : "bow",
+        pickupPoint: deepClone(definition.pickupPoint),
+        anchorPoint: deepClone(definition.anchorPoint),
+        maximumLength,
+        elasticity: normalizedMooringElasticity(definition),
+        state: "available",
+        boatCleatId: null,
+        mooringId: null,
+        progress: 0,
+        transferDuration: 0,
+        pickupHullDistance: null,
+        pickupStartCleatId: null,
+        stateTime: 0,
+        danger: false,
+        lastError: null,
+        releasePoint: null
+      };
+      state.pendilles.push(pendille);
+      pendilleById.set(id, pendille);
+      if (definition.state === "secured" && definition.boatCleatId) {
+        const secured = securePendille(pendille, definition.boatCleatId, definition.length);
+        if (!secured.ok) {
+          state.pendilles.pop();
+          pendilleById.delete(id);
+          activePendilleIds.delete(id);
+          return secured;
+        }
+      }
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function pendillePickupGeometry(pickupPoint) {
+      const offset = worldToBody(
+        pickupPoint.east - state.pose.east,
+        pickupPoint.north - state.pose.north,
+        state.pose.heading
+      );
+      const localPickup = { east: offset.u, north: offset.v };
+      let closest = localPickup;
+      let distance = 0;
+      if (!pointInPolygon(localPickup.east, localPickup.north, hullPickupOutline)) {
+        distance = Infinity;
+        for (let index = 0; index < hullPickupOutline.length; index += 1) {
+          const candidate = closestPointOnSegment(
+            localPickup,
+            hullPickupOutline[index],
+            hullPickupOutline[(index + 1) % hullPickupOutline.length]
+          );
+          const candidateDistance = Math.hypot(
+            localPickup.east - candidate.east,
+            localPickup.north - candidate.north
+          );
+          if (candidateDistance < distance) {
+            distance = candidateDistance;
+            closest = candidate;
+          }
+        }
+      }
+      const nearestCleat = profile.mooring.cleats.reduce((best, cleat) => {
+        const deckDistance = Math.hypot(cleat.x - closest.east, cleat.y - closest.north);
+        return !best || deckDistance < best.distance ? { cleat, distance: deckDistance } : best;
+      }, null);
+      return {
+        distance,
+        bodyPoint: { x: closest.east, y: closest.north },
+        nearestCleat: nearestCleat?.cleat || null,
+        deckDistanceToTarget(targetCleat) {
+          return Math.hypot(targetCleat.x - closest.east, targetCleat.y - closest.north);
+        }
+      };
+    }
+
+    function securePendille(pendille, boatCleatId, explicitLength) {
+      const cleat = boatCleatById(boatCleatId);
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      const shouldBeBow = pendille.connectionEnd !== "stern";
+      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
+        return { ok: false, reason: shouldBeBow ? "taquet d’étrave requis" : "taquet arrière requis" };
+      }
+      const boatPoint = localPointToWorld(state.pose, cleat.x, cleat.y);
+      const verticalDelta = cleat.z - pendille.anchorPoint.z;
+      const distance = Math.hypot(
+        boatPoint.east - pendille.anchorPoint.east,
+        boatPoint.north - pendille.anchorPoint.north,
+        verticalDelta
+      );
+      // Une pendille est reprise à la main avant d'être tournée au taquet. La
+      // précharge retenue vaut la moitié de l'effort humain du profil : elle
+      // supprime le mou sans créer un rappel brutal à l'instant de la frappe.
+      const initialPreloadN = Math.min(
+        profile.mooring.humanPullForce * 0.5,
+        pendille.elasticity.workingLoadN * 0.02
+      );
+      const initialStrain = (
+        initialPreloadN
+        * pendille.elasticity.workingStrain
+        / Math.max(EPSILON, pendille.elasticity.workingLoadN)
+      );
+      const tautLength = distance / (1 + initialStrain);
+      const length = Number.isFinite(explicitLength)
+        ? explicitLength
+        : Math.min(pendille.maximumLength, tautLength);
+      const mooringId = `pendille:${pendille.id}`;
+      const attached = attachMooring({
+        id: mooringId,
+        boatCleatId,
+        shoreCleatId: `anchor:${pendille.id}`,
+        shorePoint: pendille.anchorPoint,
+        length,
+        maximumLength: pendille.maximumLength,
+        elasticity: pendille.elasticity,
+        sourceType: "pendille",
+        facilityId: pendille.id
+      });
+      if (!attached.ok) return attached;
+      pendille.state = "secured";
+      activePendilleIds.add(pendille.id);
+      pendille.boatCleatId = boatCleatId;
+      pendille.mooringId = mooringId;
+      pendille.progress = 1;
+      pendille.stateTime = 0;
+      pendille.lastError = null;
+      return { ok: true, pendille: deepClone(pendille), mooring: attached.mooring };
+    }
+
+    function beginPendillePickup(id, boatCleatId) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state !== "available") return { ok: false, reason: "pendille indisponible" };
+      const cleat = boatCleatById(boatCleatId);
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      const shouldBeBow = pendille.connectionEnd !== "stern";
+      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
+        return { ok: false, reason: shouldBeBow ? "choisissez un taquet d’étrave" : "choisissez un taquet arrière" };
+      }
+      const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
+      const groundSpeedKn = Math.hypot(ground.east, ground.north) / KNOT;
+      if (groundSpeedKn + EPSILON >= PENDILLE_PICKUP_SPEED_LIMIT_KN) {
+        return { ok: false, reason: "restez sous 0,6 nd pour prendre la pendille" };
+      }
+      const pickup = pendillePickupGeometry(pendille.pickupPoint);
+      if (!pickup.nearestCleat) return { ok: false, reason: "aucun taquet embarqué disponible" };
+      if (pickup.distance > PENDILLE_PICKUP_REACH_M + EPSILON) {
+        return { ok: false, reason: "la prise doit être à moins de 1,8 m du bord de coque" };
+      }
+      pendille.state = "in-hand";
+      activePendilleIds.add(id);
+      pendille.boatCleatId = boatCleatId;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.pickupHullDistance = pickup.distance;
+      pendille.transferDuration = Math.max(
+        0.35,
+        pickup.distance + pickup.deckDistanceToTarget(cleat)
+      );
+      pendille.pickupStartCleatId = pickup.nearestCleat.id;
+      pendille.lastError = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function cancelPendillePickup(id) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state !== "in-hand") return { ok: false, reason: "aucune prise en cours" };
+      pendille.state = "available";
+      activePendilleIds.delete(id);
+      pendille.boatCleatId = null;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.pickupHullDistance = null;
+      pendille.pickupStartCleatId = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function releasePendille(id) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state === "in-hand") return cancelPendillePickup(id);
+      if (pendille.state !== "secured") return { ok: false, reason: "pendille non frappée" };
+      const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
+      if (Math.hypot(ground.east, ground.north) > 3 * KNOT + EPSILON) {
+        return { ok: false, reason: "vitesse supérieure à 3 nd" };
+      }
+      if (pendille.mooringId) detachMooring(pendille.mooringId);
+      pendille.state = "available";
+      activePendilleIds.delete(id);
+      pendille.mooringId = null;
+      pendille.boatCleatId = null;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.danger = false;
+      pendille.releasePoint = null;
+      pendille.pickupHullDistance = null;
+      pendille.pickupStartCleatId = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function clearPendilles() {
+      const ids = new Set(state.pendilles.map(item => item.mooringId).filter(Boolean));
+      state.moorings = state.moorings.filter(item => !ids.has(item.id));
+      const count = state.pendilles.length;
+      state.pendilles.length = 0;
+      pendilleById.clear();
+      activePendilleIds.clear();
+      return count;
+    }
+
+    function pointSegmentDistance3D(point, start, end) {
+      const dx = end.east - start.east;
+      const dy = end.north - start.north;
+      const dz = end.z - start.z;
+      const denominator = dx * dx + dy * dy + dz * dz;
+      const t = denominator > EPSILON
+        ? clamp(((point.east - start.east) * dx + (point.north - start.north) * dy + (point.z - start.z) * dz) / denominator, 0, 1)
+        : 0;
+      return Math.hypot(
+        point.east - (start.east + dx * t),
+        point.north - (start.north + dy * t),
+        point.z - (start.z + dz * t)
+      );
+    }
+
+    function pendilleVisibleSegment(pendille) {
+      if (pendille.state === "secured") {
+        const cleat = boatCleatById(pendille.boatCleatId);
+        if (!cleat) return null;
+        return {
+          start: pendille.anchorPoint,
+          end: { ...localPointToWorld(state.pose, cleat.x, cleat.y), z: cleat.z }
+        };
+      }
+      if (pendille.state === "in-hand") {
+        const fromCleat = boatCleatById(pendille.pickupStartCleatId);
+        const toCleat = boatCleatById(pendille.boatCleatId);
+        if (!fromCleat || !toCleat) return null;
+        const progress = clamp(pendille.progress, 0, 1);
+        const local = {
+          x: fromCleat.x + (toCleat.x - fromCleat.x) * progress,
+          y: fromCleat.y + (toCleat.y - fromCleat.y) * progress,
+          z: fromCleat.z + (toCleat.z - fromCleat.z) * progress
+        };
+        return {
+          start: pendille.pickupPoint,
+          end: { ...localPointToWorld(state.pose, local.x, local.y), z: local.z }
+        };
+      }
+      return null;
+    }
+
+    function updatePendilleDanger(pendille) {
+      const segment = pendilleVisibleSegment(pendille);
+      pendille.danger = false;
+      if (!segment || pendille.state !== "in-hand") return;
+      for (const propulsor of profile.propulsors) {
+        const point = {
+          ...localPointToWorld(state.pose, propulsor.x, propulsor.y),
+          z: propulsor.z || -0.7
+        };
+        if (pointSegmentDistance3D(point, segment.start, segment.end) <= propulsor.diameter * 0.6 + 0.25) {
+          pendille.danger = true;
+          return;
+        }
+      }
+    }
+
+    function advancePendilles(dt) {
+      for (const id of [...activePendilleIds]) {
+        const pendille = pendilleById.get(id);
+        if (!pendille) {
+          activePendilleIds.delete(id);
+          continue;
+        }
+        pendille.stateTime += dt;
+        if (pendille.state === "in-hand") {
+          pendille.progress = clamp(pendille.stateTime / Math.max(0.01, pendille.transferDuration), 0, 1);
+          if (pendille.progress >= 1 - EPSILON) {
+            const secured = securePendille(pendille, pendille.boatCleatId);
+            if (!secured.ok) {
+              pendille.state = "available";
+              pendille.progress = 0;
+              pendille.lastError = secured.reason;
+            }
+          }
+        }
+        updatePendilleDanger(pendille);
+      }
     }
 
     function waterKinematics(candidateState) {
@@ -2176,7 +2554,7 @@
         const restLength = Math.max(0.05, mooring.length);
         const extension = Math.max(0, geometry.distance - restLength);
         const strain = extension / restLength;
-        const elasticity = profile.mooring.elasticity;
+        const elasticity = mooring.elasticity || profile.mooring.elasticity;
         const ratio = strain / elasticity.workingStrain;
         const hardeningRatio = Math.max(0, ratio - 1);
         const elasticTension = extension > 0
@@ -2248,7 +2626,7 @@
         const localU = state.velocity.u - state.velocity.r * mooring.boatPoint.y;
         const localV = state.velocity.v + state.velocity.r * mooring.boatPoint.x;
         forces.push({
-          source: `Aussière · ${mooring.id}`,
+          source: `${mooring.sourceType === "pendille" ? "Pendille" : "Aussière"} · ${mooring.id}`,
           X,
           Y,
           N,
@@ -2259,6 +2637,8 @@
           power: X * localU + Y * localV,
           category: "mooring",
           mooringId: mooring.id,
+          sourceType: mooring.sourceType || "mooring",
+          facilityId: mooring.facilityId || null,
           tension: mooring.tension,
           extension: Math.max(0, geometry.distance - mooring.length),
           strain: Math.max(0, geometry.distance - mooring.length)
@@ -2317,11 +2697,11 @@
     function solveMooringPositions() {
       if (!state.moorings.length) return;
       const tolerance = profile.mooring.solverTolerance;
-      const maximumStrain = profile.mooring.elasticity.maximumStrain;
       for (let iteration = 0; iteration < profile.mooring.solverIterations; iteration += 1) {
         let maximumViolation = 0;
         for (const mooring of state.moorings) {
           const geometry = mooringGeometry(mooring);
+          const maximumStrain = (mooring.elasticity || profile.mooring.elasticity).maximumStrain;
           const maximumDistance = mooring.length * (1 + maximumStrain);
           const violation = geometry.distance - maximumDistance;
           maximumViolation = Math.max(maximumViolation, violation);
@@ -2362,6 +2742,7 @@
     function advanceOne(input, dt) {
       advanceActuators(input, dt);
       advanceSlipstreams(dt);
+      advancePendilles(dt);
       advanceMooringLengths(dt);
       const first = evaluateForces(state, dt);
       const middle = midpointState(state, first.acceleration, dt);
@@ -2452,6 +2833,24 @@
         environment,
         contacts: state.contacts,
         moorings: state.moorings,
+        pendilles: state.pendilles.map(pendille => {
+          const mooring = pendille.mooringId
+            ? state.moorings.find(item => item.id === pendille.mooringId)
+            : null;
+          return {
+            ...pendille,
+            distance: mooring?.distance ?? Math.hypot(
+              pendille.anchorPoint.east - pendille.pickupPoint.east,
+              pendille.anchorPoint.north - pendille.pickupPoint.north,
+              pendille.anchorPoint.z - pendille.pickupPoint.z
+            ),
+            length: mooring?.length ?? null,
+            targetLength: mooring?.targetLength ?? null,
+            tension: mooring?.tension ?? 0,
+            extension: mooring?.extension ?? 0,
+            strain: mooring?.strain ?? 0
+          };
+        }),
         diagnostics: {
           groundSpeed,
           waterSpeed,
@@ -2462,7 +2861,8 @@
           mooringElasticEnergy: state.moorings.reduce(
             (sum, mooring) => sum + (mooring.elasticEnergy || 0),
             0
-          )
+          ),
+          pendillePropellerDanger: state.pendilles.some(pendille => pendille.danger)
         },
         massMatrix: massProperties.matrix,
         time: simulationTime
@@ -2514,6 +2914,11 @@
       setMooringLength,
       detachMooring,
       clearMoorings,
+      registerPendille,
+      beginPendillePickup,
+      cancelPendillePickup,
+      releasePendille,
+      clearPendilles,
       getProfile: () => deepClone(profile),
       getMassProperties: () => deepClone(massProperties),
       getObstacleIndexReport: () => ({

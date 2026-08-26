@@ -912,6 +912,22 @@
       line-height: 1.45;
     }
 
+    .lesson-replay {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      color: var(--accent);
+      background: transparent;
+      font: inherit;
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .lesson-replay[hidden] { display: none; }
+
     .score {
       flex: 0 0 auto;
       color: var(--green);
@@ -1864,11 +1880,11 @@
           <div class="flow-chip" id="mooringChip" hidden>
             <div class="flow-arrow mooring" aria-hidden="true"></div>
             <div class="flow-copy">
-              <strong>Aussières · <span id="mooringChipValue">0</span></strong>
+              <strong>Amarres · <span id="mooringChipValue">0</span></strong>
               <span id="mooringChipState">aucune frappée</span>
             </div>
           </div>
-          <div class="mooring-gauge-panel" id="mooringGaugePanel" aria-label="Réglage des longueurs d'aussières" hidden>
+          <div class="mooring-gauge-panel" id="mooringGaugePanel" aria-label="Réglage des longueurs d'amarres" hidden>
             <div class="mooring-gauge-grid" id="mooringGaugeGrid"></div>
           </div>
         </div>
@@ -1989,6 +2005,8 @@
                 <option value="dock">Défi 2 · Accostage bâbord</option>
                 <option value="reverse">Défi 3 · Sortie en marche arrière</option>
                 <option value="mooring">Défi 4 · Sortir sur garde</option>
+                <option value="medDock">Défi 5 · Accoster sur pendille</option>
+                <option value="medDeparture">Défi 6 · Appareiller sur pendille</option>
               </optgroup>
             </select>
           </div>
@@ -2017,6 +2035,7 @@
             <span class="objective-dot"></span>
             <span id="objectiveText"></span>
           </div>
+          <button type="button" class="lesson-replay" id="strongWindReplay" hidden>Rejouer avec 15 nd de vent</button>
         </article>
 
         <div class="diagnostic" id="diagnostic" data-level="ok" aria-live="polite">
@@ -2077,8 +2096,8 @@
               <input id="lateralResistance" type="range" min="60" max="140" step="1" value="100">
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="mooringAttachSpeed">Vitesse max. pour frapper une aussière</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
-              <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.5">
+              <div class="control-meta"><label for="mooringAttachSpeed">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
+              <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.6">
             </div>
           </div>
         </details>
@@ -2090,7 +2109,7 @@
             <div class="legend-item"><span class="legend-mark current"></span>Courant et vitesse de l'eau</div>
             <div class="legend-item"><span class="legend-mark force"></span>Forces coque, quille, hélice et safran</div>
             <div class="legend-item"><span class="legend-mark contact"></span>Pare-battage en compression ou choc</div>
-            <div class="legend-item"><span class="legend-mark mooring"></span>Aussière : clic pour larguer · glisser verticalement pour régler</div>
+            <div class="legend-item"><span class="legend-mark mooring"></span>Amarre ou pendille : clic pour larguer · glisser verticalement pour régler</div>
             <div class="legend-item"><span class="legend-mark rudder"></span>Axe réel du safran</div>
           </div>
         </section>
@@ -2387,6 +2406,62 @@
     heading: Math.PI
   };
 
+  // Atelier méditerranéen compact : trois postes cul au quai, sans catway.
+  // La place centrale est réservée aux exercices, les deux voisines sont occupées.
+  const medQuay = {
+    id: "med-quay",
+    x: -90,
+    y: 45,
+    w: 30,
+    h: 2,
+    z: 0.32,
+    height: 0.64,
+    baseZ: 0,
+    topZ: 0.64,
+    deckZ: 0.64,
+    kind: "quay"
+  };
+  docks.push(medQuay);
+  const medBerthXs = [-99, -90, -81];
+  for (const x of medBerthXs) {
+    for (const offset of [-1.8, 1.8]) {
+      mooringCleats.push({
+        id: `cleat-med-quay-${x}-${offset < 0 ? "west" : "east"}`,
+        parentId: medQuay.id,
+        kind: "quay",
+        edge: "south",
+        station: x,
+        x: x + offset,
+        y: 44.05,
+        z: 0.76,
+        orientation: 0
+      });
+    }
+  }
+  const pendilles = medBerthXs.map((x, index) => ({
+    id: `pendille-med-${index + 1}`,
+    berthId: `med-berth-${index + 1}`,
+    connectionEnd: "bow",
+    parentId: medQuay.id,
+    pickupPoint: { east: x, north: 44.05, z: 0.4 },
+    anchorPoint: { east: x, north: 20, z: -3 },
+    maximumLength: 32,
+    elasticity: {
+      workingLoadN: 12000,
+      workingStrain: 0.15,
+      dampingRatio: 0.35
+    }
+  }));
+  Object.assign(berthLanes, {
+    "med-west": { x: -99, heading: -Math.PI / 2, exitX: -99, fairway: "med-basin" },
+    "med-center": { x: -90, heading: -Math.PI / 2, exitX: -90, fairway: "med-basin" },
+    "med-east": { x: -81, heading: -Math.PI / 2, exitX: -81, fairway: "med-basin" }
+  });
+  staticBoats.push(
+    { id: "med-neighbor-west", x: -99, y: 38, heading: -Math.PI / 2, length: 10.2, beam: 3.35, color: "#eee9dc", berth: "med-west", berthRow: 45, berthSlot: "south", catwayId: medQuay.id, mooringType: "pendille", pendilleId: "pendille-med-1" },
+    { id: "med-neighbor-east", x: -81, y: 38, heading: -Math.PI / 2, length: 11.1, beam: 3.55, color: "#e6e2d5", berth: "med-east", berthRow: 45, berthSlot: "south", catwayId: medQuay.id, mooringType: "pendille", pendilleId: "pendille-med-3" }
+  );
+
   const calm = {
     windSpeedKn: 0,
     windFromDeg: 0,
@@ -2550,6 +2625,47 @@
         speedKn: 1.4,
         kind: "rect"
       }
+    },
+    medDock: {
+      kicker: "Défi 05",
+      title: "Accoster sur pendille",
+      copy: "Approchez cul au quai avec 10 nd de vent traversier. Tenez d’abord la poupe au vent, récupérez la pendille puis équilibrez les trois amarres.",
+      objective: "Reculez dans la place centrale, frappez l’arrière au vent, menez la pendille à l’étrave puis terminez avec la seconde aussière arrière.",
+      initial: { x: -90, y: 25, heading: -Math.PI / 2 },
+      environment: { windSpeedKn: 10, windFromDeg: 90, currentSpeedKn: 0, currentFromDeg: 0 },
+      pendilleChallenge: {
+        type: "med-docking",
+        pendilleId: "pendille-med-2",
+        windwardBoatCleatId: "stern-starboard",
+        windwardShoreCleatId: "cleat-med-quay--90-west",
+        leewardBoatCleatId: "stern-port",
+        leewardShoreCleatId: "cleat-med-quay--90-east",
+        propellerPenalty: 20
+      },
+      goal: { x: -90, y: 37.5, radius: 1.2, heading: -Math.PI / 2, speedKn: 0.1, kind: "berth" }
+    },
+    medDeparture: {
+      kicker: "Défi 06",
+      title: "Appareiller sur pendille",
+      copy: "Le bateau est cul au quai, tenu par deux aussières arrière et sa pendille d’étrave. Libérez les lignes dans l’ordre et gardez l’hélice claire.",
+      objective: "Larguez sous le vent, détendez puis larguez la pendille au neutre, contrôlez avec l’arrière au vent puis sortez en marche avant.",
+      initial: { x: -90, y: 37.5, heading: -Math.PI / 2 },
+      initialMoorings: [
+        { id: "med-departure-windward", boatCleatId: "stern-starboard", shoreCleatId: "cleat-med-quay--90-west" },
+        { id: "med-departure-leeward", boatCleatId: "stern-port", shoreCleatId: "cleat-med-quay--90-east" }
+      ],
+      initialPendilles: [
+        { id: "pendille-med-2", state: "secured", boatCleatId: "bow-starboard" }
+      ],
+      environment: { windSpeedKn: 10, windFromDeg: 90, currentSpeedKn: 0, currentFromDeg: 0 },
+      pendilleChallenge: {
+        type: "med-departure",
+        pendilleId: "pendille-med-2",
+        windwardLineId: "med-departure-windward",
+        leewardLineId: "med-departure-leeward",
+        propellerPenalty: 20
+      },
+      goal: { x: -90, y: 24, w: 9, h: 8, heading: -Math.PI / 2, speedKn: 1.2, kind: "rect" }
     }
   };
 
@@ -2574,14 +2690,14 @@
       beam: 3.59
     },
     bounds: {
-      minX: -76,
+      minX: -108,
       maxX: 70,
       minY: -62,
       maxY: 64
     },
     flowField: {
-      minX: -70,
-      width: 140,
+      minX: -108,
+      width: 178,
       minY: -54,
       height: 118
     },
@@ -2589,7 +2705,8 @@
     structures: {
       docks,
       catways,
-      mooringCleats
+      mooringCleats,
+      pendilles
     },
     berthLanes,
     staticBoats,
@@ -4023,7 +4140,11 @@
   const RHO_AIR = 1.225;
   const MAX_STEP = 1 / 120;
   const EPSILON = 1e-9;
-  const PHYSICS_VERSION = "5.1.0";
+  // Portée opérationnelle de 1,5 m, augmentée de 0,3 m pour absorber le fait
+  // que la prise KJP représente le centre de sa boucle sur le ponton.
+  const PENDILLE_PICKUP_REACH_M = 1.8;
+  const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
+  const PHYSICS_VERSION = "5.2.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -4753,7 +4874,35 @@
     let lastForces = [];
     let lastContactSamples = [];
     let activeContactIds = new Set();
+    let pendilleById = new Map();
+    let activePendilleIds = new Set();
     let simulationTime = 0;
+    const hullPickupOutline = (() => {
+      const halfBeam = profile.dimensions.beam / 2;
+      const halfLength = profile.dimensions.lengthOverall / 2;
+      const sections = [...profile.geometry.hullSections].sort((left, right) => left.x - right.x);
+      const starboard = sections.map(section => ({
+        east: section.x,
+        north: halfBeam * section.breadthFactor
+      }));
+      const port = [...sections].reverse().map(section => ({
+        east: section.x,
+        north: -halfBeam * section.breadthFactor
+      }));
+      return [
+        { east: -halfLength, north: 0 },
+        ...starboard,
+        { east: halfLength, north: 0 },
+        ...port
+      ];
+    })();
+
+    function normalizedMooringElasticity(definition = {}) {
+      return {
+        ...profile.mooring.elasticity,
+        ...(definition.elasticity || {})
+      };
+    }
 
     function defaultState() {
       const propulsionUnits = profile.propulsors.map(propulsor => {
@@ -4813,6 +4962,7 @@
         },
         controls: { throttleTarget: 0, rudderTarget: 0, rudderActual: 0 },
         moorings: [],
+        pendilles: [],
         contacts: {
           current: [],
           maxImpact: 0,
@@ -4838,11 +4988,19 @@
       lastForces = [];
       lastContactSamples = [];
       activeContactIds = new Set();
+      pendilleById = new Map();
+      activePendilleIds = new Set();
       simulationTime = 0;
       for (const mooring of initialState.moorings || []) {
         const result = attachMooring(mooring);
         if (!result.ok) {
           throw new Error(`Aussière initiale invalide (${mooring.id || "sans identifiant"}) : ${result.reason}`);
+        }
+      }
+      for (const pendille of initialState.pendilles || []) {
+        const result = registerPendille(pendille);
+        if (!result.ok) {
+          throw new Error(`Pendille initiale invalide (${pendille.id || "sans identifiant"}) : ${result.reason}`);
         }
       }
       return snapshot();
@@ -4939,7 +5097,7 @@
       for (const mooring of state.moorings) {
         const geometry = mooringGeometry(mooring);
         const elastic = mooringElasticLaw(
-          profile.mooring.elasticity,
+          mooring.elasticity || profile.mooring.elasticity,
           mooring.length,
           geometry.distance
         );
@@ -4995,7 +5153,13 @@
           east: shorePoint.east,
           north: shorePoint.north,
           z: shorePoint.z
-        }
+        },
+        sourceType: definition.sourceType === "pendille" ? "pendille" : "mooring",
+        facilityId: definition.facilityId || null,
+        maximumLength: Number.isFinite(definition.maximumLength)
+          ? Number(definition.maximumLength)
+          : profile.mooring.maxLength,
+        elasticity: normalizedMooringElasticity(definition)
       };
       const geometry = mooringGeometry(draft);
       const length = definition.length === undefined
@@ -5004,20 +5168,29 @@
       if (!Number.isFinite(length) || length < 0.05) {
         return { ok: false, reason: "longueur invalide" };
       }
-      if (length > profile.mooring.maxLength + EPSILON) {
-        return { ok: false, reason: "longueur supérieure à 20 m" };
+      if (draft.maximumLength <= 0.05 || draft.maximumLength > 200) {
+        return { ok: false, reason: "longueur maximale invalide" };
+      }
+      if (length > draft.maximumLength + EPSILON) {
+        return { ok: false, reason: `longueur supérieure à ${draft.maximumLength.toFixed(1)} m` };
       }
       const verticalDistance = Math.abs(geometry.verticalDelta);
-      if (length + EPSILON < verticalDistance) {
+      const maximumExtendedLength = length * (
+        1 + Math.max(0, draft.elasticity.maximumStrain)
+      );
+      if (maximumExtendedLength + EPSILON < verticalDistance) {
         return { ok: false, reason: "longueur inférieure à la différence de hauteur" };
       }
-      const horizontalLimit = Math.sqrt(Math.max(0, length * length - verticalDistance * verticalDistance));
+      const horizontalLimit = Math.sqrt(Math.max(
+        0,
+        maximumExtendedLength * maximumExtendedLength - verticalDistance * verticalDistance
+      ));
       if (geometry.horizontalDistance > horizontalLimit + profile.mooring.solverTolerance) {
         return { ok: false, reason: "aussière trop courte pour les taquets" };
       }
       const slack = Math.max(0, length - geometry.distance);
       const elastic = mooringElasticLaw(
-        profile.mooring.elasticity,
+        draft.elasticity,
         length,
         geometry.distance
       );
@@ -5059,14 +5232,14 @@
       const targetLength = clamp(
         numericLength,
         minimumLength,
-        profile.mooring.maxLength
+        mooring.maximumLength || profile.mooring.maxLength
       );
       mooring.targetLength = targetLength;
       return {
         ok: true,
         clamped: Math.abs(targetLength - numericLength) > EPSILON,
         minimumLength,
-        maximumLength: profile.mooring.maxLength,
+        maximumLength: mooring.maximumLength || profile.mooring.maxLength,
         mooring: deepClone(mooring)
       };
     }
@@ -5075,13 +5248,335 @@
       const index = state.moorings.findIndex(mooring => mooring.id === id);
       if (index < 0) return { ok: false, reason: "aussière inconnue" };
       const [mooring] = state.moorings.splice(index, 1);
+      lastForces = lastForces.filter(force => force.mooringId !== id);
       return { ok: true, mooring: deepClone(mooring) };
     }
 
     function clearMoorings() {
       const count = state.moorings.length;
       state.moorings.length = 0;
+      lastForces = lastForces.filter(force => force.category !== "mooring");
+      for (const pendille of state.pendilles) {
+        if (pendille.state === "secured") {
+          pendille.state = "available";
+          pendille.boatCleatId = null;
+          pendille.mooringId = null;
+          pendille.progress = 0;
+          activePendilleIds.delete(pendille.id);
+        }
+      }
       return count;
+    }
+
+    function validWorldPoint(point) {
+      return point && [point.east, point.north, point.z].every(Number.isFinite);
+    }
+
+    function registerPendille(definition = {}) {
+      if (!state) return { ok: false, reason: "simulateur non initialisé" };
+      const id = typeof definition.id === "string" && definition.id
+        ? definition.id
+        : `pendille-${state.pendilles.length + 1}`;
+      if (state.pendilles.some(item => item.id === id)) {
+        return { ok: false, reason: "identifiant déjà utilisé" };
+      }
+      if (!validWorldPoint(definition.pickupPoint) || !validWorldPoint(definition.anchorPoint)) {
+        return { ok: false, reason: "prise ou corps-mort invalide" };
+      }
+      const maximumLength = Number(definition.maximumLength);
+      if (!Number.isFinite(maximumLength) || maximumLength <= 0.05 || maximumLength > 200) {
+        return { ok: false, reason: "longueur maximale invalide" };
+      }
+      const pendille = {
+        id,
+        berthId: definition.berthId || null,
+        parentId: definition.parentId || null,
+        connectionEnd: definition.connectionEnd === "stern" ? "stern" : "bow",
+        pickupPoint: deepClone(definition.pickupPoint),
+        anchorPoint: deepClone(definition.anchorPoint),
+        maximumLength,
+        elasticity: normalizedMooringElasticity(definition),
+        state: "available",
+        boatCleatId: null,
+        mooringId: null,
+        progress: 0,
+        transferDuration: 0,
+        pickupHullDistance: null,
+        pickupStartCleatId: null,
+        stateTime: 0,
+        danger: false,
+        lastError: null,
+        releasePoint: null
+      };
+      state.pendilles.push(pendille);
+      pendilleById.set(id, pendille);
+      if (definition.state === "secured" && definition.boatCleatId) {
+        const secured = securePendille(pendille, definition.boatCleatId, definition.length);
+        if (!secured.ok) {
+          state.pendilles.pop();
+          pendilleById.delete(id);
+          activePendilleIds.delete(id);
+          return secured;
+        }
+      }
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function pendillePickupGeometry(pickupPoint) {
+      const offset = worldToBody(
+        pickupPoint.east - state.pose.east,
+        pickupPoint.north - state.pose.north,
+        state.pose.heading
+      );
+      const localPickup = { east: offset.u, north: offset.v };
+      let closest = localPickup;
+      let distance = 0;
+      if (!pointInPolygon(localPickup.east, localPickup.north, hullPickupOutline)) {
+        distance = Infinity;
+        for (let index = 0; index < hullPickupOutline.length; index += 1) {
+          const candidate = closestPointOnSegment(
+            localPickup,
+            hullPickupOutline[index],
+            hullPickupOutline[(index + 1) % hullPickupOutline.length]
+          );
+          const candidateDistance = Math.hypot(
+            localPickup.east - candidate.east,
+            localPickup.north - candidate.north
+          );
+          if (candidateDistance < distance) {
+            distance = candidateDistance;
+            closest = candidate;
+          }
+        }
+      }
+      const nearestCleat = profile.mooring.cleats.reduce((best, cleat) => {
+        const deckDistance = Math.hypot(cleat.x - closest.east, cleat.y - closest.north);
+        return !best || deckDistance < best.distance ? { cleat, distance: deckDistance } : best;
+      }, null);
+      return {
+        distance,
+        bodyPoint: { x: closest.east, y: closest.north },
+        nearestCleat: nearestCleat?.cleat || null,
+        deckDistanceToTarget(targetCleat) {
+          return Math.hypot(targetCleat.x - closest.east, targetCleat.y - closest.north);
+        }
+      };
+    }
+
+    function securePendille(pendille, boatCleatId, explicitLength) {
+      const cleat = boatCleatById(boatCleatId);
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      const shouldBeBow = pendille.connectionEnd !== "stern";
+      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
+        return { ok: false, reason: shouldBeBow ? "taquet d’étrave requis" : "taquet arrière requis" };
+      }
+      const boatPoint = localPointToWorld(state.pose, cleat.x, cleat.y);
+      const verticalDelta = cleat.z - pendille.anchorPoint.z;
+      const distance = Math.hypot(
+        boatPoint.east - pendille.anchorPoint.east,
+        boatPoint.north - pendille.anchorPoint.north,
+        verticalDelta
+      );
+      // Une pendille est reprise à la main avant d'être tournée au taquet. La
+      // précharge retenue vaut la moitié de l'effort humain du profil : elle
+      // supprime le mou sans créer un rappel brutal à l'instant de la frappe.
+      const initialPreloadN = Math.min(
+        profile.mooring.humanPullForce * 0.5,
+        pendille.elasticity.workingLoadN * 0.02
+      );
+      const initialStrain = (
+        initialPreloadN
+        * pendille.elasticity.workingStrain
+        / Math.max(EPSILON, pendille.elasticity.workingLoadN)
+      );
+      const tautLength = distance / (1 + initialStrain);
+      const length = Number.isFinite(explicitLength)
+        ? explicitLength
+        : Math.min(pendille.maximumLength, tautLength);
+      const mooringId = `pendille:${pendille.id}`;
+      const attached = attachMooring({
+        id: mooringId,
+        boatCleatId,
+        shoreCleatId: `anchor:${pendille.id}`,
+        shorePoint: pendille.anchorPoint,
+        length,
+        maximumLength: pendille.maximumLength,
+        elasticity: pendille.elasticity,
+        sourceType: "pendille",
+        facilityId: pendille.id
+      });
+      if (!attached.ok) return attached;
+      pendille.state = "secured";
+      activePendilleIds.add(pendille.id);
+      pendille.boatCleatId = boatCleatId;
+      pendille.mooringId = mooringId;
+      pendille.progress = 1;
+      pendille.stateTime = 0;
+      pendille.lastError = null;
+      return { ok: true, pendille: deepClone(pendille), mooring: attached.mooring };
+    }
+
+    function beginPendillePickup(id, boatCleatId) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state !== "available") return { ok: false, reason: "pendille indisponible" };
+      const cleat = boatCleatById(boatCleatId);
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      const shouldBeBow = pendille.connectionEnd !== "stern";
+      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
+        return { ok: false, reason: shouldBeBow ? "choisissez un taquet d’étrave" : "choisissez un taquet arrière" };
+      }
+      const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
+      const groundSpeedKn = Math.hypot(ground.east, ground.north) / KNOT;
+      if (groundSpeedKn + EPSILON >= PENDILLE_PICKUP_SPEED_LIMIT_KN) {
+        return { ok: false, reason: "restez sous 0,6 nd pour prendre la pendille" };
+      }
+      const pickup = pendillePickupGeometry(pendille.pickupPoint);
+      if (!pickup.nearestCleat) return { ok: false, reason: "aucun taquet embarqué disponible" };
+      if (pickup.distance > PENDILLE_PICKUP_REACH_M + EPSILON) {
+        return { ok: false, reason: "la prise doit être à moins de 1,8 m du bord de coque" };
+      }
+      pendille.state = "in-hand";
+      activePendilleIds.add(id);
+      pendille.boatCleatId = boatCleatId;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.pickupHullDistance = pickup.distance;
+      pendille.transferDuration = Math.max(
+        0.35,
+        pickup.distance + pickup.deckDistanceToTarget(cleat)
+      );
+      pendille.pickupStartCleatId = pickup.nearestCleat.id;
+      pendille.lastError = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function cancelPendillePickup(id) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state !== "in-hand") return { ok: false, reason: "aucune prise en cours" };
+      pendille.state = "available";
+      activePendilleIds.delete(id);
+      pendille.boatCleatId = null;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.pickupHullDistance = null;
+      pendille.pickupStartCleatId = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function releasePendille(id) {
+      const pendille = pendilleById.get(id);
+      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (pendille.state === "in-hand") return cancelPendillePickup(id);
+      if (pendille.state !== "secured") return { ok: false, reason: "pendille non frappée" };
+      const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
+      if (Math.hypot(ground.east, ground.north) > 3 * KNOT + EPSILON) {
+        return { ok: false, reason: "vitesse supérieure à 3 nd" };
+      }
+      if (pendille.mooringId) detachMooring(pendille.mooringId);
+      pendille.state = "available";
+      activePendilleIds.delete(id);
+      pendille.mooringId = null;
+      pendille.boatCleatId = null;
+      pendille.progress = 0;
+      pendille.stateTime = 0;
+      pendille.danger = false;
+      pendille.releasePoint = null;
+      pendille.pickupHullDistance = null;
+      pendille.pickupStartCleatId = null;
+      return { ok: true, pendille: deepClone(pendille) };
+    }
+
+    function clearPendilles() {
+      const ids = new Set(state.pendilles.map(item => item.mooringId).filter(Boolean));
+      state.moorings = state.moorings.filter(item => !ids.has(item.id));
+      const count = state.pendilles.length;
+      state.pendilles.length = 0;
+      pendilleById.clear();
+      activePendilleIds.clear();
+      return count;
+    }
+
+    function pointSegmentDistance3D(point, start, end) {
+      const dx = end.east - start.east;
+      const dy = end.north - start.north;
+      const dz = end.z - start.z;
+      const denominator = dx * dx + dy * dy + dz * dz;
+      const t = denominator > EPSILON
+        ? clamp(((point.east - start.east) * dx + (point.north - start.north) * dy + (point.z - start.z) * dz) / denominator, 0, 1)
+        : 0;
+      return Math.hypot(
+        point.east - (start.east + dx * t),
+        point.north - (start.north + dy * t),
+        point.z - (start.z + dz * t)
+      );
+    }
+
+    function pendilleVisibleSegment(pendille) {
+      if (pendille.state === "secured") {
+        const cleat = boatCleatById(pendille.boatCleatId);
+        if (!cleat) return null;
+        return {
+          start: pendille.anchorPoint,
+          end: { ...localPointToWorld(state.pose, cleat.x, cleat.y), z: cleat.z }
+        };
+      }
+      if (pendille.state === "in-hand") {
+        const fromCleat = boatCleatById(pendille.pickupStartCleatId);
+        const toCleat = boatCleatById(pendille.boatCleatId);
+        if (!fromCleat || !toCleat) return null;
+        const progress = clamp(pendille.progress, 0, 1);
+        const local = {
+          x: fromCleat.x + (toCleat.x - fromCleat.x) * progress,
+          y: fromCleat.y + (toCleat.y - fromCleat.y) * progress,
+          z: fromCleat.z + (toCleat.z - fromCleat.z) * progress
+        };
+        return {
+          start: pendille.pickupPoint,
+          end: { ...localPointToWorld(state.pose, local.x, local.y), z: local.z }
+        };
+      }
+      return null;
+    }
+
+    function updatePendilleDanger(pendille) {
+      const segment = pendilleVisibleSegment(pendille);
+      pendille.danger = false;
+      if (!segment || pendille.state !== "in-hand") return;
+      for (const propulsor of profile.propulsors) {
+        const point = {
+          ...localPointToWorld(state.pose, propulsor.x, propulsor.y),
+          z: propulsor.z || -0.7
+        };
+        if (pointSegmentDistance3D(point, segment.start, segment.end) <= propulsor.diameter * 0.6 + 0.25) {
+          pendille.danger = true;
+          return;
+        }
+      }
+    }
+
+    function advancePendilles(dt) {
+      for (const id of [...activePendilleIds]) {
+        const pendille = pendilleById.get(id);
+        if (!pendille) {
+          activePendilleIds.delete(id);
+          continue;
+        }
+        pendille.stateTime += dt;
+        if (pendille.state === "in-hand") {
+          pendille.progress = clamp(pendille.stateTime / Math.max(0.01, pendille.transferDuration), 0, 1);
+          if (pendille.progress >= 1 - EPSILON) {
+            const secured = securePendille(pendille, pendille.boatCleatId);
+            if (!secured.ok) {
+              pendille.state = "available";
+              pendille.progress = 0;
+              pendille.lastError = secured.reason;
+            }
+          }
+        }
+        updatePendilleDanger(pendille);
+      }
     }
 
     function waterKinematics(candidateState) {
@@ -6180,7 +6675,7 @@
         const restLength = Math.max(0.05, mooring.length);
         const extension = Math.max(0, geometry.distance - restLength);
         const strain = extension / restLength;
-        const elasticity = profile.mooring.elasticity;
+        const elasticity = mooring.elasticity || profile.mooring.elasticity;
         const ratio = strain / elasticity.workingStrain;
         const hardeningRatio = Math.max(0, ratio - 1);
         const elasticTension = extension > 0
@@ -6252,7 +6747,7 @@
         const localU = state.velocity.u - state.velocity.r * mooring.boatPoint.y;
         const localV = state.velocity.v + state.velocity.r * mooring.boatPoint.x;
         forces.push({
-          source: `Aussière · ${mooring.id}`,
+          source: `${mooring.sourceType === "pendille" ? "Pendille" : "Aussière"} · ${mooring.id}`,
           X,
           Y,
           N,
@@ -6263,6 +6758,8 @@
           power: X * localU + Y * localV,
           category: "mooring",
           mooringId: mooring.id,
+          sourceType: mooring.sourceType || "mooring",
+          facilityId: mooring.facilityId || null,
           tension: mooring.tension,
           extension: Math.max(0, geometry.distance - mooring.length),
           strain: Math.max(0, geometry.distance - mooring.length)
@@ -6321,11 +6818,11 @@
     function solveMooringPositions() {
       if (!state.moorings.length) return;
       const tolerance = profile.mooring.solverTolerance;
-      const maximumStrain = profile.mooring.elasticity.maximumStrain;
       for (let iteration = 0; iteration < profile.mooring.solverIterations; iteration += 1) {
         let maximumViolation = 0;
         for (const mooring of state.moorings) {
           const geometry = mooringGeometry(mooring);
+          const maximumStrain = (mooring.elasticity || profile.mooring.elasticity).maximumStrain;
           const maximumDistance = mooring.length * (1 + maximumStrain);
           const violation = geometry.distance - maximumDistance;
           maximumViolation = Math.max(maximumViolation, violation);
@@ -6366,6 +6863,7 @@
     function advanceOne(input, dt) {
       advanceActuators(input, dt);
       advanceSlipstreams(dt);
+      advancePendilles(dt);
       advanceMooringLengths(dt);
       const first = evaluateForces(state, dt);
       const middle = midpointState(state, first.acceleration, dt);
@@ -6456,6 +6954,24 @@
         environment,
         contacts: state.contacts,
         moorings: state.moorings,
+        pendilles: state.pendilles.map(pendille => {
+          const mooring = pendille.mooringId
+            ? state.moorings.find(item => item.id === pendille.mooringId)
+            : null;
+          return {
+            ...pendille,
+            distance: mooring?.distance ?? Math.hypot(
+              pendille.anchorPoint.east - pendille.pickupPoint.east,
+              pendille.anchorPoint.north - pendille.pickupPoint.north,
+              pendille.anchorPoint.z - pendille.pickupPoint.z
+            ),
+            length: mooring?.length ?? null,
+            targetLength: mooring?.targetLength ?? null,
+            tension: mooring?.tension ?? 0,
+            extension: mooring?.extension ?? 0,
+            strain: mooring?.strain ?? 0
+          };
+        }),
         diagnostics: {
           groundSpeed,
           waterSpeed,
@@ -6466,7 +6982,8 @@
           mooringElasticEnergy: state.moorings.reduce(
             (sum, mooring) => sum + (mooring.elasticEnergy || 0),
             0
-          )
+          ),
+          pendillePropellerDanger: state.pendilles.some(pendille => pendille.danger)
         },
         massMatrix: massProperties.matrix,
         time: simulationTime
@@ -6518,6 +7035,11 @@
       setMooringLength,
       detachMooring,
       clearMoorings,
+      registerPendille,
+      beginPendillePickup,
+      cancelPendillePickup,
+      releasePendille,
+      clearPendilles,
       getProfile: () => deepClone(profile),
       getMassProperties: () => deepClone(massProperties),
       getObstacleIndexReport: () => ({
@@ -6577,8 +7099,8 @@
   if (root) root.KJPCodec = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createKJPCodec() {
   const FORMAT = "KJP";
-  const SCHEMA_VERSION = 2;
-  const LEGACY_SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 3;
+  const LEGACY_SCHEMA_VERSIONS = Object.freeze([1, 2]);
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
   const MAX_STRUCTURES = 5000;
   const MAX_CLEATS = 20000;
@@ -7004,6 +7526,122 @@
     };
   }
 
+  function validatePendille(pendille, path, errors, ids, parents) {
+    const object = requireObject(pendille, path, errors);
+    const id = validateId(object.id, `${path}.id`, errors, ids);
+    const berthId = requireString(object.berthId, `${path}.berthId`, errors, {
+      required: false,
+      max: 160
+    });
+    const connectionEnd = ["bow", "stern"].includes(object.connectionEnd)
+      ? object.connectionEnd
+      : "bow";
+    if (!["bow", "stern"].includes(object.connectionEnd)) {
+      addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum");
+    }
+    const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
+    const parent = parents.get(parentId);
+    if (!parent || !["pontoon", "quay"].includes(parent.type)) {
+      addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+    }
+    const rawAttachment = requireObject(object.attachment, `${path}.attachment`, errors);
+    const expectedKind = parent?.type === "quay" ? "polyline-station" : "rectangle-edge";
+    const kind = ["rectangle-edge", "polyline-station"].includes(rawAttachment.kind)
+      ? rawAttachment.kind
+      : expectedKind;
+    if (rawAttachment.kind !== expectedKind) {
+      addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry");
+    }
+    const maximumStation = parent?.type === "quay"
+      ? polylineLength(parent.points)
+      : parent?.length / 2 || 0;
+    const minimumStation = parent?.type === "quay" ? 0 : -maximumStation;
+    const station = requireNumber(rawAttachment.station, `${path}.attachment.station`, errors, {
+      minimum: minimumStation,
+      maximum: maximumStation
+    });
+    const edge = rawAttachment.edge || (rawAttachment.waterSide === "right" ? "starboard" : "port");
+    if (kind === "rectangle-edge" && !["port", "starboard"].includes(edge)) {
+      addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum");
+    }
+    const waterSide = rawAttachment.waterSide || (edge === "starboard" ? "right" : "left");
+    if (!["left", "right"].includes(waterSide)) {
+      addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+    }
+    const z = requireNumber(rawAttachment.z, `${path}.attachment.z`, errors, {
+      minimum: -10,
+      maximum: 100
+    });
+    const rawAnchor = requireObject(object.anchor, `${path}.anchor`, errors);
+    const anchor = {
+      along: requireNumber(rawAnchor.along ?? 0, `${path}.anchor.along`, errors, {
+        minimum: -1000,
+        maximum: 1000
+      }),
+      normalDistance: requireNumber(
+        rawAnchor.normalDistance,
+        `${path}.anchor.normalDistance`,
+        errors,
+        { minimum: 1, maximum: 1000 }
+      ),
+      depth: requireNumber(rawAnchor.depth, `${path}.anchor.depth`, errors, {
+        minimum: 0.2,
+        maximum: 100
+      })
+    };
+    const rawLine = requireObject(object.line, `${path}.line`, errors);
+    const line = {
+      maximumLength: requireNumber(
+        rawLine.maximumLength,
+        `${path}.line.maximumLength`,
+        errors,
+        { minimum: 1, maximum: 200 }
+      ),
+      workingLoadN: requireNumber(
+        rawLine.workingLoadN,
+        `${path}.line.workingLoadN`,
+        errors,
+        { minimum: 100, maximum: 1000000 }
+      ),
+      workingStrain: requireNumber(
+        rawLine.workingStrain,
+        `${path}.line.workingStrain`,
+        errors,
+        { minimum: 0.01, maximum: 0.5 }
+      ),
+      dampingRatio: requireNumber(
+        rawLine.dampingRatio,
+        `${path}.line.dampingRatio`,
+        errors,
+        { minimum: 0, maximum: 2 }
+      )
+    };
+    if (parent) {
+      const geometry = resolvePendilleGeometry({
+        attachment: { kind, edge, station, waterSide, z },
+        anchor
+      }, parent);
+      const storedSpan = Math.hypot(
+        geometry.anchor.east - geometry.pickup.east,
+        geometry.anchor.north - geometry.pickup.north,
+        geometry.anchor.z - geometry.pickup.z
+      );
+      if (line.maximumLength + 1e-9 < storedSpan) {
+        addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry");
+      }
+    }
+    return {
+      ...object,
+      id,
+      berthId,
+      connectionEnd,
+      parentId,
+      attachment: { kind, edge, station, waterSide, z },
+      anchor,
+      line
+    };
+  }
+
   function structurePosition(structure) {
     return structure?.center || null;
   }
@@ -7025,6 +7663,89 @@
     return {
       longitudinal: dx * c + dy * s,
       transverse: -dx * s + dy * c
+    };
+  }
+
+  function polylineLength(points = []) {
+    let length = 0;
+    for (let index = 1; index < points.length; index += 1) {
+      length += Math.hypot(
+        points[index].east - points[index - 1].east,
+        points[index].north - points[index - 1].north
+      );
+    }
+    return length;
+  }
+
+  function pointOnPolyline(points, station) {
+    const total = polylineLength(points);
+    let remaining = Math.max(0, Math.min(total, station));
+    for (let index = 1; index < points.length; index += 1) {
+      const first = points[index - 1];
+      const second = points[index];
+      const length = Math.hypot(second.east - first.east, second.north - first.north);
+      if (length <= 1e-9) continue;
+      if (remaining <= length || index === points.length - 1) {
+        const ratio = Math.max(0, Math.min(1, remaining / length));
+        return {
+          point: {
+            east: first.east + (second.east - first.east) * ratio,
+            north: first.north + (second.north - first.north) * ratio
+          },
+          tangent: {
+            east: (second.east - first.east) / length,
+            north: (second.north - first.north) / length
+          },
+          total
+        };
+      }
+      remaining -= length;
+    }
+    const fallback = points[0] || { east: 0, north: 0 };
+    return { point: { ...fallback }, tangent: { east: 1, north: 0 }, total };
+  }
+
+  function resolvePendilleGeometry(pendille, parent) {
+    const attachment = pendille.attachment;
+    let pickup;
+    let tangent;
+    let waterSign = attachment.waterSide === "right" ? -1 : 1;
+    if (attachment.kind === "polyline-station") {
+      const resolved = pointOnPolyline(parent.points, attachment.station);
+      tangent = resolved.tangent;
+      pickup = resolved.point;
+    } else {
+      tangent = { east: Math.cos(parent.heading), north: Math.sin(parent.heading) };
+      const transverse = attachment.edge === "starboard"
+        ? -parent.width / 2
+        : attachment.edge === "port"
+          ? parent.width / 2
+          : 0;
+      waterSign = attachment.edge === "starboard" ? -1 : 1;
+      pickup = localToWorld(parent, {
+        longitudinal: attachment.station,
+        transverse
+      });
+    }
+    const normal = { east: -tangent.north * waterSign, north: tangent.east * waterSign };
+    if (attachment.kind === "polyline-station") {
+      pickup = {
+        east: pickup.east + normal.east * parent.width / 2,
+        north: pickup.north + normal.north * parent.width / 2
+      };
+    }
+    const anchor = {
+      east: pickup.east + tangent.east * pendille.anchor.along
+        + normal.east * pendille.anchor.normalDistance,
+      north: pickup.north + tangent.north * pendille.anchor.along
+        + normal.north * pendille.anchor.normalDistance,
+      z: -pendille.anchor.depth
+    };
+    return {
+      pickup: { east: pickup.east, north: pickup.north, z: attachment.z },
+      anchor,
+      tangent,
+      normal
     };
   }
 
@@ -7063,6 +7784,17 @@
     }
     for (const boat of document.staticBoats || []) add(boat.center);
     for (const berth of document.berths || []) add(berth.center);
+    const parentById = new Map([
+      ...(document.structures?.pontoons || []),
+      ...(document.structures?.obstacles || [])
+    ].map(item => [item.id, item]));
+    for (const pendille of document.structures?.pendilles || []) {
+      const parent = parentById.get(pendille.parentId);
+      if (!parent) continue;
+      const geometry = resolvePendilleGeometry(pendille, parent);
+      add(geometry.pickup);
+      add(geometry.anchor);
+    }
     for (const entry of document.navigation?.entries || []) add(entry.position);
     if (!points.length) return { minEast: 0, minNorth: 0, maxEast: 0, maxNorth: 0 };
     return {
@@ -7074,65 +7806,72 @@
   }
 
   function migrateLegacyDocument(input) {
-    if (!isObject(input) || input.schemaVersion !== LEGACY_SCHEMA_VERSION) return input;
+    if (!isObject(input) || !LEGACY_SCHEMA_VERSIONS.includes(input.schemaVersion)) return input;
     const document = clone(input);
     const structures = document.structures || {};
-    for (const rectangle of [
-      ...(structures.pontoons || []),
-      ...(structures.catways || [])
-    ]) {
-      if (!rectangle.vertical) rectangle.vertical = legacyVertical(rectangle.height, "floating");
-    }
-    for (const obstacle of structures.obstacles || []) {
-      if (!obstacle.vertical) obstacle.vertical = legacyVertical(obstacle.height, "fixed");
-    }
+    if (document.schemaVersion === 1) {
+      for (const rectangle of [
+        ...(structures.pontoons || []),
+        ...(structures.catways || [])
+      ]) {
+        if (!rectangle.vertical) rectangle.vertical = legacyVertical(rectangle.height, "floating");
+      }
+      for (const obstacle of structures.obstacles || []) {
+        if (!obstacle.vertical) obstacle.vertical = legacyVertical(obstacle.height, "fixed");
+      }
 
-    const pontoons = new Map((structures.pontoons || []).map(item => [item.id, item]));
-    const catways = new Map((structures.catways || []).map(item => [item.id, item]));
-    for (const group of document.editor?.catwayGroups || []) {
-      const parent = pontoons.get(group.parentId);
-      if (!parent) continue;
-      for (const memberId of group.memberIds || []) {
-        const catway = catways.get(memberId);
-        if (!catway || catway.attachment) continue;
-        const parentDeckZ = parent.vertical?.deckZ ?? parent.height ?? 0.5;
-        const catwayThickness = finite(catway.height) ? catway.height : 0.5;
-        catway.vertical = {
-          datum: "waterline",
-          mode: "floating",
-          baseZ: parentDeckZ - catwayThickness,
-          topZ: parentDeckZ,
-          deckZ: parentDeckZ
-        };
-        const local = worldToLocal(parent, catway.center);
-        const sideSign = Math.sign(local.transverse || 1);
-        const rootOverlap = 0.15;
-        const headingVector = {
-          east: Math.cos(catway.heading),
-          north: Math.sin(catway.heading)
-        };
-        const root = {
-          east: catway.center.east - headingVector.east * catway.length / 2,
-          north: catway.center.north - headingVector.north * catway.length / 2
-        };
-        const expectedRoot = localToWorld(parent, {
-          longitudinal: local.longitudinal,
-          transverse: sideSign * (parent.width / 2 - rootOverlap)
-        });
-        catway.center.east += expectedRoot.east - root.east;
-        catway.center.north += expectedRoot.north - root.north;
-        catway.parentId = parent.id;
-        catway.attachment = {
-          parentId: parent.id,
-          parentEdge: sideSign > 0 ? "port" : "starboard",
-          station: local.longitudinal,
-          rootOverlap,
-          deckZ: parentDeckZ,
-          connector: "flush",
-          connectorLength: 0
-        };
+      const pontoons = new Map((structures.pontoons || []).map(item => [item.id, item]));
+      const catways = new Map((structures.catways || []).map(item => [item.id, item]));
+      for (const group of document.editor?.catwayGroups || []) {
+        const parent = pontoons.get(group.parentId);
+        if (!parent) continue;
+        for (const memberId of group.memberIds || []) {
+          const catway = catways.get(memberId);
+          if (!catway || catway.attachment) continue;
+          const parentDeckZ = parent.vertical?.deckZ ?? parent.height ?? 0.5;
+          const catwayThickness = finite(catway.height) ? catway.height : 0.5;
+          catway.vertical = {
+            datum: "waterline",
+            mode: "floating",
+            baseZ: parentDeckZ - catwayThickness,
+            topZ: parentDeckZ,
+            deckZ: parentDeckZ
+          };
+          const local = worldToLocal(parent, catway.center);
+          const sideSign = Math.sign(local.transverse || 1);
+          const rootOverlap = 0.15;
+          const headingVector = {
+            east: Math.cos(catway.heading),
+            north: Math.sin(catway.heading)
+          };
+          const root = {
+            east: catway.center.east - headingVector.east * catway.length / 2,
+            north: catway.center.north - headingVector.north * catway.length / 2
+          };
+          const expectedRoot = localToWorld(parent, {
+            longitudinal: local.longitudinal,
+            transverse: sideSign * (parent.width / 2 - rootOverlap)
+          });
+          catway.center.east += expectedRoot.east - root.east;
+          catway.center.north += expectedRoot.north - root.north;
+          catway.parentId = parent.id;
+          catway.attachment = {
+            parentId: parent.id,
+            parentEdge: sideSign > 0 ? "port" : "starboard",
+            station: local.longitudinal,
+            rootOverlap,
+            deckZ: parentDeckZ,
+            connector: "flush",
+            connectorLength: 0
+          };
+        }
       }
     }
+    structures.pendilles = Array.isArray(structures.pendilles) ? structures.pendilles : [];
+    document.editor = document.editor || {};
+    document.editor.pendilleGroups = Array.isArray(document.editor.pendilleGroups)
+      ? document.editor.pendilleGroups
+      : [];
     document.schemaVersion = SCHEMA_VERSION;
     return document;
   }
@@ -7286,17 +8025,38 @@
       errors,
       ids
     ));
+    const pendilleParents = new Map([
+      ...pontoons,
+      ...obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
+    const pendilles = (
+      structures.pendilles === undefined
+        ? []
+        : requireArray(structures.pendilles, "$.structures.pendilles", errors)
+    ).map((item, index) => validatePendille(
+      item,
+      `$.structures.pendilles[${index}]`,
+      errors,
+      ids,
+      pendilleParents
+    ));
     const structureCount = (
       pontoons.length
       + catways.length
       + obstacles.length
       + landAreas.length
       + buoys.length
+      + pendilles.length
     );
     if (structureCount > MAX_STRUCTURES) {
       addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
     }
-    const parentById = new Map([...pontoons, ...catways, ...buoys].map(item => [item.id, item]));
+    const parentById = new Map([
+      ...pontoons,
+      ...catways,
+      ...buoys,
+      ...obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
     const pontoonById = new Map(pontoons.map(item => [item.id, item]));
     catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
 
@@ -7307,23 +8067,43 @@
       const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
       const parent = parentById.get(parentId);
       if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
-      const local = requireObject(object.localPosition, `${path}.localPosition`, errors);
-      const localPosition = {
-        longitudinal: requireNumber(local.longitudinal, `${path}.localPosition.longitudinal`, errors, {
-          minimum: -MAX_EXTENT_METERS,
-          maximum: MAX_EXTENT_METERS
-        }),
-        transverse: requireNumber(local.transverse, `${path}.localPosition.transverse`, errors, {
-          minimum: -1000,
-          maximum: 1000
+      const quayParent = parent?.type === "quay";
+      const local = quayParent
+        ? {}
+        : requireObject(object.localPosition, `${path}.localPosition`, errors);
+      const localPosition = quayParent
+        ? null
+        : {
+          longitudinal: requireNumber(local.longitudinal, `${path}.localPosition.longitudinal`, errors, {
+            minimum: -MAX_EXTENT_METERS,
+            maximum: MAX_EXTENT_METERS
+          }),
+          transverse: requireNumber(local.transverse, `${path}.localPosition.transverse`, errors, {
+            minimum: -1000,
+            maximum: 1000
+          })
+        };
+      const attachment = quayParent
+        ? requireObject(object.attachment, `${path}.attachment`, errors)
+        : null;
+      const station = quayParent
+        ? requireNumber(attachment.station, `${path}.attachment.station`, errors, {
+          minimum: 0,
+          maximum: polylineLength(parent.points)
         })
-      };
+        : 0;
+      const waterSide = quayParent
+        ? (attachment.waterSide === "right" ? "right" : "left")
+        : "";
+      if (quayParent && !["left", "right"].includes(attachment.waterSide)) {
+        addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+      }
       const outsideParent = parent?.type === "buoy"
         ? (
           Math.abs(localPosition.longitudinal) > parent.radius + 0.15
           || Math.abs(localPosition.transverse) > parent.radius + 0.15
         )
-        : parent && (
+        : parent && !quayParent && (
           Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15
           || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15
         );
@@ -7338,7 +8118,16 @@
         minimum: -Math.PI * 8,
         maximum: Math.PI * 8
       });
-      return { ...object, id, parentId, localPosition, z, orientation };
+      return {
+        ...object,
+        id,
+        parentId,
+        ...(quayParent
+          ? { attachment: { kind: "polyline-station", station, waterSide } }
+          : { localPosition }),
+        z,
+        orientation
+      };
     });
     if (cleats.length > MAX_CLEATS) {
       addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
@@ -7401,6 +8190,11 @@
       };
     });
     const berthIds = new Set(berths.map(berth => berth.id));
+    pendilles.forEach((pendille, index) => {
+      if (pendille.berthId && !berthIds.has(pendille.berthId)) {
+        addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference");
+      }
+    });
 
     const staticBoats = requireArray(document.staticBoats, "$.staticBoats", errors).map((item, index) => {
       const path = `$.staticBoats[${index}]`;
@@ -7488,6 +8282,24 @@
         }
       });
     });
+    const pendilleGroups = requireArray(
+      editor.pendilleGroups,
+      "$.editor.pendilleGroups",
+      errors
+    );
+    pendilleGroups.forEach((group, index) => {
+      const path = `$.editor.pendilleGroups[${index}]`;
+      const object = requireObject(group, path, errors);
+      validateId(object.id, `${path}.id`, errors, ids);
+      if (!pendilleParents.has(object.parentId)) {
+        addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+      }
+      requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
+        if (!pendilles.some(pendille => pendille.id === id)) {
+          addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference");
+        }
+      });
+    });
 
     if (errors.length) throw new KJPValidationError(errors);
 
@@ -7500,6 +8312,8 @@
     normalized.structures.landAreas = clone(landAreas);
     normalized.structures.buoys = clone(buoys);
     normalized.structures.cleats = clone(cleats);
+    normalized.structures.pendilles = clone(pendilles);
+    normalized.editor.pendilleGroups = clone(pendilleGroups);
     normalized.editor.defaultBerthWidth = finite(editor.defaultBerthWidth)
       ? editor.defaultBerthWidth
       : 4;
@@ -7582,13 +8396,15 @@
         cleats: [],
         obstacles: [],
         landAreas: [],
-        buoys: []
+        buoys: [],
+        pendilles: []
       },
       berths: [],
       staticBoats: [],
       navigation: { entries: [] },
       editor: {
         catwayGroups: [],
+        pendilleGroups: [],
         occupancyRate: 0.62,
         occupancySeed: 20260730,
         defaultBerthWidth: 4,
@@ -7655,7 +8471,8 @@
       [
         ...kjp.structures.pontoons,
         ...kjp.structures.catways,
-        ...kjp.structures.buoys
+        ...kjp.structures.buoys,
+        ...kjp.structures.obstacles.filter(item => item.type === "quay")
       ].map(item => [item.id, item])
     );
     const toSceneRectangle = rectangle => ({
@@ -7679,20 +8496,44 @@
     const cleats = kjp.structures.cleats.map(cleat => {
       const parent = parents.get(cleat.parentId);
       const buoyParent = parent.type === "buoy";
+      const quayParent = parent.type === "quay";
+      const quayGeometry = quayParent
+        ? pointOnPolyline(parent.points, cleat.attachment.station)
+        : null;
+      const quaySideSign = cleat.attachment?.waterSide === "right" ? -1 : 1;
       const point = buoyParent
         ? {
           east: parent.position.east + cleat.localPosition.longitudinal,
           north: parent.position.north + cleat.localPosition.transverse
         }
+        : quayParent
+          ? {
+            east: quayGeometry.point.east
+              - quayGeometry.tangent.north * quaySideSign * parent.width / 2,
+            north: quayGeometry.point.north
+              + quayGeometry.tangent.east * quaySideSign * parent.width / 2
+          }
         : localToWorld(parent, cleat.localPosition);
       return {
         id: cleat.id,
         parentId: cleat.parentId,
-        kind: buoyParent ? "buoy" : parent.type === "catway" ? "catway" : "ponton",
+        kind: buoyParent
+          ? "buoy"
+          : quayParent
+            ? "quay"
+            : parent.type === "catway"
+              ? "catway"
+              : "ponton",
         x: point.east,
         y: point.north,
         z: cleat.z,
-        orientation: (buoyParent ? 0 : parent.heading) + cleat.orientation
+        orientation: (
+          buoyParent
+            ? 0
+            : quayParent
+              ? Math.atan2(quayGeometry.tangent.north, quayGeometry.tangent.east)
+              : parent.heading
+        ) + cleat.orientation
       };
     });
     const entry = kjp.navigation.entries[0];
@@ -7707,6 +8548,36 @@
       maxLength: berth.maxLength,
       maxBeam: berth.maxBeam
     }));
+    const pendilleParents = new Map([
+      ...kjp.structures.pontoons,
+      ...kjp.structures.obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
+    const pendilles = kjp.structures.pendilles.map(pendille => {
+      const parent = pendilleParents.get(pendille.parentId);
+      const geometry = resolvePendilleGeometry(pendille, parent);
+      return {
+        id: pendille.id,
+        berthId: pendille.berthId,
+        connectionEnd: pendille.connectionEnd,
+        parentId: pendille.parentId,
+        pickupPoint: {
+          east: geometry.pickup.east,
+          north: geometry.pickup.north,
+          z: geometry.pickup.z
+        },
+        anchorPoint: {
+          east: geometry.anchor.east,
+          north: geometry.anchor.north,
+          z: geometry.anchor.z
+        },
+        maximumLength: pendille.line.maximumLength,
+        elasticity: {
+          workingLoadN: pendille.line.workingLoadN,
+          workingStrain: pendille.line.workingStrain,
+          dampingRatio: pendille.line.dampingRatio
+        }
+      };
+    });
     const scenario = {
       initial: {
         x: entry.position.east,
@@ -7771,7 +8642,8 @@
           colours: clone(buoy.colours),
           name: buoy.name,
           collision: buoy.collision !== false
-        }))
+        })),
+        pendilles
       },
       berthLanes: {},
       berths: clone(kjp.berths),
@@ -7821,7 +8693,8 @@
         ...topology.structures,
         linearObstacles: topology.structures?.linearObstacles || [],
         landAreas: topology.structures?.landAreas || [],
-        buoys: topology.structures?.buoys || []
+        buoys: topology.structures?.buoys || [],
+        pendilles: topology.structures?.pendilles || []
       },
       navigation: {
         ...topology.navigation,
@@ -7856,6 +8729,9 @@
     geometryBounds,
     localToWorld,
     worldToLocal,
+    polylineLength,
+    pointOnPolyline,
+    resolvePendilleGeometry,
     hashString,
     toRuntimeTopology,
     legacyTopologyToRuntime
@@ -8252,7 +9128,7 @@
       windage: 1,
       rudder: 1,
       lateral: 1,
-      mooringAttachSpeedKn: 0.5
+      mooringAttachSpeedKn: 0.6
     };
 
     const controls = {
@@ -8287,7 +9163,7 @@
     const MOORING_POLICY = Object.freeze({
       maximumLength: 20,
       maximumLinesPerBoatCleat: PortPhysics.DEFAULT_PROFILE.mooring.maximumLinesPerBoatCleat,
-      defaultAttachSpeedKn: 0.5,
+      defaultAttachSpeedKn: 0.6,
       detachSpeedKn: 3,
       tautTolerance: 0.02,
       pointerRadius: 10,
@@ -8307,8 +9183,14 @@
       serial: 1,
       hitTargets: {
         cleats: [],
-        lines: []
+        lines: [],
+        pendilles: []
       }
+    };
+
+    const pendilleState = {
+      current: [],
+      selectedId: null
     };
 
     const CAMERA_DISTANCE_MIN = 18;
@@ -8858,7 +9740,7 @@
           if (
             typeof cleat.id !== "string"
             || cleatIds.has(cleat.id)
-            || !["catway", "ponton", "buoy"].includes(cleat.kind)
+            || !["catway", "ponton", "quay", "buoy"].includes(cleat.kind)
             || ![cleat.x, cleat.y, cleat.z, cleat.orientation].every(Number.isFinite)
           ) {
             errors.push(`taquet d'amarrage invalide : ${cleat.id || "sans identifiant"}`);
@@ -8908,6 +9790,7 @@
     let linearObstacles = [];
     let landAreas = [];
     let buoys = [];
+    let harborPendilles = [];
     let communityPort = false;
     let loadedCommunityDocument = null;
     let selectedVisitorBerthId = null;
@@ -8965,6 +9848,7 @@
       linearObstacles = clonePortData(topology.structures?.linearObstacles || []);
       landAreas = clonePortData(topology.structures?.landAreas || []);
       buoys = clonePortData(topology.structures?.buoys || []);
+      harborPendilles = clonePortData(topology.structures?.pendilles || []);
       communityPort = topology.sourceFormat === "KJP";
       selectedVisitorBerthId = null;
       dockById = new Map(docks.map(dock => [dock.id, dock]));
@@ -9128,7 +10012,8 @@
       complete: false,
       hold: 0,
       startWall: 0,
-      challenge: null
+      challenge: null,
+      strongWindReplay: false
     };
 
     function coreHeadingFromScene(sceneHeading) {
@@ -10074,6 +10959,7 @@
       contacts.severe = snapshot.contacts.severe;
       contacts.active = new Map(contacts.current.map(contact => [contact.id, ui.simTime]));
       moorings.current = snapshot.moorings.map(line => ({ ...line }));
+      pendilleState.current = (snapshot.pendilles || []).map(item => ({ ...item }));
       if (contacts.impacts > previousImpacts) {
         const impact = contacts.current.reduce(
           (maximum, contact) => contact.impactSpeed > maximum.impactSpeed ? contact : maximum,
@@ -10262,6 +11148,131 @@
       }
     }
 
+    function pendilleChallengePhase(scenario = scenarios[ui.scenarioId]) {
+      const challenge = scenario?.pendilleChallenge;
+      if (!challenge) return null;
+      const pendille = pendilleState.current.find(item => item.id === challenge.pendilleId);
+      const windward = moorings.current.find(line => (
+        line.id === challenge.windwardLineId
+        || (
+          line.boatCleatId === challenge.windwardBoatCleatId
+          && line.shoreCleatId === challenge.windwardShoreCleatId
+        )
+      ));
+      const leeward = moorings.current.find(line => (
+        line.id === challenge.leewardLineId
+        || (
+          line.boatCleatId === challenge.leewardBoatCleatId
+          && line.shoreCleatId === challenge.leewardShoreCleatId
+        )
+      ));
+      if (challenge.type === "med-docking") {
+        if (!windward) return Math.hypot(motion.x - scenario.goal.x, motion.y - scenario.goal.y) > 8 ? "approach" : "windward";
+        if (pendille?.state === "available") return "pickup";
+        if (pendille?.state === "in-hand") return "carry";
+        if (pendille?.state !== "secured") return "pickup";
+        if (!leeward) return "leeward";
+        return "balance";
+      }
+      if (leeward) return "release-leeward";
+      if (pendille?.state === "secured") return "release-pendille";
+      if (windward) return "release-windward";
+      return "exit";
+    }
+
+    function pendilleChallengeInstruction(scenario = scenarios[ui.scenarioId]) {
+      const docking = scenario?.pendilleChallenge?.type === "med-docking";
+      const instructions = docking ? {
+        approach: "1/6 · Présentez-vous dans l’axe et reculez lentement vers la place centrale.",
+        windward: "2/6 · À portée du quai, frappez d’abord l’aussière arrière au vent sur le taquet indiqué.",
+        pickup: "3/6 · Cliquez la boucle de pendille au quai, puis un taquet d’étrave surligné.",
+        carry: "4/6 · La pendille est menée vers l’avant : restez au neutre si elle approche de l’hélice.",
+        leeward: "5/6 · Pendille frappée : ajoutez maintenant la seconde aussière arrière.",
+        balance: "6/6 · Réglez les trois lignes pour garder la poupe entre 0,8 et 1,5 m du quai, presque à l’arrêt."
+      } : {
+        "release-leeward": "1/4 · Larguez d’abord l’aussière arrière sous le vent.",
+        "release-pendille": "2/4 · Détendez puis larguez la pendille, moteur au neutre.",
+        "release-windward": "3/4 · Utilisez encore l’arrière au vent pour contrôler l’étrave, puis larguez au neutre.",
+        exit: "4/4 · Toutes les lignes sont claires : sortez en marche avant vers la zone verte."
+      };
+      return instructions[pendilleChallengePhase(scenario)] || scenario.objective;
+    }
+
+    function updatePendilleChallenge(scenario, dt, speedKn) {
+      const progress = scenarioState.challenge;
+      const phase = pendilleChallengePhase(scenario);
+      const pendille = pendilleState.current.find(item => item.id === scenario.pendilleChallenge.pendilleId);
+      const windward = moorings.current.find(line => (
+        line.id === scenario.pendilleChallenge.windwardLineId
+        || line.boatCleatId === scenario.pendilleChallenge.windwardBoatCleatId
+      ));
+      const leeward = moorings.current.find(line => (
+        line.id === scenario.pendilleChallenge.leewardLineId
+        || line.boatCleatId === scenario.pendilleChallenge.leewardBoatCleatId
+      ));
+      if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger && Math.abs(controls.throttleActual) > .03) {
+        progress.propellerDangerSeconds += dt;
+      }
+      if (scenario.pendilleChallenge.type === "med-docking") {
+        if (pendille?.state === "secured" && !windward && !progress.earlyPendille) {
+          progress.earlyPendille = true;
+          progress.sequenceViolations += 1;
+        }
+        if (leeward && pendille?.state !== "secured" && !progress.earlyLeeward) {
+          progress.earlyLeeward = true;
+          progress.sequenceViolations += 1;
+        }
+      } else {
+        if (pendille?.state !== "secured" && leeward && !progress.earlyPendilleRelease) {
+          progress.earlyPendilleRelease = true;
+          progress.sequenceViolations += 1;
+        }
+        if (!windward && (pendille?.state === "secured" || pendille?.danger) && !progress.earlyWindwardRelease) {
+          progress.earlyWindwardRelease = true;
+          progress.sequenceViolations += 1;
+        }
+      }
+      if (!progress.completedPhases.includes(phase)) progress.completedPhases.push(phase);
+      const goal = scenario.goal;
+      const dx = motion.x - goal.x;
+      const dy = motion.y - goal.y;
+      const distance = Math.hypot(dx, dy);
+      const alignment = Math.abs(wrapAngle(motion.heading - goal.heading));
+      const inside = goal.kind === "rect"
+        ? Math.abs(dx) <= goal.w / 2 && Math.abs(dy) <= goal.h / 2
+        : distance <= goal.radius;
+      const docking = scenario.pendilleChallenge.type === "med-docking";
+      const playerStern = localPoint(motion, -BOAT_PROFILE.length / 2, 0, 0);
+      const medQuay = docks.find(item => item.id === "med-quay");
+      const sternGap = medQuay ? medQuay.y - medQuay.h / 2 - playerStern[1] : Infinity;
+      const securePendille = pendille?.state === "secured" && pendille.tension > 0;
+      const safeBerth = (
+        sternGap >= .8
+        && sternGap <= 1.5
+        && contacts.maxImpact <= .2
+        && !latestPhysicsSnapshot?.diagnostics?.mooringGuardActive
+      );
+      const ready = docking
+        ? phase === "balance" && moorings.current.length >= 3 && securePendille && safeBerth
+        : phase === "exit";
+      if (ready && inside && alignment <= 5 * DEG && speedKn <= goal.speedKn) {
+        scenarioState.hold += dt;
+      } else {
+        scenarioState.hold = Math.max(0, scenarioState.hold - dt * .5);
+      }
+      scenarioState.score = Math.round(clamp(
+        100
+        - contacts.maxImpact * 80
+        - contacts.severe * 18
+        - progress.propellerDangerSeconds * 4
+        - progress.sequenceViolations * 12
+        - Math.max(0, scenarioState.elapsed - 90) * .08,
+        0,
+        100
+      ));
+      if (scenarioState.hold >= 1.25) scenarioState.complete = true;
+    }
+
     function updateScenario(dt) {
       const scenario = scenarios[ui.scenarioId];
       if (!scenario.goal || scenarioState.complete) return;
@@ -10274,6 +11285,10 @@
       const alignment = Math.abs(wrapAngle(motion.heading - goal.heading));
       if (scenario.mooringChallenge) {
         updateMooringChallenge(scenario, dt, speedKn);
+        return;
+      }
+      if (scenario.pendilleChallenge) {
+        updatePendilleChallenge(scenario, dt, speedKn);
         return;
       }
       let inside = goal.kind === "rect"
@@ -10309,7 +11324,15 @@
       });
     }
 
-    function resetMotion(initial, initialMoorings = []) {
+    function initialPendilleDefinitions(definitions = []) {
+      const scenarioDefinitions = new Map(definitions.map(item => [item.id, item]));
+      return harborPendilles.map(pendille => ({
+        ...clonePortData(pendille),
+        ...(scenarioDefinitions.get(pendille.id) || {})
+      }));
+    }
+
+    function resetMotion(initial, initialMoorings = [], initialPendilles = []) {
       motion.x = initial.x;
       motion.y = initial.y;
       motion.heading = initial.heading;
@@ -10335,11 +11358,14 @@
       moorings.gaugeSignature = "";
       moorings.lastScrolledGaugeId = null;
       moorings.serial = 1;
+      pendilleState.current.length = 0;
+      pendilleState.selectedId = null;
       scenarioState.elapsed = 0;
       scenarioState.score = 100;
       scenarioState.complete = false;
       scenarioState.hold = 0;
       const challenge = scenarios[ui.scenarioId]?.mooringChallenge;
+      const pendilleChallenge = scenarios[ui.scenarioId]?.pendilleChallenge;
       scenarioState.challenge = challenge ? {
         correctSpringEver: false,
         springTautEver: false,
@@ -10351,7 +11377,16 @@
         safeRelease: false,
         unsafeReleases: 0,
         springWasPresent: false
+      } : pendilleChallenge ? {
+        propellerDangerSeconds: 0,
+        completedPhases: [],
+        sequenceViolations: 0,
+        earlyPendille: false,
+        earlyLeeward: false,
+        earlyPendilleRelease: false,
+        earlyWindwardRelease: false
       } : null;
+      scenarioState.strongWindReplay = false;
       ui.accumulator = 0;
       ui.simTime = 0;
       physicsCalibrationKey = "";
@@ -10376,12 +11411,14 @@
           v: -motion.v,
           r: -motion.r
         },
-        moorings: initialMooringDefinitions(initialMoorings)
+        moorings: initialMooringDefinitions(initialMoorings),
+        pendilles: initialPendilleDefinitions(initialPendilles)
       }, environment);
       previousPhysicsPose.x = motion.x;
       previousPhysicsPose.y = motion.y;
       previousPhysicsPose.heading = motion.heading;
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+      pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
       forceAccumulator.reset();
       resetCamera();
     }
@@ -10395,7 +11432,11 @@
       environment.currentSpeedKn = scenario.environment.currentSpeedKn;
       environment.currentFromDeg = scenario.environment.currentFromDeg;
       syncEnvironmentInputs();
-      resetMotion(scenario.initial, scenario.initialMoorings || []);
+      resetMotion(
+        scenario.initial,
+        scenario.initialMoorings || [],
+        scenario.initialPendilles || []
+      );
       const card = $("#lessonCard");
       card.hidden = communityPort || ui.scenarioId === "free";
       $("#lessonKicker").textContent = scenario.kicker;
@@ -10407,6 +11448,24 @@
         $("#sidebarToggle").setAttribute("aria-expanded", "false");
         $("#sidebarToggle").setAttribute("aria-label", "Ouvrir les réglages");
       }
+    }
+
+    function replayPendilleStrongWind() {
+      const scenario = scenarios[ui.scenarioId];
+      if (!scenario?.pendilleChallenge) return null;
+      environment.windSpeedKn = 15;
+      environment.windFromDeg = scenario.environment.windFromDeg;
+      environment.currentSpeedKn = scenario.environment.currentSpeedKn;
+      environment.currentFromDeg = scenario.environment.currentFromDeg;
+      syncEnvironmentInputs();
+      resetMotion(
+        scenario.initial,
+        scenario.initialMoorings || [],
+        scenario.initialPendilles || []
+      );
+      scenarioState.strongWindReplay = true;
+      $("#strongWindReplay").hidden = true;
+      return testSnapshot();
     }
 
     function syncCameraButtons() {
@@ -11172,6 +12231,24 @@
       }
 
       const inspectBerth = (boat, source) => {
+        if (boat.mooringType === "pendille") {
+          const pendille = harborPendilles.find(item => item.id === boat.pendilleId);
+          const quay = dockById.get(boat.catwayId);
+          if (!pendille || !quay) {
+            failures.push(`${source} ${boat.id}: poste sur pendille incomplet`);
+            return;
+          }
+          const perpendicularError = Math.abs(Math.cos(boat.heading - (quay.heading || 0)));
+          if (perpendicularError > 1e-6) {
+            failures.push(`${source} ${boat.id}: non perpendiculaire au quai`);
+          }
+          const stern = localPoint(boat, -boat.length / 2, 0, 0);
+          const sternGap = quay.y - quay.h / 2 - stern[1];
+          if (sternGap < .2 || sternGap > 1.5) {
+            failures.push(`${source} ${boat.id}: poupe à ${sternGap.toFixed(2)} m du quai`);
+          }
+          return;
+        }
         const catway = catwayById.get(boat.catwayId);
         const key = `${boat.berth}:${boat.berthRow}`;
         const slotKey = `${key}:${boat.berthSlot}`;
@@ -11234,7 +12311,7 @@
       }
 
       const intervalOccupancy = new Map();
-      for (const boat of staticBoats) {
+      for (const boat of staticBoats.filter(item => item.mooringType !== "pendille")) {
         const key = `${boat.berth}:${boat.berthRow}`;
         const slots = intervalOccupancy.get(key) || [];
         slots.push(boat.berthSlot);
@@ -11315,15 +12392,17 @@
       );
       const outerTurningDepth = harborNavigationConfig.outerTurningDepth;
 
-      const berthRoutes = staticBoats.map(boat => {
-        const lane = berthLanes[boat.berth];
-        return straightRouteReport(
-          `sortie-${boat.id}`,
-          boat,
-          { x: lane.exitX, y: boat.y, heading: boat.heading },
-          boat.id
-        );
-      });
+      const berthRoutes = staticBoats
+        .filter(boat => boat.mooringType !== "pendille")
+        .map(boat => {
+          const lane = berthLanes[boat.berth];
+          return straightRouteReport(
+            `sortie-${boat.id}`,
+            boat,
+            { x: lane.exitX, y: boat.y, heading: boat.heading },
+            boat.id
+          );
+        });
       for (const berth of harborNavigationConfig.trainingBerths) {
         const lane = berthLanes[berth.lane];
         berthRoutes.push(straightRouteReport(
@@ -12271,7 +13350,9 @@
         ? calibration.mooringAttachSpeedKn
         : MOORING_POLICY.detachSpeedKn;
       return {
-        ok: Number(speedKn) <= maximum + 1e-9,
+        ok: action === "attach"
+          ? Number(speedKn) < maximum
+          : Number(speedKn) <= maximum + 1e-9,
         maximum
       };
     }
@@ -12309,7 +13390,7 @@
       if (!mooringActionAllowed("attach", groundSpeedKn()).ok) {
         return {
           valid: false,
-          reason: `Trop vite pour frapper une aussière · ${fmt(calibration.mooringAttachSpeedKn, 1)} nd maximum.`,
+          reason: `Trop vite pour frapper une aussière · restez sous ${fmt(calibration.mooringAttachSpeedKn, 1)} nd.`,
           boat,
           shore,
           length
@@ -12319,12 +13400,38 @@
     }
 
     function endpointEligible(endpoint) {
+      if (pendilleState.selectedId) {
+        const selected = harborPendilles.find(item => item.id === pendilleState.selectedId);
+        const cleat = endpoint.type === "boat" ? boatCleatById(endpoint.id) : null;
+        return Boolean(
+          selected
+          && cleat
+          && !boatCleatAtCapacity(cleat.id)
+          && (selected.connectionEnd === "stern" ? cleat.x < 0 : cleat.x > 0)
+        );
+      }
       if (!moorings.selected) return true;
       if (endpointKey(endpoint) === endpointKey(moorings.selected)) return true;
       return pairDetails(moorings.selected, endpoint).valid;
     }
 
     function selectMooringEndpoint(endpoint) {
+      if (pendilleState.selectedId) {
+        if (endpoint.type !== "boat" || !endpointEligible(endpoint)) {
+          showStageToast("Choisissez un taquet libre à l’étrave.");
+          return;
+        }
+        const result = physicsSimulator.beginPendillePickup(pendilleState.selectedId, endpoint.id);
+        if (!result.ok) {
+          showStageToast(`Pendille refusée · ${result.reason}.`);
+          return;
+        }
+        pendilleState.selectedId = null;
+        latestPhysicsSnapshot = physicsSimulator.snapshot();
+        pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
+        showStageToast("Pendille en main · elle est menée vers l’étrave.", "ok", 1800);
+        return;
+      }
       if (!moorings.selected) {
         if (endpoint.type === "boat" && boatCleatAtCapacity(endpoint.id)) {
           showStageToast("Ce taquet du bateau porte déjà deux aussières.");
@@ -12392,16 +13499,20 @@
         showStageToast(`Trop vite pour larguer · ${fmt(speedKn, 1)} nd, maximum 3,0 nd.`);
         return false;
       }
-      const result = physicsSimulator.detachMooring(id);
+      const line = moorings.current.find(item => item.id === id);
+      const result = line?.sourceType === "pendille" && line.facilityId
+        ? physicsSimulator.releasePendille(line.facilityId)
+        : physicsSimulator.detachMooring(id);
       if (!result.ok) {
         showStageToast(`Impossible de larguer · ${result.reason}.`);
         return false;
       }
       latestPhysicsSnapshot = physicsSimulator.snapshot();
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+      pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
       if (moorings.activeLineId === id) moorings.activeLineId = null;
       syncMooringGauges();
-      showStageToast("Aussière larguée.", "ok", 1300);
+      showStageToast(line?.sourceType === "pendille" ? "Pendille larguée · attendez qu’elle soit claire." : "Aussière larguée.", "ok", 1800);
       return true;
     }
 
@@ -12416,10 +13527,16 @@
 
     function mooringCurve(line) {
       const boatCleat = boatCleatById(line.boatCleatId);
+      const pendille = line.sourceType === "pendille"
+        ? harborPendilles.find(item => item.id === line.facilityId)
+        : null;
       const shoreCleat = shoreCleatById.get(line.shoreCleatId);
-      if (!boatCleat || !shoreCleat) return [];
+      const shorePoint = pendille?.anchorPoint || (shoreCleat
+        ? { east: shoreCleat.x, north: shoreCleat.y, z: shoreCleat.z }
+        : null);
+      if (!boatCleat || !shorePoint) return [];
       const start = boatCleatWorld(boatCleat);
-      const end = [shoreCleat.x, shoreCleat.y, shoreCleat.z];
+      const end = [shorePoint.east, shorePoint.north, shorePoint.z];
       if (line.taut || line.slack <= MOORING_POLICY.tautTolerance) {
         return [start, end];
       }
@@ -12602,6 +13719,7 @@
       const boatMotion = sceneMotion();
       moorings.hitTargets.cleats.length = 0;
       moorings.hitTargets.lines.length = 0;
+      moorings.hitTargets.pendilles.length = 0;
       for (const line of moorings.current) {
         const projected = mooringCurve(line).map(project);
         if (projected.length < 2 || projected.some(point => !point)) continue;
@@ -12626,6 +13744,60 @@
           id: line.id,
           segments: projected.slice(1).map((point, index) => [projected[index], point])
         });
+      }
+
+      for (const pendille of pendilleState.current) {
+        const pickup = [pendille.pickupPoint.east, pendille.pickupPoint.north, pendille.pickupPoint.z];
+        const anchor = [pendille.anchorPoint.east, pendille.anchorPoint.north, pendille.anchorPoint.z];
+        const pickupProjected = project(pickup);
+        if (!pickupProjected) continue;
+        const selected = pendilleState.selectedId === pendille.id;
+        if (ui.mode === "understand" || camera.view === "anatomy") {
+          const anchorProjected = project(anchor);
+          if (anchorProjected) {
+            drawScreenPath(
+              [pickupProjected, anchorProjected],
+              selected ? semantic.mooringSelected : "rgba(98,219,227,.55)",
+              1.4
+            );
+            ctx.save();
+            ctx.fillStyle = semantic.mooringSelected;
+            ctx.beginPath();
+            ctx.arc(anchorProjected.x, anchorProjected.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        if (pendille.state === "in-hand") {
+          let movingEnd = null;
+          const from = boatCleatById(pendille.pickupStartCleatId);
+          const to = boatCleatById(pendille.boatCleatId);
+          if (from && to) {
+            const p = clamp(pendille.progress, 0, 1);
+            movingEnd = localPoint(sceneMotion(),
+              from.x + (to.x - from.x) * p,
+              from.y + (to.y - from.y) * p,
+              from.z + (to.z - from.z) * p
+            );
+          }
+          const endProjected = movingEnd ? project(movingEnd) : null;
+          if (endProjected) drawScreenPath([pickupProjected, endProjected], semantic.mooringSlack, 2.2);
+        }
+        if (pendille.state === "available" || pendille.state === "in-hand") {
+          ctx.save();
+          ctx.strokeStyle = selected ? semantic.mooringSelected : semantic.cleatEligible;
+          ctx.lineWidth = selected ? 3.2 : 2.2;
+          ctx.beginPath();
+          ctx.ellipse(pickupProjected.x, pickupProjected.y, selected ? 8 : 6, selected ? 5 : 4, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+          moorings.hitTargets.pendilles.push({
+            id: pendille.id,
+            x: pickupProjected.x,
+            y: pickupProjected.y,
+            enabled: pendille.state === "available"
+          });
+        }
       }
 
       if (camera.distance <= 220) {
@@ -12925,7 +14097,19 @@
       if (controls.paused) return { level: "warn", text: "Simulation en pause. Les forces restent visibles mais le temps est arrêté." };
       if (scenarioState.complete) return { level: "ok", text: `Manœuvre réussie · ${scenarioState.score}/100. Recommencez pour chercher une trajectoire plus douce.` };
       if (contacts.maxImpact > .4 && contacts.current.length) return { level: "danger", text: "Choc sévère : revenez au neutre et laissez les pare-battages se détendre avant de repartir." };
+      if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger) {
+        return {
+          level: Math.abs(controls.throttleActual) > .03 ? "danger" : "warn",
+          text: "Pendille près de l’hélice — restez au neutre jusqu’à ce qu’elle soit claire."
+        };
+      }
       const activeScenario = scenarios[ui.scenarioId];
+      if (activeScenario?.pendilleChallenge) {
+        return {
+          level: contacts.maxImpact > .2 ? "warn" : "ok",
+          text: pendilleChallengeInstruction(activeScenario)
+        };
+      }
       if (activeScenario?.mooringChallenge) {
         const phase = mooringChallengePhase(activeScenario);
         const wrongLine = moorings.current.some(line => (
@@ -12952,6 +14136,9 @@
           ? { level: "warn", text: "Le contact est trop rapide. Le neutre plus tôt aurait laissé davantage de temps aux pare-battages." }
           : { level: "ok", text: "Appui doux sur les pare-battages : ils soutiennent la coque sans rebond brutal." };
       }
+      if (pendilleState.selectedId) {
+        return { level: "ok", text: "Prise de pendille choisie : cliquez maintenant un taquet libre à l’étrave." };
+      }
       if (moorings.selected) {
         return { level: "ok", text: "Premier taquet choisi : cliquez un taquet compatible de l'autre côté pour frapper l'aussière." };
       }
@@ -12963,12 +14150,12 @@
         if (loaded.tension > 80) {
           return {
             level: "warn",
-            text: `${moorings.current.length} aussière${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""} · la plus chargée retient ${fmt(loaded.tension / 1000, 1)} kN.`
+            text: `${moorings.current.length} amarre${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""} · la plus chargée retient ${fmt(loaded.tension / 1000, 1)} kN.`
           };
         }
         return {
           level: "ok",
-          text: `${moorings.current.length} aussière${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""}. Cliquez pour larguer ; glissez vers le haut pour allonger ou vers le bas pour raccourcir.`
+          text: `${moorings.current.length} amarre${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""}. Cliquez pour larguer ; glissez vers le haut pour allonger ou vers le bas pour raccourcir.`
         };
       }
       if (controls.throttleActual < -.12) {
@@ -13006,7 +14193,7 @@
         candidate => candidate.boatCleatId === line.boatCleatId
       );
       const ordinal = peers.length > 1 ? peers.indexOf(line) + 1 : "";
-      return `${station} ${side}${ordinal}`;
+      return `${line.sourceType === "pendille" ? "P·" : ""}${station} ${side}${ordinal}`;
     }
 
     function createMooringGauge(line) {
@@ -13046,11 +14233,14 @@
       const unstretchedLength = Number.isFinite(line.length)
         ? line.length
         : actualLength;
-      const range = 10;
+      const maximumLength = Number.isFinite(line.maximumLength)
+        ? line.maximumLength
+        : MOORING_POLICY.maximumLength;
+      const range = Math.min(10, maximumLength);
       const rangeMinimum = clamp(
         targetLength - range / 2,
         0,
-        MOORING_POLICY.maximumLength - range
+        Math.max(0, maximumLength - range)
       );
       const rangeMaximum = rangeMinimum + range;
       const position = value => clamp(
@@ -13085,9 +14275,9 @@
       gauge.dataset.actualPosition = actualPosition.toFixed(3);
       gauge.dataset.targetPosition = targetPosition.toFixed(3);
       gauge.dataset.markerShape = "triangles";
-      gauge.setAttribute("aria-label", `Aussière ${mooringGaugeLabel(line)}, longueur réglée`);
+      gauge.setAttribute("aria-label", `${line.sourceType === "pendille" ? "Pendille" : "Aussière"} ${mooringGaugeLabel(line)}, longueur réglée`);
       gauge.setAttribute("aria-valuemin", minimumLength.toFixed(1));
-      gauge.setAttribute("aria-valuemax", MOORING_POLICY.maximumLength.toFixed(1));
+      gauge.setAttribute("aria-valuemax", maximumLength.toFixed(1));
       gauge.setAttribute("aria-valuenow", targetLength.toFixed(1));
       gauge.setAttribute(
         "aria-valuetext",
@@ -13164,9 +14354,15 @@
       setText("#driftValue", `${drift >= 0 ? "+" : "−"}${fmt(Math.abs(drift), 1)}`);
       setText("#rpmValue", Math.round((latestPhysicsSnapshot || physicsSimulator.snapshot()).propulsion.engineRpm));
       const tautCount = moorings.current.filter(line => line.taut).length;
+      const pendilleCount = moorings.current.filter(line => line.sourceType === "pendille").length;
+      const regularCount = moorings.current.length - pendilleCount;
       setText("#mooringChipValue", moorings.current.length);
       setText("#mooringChipState", moorings.current.length
-        ? `${tautCount} tendue${tautCount === 1 ? "" : "s"}`
+        ? [
+          regularCount ? `${regularCount} aussière${regularCount > 1 ? "s" : ""}` : null,
+          pendilleCount ? `${pendilleCount} pendille${pendilleCount > 1 ? "s" : ""}` : null,
+          `${tautCount} tendue${tautCount === 1 ? "" : "s"}`
+        ].filter(Boolean).join(" · ")
         : "aucune frappée");
       syncMooringGauges();
 
@@ -13203,10 +14399,18 @@
       setText("#scoreValue", scenarioState.score);
       toggleClass("#objectiveLine", "done", scenarioState.complete);
       const activeScenario = scenarios[ui.scenarioId];
+      const replayAvailable = Boolean(
+        scenarioState.complete
+        && activeScenario?.pendilleChallenge
+        && !scenarioState.strongWindReplay
+      );
+      $("#strongWindReplay").hidden = !replayAvailable;
       if (scenarioState.complete) {
         setText("#objectiveText", "Objectif atteint — manœuvre validée.");
       } else if (activeScenario?.mooringChallenge) {
         setText("#objectiveText", mooringChallengeInstruction(activeScenario));
+      } else if (activeScenario?.pendilleChallenge) {
+        setText("#objectiveText", pendilleChallengeInstruction(activeScenario));
       }
     }
 
@@ -13467,6 +14671,7 @@
     }));
 
     $("#scenarioSelect").addEventListener("change", event => applyScenario(event.target.value));
+    $("#strongWindReplay").addEventListener("click", replayPendilleStrongWind);
     $("#loadPortButton").addEventListener("click", () => $("#portFileInput").click());
     $("#portFileInput").addEventListener("change", event => {
       readSelectedPortFile(event.target.files?.[0]);
@@ -13662,10 +14867,12 @@
         if (key === "ArrowDown" || key.toLowerCase() === "w") adjustThrottle(-1);
         return;
       }
-      if (key === "Escape" && moorings.selected) {
+      if (key === "Escape" && (moorings.selected || pendilleState.selectedId)) {
         event.preventDefault();
+        if (pendilleState.selectedId) physicsSimulator.cancelPendillePickup(pendilleState.selectedId);
         moorings.selected = null;
-        showStageToast("Sélection d'aussière annulée.", "neutral", 1000);
+        pendilleState.selectedId = null;
+        showStageToast("Sélection d’amarre annulée.", "neutral", 1000);
         return;
       }
 
@@ -13748,6 +14955,13 @@
       const radius = pointerType === "touch"
         ? MOORING_POLICY.touchRadius
         : MOORING_POLICY.pointerRadius;
+      let pendilleHit = null;
+      for (const target of moorings.hitTargets.pendilles) {
+        const distance = Math.hypot(point.x - target.x, point.y - target.y);
+        if (distance <= radius * 1.2 && (!pendilleHit || distance < pendilleHit.distance)) {
+          pendilleHit = { type: "pendille", id: target.id, distance };
+        }
+      }
       let cleatHit = null;
       for (const target of moorings.hitTargets.cleats) {
         const distance = Math.hypot(point.x - target.x, point.y - target.y);
@@ -13784,7 +14998,7 @@
       ) {
         return lineHit;
       }
-      return cleatHit || lineHit;
+      return pendilleHit || cleatHit || lineHit;
     }
 
     function cursorForMooringHit(hit) {
@@ -14025,11 +15239,23 @@
       } else if (!pointer.dragged && pointer.mode === "mooring" && pointer.mooringHit) {
         if (pointer.mooringHit.type === "cleat") {
           selectMooringEndpoint(pointer.mooringHit.endpoint);
+        } else if (pointer.mooringHit.type === "pendille") {
+          const id = pointer.mooringHit.id;
+          if (pendilleState.selectedId === id) {
+            physicsSimulator.cancelPendillePickup(id);
+            pendilleState.selectedId = null;
+            showStageToast("Prise de pendille annulée.", "neutral", 1100);
+          } else {
+            pendilleState.selectedId = id;
+            moorings.selected = null;
+            showStageToast("Prise sélectionnée · choisissez un taquet d’étrave.", "neutral", 1600);
+          }
         } else {
           tryDetachMooring(pointer.mooringHit.id);
         }
-      } else if (!pointer.dragged && moorings.selected && !pointer.mooringHit) {
+      } else if (!pointer.dragged && (moorings.selected || pendilleState.selectedId) && !pointer.mooringHit) {
         moorings.selected = null;
+        pendilleState.selectedId = null;
       }
       camera.pointer = null;
       if (!moorings.gaugePointer) moorings.activeLineId = null;
@@ -14104,12 +15330,13 @@
           current: moorings.current.map(line => ({ ...line })),
           selected: moorings.selected ? { ...moorings.selected } : null
         },
+        pendilles: pendilleState.current.map(item => ({ ...item })),
         scenario: {
           id: ui.scenarioId,
           complete: scenarioState.complete,
           score: scenarioState.score,
           hold: scenarioState.hold,
-          phase: mooringChallengePhase(),
+          phase: pendilleChallengePhase() || mooringChallengePhase(),
           challenge: scenarioState.challenge ? { ...scenarioState.challenge } : null
         },
         timing: {
@@ -14400,6 +15627,7 @@
           attachSpeedKn: calibration.mooringAttachSpeedKn
         },
         selected: moorings.selected ? { ...moorings.selected } : null,
+        pendilles: pendilleState.current.map(item => ({ ...item })),
         activeLineId: moorings.activeLineId,
         boatCleats: BOAT_PROFILE.cleats.map(cleat => ({
           ...cleat,
@@ -14420,9 +15648,10 @@
             projectedPoints: points.map(point => ({ x: point.x, y: point.y }))
           };
         }),
-        rendered: {
-          cleats: moorings.hitTargets.cleats.length,
-          lines: moorings.hitTargets.lines.length
+          rendered: {
+            cleats: moorings.hitTargets.cleats.length,
+          lines: moorings.hitTargets.lines.length,
+          pendilles: moorings.hitTargets.pendilles.length
         },
         gauges: {
           hidden: $("#mooringGaugePanel").hidden,
@@ -14560,6 +15789,20 @@
           tryDetachMooring(id);
           return mooringReport();
         },
+        pickupPendille(id, boatCleatId) {
+          const result = physicsSimulator.beginPendillePickup(id, boatCleatId);
+          latestPhysicsSnapshot = physicsSimulator.snapshot();
+          pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
+          return { result, snapshot: testSnapshot() };
+        },
+        releasePendille(id) {
+          const result = physicsSimulator.releasePendille(id);
+          latestPhysicsSnapshot = physicsSimulator.snapshot();
+          moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+          pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
+          return { result, snapshot: testSnapshot() };
+        },
+        replayPendilleStrongWind,
         setMooringLength(id, length) {
           return {
             result: setInteractiveMooringLength(id, Number(length)),
@@ -14586,6 +15829,9 @@
               goal: scenario.goal ? { ...scenario.goal } : null,
               mooringChallenge: scenario.mooringChallenge
                 ? clonePortData(scenario.mooringChallenge)
+                : null,
+              pendilleChallenge: scenario.pendilleChallenge
+                ? clonePortData(scenario.pendilleChallenge)
                 : null
             }
           ])

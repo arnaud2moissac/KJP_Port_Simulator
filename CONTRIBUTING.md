@@ -36,7 +36,7 @@ npm run build:port-generator
 
 - `patch-local` : texte, documentation ou correction isolée ; inspectez le diff et contrôlez le build concerné.
 - `ui-check` : rendu ou interaction ; ouvrez la page, surveillez la console et testez l'état modifié.
-- `physics-check` : force, coefficient, profil, contact, aussière ou intégrateur ; vérifiez unités, signes, passivité, finitude et cas numériques concernés.
+- `physics-check` : force, coefficient, profil, contact, aussière, pendille ou intégrateur ; vérifiez unités, signes, passivité, finitude et cas numériques concernés.
 - `release-check` : utilisez `npm run verify:release` pour une qualification complète.
 
 Commandes ciblées utiles :

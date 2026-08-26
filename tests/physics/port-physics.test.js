@@ -889,6 +889,135 @@ test("aussières: profil de taquets, longueur maximale et capacité", () => {
   assert.equal(simulator.snapshot().moorings.length, 0);
 });
 
+test("pendilles: machine d’état déterministe, activation unilatérale et largage sans impulsion", () => {
+  const definition = {
+    id: "med-line",
+    berthId: "med-berth",
+    connectionEnd: "bow",
+    pickupPoint: { east: 0, north: -5.35, z: 0.4 },
+    anchorPoint: { east: 0, north: 18, z: -3 },
+    maximumLength: 32,
+    elasticity: {
+      workingLoadN: 12000,
+      workingStrain: 0.15,
+      dampingRatio: 0.35
+    }
+  };
+  const run = () => {
+    const simulator = createCalmSimulator();
+    simulator.reset({ pose: { east: 0, north: 0, heading: 0 } });
+    assert.equal(simulator.registerPendille(definition).ok, true);
+    let snapshot = simulator.snapshot();
+    assert.equal(snapshot.pendilles[0].state, "available");
+    assert.equal(snapshot.moorings.length, 0);
+    simulator.step({ throttle: 0, rudder: 0 }, DT);
+    assert.equal(simulator.forceBreakdown().some(force => force.category === "mooring"), false);
+
+    assert.equal(simulator.beginPendillePickup("med-line", "bow-starboard").ok, true);
+    snapshot = simulator.snapshot();
+    assert.equal(snapshot.pendilles[0].state, "in-hand");
+    assert.equal(snapshot.moorings.length, 0, "la ligne légère ne doit porter aucun effort");
+    const duration = snapshot.pendilles[0].transferDuration;
+    for (let index = 0; index < Math.ceil((duration + DT) / DT); index += 1) {
+      simulator.step({ throttle: 0, rudder: 0 }, DT);
+    }
+    snapshot = simulator.snapshot();
+    assert.equal(snapshot.pendilles[0].state, "secured");
+    assert.equal(snapshot.moorings.length, 1);
+    assert.equal(snapshot.moorings[0].sourceType, "pendille");
+    assert.equal(snapshot.moorings[0].facilityId, "med-line");
+    assert.equal(snapshot.moorings[0].workingLoadN, 12000);
+    assert.ok(snapshot.moorings[0].maximumLength > 20);
+    assert.ok(snapshot.moorings[0].length < snapshot.moorings[0].distance);
+    assert.equal(snapshot.moorings[0].targetLength, snapshot.moorings[0].length);
+    assert.equal(snapshot.moorings[0].slack, 0);
+    assert.ok(snapshot.moorings[0].tension > 0, "la pendille doit être tendue dès sa frappe");
+    assert.ok(
+      snapshot.moorings[0].tension <= Physics.DEFAULT_PROFILE.mooring.humanPullForce * 0.5 + 1e-6,
+      "la pré-tension initiale ne doit pas dépasser un effort humain modéré"
+    );
+
+    const velocityBeforeRelease = { ...snapshot.velocity };
+    assert.equal(simulator.releasePendille("med-line").ok, true);
+    snapshot = simulator.snapshot();
+    assert.equal(snapshot.pendilles[0].state, "available");
+    assert.equal(snapshot.moorings.length, 0);
+    assert.equal(snapshot.pendilles[0].danger, false);
+    assert.equal(simulator.forceBreakdown().some(force => force.category === "mooring"), false);
+    assert.deepEqual(snapshot.velocity, velocityBeforeRelease, "le largage ne crée aucune impulsion");
+    assert.ok(snapshot.pendilles[0].tension >= 0);
+    return snapshot;
+  };
+  const first = run();
+  const second = run();
+  assert.deepEqual(second, first);
+});
+
+test("pendilles: la prise dépend du bord de coque et respecte strictement 0,6 nd", () => {
+  const dimensions = Physics.DEFAULT_PROFILE.dimensions;
+  const bowCleat = Physics.DEFAULT_PROFILE.mooring.cleats.find(cleat => cleat.id === "bow-starboard");
+  const baseDefinition = {
+    berthId: "med-berth",
+    connectionEnd: "bow",
+    anchorPoint: { east: 0, north: 18, z: -3 },
+    maximumLength: 32,
+    elasticity: {
+      workingLoadN: 12000,
+      workingStrain: 0.15,
+      dampingRatio: 0.35
+    }
+  };
+  const createPickupSimulator = (id, pickupPoint, speedKn = 0) => {
+    const simulator = createCalmSimulator();
+    simulator.reset({
+      pose: { east: 0, north: 0, heading: 0 },
+      velocity: { u: speedKn * Physics.KNOT, v: 0, r: 0 }
+    });
+    assert.equal(simulator.registerPendille({ ...baseDefinition, id, pickupPoint }).ok, true);
+    return simulator;
+  };
+
+  const transomPickup = { east: 0, north: -5.35, z: 0.4 };
+  const directBowDistance = Math.hypot(
+    transomPickup.east - bowCleat.y,
+    transomPickup.north - bowCleat.x
+  );
+  assert.ok(directBowDistance > dimensions.lengthOverall * 0.8);
+  const transomResult = createPickupSimulator("from-transom", transomPickup)
+    .beginPendillePickup("from-transom", bowCleat.id);
+  assert.equal(transomResult.ok, true, "le taquet d’étrave ne doit pas limiter la portée de prise");
+  assert.ok(transomResult.pendille.pickupHullDistance <= 1.8);
+  assert.ok(transomResult.pendille.transferDuration > directBowDistance * 0.8);
+
+  const sidePickup = {
+    east: dimensions.beam / 2 + 1.75,
+    north: 0,
+    z: 0.4
+  };
+  const sideResult = createPickupSimulator("from-side", sidePickup)
+    .beginPendillePickup("from-side", bowCleat.id);
+  assert.equal(sideResult.ok, true);
+  assert.ok(Math.abs(sideResult.pendille.pickupHullDistance - 1.75) < 1e-9);
+
+  const tooFarPickup = {
+    east: 0,
+    north: -(dimensions.lengthOverall / 2 + 1.81),
+    z: 0.4
+  };
+  const tooFarResult = createPickupSimulator("too-far", tooFarPickup)
+    .beginPendillePickup("too-far", bowCleat.id);
+  assert.equal(tooFarResult.ok, false);
+  assert.match(tooFarResult.reason, /bord de coque/);
+
+  const belowLimit = createPickupSimulator("below-speed-limit", transomPickup, 0.599)
+    .beginPendillePickup("below-speed-limit", bowCleat.id);
+  assert.equal(belowLimit.ok, true);
+  const atLimit = createPickupSimulator("at-speed-limit", transomPickup, 0.6)
+    .beginPendillePickup("at-speed-limit", bowCleat.id);
+  assert.equal(atLimit.ok, false);
+  assert.match(atLimit.reason, /sous 0,6 nd/);
+});
+
 test("aussières: loi élastique calibrée, continue et durcissante", () => {
   const profiles = [
     [Physics.COMPILED_PROFILES["synthetic-cruiser-7m"], 6000],

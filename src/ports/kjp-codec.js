@@ -6,8 +6,8 @@
   if (root) root.KJPCodec = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function createKJPCodec() {
   const FORMAT = "KJP";
-  const SCHEMA_VERSION = 2;
-  const LEGACY_SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 3;
+  const LEGACY_SCHEMA_VERSIONS = Object.freeze([1, 2]);
   const MAX_FILE_BYTES = 10 * 1024 * 1024;
   const MAX_STRUCTURES = 5000;
   const MAX_CLEATS = 20000;
@@ -433,6 +433,122 @@
     };
   }
 
+  function validatePendille(pendille, path, errors, ids, parents) {
+    const object = requireObject(pendille, path, errors);
+    const id = validateId(object.id, `${path}.id`, errors, ids);
+    const berthId = requireString(object.berthId, `${path}.berthId`, errors, {
+      required: false,
+      max: 160
+    });
+    const connectionEnd = ["bow", "stern"].includes(object.connectionEnd)
+      ? object.connectionEnd
+      : "bow";
+    if (!["bow", "stern"].includes(object.connectionEnd)) {
+      addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum");
+    }
+    const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
+    const parent = parents.get(parentId);
+    if (!parent || !["pontoon", "quay"].includes(parent.type)) {
+      addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+    }
+    const rawAttachment = requireObject(object.attachment, `${path}.attachment`, errors);
+    const expectedKind = parent?.type === "quay" ? "polyline-station" : "rectangle-edge";
+    const kind = ["rectangle-edge", "polyline-station"].includes(rawAttachment.kind)
+      ? rawAttachment.kind
+      : expectedKind;
+    if (rawAttachment.kind !== expectedKind) {
+      addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry");
+    }
+    const maximumStation = parent?.type === "quay"
+      ? polylineLength(parent.points)
+      : parent?.length / 2 || 0;
+    const minimumStation = parent?.type === "quay" ? 0 : -maximumStation;
+    const station = requireNumber(rawAttachment.station, `${path}.attachment.station`, errors, {
+      minimum: minimumStation,
+      maximum: maximumStation
+    });
+    const edge = rawAttachment.edge || (rawAttachment.waterSide === "right" ? "starboard" : "port");
+    if (kind === "rectangle-edge" && !["port", "starboard"].includes(edge)) {
+      addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum");
+    }
+    const waterSide = rawAttachment.waterSide || (edge === "starboard" ? "right" : "left");
+    if (!["left", "right"].includes(waterSide)) {
+      addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+    }
+    const z = requireNumber(rawAttachment.z, `${path}.attachment.z`, errors, {
+      minimum: -10,
+      maximum: 100
+    });
+    const rawAnchor = requireObject(object.anchor, `${path}.anchor`, errors);
+    const anchor = {
+      along: requireNumber(rawAnchor.along ?? 0, `${path}.anchor.along`, errors, {
+        minimum: -1000,
+        maximum: 1000
+      }),
+      normalDistance: requireNumber(
+        rawAnchor.normalDistance,
+        `${path}.anchor.normalDistance`,
+        errors,
+        { minimum: 1, maximum: 1000 }
+      ),
+      depth: requireNumber(rawAnchor.depth, `${path}.anchor.depth`, errors, {
+        minimum: 0.2,
+        maximum: 100
+      })
+    };
+    const rawLine = requireObject(object.line, `${path}.line`, errors);
+    const line = {
+      maximumLength: requireNumber(
+        rawLine.maximumLength,
+        `${path}.line.maximumLength`,
+        errors,
+        { minimum: 1, maximum: 200 }
+      ),
+      workingLoadN: requireNumber(
+        rawLine.workingLoadN,
+        `${path}.line.workingLoadN`,
+        errors,
+        { minimum: 100, maximum: 1000000 }
+      ),
+      workingStrain: requireNumber(
+        rawLine.workingStrain,
+        `${path}.line.workingStrain`,
+        errors,
+        { minimum: 0.01, maximum: 0.5 }
+      ),
+      dampingRatio: requireNumber(
+        rawLine.dampingRatio,
+        `${path}.line.dampingRatio`,
+        errors,
+        { minimum: 0, maximum: 2 }
+      )
+    };
+    if (parent) {
+      const geometry = resolvePendilleGeometry({
+        attachment: { kind, edge, station, waterSide, z },
+        anchor
+      }, parent);
+      const storedSpan = Math.hypot(
+        geometry.anchor.east - geometry.pickup.east,
+        geometry.anchor.north - geometry.pickup.north,
+        geometry.anchor.z - geometry.pickup.z
+      );
+      if (line.maximumLength + 1e-9 < storedSpan) {
+        addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry");
+      }
+    }
+    return {
+      ...object,
+      id,
+      berthId,
+      connectionEnd,
+      parentId,
+      attachment: { kind, edge, station, waterSide, z },
+      anchor,
+      line
+    };
+  }
+
   function structurePosition(structure) {
     return structure?.center || null;
   }
@@ -454,6 +570,89 @@
     return {
       longitudinal: dx * c + dy * s,
       transverse: -dx * s + dy * c
+    };
+  }
+
+  function polylineLength(points = []) {
+    let length = 0;
+    for (let index = 1; index < points.length; index += 1) {
+      length += Math.hypot(
+        points[index].east - points[index - 1].east,
+        points[index].north - points[index - 1].north
+      );
+    }
+    return length;
+  }
+
+  function pointOnPolyline(points, station) {
+    const total = polylineLength(points);
+    let remaining = Math.max(0, Math.min(total, station));
+    for (let index = 1; index < points.length; index += 1) {
+      const first = points[index - 1];
+      const second = points[index];
+      const length = Math.hypot(second.east - first.east, second.north - first.north);
+      if (length <= 1e-9) continue;
+      if (remaining <= length || index === points.length - 1) {
+        const ratio = Math.max(0, Math.min(1, remaining / length));
+        return {
+          point: {
+            east: first.east + (second.east - first.east) * ratio,
+            north: first.north + (second.north - first.north) * ratio
+          },
+          tangent: {
+            east: (second.east - first.east) / length,
+            north: (second.north - first.north) / length
+          },
+          total
+        };
+      }
+      remaining -= length;
+    }
+    const fallback = points[0] || { east: 0, north: 0 };
+    return { point: { ...fallback }, tangent: { east: 1, north: 0 }, total };
+  }
+
+  function resolvePendilleGeometry(pendille, parent) {
+    const attachment = pendille.attachment;
+    let pickup;
+    let tangent;
+    let waterSign = attachment.waterSide === "right" ? -1 : 1;
+    if (attachment.kind === "polyline-station") {
+      const resolved = pointOnPolyline(parent.points, attachment.station);
+      tangent = resolved.tangent;
+      pickup = resolved.point;
+    } else {
+      tangent = { east: Math.cos(parent.heading), north: Math.sin(parent.heading) };
+      const transverse = attachment.edge === "starboard"
+        ? -parent.width / 2
+        : attachment.edge === "port"
+          ? parent.width / 2
+          : 0;
+      waterSign = attachment.edge === "starboard" ? -1 : 1;
+      pickup = localToWorld(parent, {
+        longitudinal: attachment.station,
+        transverse
+      });
+    }
+    const normal = { east: -tangent.north * waterSign, north: tangent.east * waterSign };
+    if (attachment.kind === "polyline-station") {
+      pickup = {
+        east: pickup.east + normal.east * parent.width / 2,
+        north: pickup.north + normal.north * parent.width / 2
+      };
+    }
+    const anchor = {
+      east: pickup.east + tangent.east * pendille.anchor.along
+        + normal.east * pendille.anchor.normalDistance,
+      north: pickup.north + tangent.north * pendille.anchor.along
+        + normal.north * pendille.anchor.normalDistance,
+      z: -pendille.anchor.depth
+    };
+    return {
+      pickup: { east: pickup.east, north: pickup.north, z: attachment.z },
+      anchor,
+      tangent,
+      normal
     };
   }
 
@@ -492,6 +691,17 @@
     }
     for (const boat of document.staticBoats || []) add(boat.center);
     for (const berth of document.berths || []) add(berth.center);
+    const parentById = new Map([
+      ...(document.structures?.pontoons || []),
+      ...(document.structures?.obstacles || [])
+    ].map(item => [item.id, item]));
+    for (const pendille of document.structures?.pendilles || []) {
+      const parent = parentById.get(pendille.parentId);
+      if (!parent) continue;
+      const geometry = resolvePendilleGeometry(pendille, parent);
+      add(geometry.pickup);
+      add(geometry.anchor);
+    }
     for (const entry of document.navigation?.entries || []) add(entry.position);
     if (!points.length) return { minEast: 0, minNorth: 0, maxEast: 0, maxNorth: 0 };
     return {
@@ -503,65 +713,72 @@
   }
 
   function migrateLegacyDocument(input) {
-    if (!isObject(input) || input.schemaVersion !== LEGACY_SCHEMA_VERSION) return input;
+    if (!isObject(input) || !LEGACY_SCHEMA_VERSIONS.includes(input.schemaVersion)) return input;
     const document = clone(input);
     const structures = document.structures || {};
-    for (const rectangle of [
-      ...(structures.pontoons || []),
-      ...(structures.catways || [])
-    ]) {
-      if (!rectangle.vertical) rectangle.vertical = legacyVertical(rectangle.height, "floating");
-    }
-    for (const obstacle of structures.obstacles || []) {
-      if (!obstacle.vertical) obstacle.vertical = legacyVertical(obstacle.height, "fixed");
-    }
+    if (document.schemaVersion === 1) {
+      for (const rectangle of [
+        ...(structures.pontoons || []),
+        ...(structures.catways || [])
+      ]) {
+        if (!rectangle.vertical) rectangle.vertical = legacyVertical(rectangle.height, "floating");
+      }
+      for (const obstacle of structures.obstacles || []) {
+        if (!obstacle.vertical) obstacle.vertical = legacyVertical(obstacle.height, "fixed");
+      }
 
-    const pontoons = new Map((structures.pontoons || []).map(item => [item.id, item]));
-    const catways = new Map((structures.catways || []).map(item => [item.id, item]));
-    for (const group of document.editor?.catwayGroups || []) {
-      const parent = pontoons.get(group.parentId);
-      if (!parent) continue;
-      for (const memberId of group.memberIds || []) {
-        const catway = catways.get(memberId);
-        if (!catway || catway.attachment) continue;
-        const parentDeckZ = parent.vertical?.deckZ ?? parent.height ?? 0.5;
-        const catwayThickness = finite(catway.height) ? catway.height : 0.5;
-        catway.vertical = {
-          datum: "waterline",
-          mode: "floating",
-          baseZ: parentDeckZ - catwayThickness,
-          topZ: parentDeckZ,
-          deckZ: parentDeckZ
-        };
-        const local = worldToLocal(parent, catway.center);
-        const sideSign = Math.sign(local.transverse || 1);
-        const rootOverlap = 0.15;
-        const headingVector = {
-          east: Math.cos(catway.heading),
-          north: Math.sin(catway.heading)
-        };
-        const root = {
-          east: catway.center.east - headingVector.east * catway.length / 2,
-          north: catway.center.north - headingVector.north * catway.length / 2
-        };
-        const expectedRoot = localToWorld(parent, {
-          longitudinal: local.longitudinal,
-          transverse: sideSign * (parent.width / 2 - rootOverlap)
-        });
-        catway.center.east += expectedRoot.east - root.east;
-        catway.center.north += expectedRoot.north - root.north;
-        catway.parentId = parent.id;
-        catway.attachment = {
-          parentId: parent.id,
-          parentEdge: sideSign > 0 ? "port" : "starboard",
-          station: local.longitudinal,
-          rootOverlap,
-          deckZ: parentDeckZ,
-          connector: "flush",
-          connectorLength: 0
-        };
+      const pontoons = new Map((structures.pontoons || []).map(item => [item.id, item]));
+      const catways = new Map((structures.catways || []).map(item => [item.id, item]));
+      for (const group of document.editor?.catwayGroups || []) {
+        const parent = pontoons.get(group.parentId);
+        if (!parent) continue;
+        for (const memberId of group.memberIds || []) {
+          const catway = catways.get(memberId);
+          if (!catway || catway.attachment) continue;
+          const parentDeckZ = parent.vertical?.deckZ ?? parent.height ?? 0.5;
+          const catwayThickness = finite(catway.height) ? catway.height : 0.5;
+          catway.vertical = {
+            datum: "waterline",
+            mode: "floating",
+            baseZ: parentDeckZ - catwayThickness,
+            topZ: parentDeckZ,
+            deckZ: parentDeckZ
+          };
+          const local = worldToLocal(parent, catway.center);
+          const sideSign = Math.sign(local.transverse || 1);
+          const rootOverlap = 0.15;
+          const headingVector = {
+            east: Math.cos(catway.heading),
+            north: Math.sin(catway.heading)
+          };
+          const root = {
+            east: catway.center.east - headingVector.east * catway.length / 2,
+            north: catway.center.north - headingVector.north * catway.length / 2
+          };
+          const expectedRoot = localToWorld(parent, {
+            longitudinal: local.longitudinal,
+            transverse: sideSign * (parent.width / 2 - rootOverlap)
+          });
+          catway.center.east += expectedRoot.east - root.east;
+          catway.center.north += expectedRoot.north - root.north;
+          catway.parentId = parent.id;
+          catway.attachment = {
+            parentId: parent.id,
+            parentEdge: sideSign > 0 ? "port" : "starboard",
+            station: local.longitudinal,
+            rootOverlap,
+            deckZ: parentDeckZ,
+            connector: "flush",
+            connectorLength: 0
+          };
+        }
       }
     }
+    structures.pendilles = Array.isArray(structures.pendilles) ? structures.pendilles : [];
+    document.editor = document.editor || {};
+    document.editor.pendilleGroups = Array.isArray(document.editor.pendilleGroups)
+      ? document.editor.pendilleGroups
+      : [];
     document.schemaVersion = SCHEMA_VERSION;
     return document;
   }
@@ -715,17 +932,38 @@
       errors,
       ids
     ));
+    const pendilleParents = new Map([
+      ...pontoons,
+      ...obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
+    const pendilles = (
+      structures.pendilles === undefined
+        ? []
+        : requireArray(structures.pendilles, "$.structures.pendilles", errors)
+    ).map((item, index) => validatePendille(
+      item,
+      `$.structures.pendilles[${index}]`,
+      errors,
+      ids,
+      pendilleParents
+    ));
     const structureCount = (
       pontoons.length
       + catways.length
       + obstacles.length
       + landAreas.length
       + buoys.length
+      + pendilles.length
     );
     if (structureCount > MAX_STRUCTURES) {
       addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
     }
-    const parentById = new Map([...pontoons, ...catways, ...buoys].map(item => [item.id, item]));
+    const parentById = new Map([
+      ...pontoons,
+      ...catways,
+      ...buoys,
+      ...obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
     const pontoonById = new Map(pontoons.map(item => [item.id, item]));
     catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
 
@@ -736,23 +974,43 @@
       const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
       const parent = parentById.get(parentId);
       if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
-      const local = requireObject(object.localPosition, `${path}.localPosition`, errors);
-      const localPosition = {
-        longitudinal: requireNumber(local.longitudinal, `${path}.localPosition.longitudinal`, errors, {
-          minimum: -MAX_EXTENT_METERS,
-          maximum: MAX_EXTENT_METERS
-        }),
-        transverse: requireNumber(local.transverse, `${path}.localPosition.transverse`, errors, {
-          minimum: -1000,
-          maximum: 1000
+      const quayParent = parent?.type === "quay";
+      const local = quayParent
+        ? {}
+        : requireObject(object.localPosition, `${path}.localPosition`, errors);
+      const localPosition = quayParent
+        ? null
+        : {
+          longitudinal: requireNumber(local.longitudinal, `${path}.localPosition.longitudinal`, errors, {
+            minimum: -MAX_EXTENT_METERS,
+            maximum: MAX_EXTENT_METERS
+          }),
+          transverse: requireNumber(local.transverse, `${path}.localPosition.transverse`, errors, {
+            minimum: -1000,
+            maximum: 1000
+          })
+        };
+      const attachment = quayParent
+        ? requireObject(object.attachment, `${path}.attachment`, errors)
+        : null;
+      const station = quayParent
+        ? requireNumber(attachment.station, `${path}.attachment.station`, errors, {
+          minimum: 0,
+          maximum: polylineLength(parent.points)
         })
-      };
+        : 0;
+      const waterSide = quayParent
+        ? (attachment.waterSide === "right" ? "right" : "left")
+        : "";
+      if (quayParent && !["left", "right"].includes(attachment.waterSide)) {
+        addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+      }
       const outsideParent = parent?.type === "buoy"
         ? (
           Math.abs(localPosition.longitudinal) > parent.radius + 0.15
           || Math.abs(localPosition.transverse) > parent.radius + 0.15
         )
-        : parent && (
+        : parent && !quayParent && (
           Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15
           || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15
         );
@@ -767,7 +1025,16 @@
         minimum: -Math.PI * 8,
         maximum: Math.PI * 8
       });
-      return { ...object, id, parentId, localPosition, z, orientation };
+      return {
+        ...object,
+        id,
+        parentId,
+        ...(quayParent
+          ? { attachment: { kind: "polyline-station", station, waterSide } }
+          : { localPosition }),
+        z,
+        orientation
+      };
     });
     if (cleats.length > MAX_CLEATS) {
       addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
@@ -830,6 +1097,11 @@
       };
     });
     const berthIds = new Set(berths.map(berth => berth.id));
+    pendilles.forEach((pendille, index) => {
+      if (pendille.berthId && !berthIds.has(pendille.berthId)) {
+        addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference");
+      }
+    });
 
     const staticBoats = requireArray(document.staticBoats, "$.staticBoats", errors).map((item, index) => {
       const path = `$.staticBoats[${index}]`;
@@ -917,6 +1189,24 @@
         }
       });
     });
+    const pendilleGroups = requireArray(
+      editor.pendilleGroups,
+      "$.editor.pendilleGroups",
+      errors
+    );
+    pendilleGroups.forEach((group, index) => {
+      const path = `$.editor.pendilleGroups[${index}]`;
+      const object = requireObject(group, path, errors);
+      validateId(object.id, `${path}.id`, errors, ids);
+      if (!pendilleParents.has(object.parentId)) {
+        addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+      }
+      requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
+        if (!pendilles.some(pendille => pendille.id === id)) {
+          addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference");
+        }
+      });
+    });
 
     if (errors.length) throw new KJPValidationError(errors);
 
@@ -929,6 +1219,8 @@
     normalized.structures.landAreas = clone(landAreas);
     normalized.structures.buoys = clone(buoys);
     normalized.structures.cleats = clone(cleats);
+    normalized.structures.pendilles = clone(pendilles);
+    normalized.editor.pendilleGroups = clone(pendilleGroups);
     normalized.editor.defaultBerthWidth = finite(editor.defaultBerthWidth)
       ? editor.defaultBerthWidth
       : 4;
@@ -1011,13 +1303,15 @@
         cleats: [],
         obstacles: [],
         landAreas: [],
-        buoys: []
+        buoys: [],
+        pendilles: []
       },
       berths: [],
       staticBoats: [],
       navigation: { entries: [] },
       editor: {
         catwayGroups: [],
+        pendilleGroups: [],
         occupancyRate: 0.62,
         occupancySeed: 20260730,
         defaultBerthWidth: 4,
@@ -1084,7 +1378,8 @@
       [
         ...kjp.structures.pontoons,
         ...kjp.structures.catways,
-        ...kjp.structures.buoys
+        ...kjp.structures.buoys,
+        ...kjp.structures.obstacles.filter(item => item.type === "quay")
       ].map(item => [item.id, item])
     );
     const toSceneRectangle = rectangle => ({
@@ -1108,20 +1403,44 @@
     const cleats = kjp.structures.cleats.map(cleat => {
       const parent = parents.get(cleat.parentId);
       const buoyParent = parent.type === "buoy";
+      const quayParent = parent.type === "quay";
+      const quayGeometry = quayParent
+        ? pointOnPolyline(parent.points, cleat.attachment.station)
+        : null;
+      const quaySideSign = cleat.attachment?.waterSide === "right" ? -1 : 1;
       const point = buoyParent
         ? {
           east: parent.position.east + cleat.localPosition.longitudinal,
           north: parent.position.north + cleat.localPosition.transverse
         }
+        : quayParent
+          ? {
+            east: quayGeometry.point.east
+              - quayGeometry.tangent.north * quaySideSign * parent.width / 2,
+            north: quayGeometry.point.north
+              + quayGeometry.tangent.east * quaySideSign * parent.width / 2
+          }
         : localToWorld(parent, cleat.localPosition);
       return {
         id: cleat.id,
         parentId: cleat.parentId,
-        kind: buoyParent ? "buoy" : parent.type === "catway" ? "catway" : "ponton",
+        kind: buoyParent
+          ? "buoy"
+          : quayParent
+            ? "quay"
+            : parent.type === "catway"
+              ? "catway"
+              : "ponton",
         x: point.east,
         y: point.north,
         z: cleat.z,
-        orientation: (buoyParent ? 0 : parent.heading) + cleat.orientation
+        orientation: (
+          buoyParent
+            ? 0
+            : quayParent
+              ? Math.atan2(quayGeometry.tangent.north, quayGeometry.tangent.east)
+              : parent.heading
+        ) + cleat.orientation
       };
     });
     const entry = kjp.navigation.entries[0];
@@ -1136,6 +1455,36 @@
       maxLength: berth.maxLength,
       maxBeam: berth.maxBeam
     }));
+    const pendilleParents = new Map([
+      ...kjp.structures.pontoons,
+      ...kjp.structures.obstacles.filter(item => item.type === "quay")
+    ].map(item => [item.id, item]));
+    const pendilles = kjp.structures.pendilles.map(pendille => {
+      const parent = pendilleParents.get(pendille.parentId);
+      const geometry = resolvePendilleGeometry(pendille, parent);
+      return {
+        id: pendille.id,
+        berthId: pendille.berthId,
+        connectionEnd: pendille.connectionEnd,
+        parentId: pendille.parentId,
+        pickupPoint: {
+          east: geometry.pickup.east,
+          north: geometry.pickup.north,
+          z: geometry.pickup.z
+        },
+        anchorPoint: {
+          east: geometry.anchor.east,
+          north: geometry.anchor.north,
+          z: geometry.anchor.z
+        },
+        maximumLength: pendille.line.maximumLength,
+        elasticity: {
+          workingLoadN: pendille.line.workingLoadN,
+          workingStrain: pendille.line.workingStrain,
+          dampingRatio: pendille.line.dampingRatio
+        }
+      };
+    });
     const scenario = {
       initial: {
         x: entry.position.east,
@@ -1200,7 +1549,8 @@
           colours: clone(buoy.colours),
           name: buoy.name,
           collision: buoy.collision !== false
-        }))
+        })),
+        pendilles
       },
       berthLanes: {},
       berths: clone(kjp.berths),
@@ -1250,7 +1600,8 @@
         ...topology.structures,
         linearObstacles: topology.structures?.linearObstacles || [],
         landAreas: topology.structures?.landAreas || [],
-        buoys: topology.structures?.buoys || []
+        buoys: topology.structures?.buoys || [],
+        pendilles: topology.structures?.pendilles || []
       },
       navigation: {
         ...topology.navigation,
@@ -1285,6 +1636,9 @@
     geometryBounds,
     localToWorld,
     worldToLocal,
+    polylineLength,
+    pointOnPolyline,
+    resolvePendilleGeometry,
     hashString,
     toRuntimeTopology,
     legacyTopologyToRuntime

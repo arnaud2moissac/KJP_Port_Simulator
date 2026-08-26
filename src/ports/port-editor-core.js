@@ -130,10 +130,12 @@
       structures.obstacles,
       structures.landAreas,
       structures.buoys,
+      structures.pendilles,
       document.berths,
       document.staticBoats,
       document.navigation?.entries,
-      document.editor?.catwayGroups
+      document.editor?.catwayGroups,
+      document.editor?.pendilleGroups
     ]) {
       for (const item of list || []) if (item?.id) used.add(item.id);
     }
@@ -422,6 +424,221 @@
     return working;
   }
 
+  function pendilleParent(document, parentId) {
+    return document.structures.pontoons.find(item => item.id === parentId)
+      || document.structures.obstacles.find(item => item.id === parentId && item.type === "quay")
+      || null;
+  }
+
+  function pendilleParentLength(parent) {
+    return parent.type === "quay"
+      ? KJPCodec.polylineLength(parent.points)
+      : parent.length;
+  }
+
+  function pendilleStationGeometry(parent, station, waterSide) {
+    const sideSign = waterSide === "right" ? -1 : 1;
+    if (parent.type === "quay") {
+      const resolved = KJPCodec.pointOnPolyline(parent.points, station);
+      const normal = {
+        east: -resolved.tangent.north * sideSign,
+        north: resolved.tangent.east * sideSign
+      };
+      return {
+        pickup: {
+          east: resolved.point.east + normal.east * parent.width / 2,
+          north: resolved.point.north + normal.north * parent.width / 2
+        },
+        tangent: resolved.tangent,
+        normal
+      };
+    }
+    const tangent = { east: Math.cos(parent.heading), north: Math.sin(parent.heading) };
+    const normal = { east: -tangent.north * sideSign, north: tangent.east * sideSign };
+    return {
+      pickup: KJPCodec.localToWorld(parent, {
+        longitudinal: station,
+        transverse: sideSign * parent.width / 2
+      }),
+      tangent,
+      normal
+    };
+  }
+
+  function createPendilleGroup(document, parentId, parameters = {}) {
+    const parent = pendilleParent(document, parentId);
+    if (!parent) throw new Error(`Ponton ou quai parent absent : ${parentId}`);
+    const parentLength = pendilleParentLength(parent);
+    const settings = {
+      mode: parameters.mode === "count" ? "count" : "spacing",
+      count: Math.max(1, Math.round(parameters.count ?? 6)),
+      spacing: Math.max(2.8, Number(parameters.spacing ?? 4)),
+      waterSide: parameters.waterSide === "right" ? "right" : "left",
+      marginStart: Math.max(0, Number(parameters.marginStart ?? 2)),
+      marginEnd: Math.max(0, Number(parameters.marginEnd ?? 2)),
+      berthWidth: clamp(Number(parameters.berthWidth ?? 4), 2.8, 20),
+      berthLength: clamp(Number(parameters.berthLength ?? 14), 4, 80),
+      sternGap: clamp(Number(parameters.sternGap ?? 1), 0.5, 3),
+      anchorDistance: clamp(Number(parameters.anchorDistance ?? 18), 3, 180),
+      depth: clamp(Number(parameters.depth ?? 3), 0.2, 100),
+      workingStrain: clamp(Number(parameters.workingStrain ?? 0.15), 0.01, 0.5),
+      dampingRatio: clamp(Number(parameters.dampingRatio ?? 0.35), 0, 2),
+      populateBoats: parameters.populateBoats !== false
+    };
+    const centeredPositions = distributePositions(parentLength, {
+      ...settings,
+      count: settings.count,
+      spacing: settings.spacing
+    });
+    const stations = parent.type === "quay"
+      ? centeredPositions.map(position => position + parentLength / 2)
+      : centeredPositions;
+    const groupId = parameters.id || createId("pendille-group", document);
+    const working = clone(document);
+    const pendilles = [];
+    const berths = [];
+    const cleats = [];
+    const boats = [];
+    const parentDeckZ = resolvedVertical(parent, parent.type === "quay" ? "fixed" : "floating").deckZ;
+    const sideName = settings.waterSide === "right" ? "starboard" : "port";
+    for (const station of stations) {
+      const geometry = pendilleStationGeometry(parent, station, settings.waterSide);
+      const heading = Math.atan2(geometry.normal.north, geometry.normal.east);
+      const berthId = createId("berth", working);
+      const pendilleId = createId("pendille", working);
+      const berth = {
+        id: berthId,
+        parentId: parent.id,
+        side: sideName,
+        name: "",
+        center: {
+          east: geometry.pickup.east + geometry.normal.east * (settings.sternGap + settings.berthLength / 2),
+          north: geometry.pickup.north + geometry.normal.north * (settings.sternGap + settings.berthLength / 2)
+        },
+        heading,
+        length: settings.berthLength,
+        width: settings.berthWidth,
+        maxLength: settings.berthLength,
+        maxBeam: Math.max(2.2, settings.berthWidth - 0.55),
+        isVisitor: false,
+        berthingMode: "med-stern-to",
+        pendilleId
+      };
+      const storedSpan = Math.hypot(settings.anchorDistance, settings.depth + parentDeckZ);
+      const workingLoadN = settings.berthLength <= 8 ? 6000 : settings.berthLength <= 14 ? 12000 : 24000;
+      const pendille = {
+        id: pendilleId,
+        berthId,
+        connectionEnd: "bow",
+        parentId: parent.id,
+        attachment: parent.type === "quay"
+          ? {
+            kind: "polyline-station",
+            station,
+            waterSide: settings.waterSide,
+            z: parentDeckZ
+          }
+          : {
+            kind: "rectangle-edge",
+            edge: sideName,
+            station,
+            waterSide: settings.waterSide,
+            z: parentDeckZ
+          },
+        anchor: { along: 0, normalDistance: settings.anchorDistance, depth: settings.depth },
+        line: {
+          maximumLength: Math.min(200, Math.max(storedSpan + 2, settings.berthLength + 4)),
+          workingLoadN,
+          workingStrain: settings.workingStrain,
+          dampingRatio: settings.dampingRatio
+        },
+        groupId
+      };
+      for (const offset of [-settings.berthWidth * 0.32, settings.berthWidth * 0.32]) {
+        const cleatStation = clamp(
+          station + offset,
+          parent.type === "quay" ? 0 : -parentLength / 2,
+          parent.type === "quay" ? parentLength : parentLength / 2
+        );
+        cleats.push(parent.type === "quay"
+          ? {
+            id: createId("cleat", working),
+            parentId: parent.id,
+            attachment: {
+              kind: "polyline-station",
+              station: cleatStation,
+              waterSide: settings.waterSide
+            },
+            z: parentDeckZ,
+            orientation: settings.waterSide === "right" ? -Math.PI / 2 : Math.PI / 2
+          }
+          : {
+            id: createId("cleat", working),
+            parentId: parent.id,
+            localPosition: {
+              longitudinal: cleatStation,
+              transverse: settings.waterSide === "right" ? -parent.width / 2 : parent.width / 2
+            },
+            z: parentDeckZ,
+            orientation: settings.waterSide === "right" ? -Math.PI / 2 : Math.PI / 2
+          });
+        working.structures.cleats.push(cleats[cleats.length - 1]);
+      }
+      if (settings.populateBoats) {
+        const boatLength = settings.berthLength * 0.82;
+        boats.push({
+          id: createId("boat", working),
+          berthId,
+          center: {
+            east: geometry.pickup.east + geometry.normal.east * (settings.sternGap + boatLength / 2),
+            north: geometry.pickup.north + geometry.normal.north * (settings.sternGap + boatLength / 2)
+          },
+          heading,
+          length: boatLength,
+          beam: Math.min(settings.berthWidth - 0.35, boatLength * 0.3),
+          vesselType: "sailboat"
+        });
+        working.staticBoats.push(boats[boats.length - 1]);
+      }
+      pendilles.push(pendille);
+      berths.push(berth);
+      working.structures.pendilles.push(pendille);
+      working.berths.push(berth);
+    }
+    return {
+      group: { id: groupId, parentId, memberIds: pendilles.map(item => item.id), parameters: settings },
+      pendilles,
+      berths,
+      cleats,
+      boats
+    };
+  }
+
+  function redistributePendilleGroup(document, groupId) {
+    const group = document.editor.pendilleGroups.find(item => item.id === groupId);
+    if (!group) throw new Error(`Groupe de pendilles absent : ${groupId}`);
+    const memberIds = new Set(group.memberIds);
+    const berthIds = new Set(
+      document.structures.pendilles
+        .filter(item => memberIds.has(item.id))
+        .map(item => item.berthId)
+    );
+    const working = clone(document);
+    working.structures.pendilles = working.structures.pendilles.filter(item => !memberIds.has(item.id));
+    working.berths = working.berths.filter(item => !berthIds.has(item.id));
+    working.staticBoats = working.staticBoats.filter(item => !berthIds.has(item.berthId));
+    working.structures.cleats = working.structures.cleats.filter(item => item.pendilleGroupId !== groupId);
+    working.editor.pendilleGroups = working.editor.pendilleGroups.filter(item => item.id !== groupId);
+    const generated = createPendilleGroup(working, group.parentId, { ...group.parameters, id: group.id });
+    for (const cleat of generated.cleats) cleat.pendilleGroupId = group.id;
+    working.structures.pendilles.push(...generated.pendilles);
+    working.berths.push(...generated.berths);
+    working.staticBoats.push(...generated.boats);
+    working.structures.cleats.push(...generated.cleats);
+    working.editor.pendilleGroups.push(generated.group);
+    return working;
+  }
+
   function inferBerths(document, options = {}) {
     const defaultWidth = clamp(
       Number(options.defaultWidth ?? document.editor.defaultBerthWidth ?? 4),
@@ -543,7 +760,7 @@
   }
 
   function updateChildGeometry(document, parentId) {
-    const parent = document.structures.pontoons.find(item => item.id === parentId);
+    const parent = pendilleParent(document, parentId);
     if (!parent) return document;
     const groupIds = document.editor.catwayGroups
       .filter(group => group.parentId === parentId)
@@ -551,7 +768,7 @@
     let result = clone(document);
     for (const groupId of groupIds) result = redistributeCatwayGroup(result, groupId);
     const updatedParent = result.structures.pontoons.find(item => item.id === parentId);
-    result.structures.catways = result.structures.catways.map(catway => {
+    if (updatedParent) result.structures.catways = result.structures.catways.map(catway => {
       if (catway.parentId !== parentId || catway.groupId || !catway.attachment) return catway;
       const sideSign = catway.attachment.parentEdge === "starboard" ? -1 : 1;
       const rootOverlap = catway.attachment.rootOverlap ?? 0.15;
@@ -575,6 +792,9 @@
         connectorLength: catway.attachment.connectorLength
       });
     });
+    for (const group of [...(result.editor.pendilleGroups || [])]) {
+      if (group.parentId === parentId) result = redistributePendilleGroup(result, group.id);
+    }
     return result;
   }
 
@@ -586,10 +806,12 @@
       ["obstacles", document.structures.obstacles],
       ["landAreas", document.structures.landAreas],
       ["buoys", document.structures.buoys || []],
+      ["pendilles", document.structures.pendilles || []],
       ["berths", document.berths],
       ["staticBoats", document.staticBoats],
       ["entries", document.navigation.entries],
-      ["catwayGroups", document.editor.catwayGroups]
+      ["catwayGroups", document.editor.catwayGroups],
+      ["pendilleGroups", document.editor.pendilleGroups || []]
     ];
     for (const [collection, items] of collections) {
       const index = items.findIndex(item => item.id === id);
@@ -613,6 +835,12 @@
       );
       result.berths = result.berths.filter(item => !childIds.has(item.parentId) && item.parentId !== id);
       result.editor.catwayGroups = result.editor.catwayGroups.filter(item => item.parentId !== id);
+      const pendilleIds = new Set(result.structures.pendilles.filter(item => item.parentId === id).map(item => item.id));
+      const pendilleBerthIds = new Set(result.structures.pendilles.filter(item => pendilleIds.has(item.id)).map(item => item.berthId));
+      result.structures.pendilles = result.structures.pendilles.filter(item => !pendilleIds.has(item.id));
+      result.berths = result.berths.filter(item => !pendilleBerthIds.has(item.id));
+      result.staticBoats = result.staticBoats.filter(item => !pendilleBerthIds.has(item.berthId));
+      result.editor.pendilleGroups = (result.editor.pendilleGroups || []).filter(item => item.parentId !== id);
     } else if (found.collection === "catways") {
       result.structures.cleats = result.structures.cleats.filter(item => item.parentId !== id);
       result.berths = result.berths.filter(item => item.parentId !== id);
@@ -621,8 +849,24 @@
       }
     } else if (["pontoons", "catways", "buoys"].includes(found.collection)) {
       result.structures.cleats = result.structures.cleats.filter(item => item.parentId !== id);
+    } else if (found.collection === "obstacles") {
+      const pendilles = result.structures.pendilles.filter(item => item.parentId === id);
+      const berthIds = new Set(pendilles.map(item => item.berthId));
+      result.structures.pendilles = result.structures.pendilles.filter(item => item.parentId !== id);
+      result.structures.cleats = result.structures.cleats.filter(item => item.parentId !== id);
+      result.berths = result.berths.filter(item => !berthIds.has(item.id));
+      result.staticBoats = result.staticBoats.filter(item => !berthIds.has(item.berthId));
+      result.editor.pendilleGroups = (result.editor.pendilleGroups || []).filter(item => item.parentId !== id);
     } else if (found.collection === "berths") {
       result.staticBoats = result.staticBoats.filter(item => item.berthId !== id);
+      result.structures.pendilles = result.structures.pendilles.filter(item => item.berthId !== id);
+    } else if (found.collection === "pendilles") {
+      const berthId = found.object.berthId;
+      for (const group of result.editor.pendilleGroups || []) {
+        group.memberIds = group.memberIds.filter(memberId => memberId !== id);
+      }
+      const berth = result.berths.find(item => item.id === berthId);
+      if (berth) delete berth.pendilleId;
     }
     return result;
   }
@@ -630,7 +874,7 @@
   function duplicateObject(document, id, offset = { east: 2, north: -2 }) {
     const result = clone(document);
     const found = findObject(result, id);
-    if (!found || ["cleats", "catwayGroups"].includes(found.collection)) return result;
+    if (!found || ["cleats", "catwayGroups", "pendilleGroups"].includes(found.collection)) return result;
     const copy = clone(found.object);
     copy.id = createId(
       found.collection === "staticBoats" ? "boat" : found.collection.replace(/s$/, ""),
@@ -734,7 +978,10 @@
       if (!found) return this.snapshot();
       Object.assign(found.object, clone(patch));
       let result = next;
-      if (found.collection === "pontoons") result = updateChildGeometry(next, id);
+      if (
+        found.collection === "pontoons"
+        || (found.collection === "obstacles" && found.object.type === "quay")
+      ) result = updateChildGeometry(next, id);
       if (
         found.collection === "buoys"
         && found.object.seamarkType === "mooring"
@@ -773,6 +1020,36 @@
       if (!group) return this.snapshot();
       group.parameters = { ...group.parameters, ...clone(parameters) };
       return this.commit(redistributeCatwayGroup(next, groupId), "Modifier la série");
+    }
+
+    addPendilleGroup(parentId, parameters) {
+      const next = clone(this.document);
+      const generated = createPendilleGroup(next, parentId, parameters);
+      for (const cleat of generated.cleats) cleat.pendilleGroupId = generated.group.id;
+      next.structures.pendilles.push(...generated.pendilles);
+      next.structures.cleats.push(...generated.cleats);
+      next.berths.push(...generated.berths);
+      next.staticBoats.push(...generated.boats);
+      next.editor.pendilleGroups.push(generated.group);
+      return this.commit(next, "Places sur pendille");
+    }
+
+    updatePendilleGroup(groupId, parameters) {
+      const next = clone(this.document);
+      const group = next.editor.pendilleGroups.find(item => item.id === groupId);
+      if (!group) return this.snapshot();
+      group.parameters = { ...group.parameters, ...clone(parameters) };
+      return this.commit(redistributePendilleGroup(next, groupId), "Modifier les pendilles");
+    }
+
+    detachPendille(pendilleId) {
+      return this.transaction("Détacher la pendille", next => {
+        const pendille = next.structures.pendilles.find(item => item.id === pendilleId);
+        if (!pendille?.groupId) return;
+        const group = next.editor.pendilleGroups.find(item => item.id === pendille.groupId);
+        if (group) group.memberIds = group.memberIds.filter(id => id !== pendilleId);
+        delete pendille.groupId;
+      });
     }
 
     detachCatway(catwayId) {
@@ -843,6 +1120,9 @@
     cleatForMooringBuoy,
     createCatwayGroup,
     redistributeCatwayGroup,
+    createPendilleGroup,
+    redistributePendilleGroup,
+    pendilleStationGeometry,
     inferBerths,
     fitBoatToBerth,
     populateBoats,

@@ -28,7 +28,7 @@ const EditorCore = require("../ports/port-editor-core.js");
 const OSMPortImport = require("../ports/osm-import.js");
 const PontoonDecomposition = require("../ports/pontoon-decomposition.js");
 
-const GENERATOR_VERSION = "1.0.0";
+const GENERATOR_VERSION = "1.1.0";
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 const clone = value => (
@@ -90,6 +90,7 @@ function documentHasGeometry(document) {
     + document.structures.obstacles.length
     + document.structures.landAreas.length
     + (document.structures.buoys?.length || 0)
+    + (document.structures.pendilles?.length || 0)
     + document.staticBoats.length
   ) > 0;
 }
@@ -215,6 +216,7 @@ const palette = Object.freeze({
   visitor: { fill: "rgba(8,117,138,.11)", stroke: "#08758a" },
   entry: { fill: "#b96426", stroke: "#fff" },
   buoy: { fill: "#e2b51b", stroke: "#18353c" },
+  pendille: { fill: "rgba(32,151,170,.12)", stroke: "#087f98" },
   selected: "#da7a28"
 });
 
@@ -315,6 +317,9 @@ function dimensionLabel(object, collection) {
   if (collection === "buoys") {
     return `Ø ${format(object.radius * 2)} m · H ${format(object.height)} m`;
   }
+  if (collection === "pendilles") {
+    return `${format(object.anchor.normalDistance)} m · prof. ${format(object.anchor.depth)} m`;
+  }
   if (collection === "staticBoats") return `${format(object.length)} × ${format(object.beam)} m`;
   if (collection === "berths") return `${format(object.length)} × ${format(object.width)} m`;
   if (collection === "entries") return `Cap ${formatNauticalHeading(object.heading)}°`;
@@ -401,6 +406,8 @@ function objectStyle(feature) {
               ? "entry"
               : collection === "buoys"
                 ? "buoy"
+                : collection === "pendilles"
+                  ? "pendille"
                 : object?.isVisitor
                   ? "visitor"
                   : "berth"];
@@ -436,6 +443,23 @@ function objectStyle(feature) {
         padding: [4, 5, 4, 5],
         fill: new Fill({ color: "#173238" }),
         backgroundFill: new Fill({ color: "rgba(250,249,244,.9)" }),
+        font: "600 10px sans-serif"
+      })
+    });
+  }
+  if (collection === "pendilles") {
+    return new Style({
+      stroke: new Stroke({
+        color: strokeColor,
+        width: isSelected ? 4 : 2,
+        lineDash: [7, 5]
+      }),
+      text: new Text({
+        text: label,
+        offsetY: -16,
+        padding: [4, 5, 4, 5],
+        fill: new Fill({ color: "#173238" }),
+        backgroundFill: new Fill({ color: "rgba(250,249,244,.92)" }),
         font: "600 10px sans-serif"
       })
     });
@@ -637,7 +661,9 @@ function syncMapSelection() {
   ) return;
   selectedFeatures.clear();
   if (selectedFeature) selectedFeatures.push(selectedFeature);
-  modifyInteraction.setActive(selectedFeature?.get("collection") === "entries");
+  const editableLine = ["entries", "pendilles"].includes(selectedFeature?.get("collection"));
+  modifyInteraction.setActive(editableLine);
+  translateInteraction.setActive(activeTool === "select" && selectedFeature?.get("collection") !== "pendilles");
 }
 
 function featureForObject(object, collection) {
@@ -652,6 +678,13 @@ function featureForObject(object, collection) {
     const buoyParent = editor.document.structures.buoys?.find(
       item => item.id === object.parentId
     );
+    const quayParent = editor.document.structures.obstacles?.find(
+      item => item.id === object.parentId && item.type === "quay"
+    );
+    const quayGeometry = quayParent
+      ? KJPCodec.pointOnPolyline(quayParent.points, object.attachment.station)
+      : null;
+    const quaySideSign = object.attachment?.waterSide === "right" ? -1 : 1;
     const point = rectangleParent
       ? KJPCodec.localToWorld(rectangleParent, object.localPosition)
       : buoyParent
@@ -659,6 +692,11 @@ function featureForObject(object, collection) {
           east: buoyParent.position.east + object.localPosition.longitudinal,
           north: buoyParent.position.north + object.localPosition.transverse
         }
+        : quayParent
+          ? {
+            east: quayGeometry.point.east - quayGeometry.tangent.north * quaySideSign * quayParent.width / 2,
+            north: quayGeometry.point.north + quayGeometry.tangent.east * quaySideSign * quayParent.width / 2
+          }
         : { east: 0, north: 0 };
     geometry = new Point(localToMap(point));
   } else if (collection === "obstacles") {
@@ -678,6 +716,14 @@ function featureForObject(object, collection) {
     })]);
   } else if (collection === "buoys") {
     geometry = new Point(localToMap(object.position));
+  } else if (collection === "pendilles") {
+    const parent = editor.document.structures.pontoons.find(item => item.id === object.parentId)
+      || editor.document.structures.obstacles.find(item => item.id === object.parentId);
+    const resolved = KJPCodec.resolvePendilleGeometry(object, parent);
+    geometry = new LineString([
+      localToMap(resolved.pickup),
+      localToMap(resolved.anchor)
+    ]);
   } else if (collection === "entries") {
     geometry = new LineString(entryArrowMapCoordinates(object));
   } else {
@@ -722,6 +768,7 @@ function renderObjects() {
     ["berths", document.berths],
     ["staticBoats", document.staticBoats],
     ["buoys", document.structures.buoys || []],
+    ["pendilles", document.structures.pendilles || []],
     ["cleats", document.structures.cleats],
     ["entries", document.navigation.entries]
   ]) {
@@ -996,12 +1043,15 @@ function updateInspector() {
       entries: "Entrée orientée",
       buoys: found.object.seamarkType === "mooring"
         ? "Bouée corps mort"
-        : "Bouée de navigation"
+        : "Bouée de navigation",
+      pendilles: "Pendille"
     }[found.collection] || "Objet")
     : "Aucun objet sélectionné";
   if (!found) {
     $("#catwayGenerator").hidden = true;
     $("#buoyFields").hidden = true;
+    $("#pendilleFields").hidden = true;
+    $("#pendilleGenerator").hidden = true;
     $("#verticalLevelField").hidden = true;
     $("#lengthPropertyLabel").textContent = "Longueur (m)";
     $("#widthPropertyLabel").textContent = "Largeur (m)";
@@ -1010,7 +1060,14 @@ function updateInspector() {
   }
   const object = found.object;
   $("#objectId").value = object.id;
-  const center = object.center || object.position || (
+  const pendilleParentObject = found.collection === "pendilles"
+    ? editor.document.structures.pontoons.find(item => item.id === object.parentId)
+      || editor.document.structures.obstacles.find(item => item.id === object.parentId)
+    : null;
+  const pendilleGeometry = pendilleParentObject
+    ? KJPCodec.resolvePendilleGeometry(object, pendilleParentObject)
+    : null;
+  const center = object.center || object.position || pendilleGeometry?.anchor || (
     object.points?.length
       ? {
         east: object.points.reduce((sum, point) => sum + point.east, 0) / object.points.length,
@@ -1043,7 +1100,7 @@ function updateInspector() {
     input.value = propertyValues[input.dataset.property];
     input.disabled = (
       (["length", "headingDeg", "east", "north"].includes(input.dataset.property)
-        && ["obstacles", "landAreas", "cleats"].includes(found.collection))
+        && ["obstacles", "landAreas", "cleats", "pendilles"].includes(found.collection))
       || (["length", "headingDeg"].includes(input.dataset.property)
         && found.collection === "buoys")
       || (input.dataset.property === "height"
@@ -1061,6 +1118,10 @@ function updateInspector() {
   $("#groupActions").hidden = !(found.collection === "catways" && object.groupId);
   $("#catwayGenerator").hidden = found.collection !== "pontoons";
   $("#buoyFields").hidden = found.collection !== "buoys";
+  $("#pendilleFields").hidden = found.collection !== "pendilles";
+  const pendilleParentSelected = found.collection === "pontoons"
+    || (found.collection === "obstacles" && object.type === "quay");
+  $("#pendilleGenerator").hidden = !pendilleParentSelected;
   $("#lengthPropertyLabel").textContent = found.collection === "buoys"
     ? "Longueur"
     : "Longueur (m)";
@@ -1081,6 +1142,12 @@ function updateInspector() {
     configureBuoyCategorySelect(object.seamarkType, object.category || "");
     $("#buoyShape").value = object.shape || "unknown";
   }
+  if (found.collection === "pendilles") {
+    $("#pendilleAnchorDistance").value = object.anchor.normalDistance;
+    $("#pendilleDepth").value = object.anchor.depth;
+    $("#pendilleMaximumLength").value = object.line.maximumLength;
+    $("#detachPendilleButton").hidden = !object.groupId;
+  }
 
   const metrics = $("#selectionMetrics");
   metrics.hidden = false;
@@ -1095,6 +1162,7 @@ function updateStatus() {
     + document.structures.obstacles.length
     + document.structures.landAreas.length
     + (document.structures.buoys?.length || 0)
+    + (document.structures.pendilles?.length || 0)
   );
   $("#objectCount").textContent = (
     `${structures} structure${structures === 1 ? "" : "s"} · `
@@ -1129,6 +1197,8 @@ function afterEdit({ selectId = editor.selection, fit = false } = {}) {
 function setEditorDocument(document, { fit = true, autosave = true } = {}) {
   const compatible = clone(document);
   if (!Array.isArray(compatible.structures.buoys)) compatible.structures.buoys = [];
+  if (!Array.isArray(compatible.structures.pendilles)) compatible.structures.pendilles = [];
+  if (!Array.isArray(compatible.editor.pendilleGroups)) compatible.editor.pendilleGroups = [];
   editor = new EditorCore.PortEditor(compatible);
   syncMetadataForm();
   renderObjects();
@@ -1266,6 +1336,32 @@ function nearestRectangle(point, rectangles, maximumDistance = 30) {
     .sort((first, second) => first.distance - second.distance)[0] || null;
 }
 
+function nearestPolylineStation(point, points = []) {
+  let best = null;
+  let traversed = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    const first = points[index - 1];
+    const second = points[index];
+    const nearest = EditorCore.nearestPointOnSegment(point, first, second);
+    const segmentLength = Math.hypot(second.east - first.east, second.north - first.north);
+    const distance = Math.hypot(point.east - nearest.east, point.north - nearest.north);
+    if (!best || distance < best.distance) {
+      const tangent = segmentLength > 1e-9
+        ? { east: (second.east - first.east) / segmentLength, north: (second.north - first.north) / segmentLength }
+        : { east: 1, north: 0 };
+      const cross = tangent.east * (point.north - nearest.north)
+        - tangent.north * (point.east - nearest.east);
+      best = {
+        distance,
+        station: traversed + nearest.t * segmentLength,
+        waterSide: cross < 0 ? "right" : "left"
+      };
+    }
+    traversed += segmentLength;
+  }
+  return best;
+}
+
 function addObjectAt(coordinate) {
   const point = mapToLocal(coordinate);
   if (activeTool === "pontoon" || activeTool === "catway") {
@@ -1326,23 +1422,89 @@ function addObjectAt(coordinate) {
     afterEdit({ selectId: object.id });
   } else if (activeTool === "cleat") {
     const parentFound = selectedObject();
-    if (!parentFound || !["pontoons", "catways"].includes(parentFound.collection)) {
-      showToast("Sélectionnez d’abord un ponton ou un catway.", "danger");
+    const quayParent = parentFound?.collection === "obstacles" && parentFound.object.type === "quay";
+    if (!parentFound || (!quayParent && !["pontoons", "catways"].includes(parentFound.collection))) {
+      showToast("Sélectionnez d’abord un ponton, un catway ou un quai.", "danger");
       return;
     }
     const parent = parentFound.object;
-    const local = KJPCodec.worldToLocal(parent, point);
-    local.longitudinal = clamp(local.longitudinal, -parent.length / 2, parent.length / 2);
-    local.transverse = Math.sign(local.transverse || 1) * parent.width / 2;
-    const object = {
-      id: EditorCore.createId("cleat", editor.document),
-      parentId: parent.id,
-      localPosition: local,
-      z: EditorCore.resolvedVertical(parent).deckZ,
-      orientation: local.transverse > 0 ? Math.PI / 2 : -Math.PI / 2
-    };
+    let object;
+    if (quayParent) {
+      const nearest = nearestPolylineStation(point, parent.points);
+      object = {
+        id: EditorCore.createId("cleat", editor.document),
+        parentId: parent.id,
+        attachment: {
+          kind: "polyline-station",
+          station: nearest.station,
+          waterSide: nearest.waterSide
+        },
+        z: EditorCore.resolvedVertical(parent, "fixed").deckZ,
+        orientation: nearest.waterSide === "right" ? -Math.PI / 2 : Math.PI / 2
+      };
+    } else {
+      const local = KJPCodec.worldToLocal(parent, point);
+      local.longitudinal = clamp(local.longitudinal, -parent.length / 2, parent.length / 2);
+      local.transverse = Math.sign(local.transverse || 1) * parent.width / 2;
+      object = {
+        id: EditorCore.createId("cleat", editor.document),
+        parentId: parent.id,
+        localPosition: local,
+        z: EditorCore.resolvedVertical(parent).deckZ,
+        orientation: local.transverse > 0 ? Math.PI / 2 : -Math.PI / 2
+      };
+    }
     editor.add("cleats", object, "Ajouter un taquet");
     afterEdit({ selectId: object.id });
+  } else if (activeTool === "pendille") {
+    const parentFound = selectedObject();
+    const quayParent = parentFound?.collection === "obstacles" && parentFound.object.type === "quay";
+    if (!parentFound || (!quayParent && parentFound.collection !== "pontoons")) {
+      showToast("Sélectionnez d’abord un ponton ou un quai, puis cliquez dans l’eau sur le corps-mort.", "danger");
+      return;
+    }
+    const parent = parentFound.object;
+    let attachment;
+    let anchorDistance;
+    if (quayParent) {
+      const nearest = nearestPolylineStation(point, parent.points);
+      attachment = {
+        kind: "polyline-station",
+        station: nearest.station,
+        waterSide: nearest.waterSide,
+        z: EditorCore.resolvedVertical(parent, "fixed").deckZ
+      };
+      anchorDistance = Math.max(3, nearest.distance - parent.width / 2);
+    } else {
+      const local = KJPCodec.worldToLocal(parent, point);
+      const sideSign = Math.sign(local.transverse || 1);
+      attachment = {
+        kind: "rectangle-edge",
+        edge: sideSign > 0 ? "port" : "starboard",
+        station: clamp(local.longitudinal, -parent.length / 2, parent.length / 2),
+        waterSide: sideSign > 0 ? "left" : "right",
+        z: EditorCore.resolvedVertical(parent).deckZ
+      };
+      anchorDistance = Math.max(3, Math.abs(local.transverse) - parent.width / 2);
+    }
+    const depth = 3;
+    const object = {
+      id: EditorCore.createId("pendille", editor.document),
+      berthId: "",
+      connectionEnd: "bow",
+      parentId: parent.id,
+      attachment,
+      anchor: { along: 0, normalDistance: anchorDistance, depth },
+      line: {
+        maximumLength: Math.min(200, Math.hypot(anchorDistance, depth + attachment.z) + 2),
+        workingLoadN: 12000,
+        workingStrain: 0.15,
+        dampingRatio: 0.35
+      }
+    };
+    editor.add("pendilles", object, "Ajouter une pendille");
+    afterEdit({ selectId: object.id });
+    setActiveTool("select");
   } else if (activeTool === "buoy") {
     const object = {
       id: EditorCore.createId("buoy", editor.document),
@@ -1456,7 +1618,9 @@ map.on("pointermove", event => {
 selectInteraction.on("select", event => {
   const feature = event.selected[0];
   editor.select(feature?.get("objectId") || null);
-  modifyInteraction.setActive(feature?.get("collection") === "entries");
+  const editableLine = ["entries", "pendilles"].includes(feature?.get("collection"));
+  modifyInteraction.setActive(editableLine);
+  translateInteraction.setActive(activeTool === "select" && feature?.get("collection") !== "pendilles");
   objectLayer.changed();
   updateInspector();
   renderEditHandles();
@@ -1536,8 +1700,68 @@ modifyInteraction.on("modifyend", event => {
   const id = feature?.get("objectId");
   const found = id && EditorCore.findObject(editor.document, id);
   const geometry = feature?.getGeometry();
-  if (!found || found.collection !== "entries" || !(geometry instanceof LineString)) return;
+  if (!found || !(geometry instanceof LineString)) return;
   const coordinates = geometry.getCoordinates();
+  if (found.collection === "pendilles") {
+    const parent = editor.document.structures.pontoons.find(item => item.id === found.object.parentId)
+      || editor.document.structures.obstacles.find(item => item.id === found.object.parentId);
+    if (!parent) return;
+    const pickup = mapToLocal(coordinates[0]);
+    const anchorPoint = mapToLocal(coordinates[coordinates.length - 1]);
+    let attachment;
+    let tangent;
+    let normal;
+    if (parent.type === "quay") {
+      const nearest = nearestPolylineStation(pickup, parent.points);
+      attachment = {
+        ...found.object.attachment,
+        station: nearest.station,
+        waterSide: nearest.waterSide
+      };
+      const stationGeometry = EditorCore.pendilleStationGeometry(parent, nearest.station, nearest.waterSide);
+      tangent = stationGeometry.tangent;
+      normal = stationGeometry.normal;
+    } else {
+      const local = KJPCodec.worldToLocal(parent, pickup);
+      const sideSign = Math.sign(local.transverse || 1);
+      const station = clamp(local.longitudinal, -parent.length / 2, parent.length / 2);
+      const waterSide = sideSign > 0 ? "left" : "right";
+      attachment = {
+        ...found.object.attachment,
+        edge: sideSign > 0 ? "port" : "starboard",
+        station,
+        waterSide
+      };
+      const stationGeometry = EditorCore.pendilleStationGeometry(parent, station, waterSide);
+      tangent = stationGeometry.tangent;
+      normal = stationGeometry.normal;
+    }
+    const resolvedPickup = EditorCore.pendilleStationGeometry(
+      parent,
+      attachment.station,
+      attachment.waterSide
+    ).pickup;
+    const delta = {
+      east: anchorPoint.east - resolvedPickup.east,
+      north: anchorPoint.north - resolvedPickup.north
+    };
+    const along = delta.east * tangent.east + delta.north * tangent.north;
+    const normalDistance = Math.max(1, delta.east * normal.east + delta.north * normal.north);
+    editor.update(found.object.id, {
+      attachment,
+      anchor: { ...found.object.anchor, along, normalDistance },
+      line: {
+        ...found.object.line,
+        maximumLength: Math.max(
+          found.object.line.maximumLength,
+          Math.hypot(along, normalDistance, found.object.anchor.depth + attachment.z) + 0.5
+        )
+      }
+    }, "Déplacer la pendille");
+    afterEdit({ selectId: found.object.id });
+    return;
+  }
+  if (found.collection !== "entries") return;
   const start = mapToLocal(coordinates[0]);
   const end = mapToLocal(coordinates[coordinates.length - 1]);
   const distance = Math.hypot(end.east - start.east, end.north - start.north);
@@ -1742,6 +1966,51 @@ $("#buoyShape").addEventListener("change", event => {
   afterEdit({ selectId: found.object.id });
 });
 
+function updateSelectedPendille(patch, label) {
+  const found = selectedObject();
+  if (found?.collection !== "pendilles") return;
+  editor.update(found.object.id, patch, label);
+  afterEdit({ selectId: found.object.id });
+}
+
+$("#pendilleAnchorDistance").addEventListener("change", event => {
+  const found = selectedObject();
+  if (found?.collection !== "pendilles") return;
+  updateSelectedPendille({
+    anchor: {
+      ...found.object.anchor,
+      normalDistance: clamp(Number(event.target.value), 3, 180)
+    }
+  }, "Modifier le corps-mort");
+});
+$("#pendilleDepth").addEventListener("change", event => {
+  const found = selectedObject();
+  if (found?.collection !== "pendilles") return;
+  updateSelectedPendille({
+    anchor: {
+      ...found.object.anchor,
+      depth: clamp(Number(event.target.value), 0.2, 100)
+    }
+  }, "Modifier la profondeur");
+});
+$("#pendilleMaximumLength").addEventListener("change", event => {
+  const found = selectedObject();
+  if (found?.collection !== "pendilles") return;
+  updateSelectedPendille({
+    line: {
+      ...found.object.line,
+      maximumLength: clamp(Number(event.target.value), 1, 200)
+    }
+  }, "Modifier la longueur de pendille");
+});
+$("#detachPendilleButton").addEventListener("click", () => {
+  const found = selectedObject();
+  if (found?.collection !== "pendilles") return;
+  editor.detachPendille(found.object.id);
+  afterEdit({ selectId: found.object.id });
+  showToast("Pendille détachée : elle peut maintenant être réglée seule.", "ok");
+});
+
 function selectedPontoon() {
   const found = selectedObject();
   return found?.collection === "pontoons" ? found.object : null;
@@ -1756,6 +2025,45 @@ function syncCatwayModeFields() {
 }
 
 $("#catwayMode").addEventListener("change", syncCatwayModeFields);
+
+function syncPendilleModeFields() {
+  const spacingMode = $("#pendilleMode").value === "spacing";
+  $("#pendilleCountField").hidden = spacingMode;
+  $("#pendilleCount").disabled = spacingMode;
+  $("#pendilleSpacingField").hidden = !spacingMode;
+  $("#pendilleSpacing").disabled = !spacingMode;
+}
+
+$("#pendilleMode").addEventListener("change", syncPendilleModeFields);
+
+function pendilleParameters() {
+  return {
+    mode: $("#pendilleMode").value,
+    count: Number($("#pendilleCount").value),
+    spacing: Number($("#pendilleSpacing").value),
+    waterSide: $("#pendilleWaterSide").value,
+    marginStart: Number($("#pendilleMarginStart").value),
+    marginEnd: Number($("#pendilleMarginEnd").value),
+    berthWidth: Number($("#pendilleBerthWidth").value),
+    berthLength: Number($("#pendilleBerthLength").value),
+    anchorDistance: Number($("#pendilleGroupAnchorDistance").value),
+    depth: Number($("#pendilleGroupDepth").value),
+    populateBoats: true
+  };
+}
+
+$("#createPendilleSeries").addEventListener("click", () => {
+  const found = selectedObject();
+  const validParent = found?.collection === "pontoons"
+    || (found?.collection === "obstacles" && found.object.type === "quay");
+  if (!validParent) {
+    showToast("Sélectionnez un ponton ou un quai avant de créer les places.", "danger");
+    return;
+  }
+  editor.addPendilleGroup(found.object.id, pendilleParameters());
+  afterEdit({ selectId: found.object.id });
+  showToast("Places cul au quai, pendilles et taquets créés.", "ok");
+});
 
 function catwayParameters() {
   return {
@@ -2986,6 +3294,7 @@ function installTestApi() {
 
 syncMetadataForm();
 syncCatwayModeFields();
+syncPendilleModeFields();
 renderObjects();
 setActiveTool("select");
 setPanelCollapsed("right", innerWidth <= 1040);

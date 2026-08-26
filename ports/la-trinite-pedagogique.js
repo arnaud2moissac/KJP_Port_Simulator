@@ -273,6 +273,62 @@
     heading: Math.PI
   };
 
+  // Atelier méditerranéen compact : trois postes cul au quai, sans catway.
+  // La place centrale est réservée aux exercices, les deux voisines sont occupées.
+  const medQuay = {
+    id: "med-quay",
+    x: -90,
+    y: 45,
+    w: 30,
+    h: 2,
+    z: 0.32,
+    height: 0.64,
+    baseZ: 0,
+    topZ: 0.64,
+    deckZ: 0.64,
+    kind: "quay"
+  };
+  docks.push(medQuay);
+  const medBerthXs = [-99, -90, -81];
+  for (const x of medBerthXs) {
+    for (const offset of [-1.8, 1.8]) {
+      mooringCleats.push({
+        id: `cleat-med-quay-${x}-${offset < 0 ? "west" : "east"}`,
+        parentId: medQuay.id,
+        kind: "quay",
+        edge: "south",
+        station: x,
+        x: x + offset,
+        y: 44.05,
+        z: 0.76,
+        orientation: 0
+      });
+    }
+  }
+  const pendilles = medBerthXs.map((x, index) => ({
+    id: `pendille-med-${index + 1}`,
+    berthId: `med-berth-${index + 1}`,
+    connectionEnd: "bow",
+    parentId: medQuay.id,
+    pickupPoint: { east: x, north: 44.05, z: 0.4 },
+    anchorPoint: { east: x, north: 20, z: -3 },
+    maximumLength: 32,
+    elasticity: {
+      workingLoadN: 12000,
+      workingStrain: 0.15,
+      dampingRatio: 0.35
+    }
+  }));
+  Object.assign(berthLanes, {
+    "med-west": { x: -99, heading: -Math.PI / 2, exitX: -99, fairway: "med-basin" },
+    "med-center": { x: -90, heading: -Math.PI / 2, exitX: -90, fairway: "med-basin" },
+    "med-east": { x: -81, heading: -Math.PI / 2, exitX: -81, fairway: "med-basin" }
+  });
+  staticBoats.push(
+    { id: "med-neighbor-west", x: -99, y: 38, heading: -Math.PI / 2, length: 10.2, beam: 3.35, color: "#eee9dc", berth: "med-west", berthRow: 45, berthSlot: "south", catwayId: medQuay.id, mooringType: "pendille", pendilleId: "pendille-med-1" },
+    { id: "med-neighbor-east", x: -81, y: 38, heading: -Math.PI / 2, length: 11.1, beam: 3.55, color: "#e6e2d5", berth: "med-east", berthRow: 45, berthSlot: "south", catwayId: medQuay.id, mooringType: "pendille", pendilleId: "pendille-med-3" }
+  );
+
   const calm = {
     windSpeedKn: 0,
     windFromDeg: 0,
@@ -436,6 +492,47 @@
         speedKn: 1.4,
         kind: "rect"
       }
+    },
+    medDock: {
+      kicker: "Défi 05",
+      title: "Accoster sur pendille",
+      copy: "Approchez cul au quai avec 10 nd de vent traversier. Tenez d’abord la poupe au vent, récupérez la pendille puis équilibrez les trois amarres.",
+      objective: "Reculez dans la place centrale, frappez l’arrière au vent, menez la pendille à l’étrave puis terminez avec la seconde aussière arrière.",
+      initial: { x: -90, y: 25, heading: -Math.PI / 2 },
+      environment: { windSpeedKn: 10, windFromDeg: 90, currentSpeedKn: 0, currentFromDeg: 0 },
+      pendilleChallenge: {
+        type: "med-docking",
+        pendilleId: "pendille-med-2",
+        windwardBoatCleatId: "stern-starboard",
+        windwardShoreCleatId: "cleat-med-quay--90-west",
+        leewardBoatCleatId: "stern-port",
+        leewardShoreCleatId: "cleat-med-quay--90-east",
+        propellerPenalty: 20
+      },
+      goal: { x: -90, y: 37.5, radius: 1.2, heading: -Math.PI / 2, speedKn: 0.1, kind: "berth" }
+    },
+    medDeparture: {
+      kicker: "Défi 06",
+      title: "Appareiller sur pendille",
+      copy: "Le bateau est cul au quai, tenu par deux aussières arrière et sa pendille d’étrave. Libérez les lignes dans l’ordre et gardez l’hélice claire.",
+      objective: "Larguez sous le vent, détendez puis larguez la pendille au neutre, contrôlez avec l’arrière au vent puis sortez en marche avant.",
+      initial: { x: -90, y: 37.5, heading: -Math.PI / 2 },
+      initialMoorings: [
+        { id: "med-departure-windward", boatCleatId: "stern-starboard", shoreCleatId: "cleat-med-quay--90-west" },
+        { id: "med-departure-leeward", boatCleatId: "stern-port", shoreCleatId: "cleat-med-quay--90-east" }
+      ],
+      initialPendilles: [
+        { id: "pendille-med-2", state: "secured", boatCleatId: "bow-starboard" }
+      ],
+      environment: { windSpeedKn: 10, windFromDeg: 90, currentSpeedKn: 0, currentFromDeg: 0 },
+      pendilleChallenge: {
+        type: "med-departure",
+        pendilleId: "pendille-med-2",
+        windwardLineId: "med-departure-windward",
+        leewardLineId: "med-departure-leeward",
+        propellerPenalty: 20
+      },
+      goal: { x: -90, y: 24, w: 9, h: 8, heading: -Math.PI / 2, speedKn: 1.2, kind: "rect" }
     }
   };
 
@@ -460,14 +557,14 @@
       beam: 3.59
     },
     bounds: {
-      minX: -76,
+      minX: -108,
       maxX: 70,
       minY: -62,
       maxY: 64
     },
     flowField: {
-      minX: -70,
-      width: 140,
+      minX: -108,
+      width: 178,
       minY: -54,
       height: 118
     },
@@ -475,7 +572,8 @@
     structures: {
       docks,
       catways,
-      mooringCleats
+      mooringCleats,
+      pendilles
     },
     berthLanes,
     staticBoats,

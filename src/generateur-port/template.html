@@ -55,6 +55,9 @@
       <button type="button" class="tool" data-tool="cleat" title="Ajouter un taquet">
         <span aria-hidden="true">⊥</span><small>Taquet</small>
       </button>
+      <button type="button" class="tool" data-tool="pendille" title="Ajouter une pendille à un ponton ou un quai">
+        <span aria-hidden="true">⌁</span><small>Pendille</small>
+      </button>
       <button type="button" class="tool" data-tool="buoy" title="Ajouter une bouée de navigation ou un corps mort">
         <span aria-hidden="true">◆</span><small>Bouée</small>
       </button>
@@ -241,6 +244,14 @@
             </select>
           </label>
         </div>
+        <div class="pendille-fields" id="pendilleFields" hidden>
+          <div class="two-columns">
+            <label><span>Distance du corps-mort (m)</span><input id="pendilleAnchorDistance" type="number" min="3" max="180" step="0.5"></label>
+            <label><span>Profondeur (m)</span><input id="pendilleDepth" type="number" min="0.2" max="100" step="0.1"></label>
+          </div>
+          <label><span>Longueur disponible (m)</span><input id="pendilleMaximumLength" type="number" min="1" max="200" step="0.5"></label>
+          <button type="button" class="button ghost" id="detachPendilleButton">Détacher de la série</button>
+        </div>
         <div class="inspector-actions">
           <button type="button" class="button ghost" id="duplicateButton">Dupliquer</button>
           <button type="button" class="button ghost" id="generateCleatsButton">Générer les taquets</button>
@@ -284,6 +295,35 @@
           <label><span>Largeur (m)</span><input id="catwayWidth" type="number" min="0.3" step="0.1" value="0.6"></label>
         </div>
         <button type="button" class="button primary full" id="createCatwaySeries">Créer la série</button>
+      </section>
+
+      <section class="panel-section compact-section" id="pendilleGenerator" hidden>
+        <span class="eyebrow">Amarrage méditerranéen</span>
+        <h2>Places sur pendille</h2>
+        <div class="two-columns">
+          <label><span>Mode</span><select id="pendilleMode"><option value="spacing">Entraxe</option><option value="count">Nombre</option></select></label>
+          <label><span>Côté de l’eau</span><select id="pendilleWaterSide"><option value="left">À gauche de l’axe</option><option value="right">À droite de l’axe</option></select></label>
+        </div>
+        <div class="two-columns">
+          <label id="pendilleCountField"><span>Nombre</span><input id="pendilleCount" type="number" min="1" max="80" value="6"></label>
+          <label id="pendilleSpacingField"><span>Entraxe (m)</span><input id="pendilleSpacing" type="number" min="2.8" step="0.1" value="4"></label>
+        </div>
+        <div class="two-columns">
+          <label><span>Marge début (m)</span><input id="pendilleMarginStart" type="number" min="0" step="0.5" value="2"></label>
+          <label><span>Marge fin (m)</span><input id="pendilleMarginEnd" type="number" min="0" step="0.5" value="2"></label>
+        </div>
+        <div class="two-columns">
+          <label><span>Largeur place (m)</span><input id="pendilleBerthWidth" type="number" min="2.8" max="20" step="0.1" value="4"></label>
+          <label><span>Longueur bateau max. (m)</span><input id="pendilleBerthLength" type="number" min="4" max="80" step="0.5" value="14"></label>
+        </div>
+        <details>
+          <summary>Réglages avancés</summary>
+          <div class="two-columns">
+            <label><span>Distance corps-mort (m)</span><input id="pendilleGroupAnchorDistance" type="number" min="3" max="180" step="0.5" value="18"></label>
+            <label><span>Profondeur (m)</span><input id="pendilleGroupDepth" type="number" min="0.2" max="100" step="0.1" value="3"></label>
+          </div>
+        </details>
+        <button type="button" class="button primary full" id="createPendilleSeries">Créer les places sur pendille</button>
       </section>
 
       <section class="panel-section compact-section">
