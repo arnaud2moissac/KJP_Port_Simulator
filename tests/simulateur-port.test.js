@@ -77,6 +77,35 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
   await page.goto(testUrl.href);
   await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
 
+  await t.test("l’identité KJP, le favicon et le README sont intégrés hors ligne", async () => {
+    const initial = await page.evaluate(() => ({
+      kicker: document.querySelector(".brand-kicker")?.textContent.trim(),
+      title: document.querySelector(".brand-title")?.textContent.trim(),
+      logo: document.querySelector(".brand-mark")?.getAttribute("src"),
+      favicon: document.querySelector('link[rel="icon"]')?.getAttribute("href"),
+      dialogOpen: document.querySelector("#readmeDialog")?.open
+    }));
+    assert.equal(initial.kicker, "KJP Port Simulator");
+    assert.equal(initial.title, "comprendre son bateau au port");
+    assert.match(initial.logo, /^data:image\/png;base64,/);
+    assert.equal(initial.favicon, initial.logo);
+    assert.equal(initial.dialogOpen, false);
+
+    await page.click("#readmeHelpButton");
+    const help = await page.evaluate(() => ({
+      open: document.querySelector("#readmeDialog").open,
+      text: document.querySelector("#readmeDialog").textContent,
+      embeddedImages: Array.from(document.querySelectorAll("#readmeDialog img"))
+        .every(image => image.src.startsWith("data:image/"))
+    }));
+    assert.equal(help.open, true);
+    assert.match(help.text, /Versions de la release 1\.1/);
+    assert.match(help.text, /26 août 2026/);
+    assert.match(help.text, /Arnaud de Moissac/);
+    assert.equal(help.embeddedImages, true);
+    await page.click("#closeReadmeHelp");
+  });
+
   await t.test("la topologie métrique reste interchangeable mais est intégrée au HTML autonome", async () => {
     const html = fs.readFileSync(simulatorPath, "utf8");
     assert.match(
@@ -2175,8 +2204,12 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("non-régression finale hors ligne, ordinateur et mobile", async () => {
     const html = fs.readFileSync(simulatorPath, "utf8");
+    const htmlWithoutReadmeLinks = html.replace(
+      /<dialog class="project-help-dialog"[\s\S]*?<\/dialog>/,
+      ""
+    );
     const topologySource = fs.readFileSync(topologyPath, "utf8");
-    assert.doesNotMatch(html, /https?:\/\//);
+    assert.doesNotMatch(htmlWithoutReadmeLinks, /https?:\/\//);
     assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
     assert.doesNotMatch(topologySource, /https?:\/\//);
     assert.doesNotMatch(topologySource, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);

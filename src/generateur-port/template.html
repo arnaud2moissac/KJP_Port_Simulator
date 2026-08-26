@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f2ea">
   <meta name="generator-map-engine" content="OpenLayers 10.10.0">
-  <title>Portance · Générateur communautaire de ports</title>
+  <title>KJP Port Simulator · Générateur communautaire de ports</title>
+  <link rel="icon" type="image/png" href="__KJP_LOGO_DATA_URI__">
   <style>
 /*__PORT_GENERATOR_CSS__*/
   </style>
@@ -14,9 +15,9 @@
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <img class="brand-mark" src="__KJP_LOGO_DATA_URI__" alt="">
         <div>
-          <span class="eyebrow">Portance · atelier communautaire</span>
+          <span class="eyebrow">KJP Port Simulator</span>
           <h1>Construire un port navigable</h1>
         </div>
       </div>
@@ -39,6 +40,7 @@
         <button type="button" class="button ghost" id="importButton">Importer .kjp</button>
         <input type="file" id="importInput" accept=".kjp,application/json" hidden>
         <button type="button" class="button primary" id="exportButton">Exporter .kjp</button>
+        <button type="button" class="button ghost square" id="readmeHelpButton" aria-label="Ouvrir l’aide et les informations du projet" title="Aide et informations du projet">?</button>
       </div>
     </header>
 
@@ -360,6 +362,16 @@
       <span>Les cartes ne sont jamais incluses dans le fichier KJP.</span>
     </footer>
   </div>
+
+  <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
+    <div class="project-help-header">
+      <strong id="readmeDialogTitle">KJP Port Simulator</strong>
+      <button type="button" class="icon-button project-help-close" id="closeReadmeHelp" aria-label="Fermer l’aide">×</button>
+    </div>
+    <article class="project-help-content">
+<!--__README_HTML__-->
+    </article>
+  </dialog>
 
   <script>
 /*__PORT_GENERATOR_JS__*/

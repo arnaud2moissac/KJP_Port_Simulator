@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { projectAssets } = require("./embed-project-readme.js");
 
 const root = path.resolve(__dirname, "..");
 const templatePath = path.join(root, "src", "simulateur-port", "template.html");
@@ -11,6 +12,8 @@ const codecPath = path.join(root, "src", "ports", "kjp-codec.js");
 const outputPath = path.join(root, "simulateur-port.html");
 const marker = "/*__PORT_PHYSICS_CORE__*/";
 const codecMarker = "/*__KJP_CODEC__*/";
+const readmeMarker = "<!--__README_HTML__-->";
+const logoMarker = "__KJP_LOGO_DATA_URI__";
 const topologyPattern = /<script\s+data-port-topology\s+src="([^"]+)"><\/script>/;
 
 function validateTopology(topologyRelativePath) {
@@ -179,6 +182,7 @@ function build() {
   const profiles = fs.readFileSync(profilesPath, "utf8");
   const physics = fs.readFileSync(physicsPath, "utf8");
   const codec = fs.readFileSync(codecPath, "utf8");
+  const { logoDataUri, readmeHtml } = projectAssets(root);
   const topologyMatch = template.match(topologyPattern);
   if (!topologyMatch) {
     throw new Error("Balise <script data-port-topology> absente du modèle HTML.");
@@ -196,6 +200,9 @@ function build() {
   if (!template.includes(codecMarker)) {
     throw new Error(`Marqueur KJP absent dans ${templatePath}`);
   }
+  if (!template.includes(readmeMarker) || !template.includes(logoMarker)) {
+    throw new Error(`Marqueurs d'identité ou d'aide absents dans ${templatePath}`);
+  }
   const output = template
     .replace(
       topologyPattern,
@@ -205,8 +212,15 @@ function build() {
       marker,
       () => `${profiles.trim()}\n\n${physics.trim()}`
     )
-    .replace(codecMarker, () => codec.trim());
-  if (output.includes(marker) || output.includes(codecMarker)) {
+    .replace(codecMarker, () => codec.trim())
+    .replace(readmeMarker, () => readmeHtml)
+    .replaceAll(logoMarker, logoDataUri);
+  if (
+    output.includes(marker)
+    || output.includes(codecMarker)
+    || output.includes(readmeMarker)
+    || output.includes(logoMarker)
+  ) {
     throw new Error("Un marqueur de build subsiste dans le livrable.");
   }
   return { output, topologyRelativePath };

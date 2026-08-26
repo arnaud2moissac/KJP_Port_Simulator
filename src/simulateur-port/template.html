@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <meta name="description" content="Simulateur pédagogique de manœuvre de port pour voilier habitable.">
-  <title>Portance — simulateur de manœuvre de port</title>
+  <title>KJP Port Simulator — comprendre son bateau au port</title>
+  <link rel="icon" type="image/png" href="__KJP_LOGO_DATA_URI__">
   <style>
     :root {
       --ink: #f3f0e6;
@@ -157,37 +158,15 @@
     }
 
     .brand-mark {
-      position: relative;
+      display: block;
       width: 42px;
       height: 42px;
       flex: 0 0 auto;
       border: 1px solid rgba(98, 219, 227, .35);
       border-radius: 50%;
-      background: rgba(98, 219, 227, .07);
-      color: var(--cyan);
-    }
-
-    .brand-mark::before {
-      content: "";
-      position: absolute;
-      left: 12px;
-      top: 9px;
-      width: 17px;
-      height: 22px;
-      border-left: 2px solid currentColor;
-      border-bottom: 2px solid currentColor;
-      transform: skewY(-18deg);
-    }
-
-    .brand-mark::after {
-      content: "";
-      position: absolute;
-      left: 8px;
-      top: 23px;
-      width: 26px;
-      height: 1px;
-      background: currentColor;
-      transform: rotate(-18deg);
+      padding: 2px;
+      background: #fff;
+      object-fit: contain;
     }
 
     .brand-copy { min-width: 0; }
@@ -1530,6 +1509,92 @@
       color: var(--muted);
     }
 
+    .project-help-dialog {
+      width: min(760px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 18px;
+      color: var(--ink);
+      background: var(--panel-solid);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, .46);
+    }
+
+    .project-help-dialog::backdrop {
+      background: rgba(0, 18, 24, .68);
+      backdrop-filter: blur(5px);
+    }
+
+    .project-help-header {
+      position: sticky;
+      z-index: 1;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 15px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-solid);
+    }
+
+    .project-help-header strong { font-size: 15px; }
+
+    .project-help-close {
+      display: inline-grid;
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      place-items: center;
+      padding: 0;
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 20px;
+    }
+
+    .project-help-content {
+      max-height: calc(100vh - 100px);
+      padding: 5px 22px 26px;
+      overflow: auto;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.62;
+    }
+
+    .project-help-content h2,
+    .project-help-content h3 {
+      margin: 22px 0 8px;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .project-help-content h2 { font-size: 21px; }
+    .project-help-content h3 { font-size: 15px; }
+    .project-help-content p { margin: 8px 0; }
+    .project-help-content ul,
+    .project-help-content ol { margin: 8px 0; padding-left: 22px; }
+    .project-help-content a { color: var(--cyan); }
+    .project-help-content code,
+    .project-help-content pre {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--input-bg);
+    }
+    .project-help-content code { padding: 1px 4px; }
+    .project-help-content pre { padding: 12px; overflow: auto; }
+    .project-help-content pre code { padding: 0; border: 0; background: transparent; }
+    .project-help-content img {
+      display: block;
+      width: 100%;
+      max-height: 360px;
+      margin: 14px 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      object-fit: cover;
+      object-position: top;
+    }
+
     .unsupported {
       display: none;
       position: absolute;
@@ -1586,7 +1651,7 @@
 
     body[data-visual-theme="chart"] .brand-mark {
       border-color: rgba(0, 107, 130, .34);
-      background: rgba(0, 107, 130, .06);
+      background: #fff;
     }
 
     body[data-visual-theme="chart"] .metric.primary {
@@ -1696,8 +1761,6 @@
 
     @media (max-width: 640px) {
       .brand-mark { width: 36px; height: 36px; }
-      .brand-mark::before { left: 10px; top: 7px; }
-      .brand-mark::after { left: 6px; top: 20px; }
       .header-tools { gap: 5px; }
       .header-icon-toggle,
       .theme-toggle,
@@ -1763,11 +1826,11 @@
 <body data-visual-theme="dark">
   <main class="app">
     <header class="topbar">
-      <div class="brand" aria-label="Portance, simulateur de manœuvre">
-        <div class="brand-mark" aria-hidden="true"></div>
+      <div class="brand" aria-label="KJP Port Simulator, simulateur de manœuvre">
+        <img class="brand-mark" src="__KJP_LOGO_DATA_URI__" alt="">
         <div class="brand-copy">
-          <div class="brand-kicker">Laboratoire de manœuvre</div>
-          <div class="brand-title">Portance · comprendre son bateau au port</div>
+          <div class="brand-kicker">KJP Port Simulator</div>
+          <div class="brand-title">comprendre son bateau au port</div>
         </div>
       </div>
 
@@ -1820,6 +1883,13 @@
             <path d="M12 7.85a4.15 4.15 0 0 0 0 8.3Z"></path>
           </svg>
         </button>
+        <button
+          type="button"
+          class="header-icon-toggle"
+          id="readmeHelpButton"
+          aria-label="Ouvrir l’aide et les informations du projet"
+          title="Aide et informations du projet"
+        >?</button>
         <div class="simulation-actions" aria-label="Actions de simulation">
           <button type="button" class="simulation-action" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise">Ⅱ</button>
           <button type="button" class="simulation-action" id="resetButton" aria-label="Recommencer la situation" title="Recommencer la situation">↻</button>
@@ -2129,6 +2199,16 @@
       </aside>
     </div>
   </main>
+
+  <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
+    <div class="project-help-header">
+      <strong id="readmeDialogTitle">KJP Port Simulator</strong>
+      <button type="button" class="project-help-close" id="closeReadmeHelp" aria-label="Fermer l’aide">×</button>
+    </div>
+    <article class="project-help-content">
+<!--__README_HTML__-->
+    </article>
+  </dialog>
 
   <script data-port-topology src="ports/la-trinite-pedagogique.js"></script>
 
@@ -8123,6 +8203,12 @@
     $("#engineSoundButton").addEventListener("click", () => {
       void setEngineSound(!engineAudio.enabled);
     });
+    const readmeDialog = $("#readmeDialog");
+    $("#readmeHelpButton").addEventListener("click", () => readmeDialog.showModal());
+    $("#closeReadmeHelp").addEventListener("click", () => readmeDialog.close());
+    readmeDialog.addEventListener("click", event => {
+      if (event.target === readmeDialog) readmeDialog.close();
+    });
 
     $("#helmPort").addEventListener("click", () => adjustRudder(1));
     $("#helmStarboard").addEventListener("click", () => adjustRudder(-1));
@@ -8257,6 +8343,7 @@
     });
 
     window.addEventListener("keydown", event => {
+      if (readmeDialog.open) return;
       const key = event.key;
       const throttleShortcut = key.toLowerCase() === "w" || key.toLowerCase() === "q";
       const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);

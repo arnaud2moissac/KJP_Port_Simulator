@@ -52,12 +52,14 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .brand h1 { margin: 1px 0 0; font-size: 18px; letter-spacing: -.025em; }
 .brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 50% 50% 50% 10%;
-  background: linear-gradient(145deg, var(--accent), #6dbbc8);
-  transform: rotate(-18deg);
-  box-shadow: inset 0 0 0 5px rgba(255,255,255,.48);
+  display: block;
+  width: 38px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  object-fit: contain;
 }
 .eyebrow {
   display: block;
@@ -90,6 +92,60 @@ button { cursor: pointer; }
 .button.square { width: 38px; padding: 0; font-size: 18px; }
 .button.full { width: 100%; }
 .icon-button { width: 34px; min-height: 34px; padding: 0; font-size: 20px; }
+
+.project-help-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 26px 80px rgba(22, 49, 56, .3);
+}
+.project-help-dialog::backdrop { background: rgba(23, 50, 56, .52); backdrop-filter: blur(5px); }
+.project-help-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(250, 249, 244, .98);
+}
+.project-help-header strong { font-size: 15px; }
+.project-help-content {
+  max-height: calc(100vh - 98px);
+  padding: 5px 22px 26px;
+  overflow: auto;
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.project-help-content h2, .project-help-content h3 { margin: 21px 0 8px; color: var(--ink); line-height: 1.2; }
+.project-help-content h2 { font-size: 20px; }
+.project-help-content h3 { font-size: 15px; }
+.project-help-content p { margin: 8px 0; }
+.project-help-content ul, .project-help-content ol { margin: 8px 0; padding-left: 22px; }
+.project-help-content a { color: var(--accent-dark); }
+.project-help-content code, .project-help-content pre { border: 1px solid var(--line); border-radius: 7px; background: rgba(8,117,138,.05); }
+.project-help-content code { padding: 1px 4px; }
+.project-help-content pre { padding: 12px; overflow: auto; }
+.project-help-content pre code { padding: 0; border: 0; background: transparent; }
+.project-help-content img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  margin: 14px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  object-fit: cover;
+  object-position: top;
+}
 
 .tool-rail {
   grid-area: tools;

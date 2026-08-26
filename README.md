@@ -37,15 +37,20 @@ npm run verify:release
 
 Les fichiers HTML à la racine sont générés. Les modifications se font dans `src/`, puis sont intégrées par les scripts de build. Consultez [CONTRIBUTING.md](CONTRIBUTING.md) avant de proposer une évolution.
 
-## Versions de la release 1.0
+## Versions de la release 1.1
 
-- produit : `1.0.0` ;
-- moteur physique : `5.1.0` ;
+- date de publication : 26 août 2026 ;
+- produit : `1.1.0` ;
+- moteur physique : `5.2.0` ;
 - profil pédagogique Sun Odyssey 36i : `5.2.0` ;
-- générateur et schéma KJP courant : `1.0.0` et schéma `2`.
+- générateur et schéma KJP courant : `1.1.0` et schéma `3`.
 
 Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.
 
 ## Licence et prudence
 
 Le projet est distribué sous [licence Apache 2.0](LICENSE). Il s'agit d'un outil pédagogique, pas d'un simulateur certifié ni d'un substitut à l'entraînement avec un moniteur et un équipage réel.
+
+## Contributeurs
+
+- Arnaud de Moissac

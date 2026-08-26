@@ -102,6 +102,29 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
   await page.waitForFunction(() => Boolean(window.__KJP_GENERATOR_TEST__));
   await page.waitForTimeout(250);
 
+  await t.test("l’identité KJP et l’aide README sont intégrées au générateur autonome", async () => {
+    const initial = await page.evaluate(() => ({
+      eyebrow: document.querySelector(".brand .eyebrow")?.textContent.trim(),
+      logo: document.querySelector(".brand-mark")?.getAttribute("src"),
+      favicon: document.querySelector('link[rel="icon"]')?.getAttribute("href"),
+      dialogOpen: document.querySelector("#readmeDialog")?.open
+    }));
+    assert.equal(initial.eyebrow, "KJP Port Simulator");
+    assert.match(initial.logo, /^data:image\/png;base64,/);
+    assert.equal(initial.favicon, initial.logo);
+    assert.equal(initial.dialogOpen, false);
+
+    await page.click("#readmeHelpButton");
+    const help = await page.evaluate(() => ({
+      open: document.querySelector("#readmeDialog").open,
+      text: document.querySelector("#readmeDialog").textContent
+    }));
+    assert.equal(help.open, true);
+    assert.match(help.text, /Versions de la release 1\.1/);
+    assert.match(help.text, /Arnaud de Moissac/);
+    await page.click("#closeReadmeHelp");
+  });
+
   await t.test("le livrable est un HTML autonome avec OpenLayers 10.10 intégré", () => {
     const html = fs.readFileSync(generatorPath, "utf8");
     const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"));

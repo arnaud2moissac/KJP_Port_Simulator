@@ -2910,6 +2910,13 @@ function resetWorkspace({ confirmReset = true } = {}) {
   return true;
 }
 
+const readmeDialog = $("#readmeDialog");
+$("#readmeHelpButton").addEventListener("click", () => readmeDialog.showModal());
+$("#closeReadmeHelp").addEventListener("click", () => readmeDialog.close());
+readmeDialog.addEventListener("click", event => {
+  if (event.target === readmeDialog) readmeDialog.close();
+});
+
 $("#newPortButton").addEventListener("click", () => resetWorkspace());
 $("#importButton").addEventListener("click", () => $("#importInput").click());
 $("#importInput").addEventListener("change", event => {
@@ -2958,6 +2965,7 @@ $("#collapseRight").addEventListener("click", () => setPanelCollapsed("right", t
 $("#expandRight").addEventListener("click", () => setPanelCollapsed("right", false));
 
 window.addEventListener("keydown", event => {
+  if (readmeDialog.open) return;
   const target = event.target;
   const editing = ["INPUT", "SELECT", "TEXTAREA"].includes(target?.tagName);
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
