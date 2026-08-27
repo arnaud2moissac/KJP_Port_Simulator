@@ -821,6 +821,7 @@ test("client Overpass: bascule séquentielle après panne réseau ou surcharge",
     calls[0].options.headers["Content-Type"],
     "application/x-www-form-urlencoded;charset=UTF-8"
   );
+  assert.equal(calls[0].options.headers.Accept, undefined);
 });
 
 test("client Overpass: erreur localisée et aucun retry sur requête invalide", async () => {
@@ -844,6 +845,77 @@ test("client Overpass: erreur localisée et aucun retry sur requête invalide", 
     )
   );
   assert.equal(calls, 1);
+});
+
+test("client Overpass: jusqu’à cinq tentatives automatiques sur une panne transitoire", async () => {
+  let calls = 0;
+  const attempts = [];
+  const retries = [];
+  const delays = [];
+  const result = await OSMImport.requestOverpass("[out:json];out;", {
+    endpoints: [
+      { id: "unstable", label: "Instable", url: "https://unstable.test/interpreter" }
+    ],
+    timeoutMs: 1000,
+    maxRounds: 5,
+    retryBaseDelayMs: 25,
+    onAttempt: attempt => attempts.push({
+      round: attempt.round,
+      maxRounds: attempt.maxRounds,
+      attemptNumber: attempt.attemptNumber
+    }),
+    onRetry: retry => retries.push({
+      nextRound: retry.nextRound,
+      delayMs: retry.delayMs
+    }),
+    async sleepImpl(delayMs) {
+      delays.push(delayMs);
+    },
+    async fetchImpl() {
+      calls += 1;
+      if (calls < 5) throw new TypeError("Failed to fetch");
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { version: 0.6, elements: [] };
+        }
+      };
+    }
+  });
+  assert.equal(calls, 5);
+  assert.equal(result.round, 5);
+  assert.equal(result.maxRounds, 5);
+  assert.equal(result.attempts.length, 4);
+  assert.deepEqual(attempts.map(attempt => attempt.round), [1, 2, 3, 4, 5]);
+  assert.ok(attempts.every(attempt => attempt.maxRounds === 5));
+  assert.deepEqual(retries.map(retry => retry.nextRound), [2, 3, 4, 5]);
+  assert.deepEqual(delays, [25, 50, 100, 200]);
+});
+
+test("client Overpass: le dernier serveur fiable est essayé en premier", async () => {
+  const calls = [];
+  const endpoints = [
+    { id: "first", label: "Premier", url: "https://first.test/interpreter" },
+    { id: "preferred", label: "Préféré", url: "https://preferred.test/interpreter" }
+  ];
+  const result = await OSMImport.requestOverpass("[out:json];out;", {
+    endpoints,
+    preferredEndpointId: "preferred",
+    timeoutMs: 1000,
+    async fetchImpl(url) {
+      calls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { version: 0.6, elements: [] };
+        }
+      };
+    }
+  });
+  assert.deepEqual(calls, ["https://preferred.test/interpreter"]);
+  assert.equal(result.endpoint.id, "preferred");
 });
 
 test("adaptation simulateur: entrée unique, navigation libre, visiteurs et géométries orientées", () => {

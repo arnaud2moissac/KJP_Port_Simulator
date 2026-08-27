@@ -29,6 +29,7 @@ const OSMPortImport = require("../ports/osm-import.js");
 const PontoonDecomposition = require("../ports/pontoon-decomposition.js");
 
 const GENERATOR_VERSION = "1.1.0";
+const OVERPASS_PREFERRED_ENDPOINT_KEY = "kjp-port-generator.preferred-overpass-endpoint";
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
 const clone = value => (
@@ -82,6 +83,22 @@ let toastTimer = null;
 let autosaveTimer = null;
 let draftDatabase = null;
 const networkRequests = [];
+
+function preferredOverpassEndpoint() {
+  try {
+    return localStorage.getItem(OVERPASS_PREFERRED_ENDPOINT_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function rememberOverpassEndpoint(endpointId) {
+  try {
+    localStorage.setItem(OVERPASS_PREFERRED_ENDPOINT_KEY, endpointId);
+  } catch {
+    // Le générateur reste fonctionnel lorsque le stockage local est désactivé.
+  }
+}
 
 function documentHasGeometry(document) {
   return (
@@ -2619,11 +2636,24 @@ async function analyzeVisibleZone() {
     });
     const result = await OSMPortImport.requestOverpass(query, {
       fetchImpl: fetchTracked,
-      onAttempt({ endpoint, index, total }) {
-        $("#analyzeButton").textContent = `Analyse · serveur ${index + 1}/${total}`;
-        $("#analysisStats").textContent = `Connexion à ${endpoint.label}…`;
+      preferredEndpointId: preferredOverpassEndpoint(),
+      maxRounds: 5,
+      totalTimeoutMs: 180000,
+      onAttempt({ endpoint, index, total, round, maxRounds }) {
+        $("#analyzeButton").textContent = `Analyse · tentative ${round}/${maxRounds}`;
+        $("#analysisStats").textContent = (
+          `Connexion à ${endpoint.label} · serveur ${index + 1}/${total}…`
+        );
+      },
+      onRetry({ nextRound, maxRounds, delayMs }) {
+        const delaySeconds = Math.max(1, Math.ceil(delayMs / 1000));
+        $("#analyzeButton").textContent = `Nouvel essai ${nextRound}/${maxRounds}`;
+        $("#analysisStats").textContent = (
+          `Tous les serveurs sont occupés · nouvel essai automatique dans ${delaySeconds} s…`
+        );
       }
     });
+    if (!result.endpoint.fallbackOnly) rememberOverpassEndpoint(result.endpoint.id);
     const { data } = result;
     analyzedResponses.push(data);
     const merged = OSMPortImport.mergeOverpassResponses(analyzedResponses);
@@ -2646,11 +2676,17 @@ async function analyzeVisibleZone() {
       + `${candidates.length} candidat(s)`
     );
     if (result.attempts.length) {
-      showToast(`Analyse reçue via ${result.endpoint.label}, serveur de secours.`, "ok", 3400);
+      const retryText = result.round > 1
+        ? ` après ${result.round} tentatives automatiques`
+        : " via un serveur de secours";
+      showToast(`Analyse reçue${retryText} · ${result.endpoint.label}.`, "ok", 4200);
     }
   } catch (error) {
     showToast(`Analyse impossible · ${error.message}`, "danger", 3800);
-    $("#analysisStats").textContent = "Aucune donnée ajoutée · réessayez dans quelques instants";
+    const attemptCount = error.attempts?.length || 0;
+    $("#analysisStats").textContent = attemptCount
+      ? `Aucune donnée ajoutée après ${attemptCount} connexion(s) automatiques`
+      : "Aucune donnée ajoutée · vérifiez la zone analysée";
   } finally {
     $("#analyzeButton").disabled = false;
     $("#analyzeButton").textContent = "Analyser cette zone";

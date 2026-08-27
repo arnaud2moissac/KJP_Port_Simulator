@@ -137,6 +137,9 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.match(html, /overpass-api\.de/);
     assert.match(html, /maps\.mail\.ru\/osm\/tools\/overpass/);
     assert.match(html, /overpass\.private\.coffee/);
+    assert.match(html, /gall\.openstreetmap\.de/);
+    assert.match(html, /lambert\.openstreetmap\.de/);
+    assert.match(html, /maxRounds:\s*5/);
   });
 
   await t.test("aucune requête cartographique ou géographique n'est émise avant une action", async () => {

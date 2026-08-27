@@ -4161,8 +4161,25 @@ npm run verify:release</code></pre>
             id: "private-coffee",
             label: "Overpass Private.coffee",
             url: "https://overpass.private.coffee/api/interpreter"
+          }),
+          // Les deux hôtes suivants sont les nœuds officiels derrière overpass-api.de.
+          // Ils ne sont essayés qu'en dernier recours pour contourner une panne DNS
+          // ou la défaillance ponctuelle d'un des nœuds du répartiteur FOSSGIS.
+          Object.freeze({
+            id: "fossgis-gall",
+            label: "Overpass FOSSGIS \xB7 Gall",
+            url: "https://gall.openstreetmap.de/api/interpreter",
+            fallbackOnly: true
+          }),
+          Object.freeze({
+            id: "fossgis-lambert",
+            label: "Overpass FOSSGIS \xB7 Lambert",
+            url: "https://lambert.openstreetmap.de/api/interpreter",
+            fallbackOnly: true
           })
         ]);
+        const DEFAULT_OVERPASS_MAX_ROUNDS = 5;
+        const DEFAULT_OVERPASS_TOTAL_TIMEOUT_MS = 18e4;
         const NON_RETRYABLE_OVERPASS_STATUS = /* @__PURE__ */ new Set([400, 413, 414, 422]);
         const NAVIGATION_BUOY_TYPES = /* @__PURE__ */ new Set([
           "buoy_cardinal",
@@ -4286,72 +4303,173 @@ out tags geom;`;
           if (error instanceof TypeError) return "r\xE9seau ou politique CORS";
           return String(error?.message || "erreur r\xE9seau").replace(/\s+/g, " ").slice(0, 120);
         }
+        function retryAfterMilliseconds(response) {
+          const value = response?.headers?.get?.("Retry-After");
+          if (value === void 0 || value === null || value === "") {
+            return Number(response?.status) === 429 ? 3e4 : 0;
+          }
+          const seconds = Number(value);
+          if (Number.isFinite(seconds)) return Math.max(0, seconds * 1e3);
+          const date = Date.parse(value);
+          return Number.isFinite(date) ? Math.max(0, date - Date.now()) : 0;
+        }
+        function prioritizeOverpassEndpoints(endpoints, preferredEndpointId) {
+          const preferred = endpoints.find((endpoint) => endpoint.id === preferredEndpointId);
+          if (!preferred || preferred.fallbackOnly) return endpoints.slice();
+          return [preferred, ...endpoints.filter((endpoint) => endpoint !== preferred)];
+        }
+        function summarizeOverpassAttempts(attempts) {
+          const byEndpoint = /* @__PURE__ */ new Map();
+          for (const attempt of attempts) {
+            const previous = byEndpoint.get(attempt.endpoint);
+            byEndpoint.set(attempt.endpoint, {
+              label: attempt.label,
+              reason: attempt.reason,
+              count: (previous?.count || 0) + 1
+            });
+          }
+          return [...byEndpoint.values()].map((item) => `${item.label}${item.count > 1 ? ` \xD7${item.count}` : ""}: ${item.reason}`).join(" ; ");
+        }
         async function requestOverpass(query, options = {}) {
           if (typeof query !== "string" || !query.trim()) throw new Error("Requ\xEAte Overpass vide.");
           const fetchImpl = options.fetchImpl || (typeof fetch === "function" ? fetch.bind(globalThis) : null);
           if (typeof fetchImpl !== "function") throw new Error("Client r\xE9seau indisponible.");
-          const endpoints = options.endpoints?.length ? options.endpoints : DEFAULT_OVERPASS_ENDPOINTS;
-          const timeoutMs = Math.max(1e3, Number(options.timeoutMs ?? 32e3));
+          const configuredEndpoints = options.endpoints?.length ? options.endpoints : DEFAULT_OVERPASS_ENDPOINTS;
+          const endpoints = prioritizeOverpassEndpoints(
+            configuredEndpoints,
+            options.preferredEndpointId
+          );
+          const requestedTimeoutMs = Number(options.timeoutMs ?? 32e3);
+          const timeoutMs = Number.isFinite(requestedTimeoutMs) ? Math.max(1e3, requestedTimeoutMs) : 32e3;
+          const requestedMaxRounds = Number(options.maxRounds ?? DEFAULT_OVERPASS_MAX_ROUNDS);
+          const maxRounds = Math.min(
+            DEFAULT_OVERPASS_MAX_ROUNDS,
+            Math.max(
+              1,
+              Math.floor(Number.isFinite(requestedMaxRounds) ? requestedMaxRounds : DEFAULT_OVERPASS_MAX_ROUNDS)
+            )
+          );
+          const requestedTotalTimeoutMs = Number(
+            options.totalTimeoutMs ?? DEFAULT_OVERPASS_TOTAL_TIMEOUT_MS
+          );
+          const totalTimeoutMs = Number.isFinite(requestedTotalTimeoutMs) ? Math.max(timeoutMs, requestedTotalTimeoutMs) : DEFAULT_OVERPASS_TOTAL_TIMEOUT_MS;
+          const requestedRetryDelayMs = Number(options.retryBaseDelayMs ?? 1e3);
+          const retryBaseDelayMs = Number.isFinite(requestedRetryDelayMs) ? Math.max(0, requestedRetryDelayMs) : 1e3;
+          const sleepImpl = typeof options.sleepImpl === "function" ? options.sleepImpl : (delay) => new Promise((resolve) => setTimeout(resolve, delay));
           const attempts = [];
           const body = `data=${encodeURIComponent(query)}`;
-          for (let index = 0; index < endpoints.length; index += 1) {
-            const endpoint = endpoints[index];
-            options.onAttempt?.({ endpoint, index, total: endpoints.length });
-            const controller = typeof AbortController === "function" ? new AbortController() : null;
-            const timeout = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-            try {
-              const response = await fetchImpl(endpoint.url, {
-                method: "POST",
-                headers: {
-                  Accept: "application/json",
-                  "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-                },
-                body,
-                ...controller ? { signal: controller.signal } : {}
-              });
-              if (!response?.ok) {
-                const status = Number(response?.status) || 0;
-                attempts.push({
-                  endpoint: endpoint.id,
-                  label: endpoint.label,
-                  status,
-                  reason: status ? `HTTP ${status}` : "r\xE9ponse invalide"
+          const startedAt = Date.now();
+          let completedRounds = 0;
+          let totalDeadlineReached = false;
+          requestLoop:
+            for (let roundIndex = 0; roundIndex < maxRounds; roundIndex += 1) {
+              completedRounds = roundIndex + 1;
+              let roundRetryAfterMs = 0;
+              for (let index = 0; index < endpoints.length; index += 1) {
+                const elapsedMs = Date.now() - startedAt;
+                const remainingMs2 = totalTimeoutMs - elapsedMs;
+                if (remainingMs2 < 1e3) {
+                  totalDeadlineReached = true;
+                  break requestLoop;
+                }
+                const endpoint = endpoints[index];
+                const attemptNumber = attempts.length + 1;
+                options.onAttempt?.({
+                  endpoint,
+                  index,
+                  total: endpoints.length,
+                  round: roundIndex + 1,
+                  maxRounds,
+                  attemptNumber
                 });
-                if (NON_RETRYABLE_OVERPASS_STATUS.has(status)) break;
-                continue;
+                const controller = typeof AbortController === "function" ? new AbortController() : null;
+                const attemptTimeoutMs = Math.min(timeoutMs, remainingMs2);
+                const timeout = controller ? setTimeout(() => controller.abort(), attemptTimeoutMs) : null;
+                try {
+                  const response = await fetchImpl(endpoint.url, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+                    },
+                    body,
+                    ...controller ? { signal: controller.signal } : {}
+                  });
+                  if (!response?.ok) {
+                    const status = Number(response?.status) || 0;
+                    attempts.push({
+                      endpoint: endpoint.id,
+                      label: endpoint.label,
+                      round: roundIndex + 1,
+                      status,
+                      reason: status ? `HTTP ${status}` : "r\xE9ponse invalide"
+                    });
+                    if (NON_RETRYABLE_OVERPASS_STATUS.has(status)) break requestLoop;
+                    roundRetryAfterMs = Math.max(
+                      roundRetryAfterMs,
+                      retryAfterMilliseconds(response)
+                    );
+                    continue;
+                  }
+                  const data = await response.json();
+                  if (!data || !Array.isArray(data.elements)) {
+                    attempts.push({
+                      endpoint: endpoint.id,
+                      label: endpoint.label,
+                      round: roundIndex + 1,
+                      status: response.status,
+                      reason: "JSON Overpass invalide"
+                    });
+                    continue;
+                  }
+                  return {
+                    data,
+                    endpoint: { ...endpoint },
+                    attempts: clone3(attempts),
+                    round: roundIndex + 1,
+                    maxRounds
+                  };
+                } catch (error2) {
+                  attempts.push({
+                    endpoint: endpoint.id,
+                    label: endpoint.label,
+                    round: roundIndex + 1,
+                    status: 0,
+                    reason: describeOverpassFailure(error2)
+                  });
+                } finally {
+                  if (timeout) clearTimeout(timeout);
+                }
               }
-              const data = await response.json();
-              if (!data || !Array.isArray(data.elements)) {
-                attempts.push({
-                  endpoint: endpoint.id,
-                  label: endpoint.label,
-                  status: response.status,
-                  reason: "JSON Overpass invalide"
-                });
-                continue;
+              if (roundIndex + 1 >= maxRounds) break;
+              const remainingMs = totalTimeoutMs - (Date.now() - startedAt);
+              if (remainingMs < 1e3) {
+                totalDeadlineReached = true;
+                break;
               }
-              return {
-                data,
-                endpoint: { ...endpoint },
+              const exponentialDelayMs = retryBaseDelayMs * 2 ** roundIndex;
+              const delayMs = Math.min(
+                Math.max(exponentialDelayMs, roundRetryAfterMs),
+                6e4,
+                Math.max(0, remainingMs - 500)
+              );
+              options.onRetry?.({
+                round: roundIndex + 1,
+                nextRound: roundIndex + 2,
+                maxRounds,
+                delayMs,
                 attempts: clone3(attempts)
-              };
-            } catch (error2) {
-              attempts.push({
-                endpoint: endpoint.id,
-                label: endpoint.label,
-                status: 0,
-                reason: describeOverpassFailure(error2)
               });
-            } finally {
-              if (timeout) clearTimeout(timeout);
+              if (delayMs > 0) await sleepImpl(delayMs);
             }
-          }
-          const summary = attempts.map((attempt) => `${attempt.label}: ${attempt.reason}`).join(" ; ");
+          const summary = summarizeOverpassAttempts(attempts);
           const error = new Error(
-            `Aucun serveur Overpass disponible${summary ? ` \xB7 ${summary}` : ""}`
+            `Aucun serveur Overpass disponible apr\xE8s ${completedRounds} tentative(s) automatique(s)${totalDeadlineReached ? " dans la limite de trois minutes" : ""}${summary ? ` \xB7 ${summary}` : ""}`
           );
           error.name = "OverpassAvailabilityError";
           error.attempts = clone3(attempts);
+          error.rounds = completedRounds;
+          error.maxRounds = maxRounds;
+          error.totalDeadlineReached = totalDeadlineReached;
           throw error;
         }
         function geometryForElement(element) {
@@ -4807,6 +4925,7 @@ out tags geom;`;
         return Object.freeze({
           MAX_ANALYSIS_SIDE_METERS,
           DEFAULT_OVERPASS_ENDPOINTS,
+          DEFAULT_OVERPASS_MAX_ROUNDS,
           mergeOverpassResponses,
           validateAnalysisBounds,
           normalizeAnalysisPolygon,
@@ -41860,6 +41979,7 @@ out tags geom;`;
   var OSMPortImport = require_osm_import();
   var PontoonDecomposition = require_pontoon_decomposition();
   var GENERATOR_VERSION = "1.1.0";
+  var OVERPASS_PREFERRED_ENDPOINT_KEY = "kjp-port-generator.preferred-overpass-endpoint";
   var $ = (selector, root = document) => root.querySelector(selector);
   var $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   var clone2 = (value) => typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value));
@@ -41897,6 +42017,19 @@ out tags geom;`;
   var autosaveTimer = null;
   var draftDatabase = null;
   var networkRequests = [];
+  function preferredOverpassEndpoint() {
+    try {
+      return localStorage.getItem(OVERPASS_PREFERRED_ENDPOINT_KEY) || "";
+    } catch {
+      return "";
+    }
+  }
+  function rememberOverpassEndpoint(endpointId) {
+    try {
+      localStorage.setItem(OVERPASS_PREFERRED_ENDPOINT_KEY, endpointId);
+    } catch {
+    }
+  }
   function documentHasGeometry(document2) {
     return document2.structures.pontoons.length + document2.structures.catways.length + document2.structures.obstacles.length + document2.structures.landAreas.length + (document2.structures.buoys?.length || 0) + (document2.structures.pendilles?.length || 0) + document2.staticBoats.length > 0;
   }
@@ -44116,11 +44249,20 @@ out tags geom;`;
       });
       const result = await OSMPortImport.requestOverpass(query, {
         fetchImpl: fetchTracked,
-        onAttempt({ endpoint, index, total }) {
-          $("#analyzeButton").textContent = `Analyse \xB7 serveur ${index + 1}/${total}`;
-          $("#analysisStats").textContent = `Connexion \xE0 ${endpoint.label}\u2026`;
+        preferredEndpointId: preferredOverpassEndpoint(),
+        maxRounds: 5,
+        totalTimeoutMs: 18e4,
+        onAttempt({ endpoint, index, total, round, maxRounds }) {
+          $("#analyzeButton").textContent = `Analyse \xB7 tentative ${round}/${maxRounds}`;
+          $("#analysisStats").textContent = `Connexion \xE0 ${endpoint.label} \xB7 serveur ${index + 1}/${total}\u2026`;
+        },
+        onRetry({ nextRound, maxRounds, delayMs }) {
+          const delaySeconds = Math.max(1, Math.ceil(delayMs / 1e3));
+          $("#analyzeButton").textContent = `Nouvel essai ${nextRound}/${maxRounds}`;
+          $("#analysisStats").textContent = `Tous les serveurs sont occup\xE9s \xB7 nouvel essai automatique dans ${delaySeconds} s\u2026`;
         }
       });
+      if (!result.endpoint.fallbackOnly) rememberOverpassEndpoint(result.endpoint.id);
       const { data } = result;
       analyzedResponses.push(data);
       const merged = OSMPortImport.mergeOverpassResponses(analyzedResponses);
@@ -44139,11 +44281,13 @@ out tags geom;`;
       showCandidateDrawer();
       $("#analysisStats").textContent = `${analyzedResponses.length} zone(s) \xB7 ${merged.elements.length} objet(s) OSM \xB7 ${candidates.length} candidat(s)`;
       if (result.attempts.length) {
-        showToast(`Analyse re\xE7ue via ${result.endpoint.label}, serveur de secours.`, "ok", 3400);
+        const retryText = result.round > 1 ? ` apr\xE8s ${result.round} tentatives automatiques` : " via un serveur de secours";
+        showToast(`Analyse re\xE7ue${retryText} \xB7 ${result.endpoint.label}.`, "ok", 4200);
       }
     } catch (error) {
       showToast(`Analyse impossible \xB7 ${error.message}`, "danger", 3800);
-      $("#analysisStats").textContent = "Aucune donn\xE9e ajout\xE9e \xB7 r\xE9essayez dans quelques instants";
+      const attemptCount = error.attempts?.length || 0;
+      $("#analysisStats").textContent = attemptCount ? `Aucune donn\xE9e ajout\xE9e apr\xE8s ${attemptCount} connexion(s) automatiques` : "Aucune donn\xE9e ajout\xE9e \xB7 v\xE9rifiez la zone analys\xE9e";
     } finally {
       $("#analyzeButton").disabled = false;
       $("#analyzeButton").textContent = "Analyser cette zone";
