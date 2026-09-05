@@ -5,3 +5,5 @@ node_modules/
 .env.*
 !.env.example
 graphify-out/
+.agents/checkpoints/
+.agents/checkpoints/
