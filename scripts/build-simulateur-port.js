@@ -15,7 +15,7 @@ const threeEntryPath = path.join(
   "src",
   "simulateur-port",
   "rendering",
-  "three-smoke.js"
+  "index.js"
 );
 const outputPath = path.join(root, "simulateur-port.html");
 const marker = "/*__PORT_PHYSICS_CORE__*/";

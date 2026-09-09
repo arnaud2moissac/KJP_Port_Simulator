@@ -7531,9 +7531,12 @@
       addRudderAxis();
       if (depthRenderer) {
         try {
-          depthRenderer.render(
-            polygons,
-            overlayLines.filter(item => item.layer < 10)
+          KJPRenderFrames.renderLegacyFrame(
+            depthRenderer,
+            KJPRenderFrames.createRenderFrame({
+              polygons,
+              lines: overlayLines.filter(item => item.layer < 10)
+            })
           );
           overlayLines
             .filter(item => item.layer >= 10)
@@ -9184,7 +9187,32 @@
     function installTestApi() {
       if (!new URLSearchParams(location.search).has("test")) return;
       controls.paused = true;
+      const threeCamera = KJPThreeCamera.createThreeCamera();
       window.__PORTANCE_TEST__ = Object.freeze({
+        projectionComparisonReport(points = []) {
+          // Observer la base disponible sans rappeler cameraBasis() : cette
+          // dernière avance le suivi caméra et ne serait pas un diagnostic pur.
+          if (!frameBasis) throw new Error("Attendre une frame avant la comparaison caméra");
+          const snapshot = KJPThreeCamera.createCameraSnapshot({
+            basis: frameBasis,
+            width: canvasWidth,
+            height: canvasHeight,
+            focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
+            near: PROJECTION_NEAR_CLIP,
+            far: PROJECTION_FAR_CLIP
+          });
+          const migrated = threeCamera.update(snapshot);
+          return {
+            snapshot,
+            cameraType: migrated.type,
+            fov: migrated.fov,
+            pixelRatio,
+            buffer: [canvas.width, canvas.height],
+            anchors: points.map(point => ({
+              point: [...point], legacy: project(point), three: threeCamera.project(point)
+            }))
+          };
+        },
         geometryReport: () => validateHarborGeometry(),
         topologyReport: () => ({
           schemaVersion: PORT_TOPOLOGY.schemaVersion,

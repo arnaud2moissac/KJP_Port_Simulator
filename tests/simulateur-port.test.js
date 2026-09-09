@@ -62,6 +62,102 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
+test("caméra Three — ancres Legacy, resize, DPR et commandes sans mutation", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  let maximumPixelError = 0;
+  let checkedAnchors = 0;
+  for (const deviceScaleFactor of [1, 2, 3]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("request", request => { if (/^https?:/i.test(request.url())) errors.push(request.url()); });
+    await page.goto(testUrl.href);
+    await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+
+    const compare = async () => {
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const report = await page.evaluate(() => {
+        const api = window.__PORTANCE_TEST__;
+        const before = JSON.stringify(api.snapshot());
+        const { snapshot: s } = api.projectionComparisonReport();
+        const points = [[0, 0, 0], [20, 30, 0], [20, 30, 2], [-100, 250, 12]];
+        for (const depth of [-2, 0, s.near - 2e-7, s.near - 5e-8, s.near, s.near + 5e-8, 1, 50, 6000, 12000]) {
+          for (const [x, y] of [[0, 0], [.01, -.02], [-4, 3]]) {
+            points.push(s.position.map((value, index) => value + s.forward[index] * depth + s.right[index] * x + s.up[index] * y));
+          }
+        }
+        const result = api.projectionComparisonReport(points);
+        return {
+          ...result,
+          unchangedState: before === JSON.stringify(api.snapshot()),
+          unchangedCamera: JSON.stringify(s) === JSON.stringify(api.projectionComparisonReport().snapshot)
+        };
+      });
+      assert.equal(report.cameraType, "PerspectiveCamera");
+      assert.equal(report.unchangedState, true);
+      assert.equal(report.unchangedCamera, true);
+      assert.equal(report.pixelRatio, Math.min(deviceScaleFactor, 2));
+      assert.deepEqual(report.buffer, [report.snapshot.width, report.snapshot.height].map(n => Math.round(n * report.pixelRatio)));
+      for (const { point, legacy, three } of report.anchors) {
+        assert.equal(three === null, legacy === null, `clipping ${point}`);
+        if (!legacy) continue;
+        const error = Math.hypot(legacy.x - three.x, legacy.y - three.y);
+        maximumPixelError = Math.max(maximumPixelError, error);
+        checkedAnchors += 1;
+        assert.ok(error < .5, `écart ${error}px pour ${point}`);
+        assert.ok(Math.abs(legacy.depth - three.depth) < 1e-8);
+        assert.ok(Math.abs(legacy.scale - three.scale) < 1e-6);
+      }
+      return report.snapshot;
+    };
+
+    for (const viewport of [{ width: 1280, height: 800 }, { width: 800, height: 600 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      for (const heading of [.35, -2.1]) {
+        await page.evaluate(heading => window.__PORTANCE_TEST__.reset({ x: 20, y: 30, heading }), heading);
+        for (const view of ["top", "anatomy", "skipper"]) {
+          await page.evaluate(view => window.__PORTANCE_TEST__.selectCameraView(view), view);
+          await compare();
+        }
+      }
+    }
+    // Événements réels : rotation, décalage et zoom depuis le canevas.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    for (const button of ["topViewButton", "anatomyButton", "skipperViewButton"]) {
+      await page.click(`#${button}`);
+      const before = await compare();
+      const box = await page.locator("#scene").boundingBox();
+      const x = box.x + box.width * .5;
+      const y = box.y + box.height * .5;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + 95, y + 35, { steps: 4 });
+      await page.mouse.up();
+      const rotated = await compare();
+      assert.notDeepEqual(rotated.forward, before.forward);
+      await page.keyboard.down("Shift");
+      await page.mouse.down();
+      await page.mouse.move(x + 145, y + 65, { steps: 4 });
+      await page.mouse.up();
+      await page.keyboard.up("Shift");
+      const panned = await compare();
+      assert.notDeepEqual(panned.position, rotated.position);
+      await page.mouse.wheel(0, 100);
+      // La molette est asynchrone ; attendre son changement avant comparaison.
+      await page.waitForFunction(previous => {
+        const current = window.__PORTANCE_TEST__.projectionComparisonReport().snapshot;
+        return current.focal !== previous.focal || JSON.stringify(current.position) !== JSON.stringify(previous.position);
+      }, panned);
+      await compare();
+    }
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+  t.diagnostic(`${checkedAnchors} ancres visibles comparées ; écart maximal ${maximumPixelError} px (tolérance 0,5 px)`);
+});
+
 test("simulateur de port — cohérence, physique et non-régression", async t => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({

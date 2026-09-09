@@ -9,7 +9,12 @@ const { chromium } = require("playwright");
 const root = path.resolve(__dirname, "..");
 const simulatorPath = path.join(root, "simulateur-port.html");
 const communityPortPath = path.join(root, "examples", "la-trinite-sur-mer.kjp");
-const outputDirectory = path.join(root, "tests", "visual-baselines", "legacy");
+const baselineDirectory = path.join(root, "tests", "visual-baselines", "legacy");
+const updateBaseline = process.argv.includes("--update");
+// Les références ne sont réécrites que sur demande explicite.
+const outputDirectory = updateBaseline
+  ? baselineDirectory
+  : fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-render-candidate-"));
 const viewport = { width: 1280, height: 800 };
 const fixedAnimationTimeMs = 12_345;
 
@@ -124,6 +129,11 @@ async function captureScene(browser, browserVersion, scene, communityPortText) {
   await page.goto(simulatorUrl.href);
   await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
   await configureScene(page, scene, communityPortText);
+  // Les notifications d'import expirent en temps réel, indépendamment du temps
+  // visuel fixé. Attendre leur fin évite de capturer un toast selon la vitesse GPU.
+  await page.waitForFunction(
+    () => !document.querySelector("#impactToast").classList.contains("visible")
+  );
   await page.waitForTimeout(750);
 
   // Chromium/SwiftShader peut livrer une première lecture incomplète d'un
@@ -187,6 +197,9 @@ async function main() {
     throw new Error("simulateur-port.html absent ; lancez npm run build:simulator");
   }
   fs.mkdirSync(outputDirectory, { recursive: true });
+  const baseline = updateBaseline ? null : JSON.parse(fs.readFileSync(
+    path.join(baselineDirectory, "manifest.json"), "utf8"
+  ));
   const communityPortText = fs.readFileSync(communityPortPath, "utf8");
   const browser = await chromium.launch({ headless: true });
   const browserVersion = browser.version();
@@ -220,7 +233,17 @@ async function main() {
     communityPort: path.relative(root, communityPortPath),
     scenes: results
   }, null, 2)}\n`);
-  console.log(`Baseline Legacy écrite dans ${path.relative(root, outputDirectory)}`);
+  console.log(`Captures écrites dans ${outputDirectory}`);
+  if (baseline) {
+    const differences = results.filter(result => {
+      const reference = baseline.scenes.find(scene => scene.id === result.id);
+      return !reference || reference.imageSha256 !== result.imageSha256;
+    });
+    if (differences.length) {
+      throw new Error(`Écart visuel : ${differences.map(scene => scene.id).join(", ")}`);
+    }
+    console.log(`${results.length}/${baseline.scenes.length} empreintes Legacy identiques`);
+  }
 }
 
 main().catch(error => {

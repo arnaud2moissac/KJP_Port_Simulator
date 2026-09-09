@@ -12,6 +12,7 @@
   "scripts": {
     "build:simulator": "node scripts/build-simulateur-port.js",
     "capture:renderer-baseline": "node scripts/capture-simulator-render-baseline.js",
+    "test:rendering": "node --test tests/render-frame.test.js",
     "build:port-generator": "node scripts/build-port-generator.js",
     "check:build": "node scripts/build-simulateur-port.js --check",
     "check:port-generator": "node scripts/build-port-generator.js --check",
