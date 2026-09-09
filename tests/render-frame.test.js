@@ -134,6 +134,28 @@ test("comparateur pixels refuse couleur et couverture erronées à l'intérieur"
   assert.throws(() => compareSurfacePixels(reference, candidate, 4, 4), /dimensions/);
 });
 
+test("lignes d'infrastructure : snapshot, clipping proche et bornage écran", async () => {
+  const { createCameraSnapshot } = await import("../src/simulateur-port/rendering/three-camera.mjs");
+  const { createSurfaceFrame, projectSurfaceFrame } = await import("../src/simulateur-port/rendering/surface-frame.mjs");
+  const { compileSurfaceBatches } = await import("../src/simulateur-port/rendering/surface-geometry.mjs");
+  const camera = createCameraSnapshot(cameraSource());
+  const line = { points: [[9,20.0175,3],[11,20.07,3]], color: "#fff", width: .7, dash: [], layer: 0 };
+  const frame = createSurfaceFrame(camera, [], "#000", [line]);
+  line.points[0][0] = 123;
+  assert.equal(frame.lines[0].points[0][0], 9);
+  assert.throws(() => frame.lines[0].dash.push(1), TypeError);
+  assert.throws(() => createSurfaceFrame(camera, [], "#000", [{ ...line, dash: [1, 1] }]), /pointillés/);
+  const projected = projectSurfaceFrame(frame);
+  assert.equal(projected.lines.length, 1);
+  assert.ok(projected.lines[0].points.every(point => point.depth >= camera.near - 1e-10));
+  const extreme = { polygons: [], lines: [{ ...line, points: [{ x:-1e12, y:400, depth:10 },{ x:1e12, y:400, depth:10 }] }] };
+  const batch = compileSurfaceBatches(extreme, camera, () => [1,1,1,1]);
+  assert.equal(batch.worldLines.length, 42);
+  assert.equal(batch.acceptedLineSegments, 1);
+  assert.ok(batch.worldLines.every(Number.isFinite));
+  for (let i = 0; i < batch.worldLines.length; i += 7) assert.ok(Math.abs(batch.worldLines[i]) <= 1.11);
+});
+
 test("RenderFrame conserve valeurs et ordre sans conserver les objets producteurs", () => {
   const input = source();
   const frame = createRenderFrame(input);

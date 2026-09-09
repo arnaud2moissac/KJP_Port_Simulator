@@ -65,7 +65,7 @@ ont produit les mêmes six empreintes SHA-256.
 | 2 · build Three autonome | terminé | r186 embarqué, smoke triangle, Legacy actif, 48 tests navigateur verts |
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
-| 5 · port, eau et infrastructures | en cours : terrain isolé validé, eau CSS conservée | 42 comparaisons raster exactes ; infrastructures et occlusions mixtes à porter |
+| 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes ; bateaux et overlays encore exclus |
 | 6 · bateaux et overlays monde | en attente | six scènes dans la tolérance définie |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
@@ -150,8 +150,9 @@ ce WIP sur la même branche `codex/threejs-v2`.
 
 Le terrain Three est un backend de comparaison hors écran, pas le renderer
 actif. `surface-frame.mjs` copie les polygones métriques de terrain/terre issus
-du cache visible et leur caméra ; il les clippe au plan proche puis les projette
-avec la caméra Three. `surface-geometry.mjs` reprend les choix de triangulation
+du cache visible et leur caméra ; il les clippe au plan proche puis les projette.
+La projection matricielle initiale est remplacée pour les surfaces par le mode
+de compatibilité numérique décrit ci-dessous. `surface-geometry.mjs` reprend les choix de triangulation
 Legacy (nettoyage, concavité, diagonales), les contours en pixels, la profondeur
 logarithmique par sommet et les biais de couche. `three-surfaces.mjs` dessine
 trois lots avec `WebGLRenderer`, `BufferGeometry` et `RawShaderMaterial` :
@@ -199,11 +200,52 @@ après durcissement du comparateur. Aucune erreur console/page, GL ou requête
 HTTP détectée. Graphify mis à jour en AST. Pas de qualification GPU matériel,
 Safari/Firefox, mobile réel, performance ou occlusions terrain/bateaux/pontons.
 
+## Quais, pontons et catways — 9 septembre 2026
+
+La tranche terrain précédente est commitée dans `ccc5198`. Le banc accepte
+maintenant `enableSurfaceComparison({infrastructures:true})` : il collecte les
+familles `terrain`, `land`, `dock`, `catway` et `obstacle`, avec leurs polygones
+et lignes monde. Les styles sont résolus comme dans `addPolygon` (notamment
+`stroke:false`), les raccords de catways proviennent des constructeurs existants,
+sans modifier leur géométrie ni leur représentation physique.
+
+Les arêtes des volumes utilisent une quatrième passe Three, après les contours
+de polygones, avec écriture/test de profondeur actifs. Leur épaisseur en pixels
+CSS, le clipping au plan proche puis au viewport avec marge, et le biais de
+profondeur `-2e-6` restent ceux du Legacy. Seules les lignes pleines sont admises
+à cette étape ; les pointillés sont explicitement refusés, pas ignorés.
+
+Décision d'iso-rendu : la vue skipper dense La Trinité a révélé un contour
+concave traversant le plan proche, dont les arrondis matriciels changeaient le
+nettoyage et l'ear clipping (56 triangles supplémentaires, 38 pixels différents).
+`projectSurfacePoint` conserve donc l'ordre arithmétique Legacy à partir du
+snapshot immuable, sans appeler le renderer Legacy ni lire l'état physique.
+La caméra matricielle Three reste validée séparément par les ancres ; le banc
+raster ne prouve pas son équivalence sur ces triangulations sensibles.
+La fonction Legacy, y compris son rejet historique de ce contour, reste gelée.
+`surfaceComparisonReport({geometry:true})` expose les snapshots de diagnostic.
+
+Les 76 comparaisons couvrent les 42 cas terrain précédents, les infrastructures
+des deux ports dans les trois vues et les deux thèmes/DPR, et les lignes proches,
+lointaines, hors écran, devant et derrière une surface. La scène dense de
+La Trinité utilise `(200,305,0.5084)` ; le rapport vérifie la présence des quais,
+catways et obstacles linéaires. La scène intégrée vérifie ensemble terrain et
+infrastructures. Zéro pixel différent, compteurs de polygones, triangles,
+segments acceptés/rejetés et appels de dessin identiques ; snapshots physiques
+inchangés. Captures isolées inspectées, quatre lots GPU au maximum, textures
+absentes et ressources stables à scène constante après resize/recréation.
+
+Contrôles : build/check autonome, 9 tests unitaires, suite navigateur 50/50
+incluant les trajectoires exactes, six captures Legacy identiques, diff contrôlé
+et Graphify mis à jour. La revue indépendante ne relève pas de défaut concret.
+Les limitations restent le rendu isolé, l'absence de qualification GPU matériel
+et les allocations CPU transitoires ; aucun gain de performance revendiqué.
+
 ## Prochaine tranche
 
-Porter les infrastructures (quais, pontons, catways) dans le même banc et vérifier
-leur profondeur commune avec le terrain, avant les bateaux et overlays monde.
-Ajouter une scène réellement dense autour de `(200,305,0.5084)` à La Trinité,
-distincte de la scène de rive. Ne pas superposer simplement deux canevas de
-backends partiels : leurs buffers de profondeur ne seraient pas partagés.
-Le renderer Legacy reste actif ; la bascule de renderer par défaut est ultérieure.
+Ajouter les bateaux statiques et le bateau joueur interpolé au même snapshot
+de présentation, puis bouées/balisage et overlays monde. Comparer leurs
+occultations avec les infrastructures avant toute bascule active. Le support des
+pointillés devra précéder l'intégration des aussières et overlays concernés.
+Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
+ne seraient pas partagés. Le renderer Legacy reste actif.

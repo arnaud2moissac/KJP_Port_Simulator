@@ -136,6 +136,109 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
     1 - y / Math.max(1, camera.height) * 2,
     depthNdc(depth, offset), ...color
   );
+  const clipProjectedSegmentToViewport = (first, second, margin = 64) => {
+    if (![first?.x, first?.y, first?.depth, second?.x, second?.y, second?.depth]
+      .every(Number.isFinite)) return null;
+    const minimumX = -margin;
+    const maximumX = camera.width + margin;
+    const minimumY = -margin;
+    const maximumY = camera.height + margin;
+    const dx = second.x - first.x;
+    const dy = second.y - first.y;
+    if (![dx, dy].every(Number.isFinite)) return null;
+    let entry = 0;
+    let exit = 1;
+    const clip = (slope, distance) => {
+      if (Math.abs(slope) < 1e-12) return distance >= 0;
+      const ratio = distance / slope;
+      if (slope < 0) {
+        if (ratio > exit) return false;
+        entry = Math.max(entry, ratio);
+      } else {
+        if (ratio < entry) return false;
+        exit = Math.min(exit, ratio);
+      }
+      return true;
+    };
+    if (
+      !clip(-dx, first.x - minimumX)
+      || !clip(dx, maximumX - first.x)
+      || !clip(-dy, first.y - minimumY)
+      || !clip(dy, maximumY - first.y)
+      || entry > exit
+    ) return null;
+    const interpolate = ratio => ({
+      x: first.x + dx * ratio,
+      y: first.y + dy * ratio,
+      depth: first.depth + (second.depth - first.depth) * ratio
+    });
+    return [interpolate(entry), interpolate(exit)];
+  };
+  const appendLineCoordinates = (
+    target,
+    firstX,
+    firstY,
+    firstDepth,
+    secondX,
+    secondY,
+    secondDepth,
+    width,
+    color,
+    offset = -2e-6
+  ) => {
+    if (![
+      firstX,
+      firstY,
+      firstDepth,
+      secondX,
+      secondY,
+      secondDepth,
+      width,
+      ...color
+    ].every(Number.isFinite)) return false;
+    const dx = secondX - firstX;
+    const dy = secondY - firstY;
+    const length = Math.hypot(dx, dy);
+    if (length < 0.01) return false;
+    const nx = -dy / length * width / 2;
+    const ny = dx / length * width / 2;
+    const ax = firstX + nx;
+    const ay = firstY + ny;
+    const bx = secondX + nx;
+    const by = secondY + ny;
+    const cx = secondX - nx;
+    const cy = secondY - ny;
+    const dx2 = firstX - nx;
+    const dy2 = firstY - ny;
+    vertex(target, ax, ay, firstDepth, color, offset);
+    vertex(target, bx, by, secondDepth, color, offset);
+    vertex(target, cx, cy, secondDepth, color, offset);
+    vertex(target, ax, ay, firstDepth, color, offset);
+    vertex(target, cx, cy, secondDepth, color, offset);
+    vertex(target, dx2, dy2, firstDepth, color, offset);
+    return true;
+  };
+
+  const worldLines = [];
+  let acceptedLineSegments = 0, rejectedLineSegments = 0;
+  for (const item of frame.lines || []) {
+    if (item.dash.length) throw new Error("Pointillés hors périmètre infrastructures");
+    const color = parseColor(item.color);
+    for (let i = 1; i < item.points.length; i += 1) {
+      const clipped = clipProjectedSegmentToViewport(item.points[i - 1], item.points[i], Math.max(64, Number(item.width) * 4 || 0));
+      if (!clipped) { rejectedLineSegments += 1; continue; }
+      const [start, end] = clipped;
+      const length = Math.hypot(end.x - start.x, end.y - start.y);
+      if (length < .01) continue;
+      acceptedLineSegments += 1;
+      // Ordre d'opérations du chemin Legacy sans pointillés.
+      appendLineCoordinates(worldLines,
+        start.x, start.y, start.depth,
+        start.x + (end.x - start.x), start.y + (end.y - start.y),
+        start.depth + (end.depth - start.depth), item.width, color);
+    }
+  }
+
   let triangles = 0, triangulationFailures = 0;
   for (const polygon of frame.polygons) {
     const fill = parseColor(polygon.fill);
@@ -172,8 +275,7 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
   translucentRecords.sort((a, b) => b.depth - a.depth).forEach(record => {
     for (const value of record.vertices) translucent.push(value);
   });
-  return { opaque, translucent, strokes, triangles, triangulationFailures };
+  return { opaque, translucent, strokes, worldLines, triangles, triangulationFailures, acceptedLineSegments, rejectedLineSegments };
 }
 
 export { triangulate };
-

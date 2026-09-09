@@ -62,7 +62,7 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
-test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de vie", async t => {
+test("terrain Three — infrastructures, pixels Legacy, clipping, alpha et cycle de vie", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const output = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-surface-comparison-"));
@@ -86,7 +86,10 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
       assert.equal(report.pixels.interiorDifferentPixels, 0, `${name}: ${JSON.stringify(report.pixels)}`);
       assert.equal(report.pixels.equal, true, `${name}: bordure ou contour différent : ${JSON.stringify(report.pixels)}`);
       if (nonblank) assert.ok(report.pixels.coveredPixels > 100, `${name}: terrain absent`);
-      assert.ok(report.three.geometries <= 3);
+      assert.ok(report.three.geometries <= 4);
+      assert.equal(report.three.acceptedLineSegments, report.legacy.acceptedLineSegments, name);
+      assert.equal(report.three.rejectedLineSegments, report.legacy.rejectedLineSegments, name);
+      assert.equal(report.three.drawCalls, report.legacy.drawCalls, name);
       assert.equal(report.three.textures, 0);
       differentPixels += report.pixels.differentPixels;
       cases += 1;
@@ -122,6 +125,38 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
         }
       }
     }
+    await page.evaluate(() => window.__PORTANCE_TEST__.enableSurfaceComparison({ infrastructures: true }));
+    for (const port of ["built-in-mixed", "la-trinite-dense"]) {
+      await page.evaluate(({ port, portText }) => {
+        const api = window.__PORTANCE_TEST__;
+        if (port === "built-in-mixed") api.restoreBuiltInPort(); else api.importPort(portText);
+        api.reset(port === "built-in-mixed" ? { x: 25, y: -38, heading: -Math.PI / 2 } : { x: 200, y: 305, heading: .5084 });
+      }, { port, portText });
+      for (const theme of ["dark", "chart"]) {
+        for (const view of ["top", "anatomy", "skipper"]) {
+          await page.evaluate(({ theme, view }) => {
+            window.__PORTANCE_TEST__.selectVisualTheme(theme);
+            window.__PORTANCE_TEST__.selectCameraView(view);
+          }, { theme, view });
+          await settle();
+          const report = await page.evaluate(images => {
+            const api = window.__PORTANCE_TEST__;
+            const before = JSON.stringify(api.snapshot());
+            const report = api.surfaceComparisonReport({ images });
+            return { ...report, unchanged: before === JSON.stringify(api.snapshot()) };
+          }, deviceScaleFactor === 1 && view === "anatomy");
+          assert.equal(report.unchanged, true);
+          assert.ok(report.owners.dock > 0 && report.owners.catway > 0, `${port}: familles d'infrastructures absentes`);
+          if (port === "built-in-mixed") assert.ok(report.owners.terrain > 0);
+          if (port === "la-trinite-dense") {
+            assert.ok(report.owners.catway > 10);
+            assert.ok(report.owners.obstacle > 0, "quais/brise-lames linéaires absents");
+          }
+          assert.ok(report.worldLines > 0 && report.three.acceptedLineSegments > 0);
+          check(report, `${port}-${theme}-${view}-dpr${deviceScaleFactor}`);
+        }
+      }
+    }
     // Fixtures purement visuelles, jamais importées dans la simulation.
     await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("top"));
     await settle();
@@ -142,7 +177,17 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
         layers: [rect(10, "#ff0000", .25), rect(10, "#00ff00", -.25), rect(10, "#0000ff", 1)],
         threshold: [rect(10, "rgba(255,0,0,.994)"), rect(12, "rgba(0,0,255,.995)")]
       };
-      return Object.entries(fixtures).map(([name, polygons]) => [name, api.surfaceComparisonReport({ polygons })]);
+      const reports = Object.entries(fixtures).map(([name, polygons]) => [name, api.surfaceComparisonReport({ polygons })]);
+      const line = coords => ({ points: coords.map(p => world(...p)), color: "#ff00ff", width: .7, dash: [], layer: 0 });
+      const lineFixtures = {
+        "line-near": { lines: [line([[-.012,0,.0175],[.012,0,.07]])] },
+        "line-offscreen": { lines: [line([[-1e6,0,10],[1e6,0,10]])] },
+        "line-far": { lines: [line([[-4000,0,12000],[4000,0,12000]])] },
+        "line-behind-surface": { polygons: [rect(10, "#deddd5")], lines: [line([[-2,0,12],[2,0,12]])] },
+        "line-before-surface": { polygons: [rect(10, "#deddd5")], lines: [line([[-2,0,8],[2,0,8]])] }
+      };
+      for (const [name, fixture] of Object.entries(lineFixtures)) reports.push([name, api.surfaceComparisonReport(fixture)]);
+      return reports;
     });
     for (const [name, report] of synthetic) check(report, `${name}-dpr${deviceScaleFactor}`, name !== "behind");
     const repeated = await page.evaluate(() => Array.from({ length: 5 }, () => window.__PORTANCE_TEST__.surfaceComparisonReport().three));
@@ -153,7 +198,7 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
     await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       api.disposeSurfaceComparison(); api.disposeSurfaceComparison();
-      api.enableSurfaceComparison();
+      api.enableSurfaceComparison({ infrastructures: true });
     });
     await settle();
     check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `recreate-dpr${deviceScaleFactor}`);

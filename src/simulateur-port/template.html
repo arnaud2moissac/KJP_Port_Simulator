@@ -5079,9 +5079,20 @@
       } else {
         renderPerformance.staticCacheHits += 1;
       }
-      const capture = surfaceCapture && /^(terrain|land):/.test(key);
+      const owner = surfaceCapture ? key.split(":", 1)[0] : null;
+      const capture = surfaceCapture && (captureSurfaces === "infrastructure"
+        ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
+        : /^(terrain|land)$/.test(owner));
       const firstPolygon = polygons.length;
-      if (capture) surfaceCapture.world.push(...geometry.polygons);
+      const firstLine = overlayLines.length;
+      if (capture) {
+        surfaceCapture.owners[owner] = (surfaceCapture.owners[owner] || 0) + 1;
+        surfaceCapture.world.push(...geometry.polygons.map(polygon => ({
+          ...polygon,
+          stroke: polygon.stroke === false ? null : polygon.stroke ?? visualPalette().harbor.outline
+        })));
+        surfaceCapture.worldLines.push(...geometry.lines);
+      }
       for (const polygon of geometry.polygons) {
         addPolygon(
           polygon.points,
@@ -5094,7 +5105,10 @@
       for (const line of geometry.lines) {
         addWorldLine(line.points, line.color, line.width, line.dash, line.layer);
       }
-      if (capture) surfaceCapture.projected.push(...polygons.slice(firstPolygon));
+      if (capture) {
+        surfaceCapture.projected.push(...polygons.slice(firstPolygon));
+        surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+      }
     }
 
     function addPolygon(points, fill, stroke = null, lineWidth = .7, layer = 0) {
@@ -7525,7 +7539,7 @@
           near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
         }),
         waterBackground: waterRenderState.background,
-        world: [], projected: []
+        world: [], projected: [], worldLines: [], projectedLines: [], owners: {}
       } : null;
       polygons.length = 0;
       overlayLines.length = 0;
@@ -9205,31 +9219,49 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableSurfaceComparison() { captureSurfaces = true; },
+        enableSurfaceComparison({ infrastructures = false } = {}) {
+          captureSurfaces = infrastructures ? "infrastructure" : "terrain";
+        },
         disposeSurfaceComparison() {
           captureSurfaces = false;
           surfaceCapture = null;
           surfaceComparison?.dispose();
           surfaceComparison = null;
         },
-        surfaceComparisonReport({ polygons: testPolygons, images = false } = {}) {
+        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false } = {}) {
           if (!surfaceCapture) throw new Error("Activer la capture terrain et attendre une frame");
           // Les fixtures synthétiques traversent le vrai clipping/project Legacy.
           // Elles ne sont jamais injectées dans le port ou le rendu visible.
-          const world = testPolygons || surfaceCapture.world;
-          const projected = testPolygons ? testPolygons.flatMap(polygon => {
+          const synthetic = testPolygons !== undefined || testLines !== undefined;
+          const world = synthetic ? testPolygons || [] : surfaceCapture.world;
+          const lines = synthetic ? testLines || [] : surfaceCapture.worldLines;
+          const projected = synthetic ? world.flatMap(polygon => {
             const clipped = clipPolygonToNearPlane(polygon.points);
             if (clipped.length < 3) return [];
             const points = clipped.map(project);
             if (points.some(point => !point)) return [];
             return [{ ...polygon, points, depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length }];
           }) : surfaceCapture.projected;
+          const projectedLines = synthetic ? lines.flatMap(line => {
+            const result = [];
+            for (let i = 1; i < line.points.length; i += 1) {
+              const clipped = clipSegmentToNearPlane(line.points[i - 1], line.points[i]);
+              if (!clipped) continue;
+              const points = clipped.map(project);
+              if (points.every(Boolean)) result.push({ ...line, points });
+            }
+            return result;
+          }) : surfaceCapture.projectedLines;
           const frame = KJPThreeSurfaces.createSurfaceFrame(
-            surfaceCapture.camera, world, surfaceCapture.waterBackground
+            surfaceCapture.camera, world, surfaceCapture.waterBackground, lines
           );
-          const legacyFrame = KJPRenderFrames.createRenderFrame({ polygons: projected, lines: [] });
+          const legacyFrame = KJPRenderFrames.createRenderFrame({ polygons: projected, lines: projectedLines });
           surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
-          return surfaceComparison.compare(frame, legacyFrame, pixelRatio, images);
+          return {
+            ...surfaceComparison.compare(frame, legacyFrame, pixelRatio, images),
+            owners: synthetic ? {} : { ...surfaceCapture.owners },
+            ...(geometry ? { frame, legacyFrame } : {})
+          };
         },
         projectionComparisonReport(points = []) {
           // Observer la base disponible sans rappeler cameraBasis() : cette

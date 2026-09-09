@@ -4,7 +4,6 @@ import {
   NoToneMapping, OneFactor, OneMinusSrcAlphaFactor, RawShaderMaterial, Scene,
   WebGLRenderer
 } from "three";
-import { createThreeCamera } from "./three-camera.mjs";
 import { projectSurfaceFrame } from "./surface-frame.mjs";
 import { compileSurfaceBatches } from "./surface-geometry.mjs";
 
@@ -18,7 +17,6 @@ export function createThreeSurfaceRenderer(canvas) {
   renderer.sortObjects = false;
   const scene = new Scene();
   const screenCamera = new Camera();
-  const bridge = createThreeCamera();
   const colorCache = new Map();
   const parser = document.createElement("canvas").getContext("2d");
   let disposed = false;
@@ -41,7 +39,7 @@ export function createThreeSurfaceRenderer(canvas) {
     colorCache.set(color, result);
     return result;
   };
-  const batches = ["opaque", "translucent", "strokes"].map((name, order) => {
+  const batches = ["opaque", "translucent", "strokes", "worldLines"].map((name, order) => {
     const material = new RawShaderMaterial({
       glslVersion: GLSL3,
       // Couleurs CSS déjà display-referred : aucune conversion sRGB/linéaire
@@ -74,7 +72,7 @@ export function createThreeSurfaceRenderer(canvas) {
     // Dimensions physiques exactes du Legacy (Math.round, pas Math.floor).
     const bufferWidth = Math.round(width * pixelRatio), bufferHeight = Math.round(height * pixelRatio);
     if (canvas.width !== bufferWidth || canvas.height !== bufferHeight) renderer.setSize(bufferWidth, bufferHeight, false);
-    const projected = projectSurfaceFrame(frame, bridge);
+    const projected = projectSurfaceFrame(frame);
     const compiled = compileSurfaceBatches(projected, frame.camera, parseColor);
     for (const batch of batches) {
       const data = compiled[batch.name];
@@ -101,6 +99,9 @@ export function createThreeSurfaceRenderer(canvas) {
     renderer.render(scene, screenCamera);
     return {
       polygons: projected.polygons.length, triangles: compiled.triangles,
+      lines: projected.lines.length,
+      acceptedLineSegments: compiled.acceptedLineSegments,
+      rejectedLineSegments: compiled.rejectedLineSegments,
       triangulationFailures: compiled.triangulationFailures,
       drawCalls: renderer.info.render.calls,
       gpuTriangles: renderer.info.render.triangles,

@@ -58,7 +58,7 @@ export function createSurfaceComparison(createLegacy) {
       const height = Math.round(frame.camera.height * pixelRatio);
       if (legacyCanvas.width !== width) legacyCanvas.width = width;
       if (legacyCanvas.height !== height) legacyCanvas.height = height;
-      legacy.render(projectedLegacy.polygons, []);
+      legacy.render(projectedLegacy.polygons, projectedLegacy.lines);
       const reference = new Uint8Array(width * height * 4);
       legacyContext.readPixels(0, 0, width, height, legacyContext.RGBA, legacyContext.UNSIGNED_BYTE, reference);
       const stats = three.render(frame, pixelRatio);
@@ -67,6 +67,7 @@ export function createSurfaceComparison(createLegacy) {
       const report = {
         width, height, pixelRatio, waterBackground: frame.waterBackground,
         worldPolygons: frame.polygons.length,
+        worldLines: frame.lines.length,
         legacy: legacy.report(), three: stats,
         pixels: compareSurfacePixels(reference, candidate, width, height),
         glErrors: [legacyContext.getError(), three.context.getError()]
