@@ -1,8 +1,8 @@
 import { createThreeSurfaceRenderer } from "./three-surfaces.mjs";
 
-// Les écarts ne sont tolérables que sur une bordure Legacy à un pixel physique.
-// Un changement de couleur uniforme, de couverture ou de profondeur intérieure
-// échoue : pas de seuil global qui masquerait une surface manquante.
+// Comparaison stricte dans le même navigateur/GPU. La classification bordure
+// à un pixel est diagnostique seulement : elle ne doit pas rendre acceptable
+// la disparition d'un contour fin dont tous les pixels seraient des bordures.
 export function compareSurfacePixels(reference, candidate, width, height) {
   if (reference.length !== width * height * 4 || candidate.length !== reference.length) {
     throw new TypeError("Surface pixels: dimensions invalides");
@@ -29,7 +29,7 @@ export function compareSurfacePixels(reference, candidate, width, height) {
       if (!edge) interiorDifferentPixels += 1;
     }
   }
-  return { differentPixels, interiorDifferentPixels, coveredPixels, maximumChannelError };
+  return { equal: differentPixels === 0, differentPixels, interiorDifferentPixels, coveredPixels, maximumChannelError };
 }
 
 // Banc isolé, instancié seulement par l'API ?test. Ne prend jamais possession

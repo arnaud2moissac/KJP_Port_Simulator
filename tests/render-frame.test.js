@@ -126,6 +126,11 @@ test("comparateur pixels refuse couleur et couverture erronées à l'intérieur"
   candidate[(4 * 8 + 4) * 4] = 254;
   assert.equal(compareSurfacePixels(reference, candidate, 8, 8).interiorDifferentPixels, 1);
   assert.equal(compareSurfacePixels(reference, new Uint8Array(reference.length), 8, 8).interiorDifferentPixels, 64);
+  const thin = new Uint8Array(8 * 8 * 4);
+  for (let y = 0; y < 8; y += 1) thin.fill(255, (y * 8 + 4) * 4, (y * 8 + 5) * 4);
+  const missingLine = compareSurfacePixels(thin, new Uint8Array(thin.length), 8, 8);
+  assert.equal(missingLine.interiorDifferentPixels, 0, "tous les pixels du trait fin sont des bordures");
+  assert.equal(missingLine.equal, false, "sa disparition doit néanmoins faire échouer la comparaison");
   assert.throws(() => compareSurfacePixels(reference, candidate, 4, 4), /dimensions/);
 });
 

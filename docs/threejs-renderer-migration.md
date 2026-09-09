@@ -65,7 +65,7 @@ ont produit les mêmes six empreintes SHA-256.
 | 2 · build Three autonome | terminé | r186 embarqué, smoke triangle, Legacy actif, 48 tests navigateur verts |
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
-| 5 · port, eau et infrastructures | en attente | captures iso-rendu sur intégré et La Trinité |
+| 5 · port, eau et infrastructures | en cours : terrain isolé validé, eau CSS conservée | 42 comparaisons raster exactes ; infrastructures et occlusions mixtes à porter |
 | 6 · bateaux et overlays monde | en attente | six scènes dans la tolérance définie |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
@@ -142,11 +142,68 @@ et comparés avec les premières géométries. La profondeur perspective standar
 de Three ne peut pas être considérée comme équivalente. La qualification
 Safari/Firefox, appareil mobile réel et performance GPU reste à faire.
 
+## Terrain isolé et eau — 9 septembre 2026
+
+La tranche caméra est sauvegardée dans `66b7fb6`. Le WIP terrain de l'utilisateur
+est `6c07053` ; la correction du test et le durcissement du comparateur suivent
+ce WIP sur la même branche `codex/threejs-v2`.
+
+Le terrain Three est un backend de comparaison hors écran, pas le renderer
+actif. `surface-frame.mjs` copie les polygones métriques de terrain/terre issus
+du cache visible et leur caméra ; il les clippe au plan proche puis les projette
+avec la caméra Three. `surface-geometry.mjs` reprend les choix de triangulation
+Legacy (nettoyage, concavité, diagonales), les contours en pixels, la profondeur
+logarithmique par sommet et les biais de couche. `three-surfaces.mjs` dessine
+trois lots avec `WebGLRenderer`, `BufferGeometry` et `RawShaderMaterial` :
+opaques, translucides triés sans écriture profondeur, puis contours.
+
+Les sommets GPU sont déjà en NDC avec `w=1`, afin de conserver l'interpolation
+écran de la profondeur Legacy. Couleurs CSS display-referred, alpha prémultiplié,
+`LEQUAL` et blending séparé identiques ; aucune conversion colorimétrique ni
+tone mapping ajouté. Les API ont été vérifiées dans les sources Three r186
+installées. Les buffers sont réutilisés, agrandis au besoin en libérant les
+précédents, et les ressources/contexte sont détruits explicitement à la fermeture
+du banc. La projection/triangulation CPU reste transitoire : aucun gain de
+performance ou stockage GPU permanent du monde n'est revendiqué.
+
+L'eau WebGL actuelle est un fond CSS porté par `.stage`, non un maillage.
+`drawWater()` reste inchangée, ainsi que `createDepthRenderer()`. Ne pas ajouter
+un plan opaque à z=0 : il masquerait notamment le terrain intégré à z=-0,08.
+L'image transparente Three conserve donc le même fond partagé.
+
+En mode `?test`, appeler `enableSurfaceComparison()`, attendre deux frames puis
+`surfaceComparisonReport({images:true})`. Le rapport fournit les compteurs,
+pixels et deux PNG transparents ; `disposeSurfaceComparison()` ferme le banc.
+Le Legacy de référence utilise un contexte détaché indépendant. Aucun canevas
+visible, état GL actif, état physique, commande ou boucle n'est remplacé.
+
+Validation : 42 comparaisons sur les terrains intégré et La Trinité, deux thèmes,
+trois vues, DPR 1/2, resize portrait, concavité et winding inversé, clipping
+proche/arrière, alpha/layers/seuil opaque, buffers stables à scène constante et
+disposal/recréation. Les scènes terrain utilisent `(25,-38,-π/2)` dans le port
+intégré et `(480,540,0)` près de `land-1` à La Trinité ; les vues prises à l'entrée
+ne suffisaient pas. Résultat : zéro pixel différent dans Chromium headless.
+Les captures isolées ont été inspectées ; les six captures du rendu actif
+conservent exactement leurs empreintes Legacy.
+
+La revue indépendante a montré qu'une tolérance limitée aux bordures pouvait
+laisser disparaître un trait fin. Le critère d'acceptation est donc désormais
+strict (`pixels.equal`) dans le même navigateur/GPU ; la classification des
+bordures n'est qu'un diagnostic. Un test de mutation vérifie qu'une bande fine
+entièrement absente échoue. Le premier échec navigateur provenait d'une lecture
+de `water` au lieu de `compositor` dans le test, corrigée après le WIP.
+
+Contrôles : build/check autonome, 8 tests unitaires, suite navigateur 50/50
+(dont les trois trajectoires étalons exactes), puis test terrain strict relancé
+après durcissement du comparateur. Aucune erreur console/page, GL ou requête
+HTTP détectée. Graphify mis à jour en AST. Pas de qualification GPU matériel,
+Safari/Firefox, mobile réel, performance ou occlusions terrain/bateaux/pontons.
+
 ## Prochaine tranche
 
-Porter l'eau et le terrain avec une comparaison raster Legacy/Three, en
-raccordant le snapshot caméra et en reproduisant clipping et profondeur.
-Le renderer Legacy doit
-rester disponible pour comparer chaque étape. Les vues de La Trinité actuelles
-partent de l'entrée ; ajouter une scène dense lorsque les infrastructures du
-grand port seront portées. La bascule de renderer par défaut reste ultérieure.
+Porter les infrastructures (quais, pontons, catways) dans le même banc et vérifier
+leur profondeur commune avec le terrain, avant les bateaux et overlays monde.
+Ajouter une scène réellement dense autour de `(200,305,0.5084)` à La Trinité,
+distincte de la scène de rive. Ne pas superposer simplement deux canevas de
+backends partiels : leurs buffers de profondeur ne seraient pas partagés.
+Le renderer Legacy reste actif ; la bascule de renderer par défaut est ultérieure.

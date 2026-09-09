@@ -84,6 +84,7 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
       assert.equal(report.three.triangles, report.legacy.triangles, name);
       assert.equal(report.three.polygons, report.legacy.polygons, name);
       assert.equal(report.pixels.interiorDifferentPixels, 0, `${name}: ${JSON.stringify(report.pixels)}`);
+      assert.equal(report.pixels.equal, true, `${name}: bordure ou contour différent : ${JSON.stringify(report.pixels)}`);
       if (nonblank) assert.ok(report.pixels.coveredPixels > 100, `${name}: terrain absent`);
       assert.ok(report.three.geometries <= 3);
       assert.equal(report.three.textures, 0);
@@ -112,7 +113,7 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
             const api = window.__PORTANCE_TEST__;
             const before = JSON.stringify(api.snapshot());
             const result = api.surfaceComparisonReport({ images });
-            return { ...result, unchanged: before === JSON.stringify(api.snapshot()), water: api.visualThemeReport().water };
+            return { ...result, unchanged: before === JSON.stringify(api.snapshot()), water: api.visualThemeReport().compositor };
           }, deviceScaleFactor === 1 && view === "anatomy");
           assert.equal(report.unchanged, true);
           assert.equal(report.water.owner, "stage");
@@ -160,7 +161,7 @@ test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de v
     assert.deepEqual(errors, []);
     await page.close();
   }
-  t.diagnostic(`${cases} comparaisons raster ; ${differentPixels} pixels différents, uniquement aux bordures ; captures ${output}`);
+  t.diagnostic(`${cases} comparaisons raster strictes ; ${differentPixels} pixels différents ; captures ${output}`);
 });
 
 test("caméra Three — ancres Legacy, resize, DPR et commandes sans mutation", async t => {
