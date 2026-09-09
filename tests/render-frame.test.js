@@ -75,6 +75,60 @@ function source() {
   };
 }
 
+test("SurfaceFrame fige le monde et clippe avant projection Three", async () => {
+  const { createCameraSnapshot } = await import("../src/simulateur-port/rendering/three-camera.mjs");
+  const { createSurfaceFrame, clipSurfacePolygon, projectSurfaceFrame } = await import("../src/simulateur-port/rendering/surface-frame.mjs");
+  const camera = createCameraSnapshot(cameraSource());
+  const polygon = {
+    points: [[9, 20.0175, 2], [11, 20.07, 2], [11, 20.07, 4], [9, 20.0175, 4]],
+    fill: "#123456", stroke: null, lineWidth: 0, layer: 0
+  };
+  const frame = createSurfaceFrame(camera, [polygon], "#abcdef");
+  polygon.points[0][0] = 100;
+  assert.equal(frame.polygons[0].points[0][0], 9);
+  assert.throws(() => { frame.polygons[0].points[0][0] = 99; }, TypeError);
+  const clipped = clipSurfacePolygon(frame.polygons[0].points, camera);
+  assert.equal(clipped.length, 4);
+  assert.ok(clipped.every(point => point[1] >= 20.035 - 1e-12));
+  assert.equal(projectSurfaceFrame(frame).polygons.length, 1);
+  assert.deepEqual(clipSurfacePolygon([[0, 0, 0], [1, 0, 0], [1, 1, 0]], camera), []);
+});
+
+test("triangulation terrain concave et profondeur logarithmique restent explicites", async () => {
+  const { triangulate, compileSurfaceBatches } = await import("../src/simulateur-port/rendering/surface-geometry.mjs");
+  const points = [[20, 20], [180, 20], [180, 80], [80, 80], [80, 180], [20, 180]]
+    .map(([x, y]) => ({ x, y, depth: 10 }));
+  for (const ring of [points, [...points].reverse()]) {
+    const mesh = triangulate(ring);
+    assert.equal(mesh.complete, true);
+    assert.equal(mesh.triangles.length, 4);
+    const area = mesh.triangles.reduce((sum, indices) => {
+      const [a, b, c] = indices.map(i => mesh.points[i]);
+      return sum + Math.abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) / 2;
+    }, 0);
+    assert.equal(area, 15600);
+  }
+  const camera = { width: 200, height: 200, near: .035, far: 6000 };
+  const poly = { points, fill: "opaque", stroke: null, lineWidth: 0, depth: 10, layer: 1 };
+  const batch = compileSurfaceBatches({ polygons: [poly] }, camera, () => [1, 0, 0, 1]);
+  assert.equal(batch.triangles, 4);
+  assert.equal(batch.triangulationFailures, 0);
+  const expected = Math.log(10 / .035) / Math.log(6000 / .035) * 2 - 1 - .00025;
+  assert.equal(batch.opaque[2], expected);
+  assert.equal(batch.opaque[3], 1, "aucune conversion de couleur CPU");
+});
+
+test("comparateur pixels refuse couleur et couverture erronées à l'intérieur", async () => {
+  const { compareSurfacePixels } = await import("../src/simulateur-port/rendering/surface-comparison.mjs");
+  const reference = new Uint8Array(8 * 8 * 4).fill(255);
+  assert.equal(compareSurfacePixels(reference, reference, 8, 8).differentPixels, 0);
+  const candidate = reference.slice();
+  candidate[(4 * 8 + 4) * 4] = 254;
+  assert.equal(compareSurfacePixels(reference, candidate, 8, 8).interiorDifferentPixels, 1);
+  assert.equal(compareSurfacePixels(reference, new Uint8Array(reference.length), 8, 8).interiorDifferentPixels, 64);
+  assert.throws(() => compareSurfacePixels(reference, candidate, 4, 4), /dimensions/);
+});
+
 test("RenderFrame conserve valeurs et ordre sans conserver les objets producteurs", () => {
   const input = source();
   const frame = createRenderFrame(input);

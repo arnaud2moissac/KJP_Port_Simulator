@@ -62,6 +62,107 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
+test("terrain Three — pixels Legacy, concavité, clipping, alpha et cycle de vie", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  const output = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-surface-comparison-"));
+  const portText = fs.readFileSync(path.join(projectRoot, "examples/la-trinite-sur-mer.kjp"), "utf8");
+  let cases = 0, differentPixels = 0;
+  for (const deviceScaleFactor of [1, 2]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("request", request => { if (/^https?:/i.test(request.url())) errors.push(request.url()); });
+    await page.goto(testUrl.href);
+    await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+    await page.evaluate(() => window.__PORTANCE_TEST__.enableSurfaceComparison());
+    const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const check = (report, name, nonblank = true) => {
+      assert.deepEqual(report.glErrors, [0, 0], name);
+      assert.equal(report.three.triangulationFailures, report.legacy.triangulationFailures, name);
+      assert.equal(report.three.triangles, report.legacy.triangles, name);
+      assert.equal(report.three.polygons, report.legacy.polygons, name);
+      assert.equal(report.pixels.interiorDifferentPixels, 0, `${name}: ${JSON.stringify(report.pixels)}`);
+      if (nonblank) assert.ok(report.pixels.coveredPixels > 100, `${name}: terrain absent`);
+      assert.ok(report.three.geometries <= 3);
+      assert.equal(report.three.textures, 0);
+      differentPixels += report.pixels.differentPixels;
+      cases += 1;
+      if (report.images) {
+        for (const [backend, url] of Object.entries(report.images)) {
+          fs.writeFileSync(path.join(output, `${name}-${backend}.png`), Buffer.from(url.split(",")[1], "base64"));
+        }
+      }
+    };
+    for (const port of ["built-in", "la-trinite"]) {
+      await page.evaluate(({ port, portText }) => {
+        const api = window.__PORTANCE_TEST__;
+        if (port === "built-in") api.restoreBuiltInPort(); else api.importPort(portText);
+        api.reset(port === "built-in" ? { x: 25, y: -38, heading: -Math.PI / 2 } : { x: 480, y: 540, heading: 0 });
+      }, { port, portText });
+      for (const theme of ["dark", "chart"]) {
+        for (const view of ["top", "anatomy", "skipper"]) {
+          await page.evaluate(({ theme, view }) => {
+            window.__PORTANCE_TEST__.selectVisualTheme(theme);
+            window.__PORTANCE_TEST__.selectCameraView(view);
+          }, { theme, view });
+          await settle();
+          const report = await page.evaluate(images => {
+            const api = window.__PORTANCE_TEST__;
+            const before = JSON.stringify(api.snapshot());
+            const result = api.surfaceComparisonReport({ images });
+            return { ...result, unchanged: before === JSON.stringify(api.snapshot()), water: api.visualThemeReport().water };
+          }, deviceScaleFactor === 1 && view === "anatomy");
+          assert.equal(report.unchanged, true);
+          assert.equal(report.water.owner, "stage");
+          assert.equal(report.waterBackground, report.water.background);
+          check(report, `${port}-${theme}-${view}-dpr${deviceScaleFactor}`);
+        }
+      }
+    }
+    // Fixtures purement visuelles, jamais importées dans la simulation.
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("top"));
+    await settle();
+    const synthetic = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      const s = api.projectionComparisonReport().snapshot;
+      const world = (x, y, depth) => s.position.map((value, i) => value + s.right[i] * x + s.up[i] * y + s.forward[i] * depth);
+      const polygon = (coords, fill = "#cf915f", layer = 0) => ({
+        points: coords.map(p => world(...p)), fill, stroke: "rgba(31,65,90,.62)", lineWidth: .7, layer
+      });
+      const rect = (d, fill, layer = 0) => polygon([[-3,-3,d],[3,-3,d],[3,3,d],[-3,3,d]], fill, layer);
+      const concave = polygon([[-3,-3,10],[3,-3,10],[3,-1,10],[-1,-1,10],[-1,3,10],[-3,3,10]]);
+      const near = polygon([[-.012,-.012,.0175],[.012,-.012,.07],[.012,.012,.07],[-.012,.012,.0175]]);
+      const fixtures = {
+        concave: [concave], reversed: [{ ...concave, points: [...concave.points].reverse() }],
+        near: [near], behind: [rect(-1, "#fff")],
+        alpha: [rect(8, "rgba(0,0,255,.5)"), rect(20, "#deddd5"), rect(12, "rgba(255,0,0,.5)")],
+        layers: [rect(10, "#ff0000", .25), rect(10, "#00ff00", -.25), rect(10, "#0000ff", 1)],
+        threshold: [rect(10, "rgba(255,0,0,.994)"), rect(12, "rgba(0,0,255,.995)")]
+      };
+      return Object.entries(fixtures).map(([name, polygons]) => [name, api.surfaceComparisonReport({ polygons })]);
+    });
+    for (const [name, report] of synthetic) check(report, `${name}-dpr${deviceScaleFactor}`, name !== "behind");
+    const repeated = await page.evaluate(() => Array.from({ length: 5 }, () => window.__PORTANCE_TEST__.surfaceComparisonReport().three));
+    assert.deepEqual(repeated.at(-1), repeated[0], "buffers et ressources stables à scène constante");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await settle();
+    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `resize-dpr${deviceScaleFactor}`);
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.disposeSurfaceComparison(); api.disposeSurfaceComparison();
+      api.enableSurfaceComparison();
+    });
+    await settle();
+    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `recreate-dpr${deviceScaleFactor}`);
+    await page.evaluate(() => window.__PORTANCE_TEST__.disposeSurfaceComparison());
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+  t.diagnostic(`${cases} comparaisons raster ; ${differentPixels} pixels différents, uniquement aux bordures ; captures ${output}`);
+});
+
 test("caméra Three — ancres Legacy, resize, DPR et commandes sans mutation", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());

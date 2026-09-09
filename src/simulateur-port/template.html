@@ -5060,6 +5060,8 @@
     const polygons = [];
     const overlayLines = [];
     let worldGeometryCapture = null;
+    let captureSurfaces = false;
+    let surfaceCapture = null;
 
     function addCachedWorldGeometry(key, builder) {
       let geometry = staticWorldGeometryCache.get(key);
@@ -5077,6 +5079,9 @@
       } else {
         renderPerformance.staticCacheHits += 1;
       }
+      const capture = surfaceCapture && /^(terrain|land):/.test(key);
+      const firstPolygon = polygons.length;
+      if (capture) surfaceCapture.world.push(...geometry.polygons);
       for (const polygon of geometry.polygons) {
         addPolygon(
           polygon.points,
@@ -5089,6 +5094,7 @@
       for (const line of geometry.lines) {
         addWorldLine(line.points, line.color, line.width, line.dash, line.layer);
       }
+      if (capture) surfaceCapture.projected.push(...polygons.slice(firstPolygon));
     }
 
     function addPolygon(points, fill, stroke = null, lineWidth = .7, layer = 0) {
@@ -7512,6 +7518,15 @@
       frameBasis = cameraBasis();
       visibleHarborFrameCache = computeVisibleHarborIds();
       drawWater(time);
+      surfaceCapture = captureSurfaces ? {
+        camera: KJPThreeCamera.createCameraSnapshot({
+          basis: frameBasis, width: canvasWidth, height: canvasHeight,
+          focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
+          near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
+        }),
+        waterBackground: waterRenderState.background,
+        world: [], projected: []
+      } : null;
       polygons.length = 0;
       overlayLines.length = 0;
       addChartGrid();
@@ -9188,7 +9203,34 @@
       if (!new URLSearchParams(location.search).has("test")) return;
       controls.paused = true;
       const threeCamera = KJPThreeCamera.createThreeCamera();
+      let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
+        enableSurfaceComparison() { captureSurfaces = true; },
+        disposeSurfaceComparison() {
+          captureSurfaces = false;
+          surfaceCapture = null;
+          surfaceComparison?.dispose();
+          surfaceComparison = null;
+        },
+        surfaceComparisonReport({ polygons: testPolygons, images = false } = {}) {
+          if (!surfaceCapture) throw new Error("Activer la capture terrain et attendre une frame");
+          // Les fixtures synthétiques traversent le vrai clipping/project Legacy.
+          // Elles ne sont jamais injectées dans le port ou le rendu visible.
+          const world = testPolygons || surfaceCapture.world;
+          const projected = testPolygons ? testPolygons.flatMap(polygon => {
+            const clipped = clipPolygonToNearPlane(polygon.points);
+            if (clipped.length < 3) return [];
+            const points = clipped.map(project);
+            if (points.some(point => !point)) return [];
+            return [{ ...polygon, points, depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length }];
+          }) : surfaceCapture.projected;
+          const frame = KJPThreeSurfaces.createSurfaceFrame(
+            surfaceCapture.camera, world, surfaceCapture.waterBackground
+          );
+          const legacyFrame = KJPRenderFrames.createRenderFrame({ polygons: projected, lines: [] });
+          surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
+          return surfaceComparison.compare(frame, legacyFrame, pixelRatio, images);
+        },
         projectionComparisonReport(points = []) {
           // Observer la base disponible sans rappeler cameraBasis() : cette
           // dernière avance le suivi caméra et ne serait pas un diagnostic pur.
