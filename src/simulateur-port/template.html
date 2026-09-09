@@ -5062,6 +5062,7 @@
     let worldGeometryCapture = null;
     let captureSurfaces = false;
     let surfaceCapture = null;
+    let capturingPlayerBoat = false;
 
     function addCachedWorldGeometry(key, builder) {
       let geometry = staticWorldGeometryCache.get(key);
@@ -5080,9 +5081,11 @@
         renderPerformance.staticCacheHits += 1;
       }
       const owner = surfaceCapture ? key.split(":", 1)[0] : null;
-      const capture = surfaceCapture && (captureSurfaces === "infrastructure"
-        ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
-        : /^(terrain|land)$/.test(owner));
+      const capture = surfaceCapture && (captureSurfaces === "boats"
+        ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
+        : captureSurfaces === "infrastructure"
+          ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
+          : /^(terrain|land)$/.test(owner));
       const firstPolygon = polygons.length;
       const firstLine = overlayLines.length;
       if (capture) {
@@ -5116,6 +5119,11 @@
         worldGeometryCapture.polygons.push({ points, fill, stroke, lineWidth, layer });
         return;
       }
+      if (capturingPlayerBoat) surfaceCapture.world.push({
+        points, fill,
+        stroke: stroke === false ? null : stroke ?? visualPalette().harbor.outline,
+        lineWidth, layer
+      });
       const clipped = clipPolygonToNearPlane(points);
       if (clipped.length < 3) return;
       const projected = clipped.map(project);
@@ -5136,6 +5144,7 @@
         worldGeometryCapture.lines.push({ points, color, width, dash, layer });
         return points.length - 1;
       }
+      if (capturingPlayerBoat) surfaceCapture.worldLines.push({ points, color, width, dash, layer });
       const basis = frameBasis || cameraBasis();
       if (points.every(point => cameraDepth(point, basis) >= PROJECTION_NEAR_CLIP)) {
         const projected = points.map(project);
@@ -7556,7 +7565,30 @@
           addBoatMesh(boat, false);
         });
       }
-      addBoatMesh(frameMotion, true);
+      if (surfaceCapture && captureSurfaces === "boats") {
+        const firstPolygon = polygons.length;
+        const firstLine = overlayLines.length;
+        capturingPlayerBoat = true;
+        try {
+          addBoatMesh(frameMotion, true);
+        } finally {
+          capturingPlayerBoat = false;
+        }
+        surfaceCapture.projected.push(...polygons.slice(firstPolygon));
+        surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+        surfaceCapture.owners.player = 1;
+        surfaceCapture.player = {
+          x: frameMotion.x, y: frameMotion.y, heading: frameMotion.heading,
+          timeScale: ui.timeScale, simTime: ui.simTime,
+          interpolationRatio: controls.paused ? 1 : clamp(ui.accumulator / FIXED_DT, 0, 1),
+          previousPose: { ...previousPhysicsPose },
+          authoritativePose: { x: motion.x, y: motion.y, heading: motion.heading },
+          contactFenders: contacts.current.length,
+          polygons: polygons.length - firstPolygon, lines: overlayLines.length - firstLine
+        };
+      } else {
+        addBoatMesh(frameMotion, true);
+      }
       addRudderAxis();
       if (depthRenderer) {
         try {
@@ -9219,8 +9251,8 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableSurfaceComparison({ infrastructures = false } = {}) {
-          captureSurfaces = infrastructures ? "infrastructure" : "terrain";
+        enableSurfaceComparison({ infrastructures = false, boats = false } = {}) {
+          captureSurfaces = boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
         },
         disposeSurfaceComparison() {
           captureSurfaces = false;
@@ -9260,6 +9292,11 @@
           return {
             ...surfaceComparison.compare(frame, legacyFrame, pixelRatio, images),
             owners: synthetic ? {} : { ...surfaceCapture.owners },
+            player: synthetic || !surfaceCapture.player ? null : {
+              ...surfaceCapture.player,
+              previousPose: { ...surfaceCapture.player.previousPose },
+              authoritativePose: { ...surfaceCapture.player.authoritativePose }
+            },
             ...(geometry ? { frame, legacyFrame } : {})
           };
         },

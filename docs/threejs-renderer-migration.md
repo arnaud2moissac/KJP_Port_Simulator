@@ -65,8 +65,8 @@ ont produit les mêmes six empreintes SHA-256.
 | 2 · build Three autonome | terminé | r186 embarqué, smoke triangle, Legacy actif, 48 tests navigateur verts |
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
-| 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes ; bateaux et overlays encore exclus |
-| 6 · bateaux et overlays monde | en attente | six scènes dans la tolérance définie |
+| 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes avant extension bateaux |
+| 6 · bateaux et overlays monde | bateaux statiques/joueur validés ; overlays à porter | 130 comparaisons raster exactes, dont poses joueur animées |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
 
@@ -241,11 +241,47 @@ et Graphify mis à jour. La revue indépendante ne relève pas de défaut concre
 Les limitations restent le rendu isolé, l'absence de qualification GPU matériel
 et les allocations CPU transitoires ; aucun gain de performance revendiqué.
 
+## Bateaux statiques et joueur — 9 septembre 2026
+
+Départ de `aebbdc4`, branche `codex/threejs-v2`. L'option
+`enableSurfaceComparison({boats:true})` inclut le terrain, les infrastructures,
+les bateaux statiques du cache (`boat`) et exactement un bateau joueur (`player`).
+Le joueur est observé pendant l'unique appel habituel `addBoatMesh(frameMotion,true)` :
+les primitives monde sont recueillies avant clipping, les sorties Legacy après.
+Il n'est ni reconstruit une seconde fois ni inséré dans le cache statique.
+Le drapeau de capture est réinitialisé par `finally`.
+
+La coque, les contours/halos de collision, le mât, les pare-battages et les
+éléments anatomiques empruntent les quatre passes existantes. Toutes les lignes
+actuelles de `addBoatMesh` sont pleines et de layer inférieur à 10. La géométrie
+de ce constructeur, `prepareInterpolatedFrameMotion` et `createDepthRenderer`
+restent identiques octet pour octet à `aebbdc4` ; aucun changement physique.
+Le rapport `player` copie la pose affichée, les poses précédente/autoritaire et
+le ratio d'interpolation, sans exposer leurs références mutables.
+
+Validation ciblée : 130 comparaisons raster strictes, zéro pixel différent.
+Aux 76 cas précédents s'ajoutent les deux ports × trois vues × deux thèmes ×
+vitesses 1/2 × DPR 1/2, puis trois images réellement animées par DPR en anatomie
+à vitesse 1. Présence de bateaux statiques, joueur et infrastructures contrôlée ;
+pose x/y et cap interpolés vérifiés, mouvement entre captures et état physique
+inchangé pendant chaque comparaison. Les captures anatomie intégré/La Trinité
+ont été inspectées. Les neuf tests unitaires existants restent verts.
+Build et contrôle du HTML autonome réussis ; suite navigateur finale 50/50,
+dont les trois trajectoires étalons exactes ; six empreintes Legacy inchangées.
+Aucune erreur console/page/GL ni requête HTTP détectée. Diff vérifié et graphe
+mis à jour en AST. Les modifications de cette tranche restent non commitées.
+
+La revue indépendante ne relève pas de bug concret dans la capture. Limites :
+pas encore de cas raster dédié au changement de couleur des pare-battages en
+contact, ni à l'interpolation du cap traversant ±π ; animation raster exercée en
+anatomie ×1 seulement, autres vues et ×2 en pause. Les overlays d'aussières,
+le balisage et la bascule Three visible restent hors de cette tranche. Le banc
+avec lectures de pixels n'est pas une mesure de performance.
+
 ## Prochaine tranche
 
-Ajouter les bateaux statiques et le bateau joueur interpolé au même snapshot
-de présentation, puis bouées/balisage et overlays monde. Comparer leurs
-occultations avec les infrastructures avant toute bascule active. Le support des
-pointillés devra précéder l'intégration des aussières et overlays concernés.
+Ajouter bouées/balisage au même snapshot, puis les overlays monde. Le support
+des pointillés devra précéder l'intégration des aussières et overlays concernés.
+Compléter les cas de contact/animation manquants avant qualification globale.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
 ne seraient pas partagés. Le renderer Legacy reste actif.
