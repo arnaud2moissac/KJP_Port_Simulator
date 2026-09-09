@@ -6,10 +6,12 @@
   "devDependencies": {
     "esbuild": "0.25.11",
     "ol": "10.10.0",
-    "playwright": "1.61.1"
+    "playwright": "1.61.1",
+    "three": "0.186.0"
   },
   "scripts": {
     "build:simulator": "node scripts/build-simulateur-port.js",
+    "capture:renderer-baseline": "node scripts/capture-simulator-render-baseline.js",
     "build:port-generator": "node scripts/build-port-generator.js",
     "check:build": "node scripts/build-simulateur-port.js --check",
     "check:port-generator": "node scripts/build-port-generator.js --check",

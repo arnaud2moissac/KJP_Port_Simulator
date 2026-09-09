@@ -69,13 +69,47 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     deviceScaleFactor: 1
   });
   const runtimeErrors = [];
+  const externalRequests = [];
   page.on("console", message => {
     if (message.type() === "error") runtimeErrors.push(`console: ${message.text()}`);
   });
   page.on("pageerror", error => runtimeErrors.push(`page: ${error.message}`));
+  page.on("request", request => {
+    if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
+  });
 
   await page.goto(testUrl.href);
   await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+
+  await t.test("Three.js r186 est embarqué hors ligne sans remplacer le renderer Legacy", async () => {
+    const report = await page.evaluate(() => ({
+      activeRenderer: window.__PORTANCE_TEST__.visualReport().renderer,
+      three: {
+        revision: window.KJPThreeRendering?.revision,
+        renderer: window.KJPThreeRendering?.renderer,
+        role: window.KJPThreeRendering?.role,
+        activeByDefault: window.KJPThreeRendering?.activeByDefault,
+        smoke: window.KJPThreeRendering?.smokeTest()
+      }
+    }));
+    assert.equal(report.activeRenderer.webgl2, true);
+    assert.equal(report.activeRenderer.painterFallback, false);
+    assert.deepEqual(report.three, {
+      revision: "186",
+      renderer: "WebGLRenderer",
+      role: "migration-smoke",
+      activeByDefault: false,
+      smoke: {
+        revision: "186",
+        renderer: "WebGLRenderer",
+        webgl2: true,
+        width: 2,
+        height: 2,
+        drawCalls: 1,
+        triangles: 1
+      }
+    });
+  });
 
   await t.test("l’identité KJP, le favicon et le README sont intégrés hors ligne", async () => {
     const initial = await page.evaluate(() => ({
@@ -2209,7 +2243,10 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       ""
     );
     const topologySource = fs.readFileSync(topologyPath, "utf8");
-    assert.doesNotMatch(htmlWithoutReadmeLinks, /https?:\/\//);
+    assert.doesNotMatch(
+      htmlWithoutReadmeLinks,
+      /(?:src|href)\s*=\s*["']https?:\/\//i
+    );
     assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
     assert.doesNotMatch(topologySource, /https?:\/\//);
     assert.doesNotMatch(topologySource, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
@@ -2243,6 +2280,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(desktop.current, /^0(?:,0)? nd$/);
     assert.match(desktop.rpm, /^\d+$/);
     assert.equal(desktop.overflow, false);
+    assert.deepEqual(externalRequests, []);
 
     await page.screenshot({ path: "/tmp/simulateur-port-non-regression-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });

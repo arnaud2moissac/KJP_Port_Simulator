@@ -2,6 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const esbuild = require("esbuild");
 const { projectAssets } = require("./embed-project-readme.js");
 
 const root = path.resolve(__dirname, "..");
@@ -9,9 +10,17 @@ const templatePath = path.join(root, "src", "simulateur-port", "template.html");
 const profilesPath = path.join(root, "src", "simulateur-port", "vessel-profiles.js");
 const physicsPath = path.join(root, "src", "simulateur-port", "physics-core.js");
 const codecPath = path.join(root, "src", "ports", "kjp-codec.js");
+const threeEntryPath = path.join(
+  root,
+  "src",
+  "simulateur-port",
+  "rendering",
+  "three-smoke.js"
+);
 const outputPath = path.join(root, "simulateur-port.html");
 const marker = "/*__PORT_PHYSICS_CORE__*/";
 const codecMarker = "/*__KJP_CODEC__*/";
+const threeMarker = "/*__THREE_RENDERING_BUNDLE__*/";
 const readmeMarker = "<!--__README_HTML__-->";
 const logoMarker = "__KJP_LOGO_DATA_URI__";
 const topologyPattern = /<script\s+data-port-topology\s+src="([^"]+)"><\/script>/;
@@ -177,11 +186,30 @@ function validateTopology(topologyRelativePath) {
   return topology;
 }
 
+function bundleThreeRendering() {
+  const result = esbuild.buildSync({
+    entryPoints: [threeEntryPath],
+    bundle: true,
+    write: false,
+    format: "iife",
+    platform: "browser",
+    target: ["safari15", "chrome100", "firefox100"],
+    minify: true,
+    legalComments: "inline"
+  });
+  const javascript = result.outputFiles[0]?.text;
+  if (!javascript) throw new Error("Bundle Three.js du simulateur absent.");
+  return javascript
+    .replace(/[ \t]+$/gm, "")
+    .replace(/^ +(?=\t)/gm, "");
+}
+
 function build() {
   const template = fs.readFileSync(templatePath, "utf8");
   const profiles = fs.readFileSync(profilesPath, "utf8");
   const physics = fs.readFileSync(physicsPath, "utf8");
   const codec = fs.readFileSync(codecPath, "utf8");
+  const threeRendering = bundleThreeRendering();
   const { logoDataUri, readmeHtml } = projectAssets(root);
   const topologyMatch = template.match(topologyPattern);
   if (!topologyMatch) {
@@ -200,6 +228,9 @@ function build() {
   if (!template.includes(codecMarker)) {
     throw new Error(`Marqueur KJP absent dans ${templatePath}`);
   }
+  if (!template.includes(threeMarker)) {
+    throw new Error(`Marqueur Three.js absent dans ${templatePath}`);
+  }
   if (!template.includes(readmeMarker) || !template.includes(logoMarker)) {
     throw new Error(`Marqueurs d'identité ou d'aide absents dans ${templatePath}`);
   }
@@ -213,11 +244,13 @@ function build() {
       () => `${profiles.trim()}\n\n${physics.trim()}`
     )
     .replace(codecMarker, () => codec.trim())
+    .replace(threeMarker, () => threeRendering.trim())
     .replace(readmeMarker, () => readmeHtml)
     .replaceAll(logoMarker, logoDataUri);
   if (
     output.includes(marker)
     || output.includes(codecMarker)
+    || output.includes(threeMarker)
     || output.includes(readmeMarker)
     || output.includes(logoMarker)
   ) {

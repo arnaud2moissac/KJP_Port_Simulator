@@ -1,0 +1,3 @@
+interface:
+  display_name: "KJP Three Renderer Migration"
+  short_description: "Migrate KJP rendering without changing physics or visuals"
