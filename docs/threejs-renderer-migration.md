@@ -66,7 +66,7 @@ ont produit les mêmes six empreintes SHA-256.
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
 | 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes avant extension bateaux |
-| 6 · bateaux et overlays monde | bateaux statiques/joueur validés ; overlays à porter | 130 comparaisons raster exactes, dont poses joueur animées |
+| 6 · bateaux et overlays monde | bateaux statiques/joueur et balisage validés ; overlays à porter | 166 comparaisons raster exactes, dont poses joueur animées |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
 
@@ -278,10 +278,43 @@ anatomie ×1 seulement, autres vues et ×2 en pause. Les overlays d'aussières,
 le balisage et la bascule Three visible restent hors de cette tranche. Le banc
 avec lectures de pixels n'est pas une mesure de performance.
 
+## Bouées et balisage — 9 septembre 2026
+
+Départ de `42b1dfc`, branche `codex/threejs-v2`. L'option de diagnostic
+`enableSurfaceComparison({seamarks:true})` étend la capture complète précédente
+aux propriétaires `buoy` et `lights`. Elle reprend les primitives du cache
+historique, dans leur ordre habituel, et conserve exactement un joueur.
+Aucun changement de constructeur, d'apparence nautique, de collision ou de
+backend visible. Les feux restent des lignes colorées, sans éclairage Three.
+
+36 cas supplémentaires couvrent le port intégré avec feux/pontons/bateaux,
+une bouée réelle de La Trinité et une fixture de dix variantes : latérales,
+quatre cardinales, danger isolé, eaux saines, spéciale et installation.
+Chaque scène est exercée dans les trois vues, les deux thèmes et à DPR 1/2.
+Les captures rapprochées anatomie/skipper ont été inspectées ; les silhouettes,
+bandes et marques reproduisent uniquement les formes Legacy existantes, sans
+prétendre à une représentation réglementaire exhaustive.
+
+La revue indépendante n'a trouvé aucun bug de capture ; elle a conduit à
+renforcer le contrôle des feux : les quinze segments du port intégré sont
+identifiés par leurs coordonnées, puis retirés d'une copie du même snapshot.
+Leur suppression doit changer l'image, ce qui prouve leur contribution raster
+et ne se limite pas au comptage d'un propriétaire de cache éventuellement vide.
+
+Validation : build et contrôle du HTML autonome réussis, neuf tests unitaires,
+suite navigateur 50/50 puis relance ciblée après renforcement du test des feux :
+166 comparaisons exactes, zéro pixel différent, aucune erreur console/page/GL
+ni requête HTTP. Les trois trajectoires étalons et six empreintes Legacy sont
+inchangées. Diff contrôlé, `graphify update .` exécuté (aucun changement de
+topologie du graphe). `main` et les sources physiques restent intacts.
+La tranche reste non commitée. Les limites du banc isolé et les cas de contact/
+animation encore manquants de la tranche bateaux restent valables ; aucun gain
+de performance n'est revendiqué.
+
 ## Prochaine tranche
 
-Ajouter bouées/balisage au même snapshot, puis les overlays monde. Le support
-des pointillés devra précéder l'intégration des aussières et overlays concernés.
+Ajouter les overlays monde au même snapshot. Le support des pointillés devra
+précéder l'intégration des aussières et overlays concernés.
 Compléter les cas de contact/animation manquants avant qualification globale.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
 ne seraient pas partagés. Le renderer Legacy reste actif.

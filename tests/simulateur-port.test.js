@@ -62,11 +62,32 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
-test("terrain Three — bateaux, infrastructures, pixels Legacy et cycle de vie", async t => {
+test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cycle de vie", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const output = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-surface-comparison-"));
   const portText = fs.readFileSync(path.join(projectRoot, "examples/la-trinite-sur-mer.kjp"), "utf8");
+  const seamarkPort = KJPCodec.createEmpty({ id: "raster-seamarks", name: "Balisage raster" });
+  const seamarkKinds = [
+    ["buoy_lateral", "port"], ["buoy_lateral", "starboard"],
+    ...["north", "east", "south", "west"].map(category => ["buoy_cardinal", category]),
+    ["buoy_isolated_danger", ""], ["buoy_safe_water", ""],
+    ["buoy_special_purpose", ""], ["buoy_installation", ""]
+  ];
+  seamarkPort.structures.buoys = seamarkKinds.map(([seamarkType, category], index) => ({
+    id: `raster-buoy-${index}`, seamarkType, category,
+    position: { east: (index % 5 - 2) * 5, north: 12 + Math.floor(index / 5) * 8 },
+    radius: .8, height: 2.2, collision: false,
+    ...KJPCodec.recommendedBuoyAppearance(seamarkType, category)
+  }));
+  seamarkPort.navigation.entries.push({ id: "entry-raster", position: { east: 0, north: 0 }, heading: Math.PI / 2 });
+  const seamarkText = KJPCodec.serialize(seamarkPort);
+  const lightSegments = portTopology.lights.posts.map(post => [[post.x, post.y, post.z0], [post.x, post.y, post.z1]]);
+  const entrance = portTopology.lights.entrance;
+  lightSegments.push(
+    [[entrance.x, entrance.y, entrance.z0], [entrance.x, entrance.y, entrance.zLight]],
+    [[entrance.x, entrance.y, entrance.zLight], [entrance.x, entrance.y, entrance.zTop]]
+  );
   let cases = 0, differentPixels = 0;
   for (const deviceScaleFactor of [1, 2]) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor });
@@ -193,6 +214,57 @@ test("terrain Three — bateaux, infrastructures, pixels Legacy et cycle de vie"
         }
       }
     }
+    await page.evaluate(() => window.__PORTANCE_TEST__.enableSurfaceComparison({ seamarks: true }));
+    for (const port of ["built-in-lights", "la-trinite-buoy", "seamark-families"]) {
+      await page.evaluate(({ port, portText, seamarkText }) => {
+        const api = window.__PORTANCE_TEST__;
+        if (port === "built-in-lights") {
+          api.restoreBuiltInPort(); api.reset({ x: 38, y: 35, heading: .8 });
+        } else if (port === "la-trinite-buoy") {
+          api.importPort(portText); api.reset({ x: 475, y: 45, heading: .75 });
+        } else {
+          api.importPort(seamarkText); api.reset({ x: 0, y: 0, heading: Math.PI / 2 });
+          if (api.topologyReport().buoys.length !== 10) throw new Error("Familles de bouées manquantes");
+        }
+        api.selectTimeScale(1);
+      }, { port, portText, seamarkText });
+      for (const theme of ["dark", "chart"]) {
+        for (const view of ["top", "anatomy", "skipper"]) {
+          await page.evaluate(({ theme, view }) => {
+            const api = window.__PORTANCE_TEST__;
+            api.selectVisualTheme(theme); api.selectCameraView(view);
+          }, { theme, view });
+          await settle();
+          const report = await page.evaluate(({ images, lights }) => {
+            const api = window.__PORTANCE_TEST__;
+            const before = JSON.stringify(api.snapshot());
+            const { frame, legacyFrame, ...result } = api.surfaceComparisonReport({ images: images || Boolean(lights), geometry: Boolean(lights) });
+            if (lights) {
+              const keys = new Set(lights.map(points => JSON.stringify(points)));
+              const withoutLights = frame.lines.filter(line => !keys.has(JSON.stringify(line.points)));
+              const omitted = api.surfaceComparisonReport({ polygons: frame.polygons, lines: withoutLights, images: true });
+              result.lightSegments = frame.lines.length - withoutLights.length;
+              // Même snapshot/caméra : supprimer seulement les feux doit changer
+              // les pixels, pas uniquement les compteurs du cache.
+              result.visibleLights = result.images.legacy !== omitted.images.legacy;
+            }
+            if (!images) delete result.images;
+            return { ...result, unchanged: before === JSON.stringify(api.snapshot()) };
+          }, { images: deviceScaleFactor === 1, lights: port === "built-in-lights" ? lightSegments : null });
+          assert.equal(report.unchanged, true);
+          assert.equal(report.owners.player, 1);
+          assert.equal(report.owners.lights, 1);
+          if (port === "built-in-lights") {
+            assert.ok(report.owners.dock > 0 && report.owners.boat > 0);
+            assert.equal(report.lightSegments, lightSegments.length);
+            assert.equal(report.visibleLights, true, `${theme}/${view}: feux sans contribution raster`);
+          }
+          else assert.ok(report.owners.buoy >= (port === "seamark-families" ? 10 : 1));
+          assert.ok(report.three.acceptedLineSegments > 0);
+          check(report, `${port}-${theme}-${view}-dpr${deviceScaleFactor}`);
+        }
+      }
+    }
     // Joueur animé : état autoritaire inchangé pendant chaque lecture, pose
     // interpolée vérifiée indépendamment et géométrie dynamique non mise en cache.
     await page.evaluate(() => {
@@ -267,7 +339,7 @@ test("terrain Three — bateaux, infrastructures, pixels Legacy et cycle de vie"
     await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       api.disposeSurfaceComparison(); api.disposeSurfaceComparison();
-      api.enableSurfaceComparison({ infrastructures: true });
+      api.enableSurfaceComparison({ seamarks: true });
     });
     await settle();
     check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `recreate-dpr${deviceScaleFactor}`);

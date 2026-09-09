@@ -15954,11 +15954,13 @@ void main() {
         renderPerformance.staticCacheHits += 1;
       }
       const owner = surfaceCapture ? key.split(":", 1)[0] : null;
-      const capture = surfaceCapture && (captureSurfaces === "boats"
-        ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
-        : captureSurfaces === "infrastructure"
-          ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
-          : /^(terrain|land)$/.test(owner));
+      const capture = surfaceCapture && (captureSurfaces === "seamarks"
+        ? /^(terrain|land|dock|catway|obstacle|boat|buoy|lights)$/.test(owner)
+        : captureSurfaces === "boats"
+          ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
+          : captureSurfaces === "infrastructure"
+            ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
+            : /^(terrain|land)$/.test(owner));
       const firstPolygon = polygons.length;
       const firstLine = overlayLines.length;
       if (capture) {
@@ -18438,7 +18440,7 @@ void main() {
           addBoatMesh(boat, false);
         });
       }
-      if (surfaceCapture && captureSurfaces === "boats") {
+      if (surfaceCapture && (captureSurfaces === "boats" || captureSurfaces === "seamarks")) {
         const firstPolygon = polygons.length;
         const firstLine = overlayLines.length;
         capturingPlayerBoat = true;
@@ -20124,8 +20126,8 @@ void main() {
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableSurfaceComparison({ infrastructures = false, boats = false } = {}) {
-          captureSurfaces = boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
+        enableSurfaceComparison({ infrastructures = false, boats = false, seamarks = false } = {}) {
+          captureSurfaces = seamarks ? "seamarks" : boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
         },
         disposeSurfaceComparison() {
           captureSurfaces = false;
