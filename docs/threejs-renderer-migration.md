@@ -66,7 +66,7 @@ ont produit les mêmes six empreintes SHA-256.
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
 | 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes avant extension bateaux |
-| 6 · bateaux et overlays monde | monde WebGL complet dans le banc ; overlays Canvas2D conservés et composés | 260 comparaisons raster exactes, dont poses joueur animées ; cas contact/animation à compléter |
+| 6 · bateaux et overlays monde | monde complet et overlays composés ; contact/animation couverts, défaut de coloration Legacy identifié | 338 comparaisons raster + 24 traversées de ±π exactes |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
 
@@ -400,10 +400,66 @@ inchangées octet pour octet. Diff contrôlé et graphe AST mis à jour.
 le prérequis pointillés restent non commités. Pas de bascule du renderer actif,
 de qualification GPU matériel ni de gain de performance revendiqué.
 
+## Contacts et animation — 10 septembre 2026
+
+Départ de `9bd55a7`, branche `codex/threejs-v2`. Seuls les tests navigateur
+et ce journal changent. L'animation réelle passe de trois images anatomie ×1
+par DPR à trois images par vue (dessus/anatomie/skipper) et vitesse ×1/×2.
+Chaque lecture vérifie x/y et cap interpolés, progression du joueur, ratio
+fractionnaire et absence de mutation physique ou des interactions.
+
+Un test séparé couvre 24 traversées de ±π : deux sens × trois vues × deux
+vitesses × DPR 1/2. Comme dans les baselines, il contrôle les horodatages
+transmis à la boucle requestAnimationFrame existante ; les équations et états
+ne sont pas remplacés. Il vérifie qu'une vraie transition entre poses
+autoritaires de signes opposés est observée avec un ratio fractionnaire, puis
+déroule les angles pour contrôler le petit arc autour de π. Monde et overlays
+composés sont comparés exactement sur cette frame.
+
+48 cas supplémentaires reproduisent un contact réel avec le quai sud et son
+contrôle sans contact : bâbord/tribord × contact/non-contact × deux thèmes ×
+trois vues × DPR 1/2. Recette : port intégré, position `(25,-43.92)`, cap 0
+et vitesse latérale −0,05 (tribord), ou cap π et vitesse latérale +0,05
+(bâbord), puis un pas de 1/120 s. Le contrôle utilise `y=-43.8`.
+Le diagnostic vérifie contact physique présent/absent et parité raster,
+sans demander de modification du moteur ou du renderer.
+
+### Défaut Legacy constaté : couleur des pare-battages au contact
+
+`addBoatMesh()` recherche un contact par préfixe numérique `${fenderIndex}:`,
+mais les contacts du moteur portent des identifiants comme
+`fender-mid-starboard:quay-south`, conservés par `physicsStep()`.
+Le contact existe donc sans activer la couleur de contact du pare-battage.
+La comparaison CPU indépendante a identifié cette incompatibilité ; les
+tests navigateur comptent les faces de couleur contact et consignent le
+résultat. Ils n'exigent pas zéro face, afin de ne pas figer ce défaut comme
+comportement souhaité. La qualification porte sur l'apparence Legacy actuelle ;
+la coloration de contact fonctionnelle reste à corriger dans une intervention
+visuelle dédiée, qui changerait les références Legacy.
+
+Résultats : 338 comparaisons monde dans le banc étendu, plus 24 traversées
+de ±π, toutes sans pixel différent ; 184 compositions strictement identiques
+au total. Le navigateur confirme un contact actif et zéro face de couleur
+contact pour chaque côté/thème/DPR. Les captures contact/anatomie bâbord et
+tribord ont été inspectées. Les assertions navigateur comptent les contacts
+actifs ; leur identité `fender-mid-{side}:quay-south` provient de la recette
+CPU vérifiée indépendamment, car le snapshot public n'expose pas ces IDs.
+Le code de simulation/rendu et le HTML généré restent identiques à `9bd55a7`.
+
+Validation exécutée en trois sélections complémentaires du même fichier :
+`interpolation du cap` (1 test), `terrain Three` (1 test) et
+`caméra Three|simulateur de port —` (49 tests), soit 51 tests réussis.
+Les trois trajectoires étalons restent exactes et les 2 211 ancres caméra
+présentent un écart maximal de 1,33e−8 px. Console/page/GL et réseau sont
+contrôlés dans les nouveaux cas. `npm run check:simulator` et le contrôle
+du diff passent ; graphe AST mis à jour. Les tests unitaires et les six
+captures de référence n'ont pas été relancés : leurs sources et le livrable
+sont inchangés depuis la validation précédente. Tests et journal non commités.
+
 ## Prochaine tranche
 
-Compléter les cas de contact/animation manquants (pare-battages en contact,
-cap interpolé traversant ±π, animation des trois vues et vitesse ×2), puis
-profiler le grand port et choisir les optimisations sur mesures.
+Profiler le grand port et choisir les optimisations sur mesures. Garder le
+défaut Legacy de coloration des contacts explicite dans les critères visuels ;
+ne pas revendiquer son bon fonctionnement au titre de la parité Three.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
 ne seraient pas partagés. Le renderer Legacy reste actif.

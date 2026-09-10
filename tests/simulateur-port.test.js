@@ -340,39 +340,82 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
         }
       }
     }
+    for (const side of ["starboard", "port"]) {
+      for (const touching of [false, true]) {
+        await page.evaluate(({ side, touching }) => {
+          const api = window.__PORTANCE_TEST__;
+          api.restoreBuiltInPort();
+          api.reset({ x: 25, y: touching ? -43.92 : -43.8,
+            heading: side === "starboard" ? 0 : Math.PI, v: side === "starboard" ? -.05 : .05 });
+          api.advance(1 / 120);
+        }, { side, touching });
+        for (const theme of ["dark", "chart"]) {
+          for (const view of ["top", "anatomy", "skipper"]) {
+            await page.evaluate(({ theme, view }) => {
+              const api = window.__PORTANCE_TEST__;
+              api.selectVisualTheme(theme); api.selectCameraView(view);
+            }, { theme, view });
+            await settle();
+            const report = await page.evaluate(images => {
+              const api = window.__PORTANCE_TEST__;
+              const before = JSON.stringify(api.snapshot());
+              const { frame, legacyFrame, ...result } = api.surfaceComparisonReport({ composite: true, geometry: true, images });
+              const contactColor = api.visualThemeReport().semantic.contact;
+              return { ...result, unchanged: before === JSON.stringify(api.snapshot()),
+                contacts: api.snapshot().contacts.active,
+                contactColoredFaces: frame.polygons.filter(polygon => polygon.fill === contactColor).length };
+            }, deviceScaleFactor === 1 && view === "anatomy");
+            assert.equal(report.unchanged, true);
+            assert.equal(report.contacts > 0, touching);
+            assert.equal(report.player.contactFenders > 0, touching);
+            assert.ok(report.player.polygons > 10);
+            // La coloration Legacy comporte un défaut d'identifiant connu :
+            // vérifier ici le contact réel et l'iso-rendu, sans figer ce défaut
+            // par une assertion exigeant l'absence de couleur.
+            if (touching && view === "anatomy") t.diagnostic(`contact ${side}/${theme}/dpr${deviceScaleFactor}: ${report.contacts} contact(s), ${report.contactColoredFaces} faces couleur contact`);
+            check(report, `contact-${side}-${touching ? "on" : "off"}-${theme}-${view}-dpr${deviceScaleFactor}`);
+          }
+        }
+      }
+    }
     // Joueur animé : état autoritaire inchangé pendant chaque lecture, pose
     // interpolée vérifiée indépendamment et géométrie dynamique non mise en cache.
-    await page.evaluate(() => {
-      const api = window.__PORTANCE_TEST__;
-      api.restoreBuiltInPort(); api.reset({ x: 20, y: 30, heading: .35, u: 1 });
-      api.selectTimeScale(1); api.selectCameraView("anatomy");
-      api.setControls({ throttleTarget: .5, throttleActual: .5 });
-    });
-    await page.click("#pauseButton");
-    const animated = [];
-    for (let i = 0; i < 3; i += 1) {
-      await settle();
-      const report = await page.evaluate(() => {
-        const api = window.__PORTANCE_TEST__;
-        const before = JSON.stringify(api.snapshot());
-        const result = api.surfaceComparisonReport({ composite: true });
-        return { ...result, unchanged: before === JSON.stringify(api.snapshot()) };
-      });
-      assert.equal(report.unchanged, true);
-      const { player } = report;
-      for (const axis of ["x", "y"]) {
-        const expected = player.previousPose[axis] + (player.authoritativePose[axis] - player.previousPose[axis]) * player.interpolationRatio;
-        assert.equal(player[axis], expected);
+    for (const view of ["top", "anatomy", "skipper"]) {
+      for (const scale of [1, 2]) {
+        await page.evaluate(({ view, scale }) => {
+          const api = window.__PORTANCE_TEST__;
+          api.restoreBuiltInPort(); api.reset({ x: 20, y: 30, heading: .35, u: 1 });
+          api.selectTimeScale(scale); api.selectCameraView(view);
+          api.setControls({ throttleTarget: .5, throttleActual: .5 });
+        }, { view, scale });
+        await page.click("#pauseButton");
+        const animated = [];
+        for (let i = 0; i < 3; i += 1) {
+          await settle();
+          const report = await page.evaluate(() => {
+            const api = window.__PORTANCE_TEST__;
+            const before = JSON.stringify(api.snapshot());
+            const result = api.surfaceComparisonReport({ composite: true });
+            return { ...result, unchanged: before === JSON.stringify(api.snapshot()) };
+          });
+          assert.equal(report.unchanged, true);
+          const { player } = report;
+          assert.equal(player.timeScale, scale);
+          for (const axis of ["x", "y"]) {
+            const expected = player.previousPose[axis] + (player.authoritativePose[axis] - player.previousPose[axis]) * player.interpolationRatio;
+            assert.equal(player[axis], expected);
+          }
+          const wrap = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
+          const expectedHeading = wrap(player.previousPose.heading + wrap(player.authoritativePose.heading - player.previousPose.heading) * player.interpolationRatio);
+          assert.ok(Math.abs(wrap(player.heading - expectedHeading)) < 1e-12);
+          animated.push(player);
+          check(report, `animated-${view}-x${scale}-${i}-dpr${deviceScaleFactor}`);
+        }
+        assert.notEqual(animated[0].x, animated.at(-1).x, "la pose joueur doit évoluer");
+        assert.ok(animated.some(player => player.interpolationRatio > 0 && player.interpolationRatio < 1));
+        await page.click("#pauseButton");
       }
-      const wrap = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
-      const expectedHeading = wrap(player.previousPose.heading + wrap(player.authoritativePose.heading - player.previousPose.heading) * player.interpolationRatio);
-      assert.ok(Math.abs(wrap(player.heading - expectedHeading)) < 1e-12);
-      animated.push(player);
-      check(report, `animated-${i}-dpr${deviceScaleFactor}`);
     }
-    assert.notEqual(animated[0].x, animated.at(-1).x, "la pose joueur doit évoluer");
-    assert.ok(animated.some(player => player.interpolationRatio > 0 && player.interpolationRatio < 1));
-    await page.click("#pauseButton");
     // Fixtures purement visuelles, jamais importées dans la simulation.
     await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("top"));
     await settle();
@@ -442,6 +485,79 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
     await page.close();
   }
   t.diagnostic(`${cases} comparaisons raster strictes ; ${differentPixels} pixels différents ; captures ${output}`);
+});
+
+test("monde Three — interpolation du cap à ±π dans la boucle de rendu", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  let crossings = 0;
+  for (const deviceScaleFactor of [1, 2]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    page.on("request", request => { if (/^https?:/i.test(request.url())) errors.push(request.url()); });
+    // Même boucle applicative, horodatage contrôlé comme dans les baselines.
+    // Les frames intermédiaires de lecture ne font pas avancer la physique.
+    await page.addInitScript(() => {
+      window.__rasterTime = 12345;
+      const request = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = callback => request(() => callback(window.__rasterTime));
+    });
+    await page.goto(testUrl.href);
+    await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+    await page.evaluate(() => window.__PORTANCE_TEST__.enableSurfaceComparison({ world: true }));
+    for (const view of ["top", "anatomy", "skipper"]) {
+      for (const scale of [1, 2]) {
+        for (const direction of [-1, 1]) {
+          await page.evaluate(({ view, scale, direction }) => {
+            const api = window.__PORTANCE_TEST__;
+            api.reset({ x: 20, y: 30, heading: direction * (Math.PI - .0012), r: direction * .1 });
+            api.selectCameraView(view); api.selectTimeScale(scale);
+            document.getElementById("pauseButton").click();
+          }, { view, scale, direction });
+          let crossed = false;
+          for (let tick = 0; tick < 5; tick += 1) {
+            await page.evaluate(async scale => {
+              window.__rasterTime += 10 / scale;
+              await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }, scale);
+            const report = await page.evaluate(() => {
+              const api = window.__PORTANCE_TEST__;
+              const before = JSON.stringify(api.snapshot());
+              const result = api.surfaceComparisonReport({ composite: true });
+              return { ...result, unchanged: before === JSON.stringify(api.snapshot()) };
+            });
+            const { player } = report;
+            if (Math.abs(player.authoritativePose.heading - player.previousPose.heading) < Math.PI) continue;
+            const name = `${view}/x${scale}/direction${direction}/dpr${deviceScaleFactor}`;
+            assert.equal(report.unchanged, true, name);
+            assert.equal(report.overlayUnchanged, true, name);
+            assert.deepEqual(report.glErrors, [0, 0], name);
+            assert.equal(report.pixels.equal, true, name);
+            assert.equal(report.compositedPixels.equal, true, name);
+            assert.ok(report.pixels.coveredPixels > 100, name);
+            assert.ok(player.interpolationRatio > 0 && player.interpolationRatio < 1, name);
+            // Dérouler les angles autour de π, puis vérifier le petit arc et
+            // l'absence de saut vers zéro (une interpolation naïve y passerait).
+            const previous = player.previousPose.heading;
+            const next = player.authoritativePose.heading + direction * 2 * Math.PI;
+            const expected = previous + (next - previous) * player.interpolationRatio;
+            const actual = player.heading + (direction * player.heading < 0 ? direction * 2 * Math.PI : 0);
+            assert.ok(Math.abs(actual - expected) < 1e-12, name);
+            assert.ok(Math.abs(player.heading) > Math.PI - .01, name);
+            crossed = true; crossings += 1;
+            break;
+          }
+          assert.equal(crossed, true, `${view}/x${scale}/${direction}: traversée de ±π non exercée`);
+        }
+      }
+    }
+    assert.deepEqual(errors, []);
+    await page.evaluate(() => window.__PORTANCE_TEST__.disposeSurfaceComparison());
+    await page.close();
+  }
+  t.diagnostic(`${crossings} traversées de ±π interpolées ; monde et composition strictement identiques`);
 });
 
 test("caméra Three — ancres Legacy, resize, DPR et commandes sans mutation", async t => {
