@@ -456,9 +456,122 @@ du diff passent ; graphe AST mis à jour. Les tests unitaires et les six
 captures de référence n'ont pas été relancés : leurs sources et le livrable
 sont inchangés depuis la validation précédente. Tests et journal non commités.
 
+## Profilage reproductible du grand port
+
+La commande `npm run profile:renderers` ouvre le HTML autonome dans Chromium,
+sans requête HTTP, et écrit les mesures brutes ainsi que les captures dans un
+dossier temporaire `kjp-render-profile-*`. `--quick` contrôle le fonctionnement
+du banc avec trois échantillons et trois cycles ; ses percentiles ne constituent
+pas une mesure de performance exploitable.
+
+Le protocole `projected-input-cpu-v1` utilise La Trinité, une fenêtre 1280 × 800,
+le mode navigation, la physique pausée et un timestamp visuel fixé à 12 345 ms.
+Pour chaque DPR 1/2, il compare les vues dessus, anatomie, skipper et dessus au
+zoom maximal, dans les deux thèmes. Le cas retenu est celui qui soumet le plus
+de triangles parmi ces huit cadrages ; ce critère ne prétend pas trouver le
+pire temps CPU parmi tous les états possibles du simulateur.
+
+Chaque DPR fait ensuite l'objet de trois répétitions : 30 images de chauffe et
+120 paires Legacy/Three, en alternant l'ordre AB/BA. Les backends détachés
+reçoivent **exactement la même entrée projetée**. Le temps inclut compilation,
+préparation des buffers et soumission WebGL ; la projection Three est mesurée
+séparément. Capture du monde, physique, overlays, lectures de pixels et attente
+de fin GPU sont exclus. `gl.finish()` vide les deux files avant chaque mesure,
+hors minuterie. Ce microbenchmark ne mesure ni le FPS de la boucle visible, ni
+le coût complet monde→écran. Les percentiles ne s'additionnent pas.
+
+Une passe distincte observe les appels `bufferData`/`bufferSubData`, sans ajouter
+d'instrumentation aux échantillons CPU. Les octets transférés sont distingués
+des capacités retenues et des allocations. Les capacités internes Legacy ne
+sont pas exposées : le rapport porte `null`, pas zéro. Les compteurs Three
+incluent géométries, textures, programmes, cache couleurs et capacité des
+buffers ; cette dernière n'est pas une mesure exhaustive de mémoire GPU.
+Les API ont été vérifiées avec le runtime installé r186 et les documentations
+[WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer.html) et
+[InterleavedBuffer](https://threejs.org/docs/pages/InterleavedBuffer.html).
+
+Le soak alterne vingt fois port intégré et La Trinité, avec le même banc
+conservé. Les ressources de chaque port doivent rester identiques à celles de
+son deuxième passage. Le tas JS est relevé après GC explicite via CDP ; sa
+croissance finale est bornée à 15 % + 2 Mio par rapport au deuxième passage.
+Cette borne et la stabilité des compteurs ne prouvent pas l'absence exhaustive
+de fuite. La destruction/recréation finale contrôle le fonctionnement et les
+pixels, pas la restitution effective de toute la mémoire du pilote.
+
+Le chemin `renderProjected` est réservé au banc. Le renderer Legacy reste actif
+et son implémentation n'est pas modifiée. Les équations, profils et étalons
+physiques restent gelés.
+
+### Mesures du 10 septembre 2026
+
+Exécution complète sur Apple M1, Chromium 149.0.7827.55, Three r186,
+ANGLE/SwiftShader Vulkan (rendu logiciel). L'extension de temps GPU est absente ;
+les temps et la mémoire GPU restent indisponibles. Le HTML mesuré porte le
+SHA-256 `faa472f18514db185b08d32a854534d1dc038c7db533041e1e6fcd42d98e6164`.
+Les échantillons bruts et captures de cette session sont dans
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/kjp-render-profile-i51xfV/`.
+
+Le cadrage retenu aux deux DPR est la vue dessus, thème carte, distance
+1 200 m, cible `(200, 305, 0)` : 936 objets visibles, 8 384 polygones monde et
+5 148 lignes. Chaque backend soumet 82 199 triangles en trois appels, avec
+trois transferts totalisant 6 904 716 octets par image. Aucune allocation GPU
+n'est observée dans la passe instrumentée après chauffe, et Three ne réalloue
+aucun buffer pendant les mesures.
+
+Temps CPU en millisecondes, trois répétitions indépendantes de 120 échantillons
+par DPR et backend ; chaque cellule donne **p50 / p95 / p99** :
+
+| DPR | Répétition | Legacy, entrée projetée | Three, même entrée projetée |
+| --- | --- | --- | --- |
+| 1 | 1 | 137,1 / 245,0 / 255,7 | 140,4 / 249,6 / 283,0 |
+| 1 | 2 | 135,8 / 213,8 / 271,0 | 132,5 / 221,0 / 248,0 |
+| 1 | 3 | 130,8 / 245,8 / 270,3 | 131,7 / 225,4 / 259,4 |
+| 2 | 1 | 145,0 / 217,4 / 259,1 | 138,5 / 202,9 / 246,0 |
+| 2 | 2 | 146,4 / 240,5 / 279,3 | 143,2 / 228,6 / 272,9 |
+| 2 | 3 | 186,0 / 262,8 / 296,0 | 180,5 / 251,3 / 266,2 |
+
+La compilation des géométries domine les passes Three instrumentées : médianes
+de 129,8 à 211,6 ms, contre 2,0–2,7 ms pour la préparation des buffers et
+0,3–0,4 ms pour la soumission. La projection séparée a une médiane de
+25,4–38,8 ms. Ces distributions distinctes ne s'additionnent pas. Un pic de
+soumission est conservé dans les données (p99 de 128,8 ms sur la première
+répétition DPR 1), sans attribution forcée au GPU ou au GC. La variabilité et
+le périmètre partiel ne permettent pas de revendiquer un gain global Three.
+
+Les vingt cycles par DPR, soit quatre-vingts chargements de ports au total,
+passent. Les compteurs Three restent à quatre géométries, un programme, zéro
+texture, 72 couleurs et 2 883 860 floats de capacité (11 535 440 octets).
+Les caches de géométrie statique retrouvent respectivement 56 et 937 entrées
+pour le port intégré et La Trinité. Le tas JS de La Trinité après GC passe de
+74,1 à 84,5 Mo au DPR 1, et de 83,2 à 73,9 Mo au DPR 2 : la borne de croissance
+est respectée, sans affirmer que le tas est parfaitement constant. Les pixels
+monde et composés restent identiques avant/après profilage, après soak et après
+recréation ; le chemin à entrée projetée est également comparé. Les snapshots
+physiques restent inchangés par chaque appel au diagnostic. Aucune erreur
+console/page/GL ni requête HTTP n'a été détectée par le banc.
+
+Validation finale : `npm run check:simulator`, les 10 tests de
+`npm run test:rendering` et les 51 tests navigateur de
+`tests/simulateur-port.test.js` passent. Le banc conserve ses 338 comparaisons
+raster et ses 24 traversées de ±π strictement identiques ; les 2 211 ancres
+caméra ont un écart maximal de `2,79e-8 px` pour une tolérance de 0,5 px.
+Les trois trajectoires étalons sont exactes. Les six empreintes de
+`npm run capture:renderer-baseline` sont identiques, sans `--update`.
+Les captures du grand port ont été inspectées aux deux DPR. `git diff --check`
+et `graphify update .` passent (999 nœuds, 1 776 arêtes, 54 communautés).
+Les premiers lancements Chromium bloqués par le bac à sable macOS ont été
+relancés avec autorisation ; les exécutions navigateur autorisées passent.
+Pas de validation GPU matériel, Safari/Firefox, mobile réel ou release dans
+cette tranche. Modifications non commitées.
+
 ## Prochaine tranche
 
-Profiler le grand port et choisir les optimisations sur mesures. Garder le
+Isoler le coût dominant à l'intérieur de `compileSurfaceBatches`, puis essayer
+une seule optimisation sur le même protocole avant/après. Une candidate est de
+réutiliser l'encodage écran/profondeur des sommets répétés au sein d'un polygone
+ou segment, en conservant les opérations arithmétiques, les offsets et l'ordre
+des triangles. Le gain de cette candidate reste à démontrer ; elle n'est pas
+implémentée dans la tranche de profilage. Garder le
 défaut Legacy de coloration des contacts explicite dans les critères visuels ;
 ne pas revendiquer son bon fonctionnement au titre de la parité Three.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur

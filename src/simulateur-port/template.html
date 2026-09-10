@@ -9280,7 +9280,20 @@
           surfaceComparison?.dispose();
           surfaceComparison = null;
         },
-        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false, composite = false } = {}) {
+        surfacePerformanceReport(options = {}) {
+          if (!surfaceCapture || captureSurfaces !== "world" || !depthRenderer) {
+            throw new Error("Activer la capture du monde complet et attendre une frame");
+          }
+          const frame = KJPThreeSurfaces.createSurfaceFrame(
+            surfaceCapture.camera, surfaceCapture.world, surfaceCapture.waterBackground, surfaceCapture.worldLines
+          );
+          const projected = KJPRenderFrames.createRenderFrame({
+            polygons: surfaceCapture.projected, lines: surfaceCapture.projectedLines
+          });
+          surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
+          return surfaceComparison.profile(frame, projected, pixelRatio, options);
+        },
+        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false, composite = false, projectedInput = false } = {}) {
           if (!surfaceCapture) throw new Error("Activer la capture terrain et attendre une frame");
           if (!depthRenderer) throw new Error("Comparaison WebGL indisponible en repli Canvas 2D");
           // Les fixtures synthétiques traversent le vrai clipping/project Legacy.
@@ -9325,7 +9338,7 @@
             selected: moorings.selected, hover: moorings.hover
           });
           const beforeOverlay = composite ? overlayState() : null;
-          const comparison = surfaceComparison.compare(frame, legacyFrame, pixelRatio, images, composite ? canvas : null);
+          const comparison = surfaceComparison.compare(frame, legacyFrame, pixelRatio, images, composite ? canvas : null, projectedInput);
           return {
             ...comparison,
             ...(composite ? {

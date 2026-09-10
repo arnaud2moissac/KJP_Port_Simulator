@@ -1,4 +1,5 @@
 import { createThreeSurfaceRenderer } from "./three-surfaces.mjs";
+import { profileSurfaceRenderers } from "./surface-profile.mjs";
 
 // Comparaison stricte dans le même navigateur/GPU. La classification bordure
 // à un pixel est diagnostique seulement : elle ne doit pas rendre acceptable
@@ -53,7 +54,15 @@ export function createSurfaceComparison(createLegacy) {
   let disposed = false;
   let composites = null;
   return Object.freeze({
-    compare(frame, projectedLegacy, pixelRatio, images = false, overlayCanvas = null) {
+    profile(frame, projected, pixelRatio, options) {
+      if (disposed) throw new Error("Surface comparison disposed");
+      const width = Math.round(frame.camera.width * pixelRatio);
+      const height = Math.round(frame.camera.height * pixelRatio);
+      if (legacyCanvas.width !== width) legacyCanvas.width = width;
+      if (legacyCanvas.height !== height) legacyCanvas.height = height;
+      return profileSurfaceRenderers({ ...options, frame, projected, pixelRatio, legacy, three, legacyContext });
+    },
+    compare(frame, projectedLegacy, pixelRatio, images = false, overlayCanvas = null, projectedInput = false) {
       if (disposed) throw new Error("Surface comparison disposed");
       const width = Math.round(frame.camera.width * pixelRatio);
       const height = Math.round(frame.camera.height * pixelRatio);
@@ -62,7 +71,9 @@ export function createSurfaceComparison(createLegacy) {
       legacy.render(projectedLegacy.polygons, projectedLegacy.lines);
       const reference = new Uint8Array(width * height * 4);
       legacyContext.readPixels(0, 0, width, height, legacyContext.RGBA, legacyContext.UNSIGNED_BYTE, reference);
-      const stats = three.render(frame, pixelRatio);
+      const stats = projectedInput
+        ? three.renderProjected(projectedLegacy, frame.camera, pixelRatio)
+        : three.render(frame, pixelRatio);
       const candidate = new Uint8Array(reference.length);
       three.context.readPixels(0, 0, width, height, three.context.RGBA, three.context.UNSIGNED_BYTE, candidate);
       const report = {

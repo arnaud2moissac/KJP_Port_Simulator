@@ -67,13 +67,20 @@ export function createThreeSurfaceRenderer(canvas) {
   });
 
   function render(frame, pixelRatio = 1) {
+    return renderProjected(projectSurfaceFrame(frame), frame.camera, pixelRatio);
+  }
+
+  // Entrée du banc CPU : les deux backends reçoivent le même snapshot projeté.
+  // La projection monde reste mesurée séparément, hors de cette comparaison.
+  function renderProjected(projected, camera, pixelRatio = 1, timings = null) {
     if (disposed) throw new Error("Surface renderer disposed");
-    const { width, height } = frame.camera;
+    const { width, height } = camera;
     // Dimensions physiques exactes du Legacy (Math.round, pas Math.floor).
     const bufferWidth = Math.round(width * pixelRatio), bufferHeight = Math.round(height * pixelRatio);
     if (canvas.width !== bufferWidth || canvas.height !== bufferHeight) renderer.setSize(bufferWidth, bufferHeight, false);
-    const projected = projectSurfaceFrame(frame);
-    const compiled = compileSurfaceBatches(projected, frame.camera, parseColor);
+    const compileStart = timings ? performance.now() : 0;
+    const compiled = compileSurfaceBatches(projected, camera, parseColor);
+    const uploadStart = timings ? performance.now() : 0;
     for (const batch of batches) {
       const data = compiled[batch.name];
       if (!batch.buffer || batch.buffer.array.length < data.length) {
@@ -96,7 +103,13 @@ export function createThreeSurfaceRenderer(canvas) {
       batch.mesh.geometry.setDrawRange(0, data.length / 7);
       batch.mesh.visible = data.length > 0;
     }
+    const submitStart = timings ? performance.now() : 0;
     renderer.render(scene, screenCamera);
+    if (timings) {
+      timings.compileMs = uploadStart - compileStart;
+      timings.stageMs = submitStart - uploadStart;
+      timings.submitMs = performance.now() - submitStart;
+    }
     return {
       polygons: projected.polygons.length, triangles: compiled.triangles,
       lines: projected.lines.length,
@@ -107,6 +120,7 @@ export function createThreeSurfaceRenderer(canvas) {
       drawCalls: renderer.info.render.calls,
       gpuTriangles: renderer.info.render.triangles,
       geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures,
+      programs: renderer.info.programs.length, colorCacheEntries: colorCache.size,
       reallocations, bufferFloats: batches.reduce((sum, batch) => sum + batch.buffer.array.length, 0)
     };
   }
@@ -123,5 +137,5 @@ export function createThreeSurfaceRenderer(canvas) {
     renderer.dispose();
     renderer.forceContextLoss();
   }
-  return Object.freeze({ render, dispose, context: renderer.getContext() });
+  return Object.freeze({ render, renderProjected, dispose, context: renderer.getContext() });
 }
