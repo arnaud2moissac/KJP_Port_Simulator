@@ -66,7 +66,7 @@ ont produit les mêmes six empreintes SHA-256.
 | 3 · extraction de `RenderFrame` | terminé (contrat projeté transitoire) | 3 tests de contrat, 48 tests navigateur, six empreintes Legacy identiques |
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
 | 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes avant extension bateaux |
-| 6 · bateaux et overlays monde | bateaux statiques/joueur et balisage validés ; overlays à porter | 166 comparaisons raster exactes, dont poses joueur animées |
+| 6 · bateaux et overlays monde | monde WebGL complet dans le banc ; overlays Canvas2D conservés et composés | 260 comparaisons raster exactes, dont poses joueur animées ; cas contact/animation à compléter |
 | 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
 | 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
 
@@ -311,10 +311,99 @@ La tranche reste non commitée. Les limites du banc isolé et les cas de contact
 animation encore manquants de la tranche bateaux restent valables ; aucun gain
 de performance n'est revendiqué.
 
+## Pointillés — 10 septembre 2026
+
+Départ de `3dd82f5`, branche `codex/threejs-v2`. Le snapshot monde accepte
+désormais les motifs finis, les copie et les fige. La tessellation des lignes
+Three reprend exactement les règles Legacy : longueurs en pixels CSS, valeurs
+positives ramenées à au moins 0,5 px, phase conservée entre sommets après
+clipping écran, parité d'index inchangée pour les motifs impairs et plafond de
+4 096 portions dessinées par ligne. Le compteur `dashLimitHits` est comparé
+avec le Legacy. Les quatre passes et leurs règles de profondeur ne changent pas.
+
+Le chemin des fixtures synthétiques conserve maintenant une polyline entièrement
+devant `near`, comme le vrai `addWorldLine`, au lieu de la couper en segments.
+Dès qu'un point passe derrière `near`, le découpage historique par segment
+réinitialise la phase par record : ce comportement est volontairement conservé.
+Ni `addWorldLine`, ni `createDepthRenderer`, ni les constructeurs d'overlays
+visibles n'ont changé. Le support des pointillés reste dans le banc isolé ;
+les aussières et autres overlays réels ne sont pas encore capturés.
+
+Onze fixtures raster supplémentaires par DPR couvrent continuité de phase,
+motifs impairs/à une valeur, normalisation, clipping extrême, sortie/rentrée
+du viewport, passages multiples de `near`, profondeur, alpha et plafond.
+Les tests unitaires vérifient aussi qu'un segment rejeté ne consomme pas de phase
+et qu'atteindre le plafond ne supprime pas la ligne suivante. La revue
+indépendante retrouve les mêmes tableaux de sommets et compteurs que le Legacy
+sur 200 cas CPU déterministes (sans navigateur).
+
+Validation finale : dix tests unitaires réussis, suite navigateur 50/50 puis
+relance ciblée avec captures ; 188 comparaisons raster strictes et zéro pixel
+différent à DPR 1/2. Captures polyline, passages de near et occlusion inspectées.
+Console/page/GL et réseau sans erreur ; trois trajectoires étalons exactes et
+six empreintes Legacy inchangées. Build autonome, contrôle de build et diff
+validés ; graphe AST mis à jour (960 nœuds, 1 727 arêtes). `main`, physique,
+profils et étalons sont intacts. Modifications non commitées. Aucun gain de
+performance ni qualification du rendu Three visible revendiqué.
+
+## Monde complet et overlays conservés — 10 septembre 2026
+
+Suite du WIP pointillés, toujours sur `3dd82f5` / `codex/threejs-v2`.
+`enableSurfaceComparison({world:true})` observe désormais tous les polygones et
+les lignes de layer inférieur à 10 lors de leur passage normal dans les
+collecteurs. La construction du cache n'est pas capturée ; son replay l'est,
+sans collecte supplémentaire par famille. Le joueur est toujours observé
+pendant son unique construction. Les listes projetées de référence sont
+copiées à la fin de la construction du monde, avant tout rendu ou tri fallback.
+
+Cela ajoute la grille (layer −30), les traces réelles de vent/courant (−2),
+les taquets distants (5), les repères visiteurs (8) et les objectifs (9).
+L'axe du safran (12), les flèches prioritaires (10), aussières, pendilles,
+taquets interactifs et labels restent sur le Canvas2D supérieur, comme prévu
+par le contrat de migration. Aucun déplacement vers le test de profondeur GPU.
+
+`surfaceComparisonReport({composite:true})` compose chaque monde détaché avec
+le même canvas overlay déjà dessiné, dans un appel synchrone. Il ne rappelle
+aucun constructeur d'overlay ni `mooringReport()` (qui recalcule la caméra).
+Le contrôle strict du monde reste indépendant de la composition : les pixels
+opaques d'un overlay ne peuvent donc pas masquer une régression monde.
+Les PNG composés restent transparents : eau CSS, HUD et vignette DOM ne sont
+pas rasterisés dans ce diagnostic, et la composition ne constitue pas un
+portage des aussières vers Three.
+
+Le diagnostic est refusé si le renderer actif est en repli Canvas2D, ou si la
+composition demande un périmètre partiel/synthétique. La revue indépendante a
+identifié un ancien snapshot réutilisable après changement de scope : activer
+un périmètre invalide maintenant la capture et exige une nouvelle frame.
+Les canvases de composition sont réutilisés, redimensionnés puis libérés au
+disposal ; aucun nouveau contexte GPU, aucune nouvelle boucle de rendu.
+
+72 cas monde complet sont ajoutés : départ au ponton avec deux aussières,
+départ avec deux aussières et une pendille frappée, grand port La Trinité ;
+trois vues × deux thèmes × deux modes × DPR 1/2. Ils contrôlent la présence
+des couches attendues et l'égalité des compteurs Three avec le renderer actif,
+afin de détecter une omission ou un doublon. État physique, canvas overlay,
+sélection et hitTargets restent inchangés après le diagnostic. La composition
+est aussi exercée pendant l'animation anatomie, au resize et après recréation.
+Les captures composées ponton/anatomie, pendille/skipper et grand port/anatomie
+ont été inspectées.
+
+Validation finale de cette tranche : build et contrôle autonome réussis,
+dix tests unitaires et 50 tests navigateur verts. Les 260 comparaisons monde
+ont zéro pixel différent ; les 82 compositions (72 scènes, six images animées,
+deux resize et deux recréations) sont également strictement identiques.
+Aucune erreur console/page/GL ni requête HTTP détectée ; les trois trajectoires
+étalons et six empreintes Legacy restent exactes. Les fonctions Legacy de rendu,
+overlays, construction bateau et interpolation ont été comparées au HEAD :
+inchangées octet pour octet. Diff contrôlé et graphe AST mis à jour.
+`main`, sources physiques, profils et étalons sont intacts. Cette tranche et
+le prérequis pointillés restent non commités. Pas de bascule du renderer actif,
+de qualification GPU matériel ni de gain de performance revendiqué.
+
 ## Prochaine tranche
 
-Ajouter les overlays monde au même snapshot. Le support des pointillés devra
-précéder l'intégration des aussières et overlays concernés.
-Compléter les cas de contact/animation manquants avant qualification globale.
+Compléter les cas de contact/animation manquants (pare-battages en contact,
+cap interpolé traversant ±π, animation des trois vues et vitesse ×2), puis
+profiler le grand port et choisir les optimisations sur mesures.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
 ne seraient pas partagés. Le renderer Legacy reste actif.

@@ -220,9 +220,18 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
   };
 
   const worldLines = [];
-  let acceptedLineSegments = 0, rejectedLineSegments = 0;
-  for (const item of frame.lines || []) {
-    if (item.dash.length) throw new Error("Pointillés hors périmètre infrastructures");
+  let acceptedLineSegments = 0, rejectedLineSegments = 0, dashLimitHits = 0;
+  const appendWorldLine = item => {
+    // Phase en pixels CSS après clipping écran, conservée entre sommets de
+    // la même polyline. Même normalisation et garde que le Legacy historique.
+    const patternValues = item.dash?.length
+      ? item.dash.map(Number).filter(value => Number.isFinite(value) && value > 0).map(value => Math.max(.5, value))
+      : [];
+    const pattern = patternValues.length ? patternValues : null;
+    let patternIndex = 0;
+    let patternRemaining = pattern?.[0] || Infinity;
+    let drawing = true;
+    let emittedSegments = 0;
     const color = parseColor(item.color);
     for (let i = 1; i < item.points.length; i += 1) {
       const clipped = clipProjectedSegmentToViewport(item.points[i - 1], item.points[i], Math.max(64, Number(item.width) * 4 || 0));
@@ -231,13 +240,35 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
       const length = Math.hypot(end.x - start.x, end.y - start.y);
       if (length < .01) continue;
       acceptedLineSegments += 1;
-      // Ordre d'opérations du chemin Legacy sans pointillés.
-      appendLineCoordinates(worldLines,
-        start.x, start.y, start.depth,
-        start.x + (end.x - start.x), start.y + (end.y - start.y),
-        start.depth + (end.depth - start.depth), item.width, color);
+      let cursor = 0;
+      while (cursor < length - 1e-6) {
+        const advance = Math.min(length - cursor, patternRemaining);
+        if (!Number.isFinite(advance) || advance <= 1e-6) break;
+        if (drawing) {
+          const ratioA = cursor / length;
+          const ratioB = (cursor + advance) / length;
+          appendLineCoordinates(worldLines,
+            start.x + (end.x - start.x) * ratioA,
+            start.y + (end.y - start.y) * ratioA,
+            start.depth + (end.depth - start.depth) * ratioA,
+            start.x + (end.x - start.x) * ratioB,
+            start.y + (end.y - start.y) * ratioB,
+            start.depth + (end.depth - start.depth) * ratioB,
+            item.width, color);
+          emittedSegments += 1;
+          if (emittedSegments >= 4096) { dashLimitHits += 1; return; }
+        }
+        cursor += advance;
+        patternRemaining -= advance;
+        if (pattern && patternRemaining <= 1e-6) {
+          patternIndex = (patternIndex + 1) % pattern.length;
+          patternRemaining = pattern[patternIndex];
+          drawing = patternIndex % 2 === 0;
+        }
+      }
     }
-  }
+  };
+  for (const item of frame.lines || []) appendWorldLine(item);
 
   let triangles = 0, triangulationFailures = 0;
   for (const polygon of frame.polygons) {
@@ -275,7 +306,7 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
   translucentRecords.sort((a, b) => b.depth - a.depth).forEach(record => {
     for (const value of record.vertices) translucent.push(value);
   });
-  return { opaque, translucent, strokes, worldLines, triangles, triangulationFailures, acceptedLineSegments, rejectedLineSegments };
+  return { opaque, translucent, strokes, worldLines, triangles, triangulationFailures, acceptedLineSegments, rejectedLineSegments, dashLimitHits };
 }
 
 export { triangulate };

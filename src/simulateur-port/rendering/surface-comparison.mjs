@@ -51,8 +51,9 @@ export function createSurfaceComparison(createLegacy) {
     throw error;
   }
   let disposed = false;
+  let composites = null;
   return Object.freeze({
-    compare(frame, projectedLegacy, pixelRatio, images = false) {
+    compare(frame, projectedLegacy, pixelRatio, images = false, overlayCanvas = null) {
       if (disposed) throw new Error("Surface comparison disposed");
       const width = Math.round(frame.camera.width * pixelRatio);
       const height = Math.round(frame.camera.height * pixelRatio);
@@ -73,12 +74,34 @@ export function createSurfaceComparison(createLegacy) {
         glErrors: [legacyContext.getError(), three.context.getError()]
       };
       if (images) report.images = { legacy: legacyCanvas.toDataURL(), three: threeCanvas.toDataURL() };
+      if (overlayCanvas) {
+        if (overlayCanvas.width !== width || overlayCanvas.height !== height) throw new Error("Overlay: dimensions incompatibles");
+        composites ||= [document.createElement("canvas"), document.createElement("canvas")];
+        const pixels = composites.map((target, index) => {
+          if (target.width !== width) target.width = width;
+          if (target.height !== height) target.height = height;
+          const context = target.getContext("2d");
+          context.clearRect(0, 0, width, height);
+          context.drawImage(index ? threeCanvas : legacyCanvas, 0, 0);
+          // Le même overlay déjà dessiné : aucun second appel à la logique de
+          // picking/aussières. Le fond CSS reste partagé, hors de ces PNG.
+          context.drawImage(overlayCanvas, 0, 0);
+          return context.getImageData(0, 0, width, height).data;
+        });
+        report.compositedPixels = compareSurfacePixels(pixels[0], pixels[1], width, height);
+        if (images) {
+          report.images.legacyComposed = composites[0].toDataURL();
+          report.images.threeComposed = composites[1].toDataURL();
+        }
+      }
       return report;
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       three.dispose();
+      if (composites) for (const target of composites) { target.width = 0; target.height = 0; }
+      composites = null;
       // Le Legacy historique n'expose pas de disposal : la perte de SON
       // contexte détaché libère ses programmes/buffers, jamais ceux de l'écran.
       legacyContext.getExtension("WEBGL_lose_context")?.loseContext();

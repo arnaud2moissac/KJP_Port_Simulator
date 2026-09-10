@@ -5081,7 +5081,7 @@
         renderPerformance.staticCacheHits += 1;
       }
       const owner = surfaceCapture ? key.split(":", 1)[0] : null;
-      const capture = surfaceCapture && (captureSurfaces === "seamarks"
+      const capture = surfaceCapture && (captureSurfaces === "world" ? true : captureSurfaces === "seamarks"
         ? /^(terrain|land|dock|catway|obstacle|boat|buoy|lights)$/.test(owner)
         : captureSurfaces === "boats"
           ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
@@ -5092,6 +5092,10 @@
       const firstLine = overlayLines.length;
       if (capture) {
         surfaceCapture.owners[owner] = (surfaceCapture.owners[owner] || 0) + 1;
+      }
+      // En mode monde complet, observer le replay normal ci-dessous : ne pas
+      // collecter aussi le cache, ce qui doublerait chaque primitive statique.
+      if (capture && captureSurfaces !== "world") {
         surfaceCapture.world.push(...geometry.polygons.map(polygon => ({
           ...polygon,
           stroke: polygon.stroke === false ? null : polygon.stroke ?? visualPalette().harbor.outline
@@ -5110,7 +5114,7 @@
       for (const line of geometry.lines) {
         addWorldLine(line.points, line.color, line.width, line.dash, line.layer);
       }
-      if (capture) {
+      if (capture && captureSurfaces !== "world") {
         surfaceCapture.projected.push(...polygons.slice(firstPolygon));
         surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
       }
@@ -5121,7 +5125,7 @@
         worldGeometryCapture.polygons.push({ points, fill, stroke, lineWidth, layer });
         return;
       }
-      if (capturingPlayerBoat) surfaceCapture.world.push({
+      if (capturingPlayerBoat || surfaceCapture && captureSurfaces === "world") surfaceCapture.world.push({
         points, fill,
         stroke: stroke === false ? null : stroke ?? visualPalette().harbor.outline,
         lineWidth, layer
@@ -5146,7 +5150,9 @@
         worldGeometryCapture.lines.push({ points, color, width, dash, layer });
         return points.length - 1;
       }
-      if (capturingPlayerBoat) surfaceCapture.worldLines.push({ points, color, width, dash, layer });
+      if ((capturingPlayerBoat || surfaceCapture && captureSurfaces === "world") && layer < 10) {
+        surfaceCapture.worldLines.push({ points, color, width, dash, layer });
+      }
       const basis = frameBasis || cameraBasis();
       if (points.every(point => cameraDepth(point, basis) >= PROJECTION_NEAR_CLIP)) {
         const projected = points.map(project);
@@ -7567,7 +7573,7 @@
           addBoatMesh(boat, false);
         });
       }
-      if (surfaceCapture && (captureSurfaces === "boats" || captureSurfaces === "seamarks")) {
+      if (surfaceCapture && ["boats", "seamarks", "world"].includes(captureSurfaces)) {
         const firstPolygon = polygons.length;
         const firstLine = overlayLines.length;
         capturingPlayerBoat = true;
@@ -7576,8 +7582,10 @@
         } finally {
           capturingPlayerBoat = false;
         }
-        surfaceCapture.projected.push(...polygons.slice(firstPolygon));
-        surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+        if (captureSurfaces !== "world") {
+          surfaceCapture.projected.push(...polygons.slice(firstPolygon));
+          surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+        }
         surfaceCapture.owners.player = 1;
         surfaceCapture.player = {
           x: frameMotion.x, y: frameMotion.y, heading: frameMotion.heading,
@@ -7592,6 +7600,15 @@
         addBoatMesh(frameMotion, true);
       }
       addRudderAxis();
+      if (surfaceCapture && captureSurfaces === "world") {
+        surfaceCapture.projected = [...polygons];
+        surfaceCapture.projectedLines = overlayLines.filter(item => item.layer < 10);
+        surfaceCapture.routing = {
+          worldPolygons: polygons.length,
+          worldLines: surfaceCapture.projectedLines.length,
+          canvas2DLineLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
+        };
+      }
       if (depthRenderer) {
         try {
           KJPRenderFrames.renderLegacyFrame(
@@ -9253,8 +9270,9 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableSurfaceComparison({ infrastructures = false, boats = false, seamarks = false } = {}) {
-          captureSurfaces = seamarks ? "seamarks" : boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
+        enableSurfaceComparison({ infrastructures = false, boats = false, seamarks = false, world = false } = {}) {
+          captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
+          surfaceCapture = null; // Attendre une frame du nouveau périmètre.
         },
         disposeSurfaceComparison() {
           captureSurfaces = false;
@@ -9262,11 +9280,15 @@
           surfaceComparison?.dispose();
           surfaceComparison = null;
         },
-        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false } = {}) {
+        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false, composite = false } = {}) {
           if (!surfaceCapture) throw new Error("Activer la capture terrain et attendre une frame");
+          if (!depthRenderer) throw new Error("Comparaison WebGL indisponible en repli Canvas 2D");
           // Les fixtures synthétiques traversent le vrai clipping/project Legacy.
           // Elles ne sont jamais injectées dans le port ou le rendu visible.
           const synthetic = testPolygons !== undefined || testLines !== undefined;
+          if (composite && (synthetic || captureSurfaces !== "world")) {
+            throw new Error("Composition réservée à la capture du monde complet");
+          }
           const world = synthetic ? testPolygons || [] : surfaceCapture.world;
           const lines = synthetic ? testLines || [] : surfaceCapture.worldLines;
           const projected = synthetic ? world.flatMap(polygon => {
@@ -9277,6 +9299,13 @@
             return [{ ...polygon, points, depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length }];
           }) : surfaceCapture.projected;
           const projectedLines = synthetic ? lines.flatMap(line => {
+            if (line.points.length < 2) return [];
+            // Même chemin rapide que addWorldLine : ne pas casser la phase
+            // des pointillés en scindant une polyline entièrement devant near.
+            if (line.points.every(point => cameraDepth(point, frameBasis) >= PROJECTION_NEAR_CLIP)) {
+              const points = line.points.map(project);
+              return points.every(Boolean) ? [{ ...line, points }] : [];
+            }
             const result = [];
             for (let i = 1; i < line.points.length; i += 1) {
               const clipped = clipSegmentToNearPlane(line.points[i - 1], line.points[i]);
@@ -9291,8 +9320,22 @@
           );
           const legacyFrame = KJPRenderFrames.createRenderFrame({ polygons: projected, lines: projectedLines });
           surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
+          const overlayState = () => JSON.stringify({
+            hitTargets: moorings.hitTargets, activeLineId: moorings.activeLineId,
+            selected: moorings.selected, hover: moorings.hover
+          });
+          const beforeOverlay = composite ? overlayState() : null;
+          const comparison = surfaceComparison.compare(frame, legacyFrame, pixelRatio, images, composite ? canvas : null);
           return {
-            ...surfaceComparison.compare(frame, legacyFrame, pixelRatio, images),
+            ...comparison,
+            ...(composite ? {
+              overlayUnchanged: beforeOverlay === overlayState(),
+              overlay: { owner: "canvas2d", mooringLines: moorings.hitTargets.lines.length,
+                cleats: moorings.hitTargets.cleats.length, pendilles: moorings.hitTargets.pendilles.length }
+            } : {}),
+            routing: synthetic || !surfaceCapture.routing ? null : {
+              ...surfaceCapture.routing, canvas2DLineLayers: [...surfaceCapture.routing.canvas2DLineLayers]
+            },
             owners: synthetic ? {} : { ...surfaceCapture.owners },
             player: synthetic || !surfaceCapture.player ? null : {
               ...surfaceCapture.player,

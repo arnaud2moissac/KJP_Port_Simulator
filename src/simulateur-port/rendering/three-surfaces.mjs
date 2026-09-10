@@ -102,6 +102,7 @@ export function createThreeSurfaceRenderer(canvas) {
       lines: projected.lines.length,
       acceptedLineSegments: compiled.acceptedLineSegments,
       rejectedLineSegments: compiled.rejectedLineSegments,
+      dashLimitHits: compiled.dashLimitHits,
       triangulationFailures: compiled.triangulationFailures,
       drawCalls: renderer.info.render.calls,
       gpuTriangles: renderer.info.render.triangles,

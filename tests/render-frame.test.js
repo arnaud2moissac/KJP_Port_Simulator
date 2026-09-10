@@ -144,7 +144,12 @@ test("lignes d'infrastructure : snapshot, clipping proche et bornage écran", as
   line.points[0][0] = 123;
   assert.equal(frame.lines[0].points[0][0], 9);
   assert.throws(() => frame.lines[0].dash.push(1), TypeError);
-  assert.throws(() => createSurfaceFrame(camera, [], "#000", [{ ...line, dash: [1, 1] }]), /pointillés/);
+  const dash = [1, 1];
+  const dashedFrame = createSurfaceFrame(camera, [], "#000", [{ ...line, dash }]);
+  dash[0] = 99;
+  assert.deepEqual(dashedFrame.lines[0].dash, [1, 1]);
+  assert.throws(() => { dashedFrame.lines[0].dash[0] = 3; }, TypeError);
+  assert.throws(() => createSurfaceFrame(camera, [], "#000", [{ ...line, dash: [NaN] }]), /non fini/);
   const projected = projectSurfaceFrame(frame);
   assert.equal(projected.lines.length, 1);
   assert.ok(projected.lines[0].points.every(point => point.depth >= camera.near - 1e-10));
@@ -154,6 +159,42 @@ test("lignes d'infrastructure : snapshot, clipping proche et bornage écran", as
   assert.equal(batch.acceptedLineSegments, 1);
   assert.ok(batch.worldLines.every(Number.isFinite));
   for (let i = 0; i < batch.worldLines.length; i += 7) assert.ok(Math.abs(batch.worldLines[i]) <= 1.11);
+});
+
+test("pointillés : phase polyline, motifs impairs, normalisation et garde bornée", async () => {
+  const { compileSurfaceBatches } = await import("../src/simulateur-port/rendering/surface-geometry.mjs");
+  const camera = { width: 1280, height: 800, near: .035, far: 6000 };
+  const line = (xs, dash) => ({ points: xs.map(x => ({ x, y: 200, depth: 10 })), color: "#fff", width: 1, dash, layer: 0 });
+  const compile = lines => compileSurfaceBatches({ polygons: [], lines }, camera, () => [1, 1, 1, 1]);
+  const ranges = batch => Array.from({ length: batch.worldLines.length / 42 }, (_, i) => [
+    Math.round((batch.worldLines[i * 42] + 1) * 640 * 1e6) / 1e6,
+    Math.round((batch.worldLines[i * 42 + 7] + 1) * 640 * 1e6) / 1e6
+  ]);
+  assert.deepEqual(ranges(compile([line([0, 7, 20], [5, 5])])), [[0, 5], [10, 15]]);
+  assert.deepEqual(ranges(compile([line([0, 7], [5, 5]), line([7, 20], [5, 5])])), [[0, 5], [7, 12], [17, 20]]);
+  // Le Legacy recommence à dessiner à l'index 0 d'un motif impair : ne pas
+  // doubler ce motif comme le ferait Canvas2D.setLineDash.
+  assert.deepEqual(ranges(compile([line([0, 20], [3, 2, 1])])), [[0, 3], [5, 6], [6, 9], [11, 12], [12, 15], [17, 18], [18, 20]]);
+  assert.deepEqual(ranges(compile([line([0, 2], [-1, 0, .1, .2])])), [[0, .5], [1, 1.5]]);
+  assert.deepEqual(ranges(compile([line([0, 2], [0, -2])])), [[0, 2]]);
+  const clipped = compile([line([-1e12, 1e12], [.001, .001])]);
+  assert.ok(clipped.worldLines.every(Number.isFinite));
+  assert.equal(clipped.dashLimitHits, 0);
+  assert.ok(clipped.worldLines.length < 4096 * 42);
+  const capped = compile([line(Array.from({ length: 12 }, (_, i) => i % 2 ? 1200 : 0), [.5, .5])]);
+  assert.equal(capped.dashLimitHits, 1);
+  assert.equal(capped.worldLines.length, 4096 * 42);
+  const afterCap = compile([
+    line(Array.from({ length: 12 }, (_, i) => i % 2 ? 1200 : 0), [.5, .5]),
+    line([0, 3], [])
+  ]);
+  assert.equal(afterCap.worldLines.length, 4097 * 42, "la saturation ne supprime pas la ligne suivante");
+  assert.equal(afterCap.dashLimitHits, 1);
+  const rejected = compile([line([-1000, -900, 0, 10], [5, 3])]);
+  const entering = compile([line([-900, 0, 10], [5, 3])]);
+  assert.deepEqual(rejected.worldLines, entering.worldLines, "un segment rejeté ne consomme aucune phase");
+  assert.equal(rejected.rejectedLineSegments, entering.rejectedLineSegments + 1);
+  assert.equal(compile([line([0, 10], [2, 2])]).dashLimitHits, 0, "la garde repart de zéro par frame");
 });
 
 test("RenderFrame conserve valeurs et ordre sans conserver les objets producteurs", () => {

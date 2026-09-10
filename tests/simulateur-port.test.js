@@ -106,10 +106,15 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
       assert.equal(report.three.polygons, report.legacy.polygons, name);
       assert.equal(report.pixels.interiorDifferentPixels, 0, `${name}: ${JSON.stringify(report.pixels)}`);
       assert.equal(report.pixels.equal, true, `${name}: bordure ou contour différent : ${JSON.stringify(report.pixels)}`);
+      if (report.compositedPixels) {
+        assert.equal(report.compositedPixels.equal, true, `${name}: composition différente`);
+        assert.equal(report.overlayUnchanged, true, `${name}: diagnostic modifiant les interactions`);
+      }
       if (nonblank) assert.ok(report.pixels.coveredPixels > 100, `${name}: terrain absent`);
       assert.ok(report.three.geometries <= 4);
       assert.equal(report.three.acceptedLineSegments, report.legacy.acceptedLineSegments, name);
       assert.equal(report.three.rejectedLineSegments, report.legacy.rejectedLineSegments, name);
+      assert.equal(report.three.dashLimitHits, report.legacy.dashLimitHits, name);
       assert.equal(report.three.drawCalls, report.legacy.drawCalls, name);
       assert.equal(report.three.textures, 0);
       differentPixels += report.pixels.differentPixels;
@@ -265,6 +270,76 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
         }
       }
     }
+    assert.equal(await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.enableSurfaceComparison({ world: true });
+      try { api.surfaceComparisonReport({ composite: true }); }
+      catch (error) { return /attendre une frame/.test(error.message); }
+      return false;
+    }), true, "ne pas composer l'ancien snapshot partiel après changement de scope");
+    for (const port of ["world-moorings", "world-pendille", "world-la-trinite"]) {
+      await page.evaluate(({ port, portText }) => {
+        const api = window.__PORTANCE_TEST__;
+        if (port === "world-la-trinite") {
+          api.importPort(portText); api.reset({ x: 200, y: 305, heading: .5084 });
+        } else {
+          api.restoreBuiltInPort(); api.loadScenario(port === "world-pendille" ? "medDeparture" : "dockForward");
+        }
+        for (const [id, value] of [["windSpeed", 8], ["currentSpeed", .4]]) {
+          const input = document.getElementById(id);
+          input.value = value; input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }, { port, portText });
+      for (const mode of ["navigation", "understand"]) {
+        await page.click(`[data-mode="${mode}"]`);
+        for (const theme of ["dark", "chart"]) {
+          for (const view of ["top", "anatomy", "skipper"]) {
+            await page.evaluate(({ theme, view }) => {
+              const api = window.__PORTANCE_TEST__;
+              api.selectVisualTheme(theme); api.selectCameraView(view);
+            }, { theme, view });
+            await settle();
+            const report = await page.evaluate(images => {
+              const api = window.__PORTANCE_TEST__;
+              const before = JSON.stringify(api.snapshot());
+              const overlay = document.getElementById("scene");
+              const beforeCanvas = overlay.toDataURL();
+              const { frame, legacyFrame, ...result } = api.surfaceComparisonReport({ composite: true, geometry: true, images });
+              return { ...result,
+                unchanged: before === JSON.stringify(api.snapshot()),
+                canvasUnchanged: beforeCanvas === overlay.toDataURL(),
+                layers: [...new Set(frame.lines.map(line => line.layer))],
+                dashedWorldLines: frame.lines.filter(line => line.dash.length).length,
+                activeRenderer: api.renderPerformanceReport().renderer,
+                mooringCount: api.snapshot().moorings.current.length,
+                securedPendilles: api.snapshot().pendilles.filter(item => item.state === "secured").length
+              };
+            }, deviceScaleFactor === 1 && mode === "understand" && view !== "top");
+            assert.equal(report.unchanged, true);
+            assert.equal(report.canvasUnchanged, true);
+            assert.equal(report.overlay.owner, "canvas2d");
+            assert.equal(report.owners.player, 1);
+            assert.ok(report.layers.every(layer => layer < 10));
+            assert.ok(report.routing.canvas2DLineLayers.includes(12), "axe du safran conservé en Canvas2D");
+            assert.ok(report.layers.includes(-2) && report.layers.includes(5), "flux et taquets distants capturés");
+            assert.ok(report.dashedWorldLines > 0);
+            assert.equal(report.layers.includes(-30), theme === "chart" && view !== "skipper");
+            assert.equal(report.routing.worldPolygons, report.three.polygons);
+            assert.equal(report.routing.worldLines, report.three.lines);
+            for (const key of ["polygons", "triangles", "acceptedLineSegments", "rejectedLineSegments", "dashLimitHits", "drawCalls"]) {
+              assert.equal(report.three[key], report.activeRenderer[key], `${port}/${key}: monde incomplet ou dupliqué`);
+            }
+            if (port !== "world-la-trinite") {
+              assert.equal(report.mooringCount, port === "world-pendille" ? 3 : 2);
+              if (port === "world-pendille") assert.equal(report.securedPendilles, 1);
+              assert.ok(report.overlay.mooringLines >= (view === "skipper" ? 1 : 2));
+              assert.ok(report.layers.includes(9), "objectif monde absent");
+            }
+            check(report, `${port}-${mode}-${theme}-${view}-dpr${deviceScaleFactor}`);
+          }
+        }
+      }
+    }
     // Joueur animé : état autoritaire inchangé pendant chaque lecture, pose
     // interpolée vérifiée indépendamment et géométrie dynamique non mise en cache.
     await page.evaluate(() => {
@@ -280,7 +355,7 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
       const report = await page.evaluate(() => {
         const api = window.__PORTANCE_TEST__;
         const before = JSON.stringify(api.snapshot());
-        const result = api.surfaceComparisonReport();
+        const result = api.surfaceComparisonReport({ composite: true });
         return { ...result, unchanged: before === JSON.stringify(api.snapshot()) };
       });
       assert.equal(report.unchanged, true);
@@ -327,22 +402,41 @@ test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cyc
         "line-behind-surface": { polygons: [rect(10, "#deddd5")], lines: [line([[-2,0,12],[2,0,12]])] },
         "line-before-surface": { polygons: [rect(10, "#deddd5")], lines: [line([[-2,0,8],[2,0,8]])] }
       };
-      for (const [name, fixture] of Object.entries(lineFixtures)) reports.push([name, api.surfaceComparisonReport(fixture)]);
+      const dashed = (coords, dash = [8, 5], width = 2.4) => ({ ...line(coords), dash, width });
+      Object.assign(lineFixtures, {
+        "dash-polyline": { lines: [dashed([[-3,-2,10],[-.3,.4,10],[3,2,10]])] },
+        "dash-odd": { lines: [dashed([[-3,0,10],[3,0,10]], [3,2,1])] },
+        "dash-single": { lines: [dashed([[-3,0,10],[3,0,10]], [5])] },
+        "dash-normalized": { lines: [dashed([[-3,0,10],[3,0,10]], [0,-1,.1,2])] },
+        "dash-empty-normalized": { lines: [dashed([[-3,0,10],[3,0,10]], [0,-1])] },
+        "dash-offscreen": { lines: [dashed([[-1e6,0,10],[1e6,0,10]], [.001,.001])] },
+        "dash-exit-reenter": { lines: [dashed([[-3,0,10],[40,1,10],[40,3,10],[-3,2,10]])] },
+        "dash-near-polyline": { lines: [dashed([[-.04,0,.1],[-.01,.01,.07],[.01,-.01,.0175],[.04,0,.1],[-.01,.01,.0175]])] },
+        "dash-depth": { polygons: [rect(10, "#deddd5")], lines: [dashed([[-4,-1,8],[4,1,12]])] },
+        "dash-alpha": { lines: [{ ...dashed([[-3,-1,10],[3,1,10],[-3,1,10],[3,-1,10]]), color: "rgba(255,0,255,.4)" }] },
+        "dash-cap": { lines: [dashed(Array.from({ length: 20 }, (_, i) => [i % 2 ? 5 : -5, i * .1 - 1, 10]), [.5,.5])] }
+      });
+      for (const [name, fixture] of Object.entries(lineFixtures)) reports.push([name, api.surfaceComparisonReport({
+        ...fixture, images: ["dash-polyline", "dash-near-polyline", "dash-depth"].includes(name)
+      })]);
       return reports;
     });
-    for (const [name, report] of synthetic) check(report, `${name}-dpr${deviceScaleFactor}`, name !== "behind");
+    for (const [name, report] of synthetic) {
+      check(report, `${name}-dpr${deviceScaleFactor}`, name !== "behind");
+      if (name === "dash-cap") assert.equal(report.three.dashLimitHits, 1);
+    }
     const repeated = await page.evaluate(() => Array.from({ length: 5 }, () => window.__PORTANCE_TEST__.surfaceComparisonReport().three));
     assert.deepEqual(repeated.at(-1), repeated[0], "buffers et ressources stables à scène constante");
     await page.setViewportSize({ width: 390, height: 844 });
     await settle();
-    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `resize-dpr${deviceScaleFactor}`);
+    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport({ composite: true })), `resize-dpr${deviceScaleFactor}`);
     await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       api.disposeSurfaceComparison(); api.disposeSurfaceComparison();
-      api.enableSurfaceComparison({ seamarks: true });
+      api.enableSurfaceComparison({ world: true });
     });
     await settle();
-    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport()), `recreate-dpr${deviceScaleFactor}`);
+    check(await page.evaluate(() => window.__PORTANCE_TEST__.surfaceComparisonReport({ composite: true })), `recreate-dpr${deviceScaleFactor}`);
     await page.evaluate(() => window.__PORTANCE_TEST__.disposeSurfaceComparison());
     assert.deepEqual(errors, []);
     await page.close();

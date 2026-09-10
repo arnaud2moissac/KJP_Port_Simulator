@@ -17,7 +17,7 @@ export function createSurfaceFrame(camera, polygons, waterBackground, lines = []
       points: pointsSnapshot(polygon.points)
     }))),
     lines: Object.freeze(lines.map(line => {
-      if (line.dash.length) throw new Error("SurfaceFrame: pointillés hors périmètre infrastructures");
+      if (!line.dash.every(Number.isFinite)) throw new TypeError("SurfaceFrame: motif pointillé non fini");
       return Object.freeze({ ...line, points: pointsSnapshot(line.points), dash: Object.freeze([...line.dash]) });
     }))
   });
