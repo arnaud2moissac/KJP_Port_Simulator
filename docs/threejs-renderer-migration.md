@@ -564,14 +564,89 @@ relancés avec autorisation ; les exécutions navigateur autorisées passent.
 Pas de validation GPU matériel, Safari/Firefox, mobile réel ou release dans
 cette tranche. Modifications non commitées.
 
+## Réutilisation des sommets encodés dans le compilateur Three
+
+La tranche suivante part du commit `6e30acf`, arbre propre. Elle modifie
+uniquement `surface-geometry.mjs`, le HTML régénéré et ce journal. Chaque sommet
+de remplissage est encodé une fois par polygone, puis réutilisé par ses
+triangles. Chaque quad de contour ou de ligne encode quatre positions écran
+et deux profondeurs, puis émet les six sommets dans le même ordre. Une
+triangulation vide ne déclenche aucun encodage.
+
+L'encodage reste en nombres JavaScript, sans arrondi Float32 anticipé. Les
+expressions arithmétiques, les offsets, le clamp final, le tri des transparents
+et la triangulation ne changent pas. Les contours utilisent toujours les
+points originaux du polygone, indépendamment des points nettoyés du remplissage.
+Aucun cache inter-frame n'est ajouté ; l'implémentation Legacy reste inchangée.
+
+Une comparaison directe charge le compilateur du commit de départ et le
+candidat dans le même Chromium. Sur les huit cadrages de La Trinité, les
+7 375 998 nombres produits sont strictement identiques (`Object.is`, y compris
+le signe du zéro), ainsi que tous les compteurs. Sur la vue générale en thème
+carte, les appels à `Math.log` passent de 493 194 à 197 934, soit environ 60 %
+de moins. Ce comptage se fait hors des mesures de temps.
+
+Trois répétitions appariées alternent les deux compilateurs après trente
+compilations de chauffe, sur 120 échantillons chacun. Elles utilisent la même
+entrée projetée et les mêmes couleurs déjà parsées. Temps CPU de compilation
+en millisecondes, **p50 / p95 / p99** :
+
+| Répétition | Avant | Après |
+| --- | --- | --- |
+| 1 | 74,5 / 86,6 / 89,5 | 60,7 / 70,7 / 73,4 |
+| 2 | 74,8 / 86,1 / 95,4 | 60,7 / 70,5 / 72,7 |
+| 3 | 74,6 / 86,3 / 92,4 | 60,8 / 71,4 / 79,3 |
+
+Le gain médian de ce microbenchmark est de 18,5–18,9 %, et celui du p95 de
+17,3–18,4 %. Il ne mesure pas la cadence du simulateur. Les données de cette
+comparaison sont dans `/tmp/kjp-compiler.mtJZpn/comparison.json` ; le script
+ponctuel et le compilateur de départ sont conservés dans le même dossier.
+
+Le protocole complet `npm run profile:renderers` passe également, sur le HTML
+de SHA-256 `d7c49f8c670f490ca76e0f53a761603b8daa3b362ef522c90d2d31218e7fb695`.
+Rapport et captures :
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/kjp-render-profile-QlWWBE/`.
+Temps CPU de préparation/soumission depuis l'entrée projetée commune, mêmes
+conditions et limites que le protocole précédent, **p50 / p95 / p99** :
+
+| DPR | Répétition | Legacy inchangé | Three optimisé |
+| --- | --- | --- | --- |
+| 1 | 1 | 74,9 / 86,7 / 97,1 | 61,9 / 72,7 / 77,7 |
+| 1 | 2 | 74,8 / 86,6 / 96,6 | 62,0 / 73,1 / 80,0 |
+| 1 | 3 | 75,2 / 86,1 / 93,2 | 61,7 / 72,5 / 73,2 |
+| 2 | 1 | 77,6 / 82,9 / 87,2 | 64,2 / 74,8 / 75,9 |
+| 2 | 2 | 81,5 / 115,9 / 156,6 | 67,2 / 98,9 / 120,9 |
+| 2 | 3 | 82,8 / 94,6 / 105,2 | 68,7 / 77,6 / 85,4 |
+
+Les valeurs absolues du témoin Legacy ont aussi baissé depuis la session de
+profilage initiale : cette baisse commune ne peut pas être attribuée au patch.
+Le gain annoncé du compilateur repose donc sur la comparaison appariée
+avant/après dans la même session, et non sur la différence entre ces deux
+sessions. Le banc complet confirme une médiane Three inférieure de 17–18 % à
+celle du Legacy inchangé pour son périmètre à entrée projetée.
+
+Les 82 199 triangles, trois appels de dessin et 6 904 716 octets transférés par
+image sont conservés. Les vingt cycles d'import par DPR passent avec les mêmes
+compteurs et capacités stables, sans réallocation après chauffe. Le tas JS de
+La Trinité après GC évolue de 71,1 à 71,2 Mo au DPR 1 et de 91,7 à 90,8 Mo au
+DPR 2, dans la borne du protocole. Les pixels monde et composés, les snapshots
+physiques et les contrôles console/page/GL/réseau du banc passent également.
+
+Validation après optimisation : build et contrôle du HTML autonome réussis,
+10 tests unitaires de rendu et 51 tests navigateur réussis. Les 338 comparaisons
+raster et 24 traversées de ±π sont strictement identiques, ainsi que les six
+références Legacy sans `--update`. Les 2 211 ancres caméra restent dans la
+tolérance (écart maximal `1,33e-8 px`) et les trois trajectoires étalons sont
+exactes. La capture du grand port optimisé a été inspectée. Le graphe est mis à
+jour (1 000 nœuds, 1 777 arêtes, 53 communautés) et `git diff --check` passe.
+Legacy reste actif ; physique et profils inchangés. Modifications non commitées.
+
 ## Prochaine tranche
 
-Isoler le coût dominant à l'intérieur de `compileSurfaceBatches`, puis essayer
-une seule optimisation sur le même protocole avant/après. Une candidate est de
-réutiliser l'encodage écran/profondeur des sommets répétés au sein d'un polygone
-ou segment, en conservant les opérations arithmétiques, les offsets et l'ordre
-des triangles. Le gain de cette candidate reste à démontrer ; elle n'est pas
-implémentée dans la tranche de profilage. Garder le
+Qualifier le coût complet avec activité et GPU matériel avant d'envisager une
+bascule visible vers Three. La compilation reste à surveiller ; toute nouvelle
+optimisation doit garder sa comparaison avant/après et les références visuelles.
+Garder le
 défaut Legacy de coloration des contacts explicite dans les critères visuels ;
 ne pas revendiquer son bon fonctionnement au titre de la parité Three.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur

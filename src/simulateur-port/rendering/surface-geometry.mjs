@@ -131,11 +131,29 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
     Math.log(clamp(depth, camera.near, camera.far) / camera.near)
       / Math.log(camera.far / camera.near) * 2 - 1 + offset, -1, 1
   );
-  const vertex = (target, x, y, depth, color, offset) => target.push(
+  // Une primitive réutilise ses sommets dans plusieurs triangles. Encoder une
+  // fois, sans changer l'ordre des divisions/logarithmes ni arrondir en float32.
+  const encodeVertex = (x, y, depth, offset) => [
     x / Math.max(1, camera.width) * 2 - 1,
     1 - y / Math.max(1, camera.height) * 2,
-    depthNdc(depth, offset), ...color
+    depthNdc(depth, offset)
+  ];
+  const appendVertex = (target, point, color) => target.push(
+    point[0], point[1], point[2], color[0], color[1], color[2], color[3]
   );
+  const appendQuad = (target, ax, ay, bx, by, cx, cy, dx, dy, firstDepth, secondDepth, color, offset) => {
+    const az = depthNdc(firstDepth, offset), bz = depthNdc(secondDepth, offset);
+    const a = [ax / Math.max(1, camera.width) * 2 - 1, 1 - ay / Math.max(1, camera.height) * 2, az];
+    const b = [bx / Math.max(1, camera.width) * 2 - 1, 1 - by / Math.max(1, camera.height) * 2, bz];
+    const c = [cx / Math.max(1, camera.width) * 2 - 1, 1 - cy / Math.max(1, camera.height) * 2, bz];
+    const d = [dx / Math.max(1, camera.width) * 2 - 1, 1 - dy / Math.max(1, camera.height) * 2, az];
+    appendVertex(target, a, color);
+    appendVertex(target, b, color);
+    appendVertex(target, c, color);
+    appendVertex(target, a, color);
+    appendVertex(target, c, color);
+    appendVertex(target, d, color);
+  };
   const clipProjectedSegmentToViewport = (first, second, margin = 64) => {
     if (![first?.x, first?.y, first?.depth, second?.x, second?.y, second?.depth]
       .every(Number.isFinite)) return null;
@@ -210,12 +228,7 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
     const cy = secondY - ny;
     const dx2 = firstX - nx;
     const dy2 = firstY - ny;
-    vertex(target, ax, ay, firstDepth, color, offset);
-    vertex(target, bx, by, secondDepth, color, offset);
-    vertex(target, cx, cy, secondDepth, color, offset);
-    vertex(target, ax, ay, firstDepth, color, offset);
-    vertex(target, cx, cy, secondDepth, color, offset);
-    vertex(target, dx2, dy2, firstDepth, color, offset);
+    appendQuad(target, ax, ay, bx, by, cx, cy, dx2, dy2, firstDepth, secondDepth, color, offset);
     return true;
   };
 
@@ -278,10 +291,12 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
     triangles += mesh.triangles.length;
     const target = fill[3] >= .995 ? opaque : [];
     const offset = -clamp(Number(polygon.layer) || 0, -.25, .25) * 1e-3;
+    const encoded = mesh.triangles.length
+      ? mesh.points.map(point => encodeVertex(point.x, point.y, point.depth, offset))
+      : [];
     for (const indices of mesh.triangles) {
       for (const i of indices) {
-        const point = mesh.points[i];
-        vertex(target, point.x, point.y, point.depth, fill, offset);
+        appendVertex(target, encoded[i], fill);
       }
     }
     if (fill[3] < .995) translucentRecords.push({ depth: polygon.depth, vertices: target });
@@ -294,13 +309,10 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
       if (length < .01) continue;
       const nx = -dy / length * polygon.lineWidth / 2;
       const ny = dx / length * polygon.lineWidth / 2;
-      const corners = [
-        [a.x + nx, a.y + ny, a.depth], [b.x + nx, b.y + ny, b.depth],
-        [b.x - nx, b.y - ny, b.depth], [a.x - nx, a.y - ny, a.depth]
-      ];
-      for (const index of [0, 1, 2, 0, 2, 3]) {
-        vertex(strokes, ...corners[index], stroke, -2e-6);
-      }
+      appendQuad(strokes,
+        a.x + nx, a.y + ny, b.x + nx, b.y + ny,
+        b.x - nx, b.y - ny, a.x - nx, a.y - ny,
+        a.depth, b.depth, stroke, -2e-6);
     }
   }
   translucentRecords.sort((a, b) => b.depth - a.depth).forEach(record => {
