@@ -5063,6 +5063,7 @@
     let captureSurfaces = false;
     let surfaceCapture = null;
     let capturingPlayerBoat = false;
+    let activeFrameProfile = null; // Accessible uniquement via l'API ?test.
 
     function addCachedWorldGeometry(key, builder) {
       let geometry = staticWorldGeometryCache.get(key);
@@ -7611,18 +7612,27 @@
       }
       if (depthRenderer) {
         try {
-          KJPRenderFrames.renderLegacyFrame(
-            depthRenderer,
-            KJPRenderFrames.createRenderFrame({
-              polygons,
-              lines: overlayLines.filter(item => item.layer < 10)
-            })
-          );
+          const projectedFrame = KJPRenderFrames.createRenderFrame({
+            polygons,
+            lines: overlayLines.filter(item => item.layer < 10)
+          });
+          if (activeFrameProfile) {
+            activeFrameProfile.lastRenderer = activeFrameProfile.comparison.renderBackend(
+              activeFrameProfile.backend, projectedFrame,
+              { width: canvasWidth, height: canvasHeight,
+                near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP }, pixelRatio
+            );
+          } else {
+            KJPRenderFrames.renderLegacyFrame(depthRenderer, projectedFrame);
+          }
           overlayLines
             .filter(item => item.layer >= 10)
             .sort((a, b) => a.layer - b.layer)
             .forEach(drawLineItem);
         } catch (error) {
+          // Un échec de diagnostic ne doit ni déclencher le repli du produit,
+          // ni être compté comme une mesure réussie.
+          if (activeFrameProfile) throw error;
           console.warn("Rendu WebGL interrompu, poursuite en Canvas 2D", error);
           depthRenderer = null;
           worldCanvas.style.display = "none";
@@ -7652,7 +7662,22 @@
       updateEngineAudio();
       updateInterface();
       renderPerformance.lastFrameVisibilityComputations = renderPerformance.visibilityComputations;
-      recordRenderCpuTime(performance.now() - renderCpuStart);
+      const renderCpuMs = performance.now() - renderCpuStart;
+      recordRenderCpuTime(renderCpuMs);
+      if (activeFrameProfile) {
+        activeFrameProfile.frameCount += 1;
+        if (activeFrameProfile.frames.length < 600) activeFrameProfile.frames.push({
+          cpuMs: renderCpuMs, timestamp: time, simTime: ui.simTime,
+          polygons: polygons.length, lines: overlayLines.length,
+          camera: { distance: camera.distance, target: [...camera.target],
+            position: [...frameBasis.position], forward: [...frameBasis.forward],
+            right: [...frameBasis.right], up: [...frameBasis.up] },
+          renderer: activeFrameProfile.lastRenderer
+        });
+        if (activeFrameProfile.frameCount === activeFrameProfile.captureAtFrame) {
+          activeFrameProfile.images = activeFrameProfile.comparison.captureBackend(activeFrameProfile.backend, canvas);
+        }
+      }
       requestAnimationFrame(render);
     }
 
@@ -9270,7 +9295,32 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
+        startActiveFrameProfile(backend, { captureAtFrame = null } = {}) {
+          if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
+          if (captureAtFrame !== null && (!Number.isInteger(captureAtFrame) || captureAtFrame < 1 || captureAtFrame > 600)) {
+            throw new RangeError("Frame de capture invalide");
+          }
+          if (!depthRenderer || activeFrameProfile || captureSurfaces) {
+            throw new Error("Profilage actif indisponible ou diagnostic déjà actif");
+          }
+          const comparison = KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
+          activeFrameProfile = { backend, comparison, frameCount: 0, frames: [], lastRenderer: null, captureAtFrame, images: null };
+          return comparison.contexts();
+        },
+        activeFrameProfileReport() {
+          if (!activeFrameProfile) throw new Error("Aucun profilage actif");
+          return { backend: activeFrameProfile.backend, frameCount: activeFrameProfile.frameCount,
+            frames: structuredClone(activeFrameProfile.frames),
+            images: activeFrameProfile.images ? { ...activeFrameProfile.images } : null,
+            glErrors: activeFrameProfile.comparison.glErrors() };
+        },
+        stopActiveFrameProfile() {
+          const profile = activeFrameProfile;
+          activeFrameProfile = null;
+          profile?.comparison.dispose();
+        },
         enableSurfaceComparison({ infrastructures = false, boats = false, seamarks = false, world = false } = {}) {
+          if (activeFrameProfile) throw new Error("Arrêter le profilage actif avant la capture");
           captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
           surfaceCapture = null; // Attendre une frame du nouveau périmètre.
         },

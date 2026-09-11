@@ -31,7 +31,7 @@ function observeUploads(gl, render) {
   finally { Object.assign(gl, originals); }
 }
 
-function describeContext(gl) {
+export function describeContext(gl) {
   const extension = gl.getExtension("WEBGL_debug_renderer_info");
   return {
     version: gl.getParameter(gl.VERSION),

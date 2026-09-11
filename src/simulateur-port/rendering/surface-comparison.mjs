@@ -1,5 +1,5 @@
 import { createThreeSurfaceRenderer } from "./three-surfaces.mjs";
-import { profileSurfaceRenderers } from "./surface-profile.mjs";
+import { describeContext, profileSurfaceRenderers } from "./surface-profile.mjs";
 
 // Comparaison stricte dans le même navigateur/GPU. La classification bordure
 // à un pixel est diagnostique seulement : elle ne doit pas rendre acceptable
@@ -54,6 +54,37 @@ export function createSurfaceComparison(createLegacy) {
   let disposed = false;
   let composites = null;
   return Object.freeze({
+    contexts() {
+      if (disposed) throw new Error("Surface comparison disposed");
+      return { legacy: describeContext(legacyContext), three: describeContext(three.context) };
+    },
+    // Un seul backend détaché, appelé par la boucle existante. Pas de capture
+    // monde, seconde projection, readback ou synchronisation GPU dans ce chemin.
+    renderBackend(backend, projected, camera, pixelRatio) {
+      if (disposed) throw new Error("Surface comparison disposed");
+      if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
+      if (backend === "three") return three.renderProjected(projected, camera, pixelRatio);
+      const width = Math.round(camera.width * pixelRatio);
+      const height = Math.round(camera.height * pixelRatio);
+      if (legacyCanvas.width !== width) legacyCanvas.width = width;
+      if (legacyCanvas.height !== height) legacyCanvas.height = height;
+      legacy.render(projected.polygons, projected.lines);
+      return legacy.report();
+    },
+    glErrors() {
+      if (disposed) throw new Error("Surface comparison disposed");
+      return [legacyContext.getError(), three.context.getError()];
+    },
+    captureBackend(backend, overlayCanvas) {
+      if (disposed) throw new Error("Surface comparison disposed");
+      const source = backend === "legacy" ? legacyCanvas : threeCanvas;
+      const composite = document.createElement("canvas");
+      composite.width = source.width; composite.height = source.height;
+      const context = composite.getContext("2d");
+      context.drawImage(source, 0, 0);
+      context.drawImage(overlayCanvas, 0, 0);
+      return { world: source.toDataURL(), composite: composite.toDataURL() };
+    },
     profile(frame, projected, pixelRatio, options) {
       if (disposed) throw new Error("Surface comparison disposed");
       const width = Math.round(frame.camera.width * pixelRatio);

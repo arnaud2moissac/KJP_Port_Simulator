@@ -641,13 +641,127 @@ exactes. La capture du grand port optimisé a été inspectée. Le graphe est mi
 jour (1 000 nœuds, 1 777 arêtes, 53 communautés) et `git diff --check` passe.
 Legacy reste actif ; physique et profils inchangés. Modifications non commitées.
 
+## Boucle active sur GPU matériel
+
+`npm run profile:renderers:active` exécute le protocole
+`active-loop-projected-cpu-v1` dans Chromium avec fenêtre. Le GPU est contrôlé
+par les chaînes des **deux contextes réellement utilisés**, corroborées par
+`SystemInfo.getInfo` de Chromium. Le banc échoue si aucun GPU matériel n'est
+identifié ; `--headless --allow-software` permet un contrôle logiciel explicite,
+sans qualification matérielle. `--quick` utilise seulement trois images de
+chauffe et six mesures : ses temps ne sont pas exploitables comme résultats.
+
+Le branchement existe uniquement dans l'API `?test`. Une seule soumission par
+image remplace temporairement la soumission visible dans l'unique fonction
+`render(time)` : Legacy et Three dessinent chacun dans leur canevas détaché.
+Le rendu normal reste Legacy, et l'arrêt du diagnostic restitue ce chemin sans
+modifier le snapshot physique. Le banc n'ajoute aucune boucle au produit.
+
+Le temps CPU mesuré directement au début et à la fin de `render` comprend les
+pas physiques, l'interpolation, la caméra, la visibilité, la construction et
+projection du monde, le snapshot projeté immuable, la compilation/soumission
+du backend, les overlays Canvas 2D, l'actualisation audio et l'interface. Les
+deux backends réutilisent la projection existante ; Three reçoit
+`renderProjected`, sans seconde projection. Aucun enregistrement du monde,
+readback, `gl.finish`, chronométrage GPU ou observation des uploads n'est inclus.
+Les snapshots de contrôle et les captures finales sont collectés hors minuterie.
+
+La matrice couvre La Trinité en mode navigation, thème carte, dessus à 1 200 m et skipper, aux
+DPR 1/2, fenêtre 1280 × 800. Chaque case comprend trois paires de séquences,
+d'ordre Legacy/Three, Three/Legacy, Legacy/Three, dans des pages neuves du même
+navigateur. Chaque séquence comporte 30 images de chauffe puis 120 mesures.
+L'état initial est `(200,305)`, cap `0,5084 rad`, vitesse longitudinale `1 m/s`,
+gaz cible `0,55`, safran cible `0,12 rad`, vent `8 nd`, courant `0,4 nd`, temps ×1.
+Le bateau évolue réellement à chaque séquence. Les callbacks reçoivent la même
+suite de timestamps, espacés de `1000/60 ms`, et conservent le pas physique
+existant. Le hash de tous les snapshots physiques est comparé, ainsi que celui
+des caméras, temps et nombres de primitives de chaque image. Les compteurs de
+triangles, appels, triangulations et segments sont vérifiés image par image.
+Les captures monde et monde+overlays de fin d'activité doivent être identiques.
+
+Cette mesure qualifie le **coût CPU complet du chemin projeté dans la boucle
+active, avec GPU matériel**, et non les FPS du futur Three visible. La composition
+navigateur, la fin d'exécution GPU et la synthèse audio restent hors périmètre.
+L'audio est coupé pour le banc ; les avertissements attendus de suspension
+AudioContext à l'ouverture sont conservés dans le JSON. Les timestamps RAF
+natifs sont conservés séparément, mais comprennent les contrôles du pilote entre
+les callbacks. Le ratio CPU au-delà de 16,67 ms est un dépassement de budget CPU,
+pas un taux d'images perdues. L'extension GPU peut être présente sans que son
+temps soit mesuré : `gpuTimeMs` et `gpuMemoryBytes` restent alors `null`.
+
+### Résultats du 11 septembre 2026
+
+Collecte complète réussie avec Chromium 149.0.7827.55, Three r186, Apple M1,
+ANGLE Metal et pilote Apple 15.7.7. Les 24 contextes sélectionnés et leurs
+contextes homologues déclarent `ANGLE Metal Renderer: Apple M1` ; CDP confirme
+le même GPU et WebGL/composition GPU activés. L'extension timer query est
+disponible, mais n'a pas été utilisée. Le HTML mesuré porte le SHA-256
+`006ee7267444ce867e880640d8fa0247d33fda213c4768fff37c3570c0d86865`.
+
+Les colonnes donnent **p50 / p95 / p99 CPU en ms**, pour 120 échantillons après
+30 images de chauffe par backend. Le gain est calculé sur les médianes de la
+même paire, sans comparaison avec la précédente session SwiftShader.
+
+| Vue | DPR | Paire | Legacy | Three | Réduction p50 |
+| --- | ---: | ---: | --- | --- | ---: |
+| Dessus 1 200 m | 1 | 1 | 84,0 / 94,4 / 104,5 | 70,8 / 79,4 / 95,1 | 15,7 % |
+| Dessus 1 200 m | 1 | 2 | 85,3 / 94,9 / 118,2 | 70,0 / 80,6 / 90,4 | 17,9 % |
+| Dessus 1 200 m | 1 | 3 | 87,7 / 128,1 / 166,1 | 70,3 / 77,6 / 78,7 | 19,8 % |
+| Dessus 1 200 m | 2 | 1 | 86,7 / 115,8 / 136,2 | 70,6 / 80,1 / 93,9 | 18,6 % |
+| Dessus 1 200 m | 2 | 2 | 83,8 / 92,2 / 117,3 | 70,3 / 80,5 / 90,2 | 16,1 % |
+| Dessus 1 200 m | 2 | 3 | 84,8 / 92,7 / 121,2 | 69,8 / 82,0 / 87,7 | 17,7 % |
+| Skipper | 1 | 1 | 19,3 / 21,4 / 27,0 | 12,0 / 14,7 / 25,0 | 37,8 % |
+| Skipper | 1 | 2 | 19,2 / 21,7 / 26,3 | 12,0 / 14,4 / 25,4 | 37,5 % |
+| Skipper | 1 | 3 | 19,2 / 21,8 / 26,3 | 12,0 / 15,8 / 26,3 | 37,5 % |
+| Skipper | 2 | 1 | 19,3 / 21,4 / 28,9 | 11,9 / 16,2 / 33,9 | 38,3 % |
+| Skipper | 2 | 2 | 19,2 / 22,2 / 25,6 | 12,0 / 16,6 / 32,2 | 37,5 % |
+| Skipper | 2 | 3 | 19,4 / 21,9 / 26,3 | 11,9 / 14,7 / 21,4 | 38,7 % |
+
+Le gain médian est reproductible, mais ne garantit pas tous les pics : deux
+p99 skipper au DPR 2 restent plus élevés avec Three. Le grand port dense dépasse
+16,67 ms sur **100 %** des échantillons des deux backends. En skipper, ce ratio
+est de 100 % pour Legacy et 3,3–5,0 % pour Three. Le temps entre le premier et le
+dernier début de callback mesuré est de 8,55–11,28 s en vue dense et 2,00–2,42 s
+en skipper ; ces durées incluent les contrôles entre callbacks et ne donnent
+pas une cadence du produit. La séquence représente 2,4916666666666605 secondes
+physiques, soit 299 pas existants à 1/120 s, avec déplacement et changement de cap.
+
+Au total : 2 880 mesures CPU, 1 800 paires d'états/caméras/compteurs identiques,
+et 12 paires de captures finales monde + composition identiques (48 PNG).
+Le hash de la série de 150 snapshots physiques est identique dans les 24
+séquences, y compris entre les vues et DPR :
+`c67d19de3f82bc9e405d8d42f820dcaa2f3836368b18fc5422b69a718a98149f`.
+La vue dense conserve 8 384 polygones et environ 82 200 triangles GPU, avec
+trois appels de dessin. Aucune réallocation après chauffe : zéro par image
+côté Legacy, compteur cumulatif Three constant à quatre. Le skipper présente
+une triangulation rejetée au début et à la fin dans **les deux** backends ;
+cette parité ne constitue pas une correction de géométrie. Aucune erreur
+console/page/GL ni requête HTTP ; les seuls avertissements sont ceux du démarrage
+audio suspendu. Les captures dessus et skipper ont été inspectées.
+
+Contrôles complémentaires réussis : build et `check:simulator`, 10 tests de
+`test:rendering`, 51 tests sélectionnés du simulateur, dont 338 comparaisons
+raster strictes, 24 traversées de ±π, 2 211 ancres caméra (écart maximal
+`1,32e-8 px`) et trois trajectoires étalons exactes. Les six empreintes de
+`capture:renderer-baseline` sont identiques, sans mise à jour des références.
+Physique, profils et fixtures gelés inchangés ; `git diff --check` réussi et
+graphe AST actualisé (1 021 nœuds, 1 800 arêtes, 54 communautés).
+
+Les données brutes, métadonnées et captures locales sont dans
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/kjp-active-profile-95XuH5/`.
+Ce dossier temporaire peut disparaître ; le protocole et les résultats essentiels
+sont conservés ici. Cette tranche n'ajoute aucune optimisation du compilateur.
+
 ## Prochaine tranche
 
-Qualifier le coût complet avec activité et GPU matériel avant d'envisager une
-bascule visible vers Three. La compilation reste à surveiller ; toute nouvelle
-optimisation doit garder sa comparaison avant/après et les références visuelles.
-Garder le
-défaut Legacy de coloration des contacts explicite dans les critères visuels ;
+Le coût CPU de la boucle active est désormais mesuré sur GPU matériel. Le grand
+port dense reste très au-dessus du budget de 16,67 ms : isoler le propriétaire
+CPU dominant dans ce périmètre actif avant la prochaine optimisation appariée.
+La compilation est un candidat issu du microbenchmark précédent, pas encore une
+attribution mesurée dans cette nouvelle boucle. Conserver les références visuelles.
+Le temps GPU, la composition et la cadence naturelle d'un Three visible, ainsi
+que la stabilité longue avec activité, restent à qualifier avant toute bascule
+par défaut. Garder le défaut Legacy de coloration des contacts explicite dans les critères visuels ;
 ne pas revendiquer son bon fonctionnement au titre de la parité Three.
 Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
 ne seraient pas partagés. Le renderer Legacy reste actif.

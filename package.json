@@ -13,6 +13,7 @@
     "build:simulator": "node scripts/build-simulateur-port.js",
     "capture:renderer-baseline": "node scripts/capture-simulator-render-baseline.js",
     "profile:renderers": "node scripts/profile-simulator-renderers.js",
+    "profile:renderers:active": "node scripts/profile-simulator-active-renderers.js",
     "test:rendering": "node --test tests/render-frame.test.js",
     "build:port-generator": "node scripts/build-port-generator.js",
     "check:build": "node scripts/build-simulateur-port.js --check",
