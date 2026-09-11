@@ -18002,11 +18002,41 @@ void main() {
       ];
     }
 
+    function flowParticleDomain() {
+      const visibleSpan = Math.max(200, camera.distance * 3.3);
+      const width = Math.min(flowField.width, visibleSpan);
+      const height = Math.min(flowField.height, visibleSpan);
+      if (width === flowField.width && height === flowField.height) {
+        return { ...flowField, centered: false };
+      }
+      const basis = frameBasis || cameraBasis();
+      const horizontalForwardLength = Math.hypot(basis.forward[0], basis.forward[1]) || 1;
+      const lookAhead = camera.view === "skipper" ? height * .35 : 0;
+      return {
+        minX: flowField.minX,
+        minY: flowField.minY,
+        width,
+        height,
+        centerX: camera.view === "skipper"
+          ? basis.position[0] + basis.forward[0] / horizontalForwardLength * lookAhead
+          : camera.target[0],
+        centerY: camera.view === "skipper"
+          ? basis.position[1] + basis.forward[1] / horizontalForwardLength * lookAhead
+          : camera.target[1],
+        centered: true
+      };
+    }
+
     function flowParticlePresentation(simulationSeconds) {
       const palette = visualPalette();
       const wrap = (value, minimum, span) => (
         minimum + ((value - minimum) % span + span) % span
       );
+      const domain = flowParticleDomain();
+      const repeatNearest = (value, minimum, span, center) => {
+        const repeated = wrap(value, minimum, span);
+        return repeated + Math.round((center - repeated) / span) * span;
+      };
       const drawField = (vector, color, seed, count, z, trailSeconds, style) => {
         const speed = Math.hypot(vector[0], vector[1]);
         if (speed < .02) return [];
@@ -18015,16 +18045,16 @@ void main() {
         const trail = flowDisplacement(vector, trailSeconds);
         const paths = [];
         for (let index = 0; index < count; index++) {
-          const baseX = wrap(
-            flowField.minX + index * 23.17 + seed * 11.3 + displacement[0],
-            flowField.minX,
-            flowField.width
-          );
-          const baseY = wrap(
-            flowField.minY + index * 13.73 + seed * 7.1 + displacement[1],
-            flowField.minY,
-            flowField.height
-          );
+          const sourceX = flowField.minX
+            + index * 23.17 + seed * 11.3 + displacement[0];
+          const sourceY = flowField.minY
+            + index * 13.73 + seed * 7.1 + displacement[1];
+          const baseX = domain.centered
+            ? repeatNearest(sourceX, domain.minX, domain.width, domain.centerX)
+            : wrap(sourceX, domain.minX, domain.width);
+          const baseY = domain.centered
+            ? repeatNearest(sourceY, domain.minY, domain.height, domain.centerY)
+            : wrap(sourceY, domain.minY, domain.height);
           let points = [
             [baseX, baseY, z],
             [baseX + trail[0], baseY + trail[1], z]

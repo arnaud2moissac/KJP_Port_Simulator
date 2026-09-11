@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { createHash } = require("node:crypto");
@@ -9,6 +10,7 @@ const simulatorPath = path.resolve(__dirname, "..", "simulateur-port.html");
 const simulatorUrl = new URL(pathToFileURL(simulatorPath));
 simulatorUrl.searchParams.set("test", "1");
 simulatorUrl.searchParams.set("renderer", "legacy");
+const largePortText = fs.readFileSync(path.resolve(__dirname, "..", "examples", "la-trinite-sur-mer.kjp"), "utf8");
 
 const settle = (page, frames = 3) => page.evaluate(count => new Promise(resolve => {
   const next = remaining => requestAnimationFrame(() => (
@@ -252,6 +254,57 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   assert.equal(resized.report.camera.height, resized.rect.height);
   assert.deepEqual(persistentGeometry(resized.report), beforeResizeGeometry);
 
+  const largePortFlow = await page.evaluate(async text => {
+    const api = window.__PORTANCE_TEST__;
+    api.importPort(text);
+    const pose = api.snapshot().motion;
+    api.selectVisualTheme("dark");
+    const capture = async (view, environment) => {
+      api.reset(pose, environment);
+      api.selectCameraView(view);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return api.worldRendererReport({ images: true }).image;
+    };
+    const pixels = async source => {
+      const image = new Image();
+      image.src = source;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0);
+      return context.getImageData(0, 0, canvas.width, canvas.height).data;
+    };
+    const difference = async (baseline, source) => {
+      const candidate = await pixels(source);
+      let count = 0;
+      for (let offset = 0; offset < baseline.length; offset += 4) {
+        if (Math.abs(candidate[offset] - baseline[offset])
+          + Math.abs(candidate[offset + 1] - baseline[offset + 1])
+          + Math.abs(candidate[offset + 2] - baseline[offset + 2])
+          + Math.abs(candidate[offset + 3] - baseline[offset + 3]) > 24) count++;
+      }
+      return count;
+    };
+    const results = {};
+    for (const view of ["top", "skipper"]) {
+      const none = await capture(view, {});
+      const wind = await capture(view, { windSpeedKn: 12, windFromDeg: 300 });
+      const current = await capture(view, { currentSpeedKn: 1.4, currentFromDeg: 215 });
+      const baseline = await pixels(none);
+      results[view] = {
+        windPixels: await difference(baseline, wind),
+        currentPixels: await difference(baseline, current)
+      };
+    }
+    return results;
+  }, largePortText);
+  for (const [view, flow] of Object.entries(largePortFlow)) {
+    assert.ok(flow.windPixels > 20, `grand port ${view} : vent invisible (${flow.windPixels} pixels)`);
+    assert.ok(flow.currentPixels > 20, `grand port ${view} : courant invisible (${flow.currentPixels} pixels)`);
+  }
+
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;
     api.failNextNativeInfrastructureBuild();
@@ -285,6 +338,7 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   assert.deepEqual(errors, []);
   assert.deepEqual(remoteRequests, []);
 
+  t.diagnostic(`Grand port : ${JSON.stringify(largePortFlow)} pixels de flux visibles`);
   t.diagnostic(`N4 : ${first.report.catalog.owners.length} propriétaires persistants, ${nativeOpaque} pixels natifs non transparents`);
   t.diagnostic(`Routage final : ${JSON.stringify(rolledBack.report.routing)}`);
 });

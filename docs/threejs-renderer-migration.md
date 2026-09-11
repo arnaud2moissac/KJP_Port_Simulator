@@ -2334,3 +2334,23 @@ immédiat reste disponible par `?renderer=legacy`. N6 termine les tranches
 planifiées. Aucun retrait de Legacy ou du backend Three de compatibilité n'est
 engagé ; une telle évolution demanderait un nouveau cadrage et une décision
 explicite.
+
+### Correction post-N6 — flux visibles dans les grands ports
+
+Le 11 septembre 2026, `la trinv2.kjp` a révélé que les 30 traits de vent et les
+24 vagues de courant étaient répartis sur toute l'emprise du port, soit environ
+3 905 × 3 496 m. Les buffers natifs étaient alimentés, mais aucun segment ne
+tombait nécessairement dans le cadrage courant. `flowParticleDomain()` conserve
+la distribution historique des petits ports et répète, pour une emprise plus
+grande que le champ visuel, le même ensemble déterministe près de la caméra. Le
+nombre de ressources, les vecteurs physiques, les vitesses et les directions ne
+changent pas.
+
+La protection navigateur charge le grand port versionné, active séparément le
+vent et le courant, puis exige une différence visible dans les vues dessus et
+skipper. Elle échouait avant correction avec zéro pixel de vent. Sur le fichier
+exact externe `la trinv2.kjp`, la vérification finale observe respectivement
+349/155 pixels modifiés en vue dessus et 608/286 en vue skipper pour le
+vent/courant, sans erreur console. `npm run check:simulator`, les 13 tests de
+rendu et la protection navigateur ciblée réussissent ; les six empreintes
+Legacy restent identiques sans mise à jour des références.
