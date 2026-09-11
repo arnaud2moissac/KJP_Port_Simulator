@@ -42,7 +42,9 @@ export function createNativeFlowResources({ fields }) {
       geometry.setPositions(new Float32Array(field.capacity * 6));
       geometry.instanceCount = 0;
       const material = new LineMaterial({
-        color: field.color,
+        // L'alpha CSS est appliqué séparément ci-dessous. Le transmettre au
+        // constructeur Color de Three produit un avertissement et l'ignore.
+        color: 0xffffff,
         linewidth: field.width,
         worldUnits: false,
         toneMapped: false,

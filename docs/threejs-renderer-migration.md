@@ -2095,3 +2095,131 @@ performance**. Elle doit ajouter les seuils natifs multi-scènes et mutations,
 mesurer le chemin complet sur les mêmes états et caméras puis confirmer en rendu
 visible, sans modifier les références Legacy ni basculer le renderer par défaut.
 N5 n'est pas commencée dans cette livraison.
+
+## Livraison N5 — qualification visuelle, fonctionnelle et de performance
+
+**N5 est validée dans son périmètre : tous ses critères de sortie ont été
+vérifiés.** Le statut « N5 n'est pas commencée » ci-dessus est historique et
+remplacé par cette livraison. Départ du commit
+`26b234b35e5cc0e14220f68a6399feaa50f1ba25` (`refactor_v2:N4`) sur
+`codex/threejs-v2`, avec un arbre propre. Aucun changement de branche, reset ou
+nettoyage de travail préexistant n'a été effectué. Legacy reste le renderer par
+défaut ; N6 n'est pas commencée.
+
+### Oracle natif et protections exactes
+
+- La matrice des six scènes du manifeste Legacy est maintenant partagée par
+  `capture-simulator-render-baseline.js` et le validateur N5. Le natif parcourt
+  les six scènes à DPR 1, puis un cadrage dessus et un cadrage skipper à DPR 2.
+  Pour chaque cas, l'inventaire des propriétaires et familles, la couche de
+  picking, les aussières, la caméra et les dimensions métriques projetées sont
+  contrôlés. Le Canvas 2D supérieur reste l'autorité des interactions.
+- L'oracle visuel natif travaille sur l'occupation, le rappel de silhouette,
+  l'alignement, l'étendue et la densité de traits à une résolution calibrée. Ses
+  seuils sont respectivement une occupation de 65 à 140 % de la référence, un
+  rappel d'au moins 80 %, un déplacement de centre limité à 16 % de chaque axe,
+  une étendue de 65 à 140 % et une densité de traits de 50 à 200 %. Il ne compare
+  ni les tableaux, ni la tessellation, ni l'identité des pixels.
+- Les huit cadrages finaux donnent un rappel de silhouette de 96,7 à 100 %, une
+  occupation de 96,9 à 100,5 % et une densité de traits de 76,0 à 101,9 %. Les
+  empreintes natives diffèrent bien des empreintes Legacy. Des mutations
+  volontaires indépendantes — omission complète, déplacement de 32 %, réduction
+  à 20 %, perte de détail par sous-échantillonnage et désactivation des événements
+  du Canvas 2D — font chacune échouer le seuil qu'elles doivent protéger.
+- Un rejeu temporel séparé fait avancer exactement les chemins Legacy et natif
+  pendant 30 images contrôlées dans les vues dessus et skipper. Toutes les
+  structures de `snapshot()` et tous les rapports caméra sont identiques à chaque
+  image ; la pose et la caméra évoluent effectivement. Le port se déplace donc
+  avec la caméra en vue skipper, sans reprendre l'ancien défaut de décor figé.
+- Les comparaisons Legacy/Three de compatibilité restent exactes et conservent
+  leurs références. Aucun étalon physique, fonctionnel ou raster Legacy n'a été
+  modifié pour qualifier le natif.
+
+### Chemin visible et performance appariée
+
+Le nouveau script `profile-simulator-native-renderer.js`, exposé par
+`npm run profile:renderers:native`, mesure `render()` avec le canvas du backend
+sélectionné attaché à la scène. Il alterne l'ordre Legacy/natif et rejoue la même
+pose, les mêmes commandes, les mêmes pas de temps et la même caméra. Il exclut
+le compositing et l'achèvement GPU de son temps CPU ; les captures visibles et
+les rapports WebGL prouvent séparément que le backend mesuré est bien présenté.
+Le protocole complet et ses résultats sont archivés dans
+`docs/validation/threejs-native-n5-performance.json`.
+
+Campagne finale : Chromium 149, ANGLE Metal matériel sur Apple M1, viewport
+1280 × 800, DPR 1 et 2, grand port de La Trinité, vues dessus nuit et skipper
+carte, 30 images de chauffe puis 120 mesures, trois répétitions par combinaison.
+
+| Scène / DPR | Legacy p50 / p95 / p99 | Natif p50 / p95 / p99 |
+| --- | ---: | ---: |
+| La Trinité dessus nuit / 1 | 33,2 / 41,1 / 43,1 ms | 14,2 / 15,0 / 16,1 ms |
+| La Trinité dessus nuit / 2 | 33,0 / 41,2 / 42,9 ms | 14,5 / 15,3 / 15,6 ms |
+| La Trinité skipper carte / 1 | 27,9 / 40,4 / 43,0 ms | 15,6 / 16,7 / 17,4 ms |
+| La Trinité skipper carte / 2 | 27,7 / 32,2 / 36,1 ms | 16,0 / 17,2 / 18,2 ms |
+
+Le natif est plus rapide sur p50 et p95 dans 12 paires sur 12. Les ratios
+médians natif/Legacy sont 0,523 en p50 et 0,464 en p95. Chaque paire conserve
+exactement les snapshots physiques et les caméras. Après chauffe, les identités,
+contenus et versions des ressources statiques, le nombre de géométries WebGL et
+les compteurs instrumentés d'upload restent constants.
+
+La première campagne longue a révélé deux uploads tardifs : Three préparait les
+programmes mais attendait la première visibilité de certains taquets pour
+transférer leurs attributs. `native-static-prototype.mjs` effectue désormais un
+rendu d'amorçage du catalogue lors de sa création ou de son invalidation, avec
+les familles temporairement visibles dans le même callback, puis rend l'état
+réel avant toute composition. Les douze mesures finales constatent zéro upload
+après la chauffe. Les invalidations explicites de port ou de grille restent
+autorisées et continuent de remplacer uniquement leur ressource concernée.
+
+### Vérifications N5
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| Qualification N5 ciblée | 2/2 tests réussis : huit cadrages sémantiques, cinq mutations détectées, progression contrôlée exacte en dessus et skipper |
+| Inspection visuelle | Captures Legacy/natives inspectées pour dessus nuit, anatomie, skipper carte du port pédagogique et skipper carte de La Trinité ; coque, port, balisage, objectif, labels, traits, fond d'eau et HUD restent lisibles |
+| `npm run profile:renderers:native` | 12/12 paires matérielles réussies ; natif plus rapide sur p50 et p95 dans tous les cas ; zéro divergence d'état/caméra et zéro reconstruction/upload statique après chauffe |
+| `npm run check:simulator` | Réussi ; HTML autonome et topologie intégrée validés |
+| `npm run test:rendering` | 13/13 tests réussis ; contrats RenderFrame et ressources N1 à N3 inchangés |
+| `npm run test:e2e` | 62/62 tests réussis ; 338 comparaisons raster Three de compatibilité à zéro pixel différent, 24 traversées de ±π, 2 211 ancres caméra et trois trajectoires étalons exactes |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques ; aucune référence réécrite |
+| Contrôles statiques | `node --check` sur les scripts/tests N5 et `git diff --check` réussis |
+| `graphify update .` puis hook de commit | Réussis sans appel LLM : graphe AST final à 1 210 nœuds, 2 038 arêtes et 74 communautés |
+
+Les premiers essais ont échoué avant la validation finale pour trois raisons
+identifiées. Une assertion demandait à tort l'identité du seul Canvas 2D alors
+que les traits pédagogiques de couches basses changent volontairement de canvas
+dans la composition native ; elle a été remplacée par un contrôle de présence et
+de lisibilité, tandis que les hitTargets et résultats d'interaction restent
+exacts. Les matériaux de flux transmettaient d'abord une couleur `rgba()` au
+constructeur Three avant d'en extraire l'alpha, ce qui produisait un avertissement
+sans effet visuel ; leur couleur est maintenant initialisée neutre puis appliquée
+une seule fois par la fonction commune. Enfin, les deux uploads tardifs décrits
+ci-dessus ont conduit à l'amorçage réel des buffers. Aucun test physique,
+fonctionnel ou Legacy n'a été affaibli pour résoudre ces échecs.
+
+Les contrôles navigateur ont été réalisés sous Chromium sur cette machine. Une
+mesure courte SwiftShader déclarée a aussi confirmé la tendance, mais seule la
+campagne Metal matérielle fonde le critère de performance. Le temps GPU, le
+compositing, les autres navigateurs/appareils et un soak prolongé au-delà des
+cycles de ports et des 120 images mesurées n'ont pas été exécutés ; ils restent
+des contrôles d'activation N6. `verify:release` n'a pas été lancé, cette tranche
+étant une qualification ciblée de renderer et non une qualification de version
+complète.
+
+Les fichiers N5 sont `scripts/simulator-render-scenes.js`,
+`scripts/profile-simulator-native-renderer.js`, l'adaptation du script de
+baseline et de `package.json`, `tests/native-renderer-qualification.test.js` et
+son branchement, les diagnostics/amorçages de `native-static-prototype.mjs`, la
+correction de `native-flow-resources.mjs`, le présent journal, le rapport de
+performance archivé et le HTML autonome régénéré. Aucun fichier de physique,
+profil, collision, commandes, trajectoires ou référence Legacy n'est modifié.
+SHA-256 du HTML autonome :
+`347d67ea03e18b3c81a393957aa43e64fa09a9acfb98dea1a91e9182d3422aa0`.
+
+Retour arrière : `selectWorldRenderer("legacy")` libère toujours le natif et
+réaffiche le canvas historique ; ne pas appeler le hook conserve le démarrage
+Legacy. Prochaine tranche prévue : **N6, activation contrôlée**. Elle décidera
+séparément du défaut, complétera la matrice navigateurs/appareils et le soak, et
+vérifiera le repli en conditions d'activation. N6 n'est pas commencée dans cette
+livraison.

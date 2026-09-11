@@ -9,6 +9,7 @@ const { chromium } = require("playwright");
 require("./native-infrastructure.test.js"); // Protections N2 incluses dans test:e2e et verify:release.
 require("./native-player.test.js"); // Protections N3 du joueur local persistant.
 require("./native-world-renderer.test.js"); // Intégration visible N4 et composition Canvas 2D.
+require("./native-renderer-qualification.test.js"); // Qualification sémantique multi-scène N5.
 
 const projectRoot = path.resolve(__dirname, "..");
 const simulatorPath = path.join(projectRoot, "simulateur-port.html");

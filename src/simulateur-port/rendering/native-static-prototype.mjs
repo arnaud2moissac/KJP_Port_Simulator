@@ -50,7 +50,7 @@ export function createNativeStaticPrototype(definition, {
   if (flowResources) scene.add(flowResources.group);
   const bridge = createThreeCamera();
   const identities = new WeakMap();
-  let nextId = 1, frames = 0, lastCamera = null, disposed = false;
+  let nextId = 1, frames = 0, lastCamera = null, disposed = false, compilePending = true;
   const id = value => {
     if (!identities.has(value)) identities.set(value, nextId++);
     return identities.get(value);
@@ -66,7 +66,25 @@ export function createNativeStaticPrototype(definition, {
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     const w = Math.round(camera.width * pixelRatio), h = Math.round(camera.height * pixelRatio);
     if (canvas.width !== w || canvas.height !== h) renderer.setSize(w / pixelRatio, h / pixelRatio, false);
-    renderer.render(scene, bridge.update(camera));
+    const threeCamera = bridge.update(camera);
+    if (compilePending) {
+      // Three diffère l'upload des objets invisibles. Amorcer tout le catalogue
+      // lors de son initialisation/invalidation évite un transfert tardif quand
+      // un taquet ou une famille jusque-là masquée entre dans le champ.
+      const visibility = [];
+      scene.traverse(object => {
+        if (!object.geometry || !object.material) return;
+        visibility.push([object, object.visible]);
+        object.visible = true;
+      });
+      // compile() prépare les programmes mais conserve l'upload paresseux des
+      // attributs. Un rendu d'amorçage, immédiatement remplacé dans le même
+      // callback par le rendu visible ci-dessous, soumet réellement les buffers.
+      try { renderer.render(scene, threeCamera); }
+      finally { for (const [object, visible] of visibility) object.visible = visible; }
+      compilePending = false;
+    }
+    renderer.render(scene, threeCamera);
     resources.afterRender?.();
     playerResources?.afterRender?.();
     for (const layer of layers.values()) layer.afterRender?.();
@@ -95,6 +113,7 @@ export function createNativeStaticPrototype(definition, {
         family: object.userData.family,
         geometry: object.geometry.uuid, attributes: attributes(object.geometry) })),
       ...(resources.report ? { catalog: resources.report(), memory: { ...renderer.info.memory },
+        draw: { ...renderer.info.render },
         materials: [...new Set(objects.map(o => o.material))].map(m => ({
           id: m.uuid, role: m.userData.role, color: m.color.getHexString(), opacity: m.opacity,
           ...(Number.isFinite(m.linewidth) ? { linewidth: m.linewidth, baseLinewidth: m.userData.baseLinewidth } : {})
@@ -111,7 +130,7 @@ export function createNativeStaticPrototype(definition, {
     ensureActive();
     const next = resourceFactory(definition);
     scene.remove(resources.group); resources.dispose();
-    resources = next; scene.add(resources.group);
+    resources = next; scene.add(resources.group); compilePending = true;
   }
   function replaceLayer(name, definition) {
     ensureActive();
@@ -120,7 +139,7 @@ export function createNativeStaticPrototype(definition, {
     const previous = layers.get(name);
     if (previous) { scene.remove(previous.group); previous.dispose(); }
     layers.set(name, next);
-    scene.add(next.group);
+    scene.add(next.group); compilePending = true;
   }
   function removeLayer(name) {
     ensureActive();

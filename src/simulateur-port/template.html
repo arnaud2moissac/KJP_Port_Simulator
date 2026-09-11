@@ -3332,6 +3332,12 @@
       );
     }
 
+    function resetRenderPerformanceSamples() {
+      renderPerformance.samples.fill(0);
+      renderPerformance.sampleCount = 0;
+      renderPerformance.sampleCursor = 0;
+    }
+
     function installRuntimeTopology(topology) {
       if (!nativeInfrastructureEnabled) {
         nativeStaticPrototype?.dispose();
@@ -9629,6 +9635,7 @@
         averageCpuMs: count
           ? samples.reduce((sum, value) => sum + value, 0) / count
           : 0,
+        p50CpuMs: percentile(.50),
         p95CpuMs: percentile(.95),
         p99CpuMs: percentile(.99),
         lastFrameVisibilityComputations: renderPerformance.lastFrameVisibilityComputations,
@@ -10305,6 +10312,7 @@
           physicsFenderRadius: physicsSimulator.getProfile().contacts.fenderRadius
         }),
         renderPerformanceReport,
+        resetRenderPerformanceSamples,
         loadScenario(id) {
           applyScenario(id);
           controls.paused = true;

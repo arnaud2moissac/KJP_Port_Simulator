@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
+const scenes = require("./simulator-render-scenes.js");
 
 const root = path.resolve(__dirname, "..");
 const simulatorPath = path.join(root, "simulateur-port.html");
@@ -17,57 +18,6 @@ const outputDirectory = updateBaseline
   : fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-render-candidate-"));
 const viewport = { width: 1280, height: 800 };
 const fixedAnimationTimeMs = 12_345;
-
-const scenes = Object.freeze([
-  {
-    id: "built-in-dark-top-navigation",
-    port: "built-in",
-    theme: "dark",
-    view: "top",
-    mode: "navigation"
-  },
-  {
-    id: "built-in-chart-top-understand",
-    port: "built-in",
-    theme: "chart",
-    view: "top",
-    mode: "understand",
-    environment: {
-      windSpeedKn: 12,
-      windFromDeg: 300,
-      currentSpeedKn: 1.4,
-      currentFromDeg: 215
-    }
-  },
-  {
-    id: "built-in-dark-anatomy-understand",
-    port: "built-in",
-    theme: "dark",
-    view: "anatomy",
-    mode: "understand"
-  },
-  {
-    id: "built-in-chart-skipper-navigation",
-    port: "built-in",
-    theme: "chart",
-    view: "skipper",
-    mode: "navigation"
-  },
-  {
-    id: "la-trinite-dark-top-navigation",
-    port: "la-trinite-sur-mer",
-    theme: "dark",
-    view: "top",
-    mode: "navigation"
-  },
-  {
-    id: "la-trinite-chart-skipper-navigation",
-    port: "la-trinite-sur-mer",
-    theme: "chart",
-    view: "skipper",
-    mode: "navigation"
-  }
-]);
 
 function sha256(buffer) {
   return crypto.createHash("sha256").update(buffer).digest("hex");
