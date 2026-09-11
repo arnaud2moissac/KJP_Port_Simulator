@@ -11,14 +11,15 @@ attachées aux artefacts et environnements indiqués, sans qualification du nati
 Leurs choix d'architecture ne s'appliquent au nouveau
 backend natif que lorsqu'ils sont repris explicitement ici.
 
-**Périmètre actuel : N1 uniquement (`ui-check`), autorisée après validation du
-cadrage par l'utilisateur.** La restriction « documentation seulement » de la
-revue précédente est levée pour le code de rendu, les tests, le suivi et la
-régénération du HTML nécessaires à N1. Les invariants ci-dessous restent
-stricts ; N2 à N6 ne sont pas engagées et Legacy reste actif par défaut.
+**Périmètre actuel : N2.1, lot terrain/infrastructures uniquement (`ui-check`),
+engagé sur la demande « continue » après N1.** L'autorisation de code couvre le
+rendu, les tests, le suivi et la régénération du HTML nécessaires à ce lot.
+Les invariants ci-dessous restent stricts ; les lots suivants de N2 et N3 à N6
+ne sont pas engagés et Legacy reste actif par défaut.
 La revue documentaire précédente n'avait, à elle seule, autorisé aucune
 implémentation. Les résultats de cette livraison sont consignés dans
-[le suivi N1](#livraison-n1--11-septembre-2026).
+[le suivi N1](#livraison-n1--11-septembre-2026) puis
+[le suivi N2.1](#livraison-n21--terrain-et-infrastructures).
 
 **État constaté à la revue documentaire et au début de N1 :** répertoire réel
 `/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, commit
@@ -40,7 +41,8 @@ chemins clairement nommés dans la documentation, sans renommer le code existant
   `RenderFrame` projeté ;
 - **Three natif** : backend distinct à géométries monde persistantes, absent lors
   de la décision documentaire initiale. N1 ajoute seulement son prototype
-  statique isolé, détaché du canevas actif et désactivé par défaut ; le monde
+  statique isolé, étendu au catalogue terrain/infrastructures en N2.1,
+  détaché du canevas actif et désactivé par défaut ; le monde
   complet et l'intégration visible restent futurs.
 
 ### Invariants physiques et fonctionnels stricts
@@ -122,6 +124,7 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
 | Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU, rejouées puis projetées par image ; ce n'est pas encore un catalogue Three persistant (N1/N2) |
 | `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel déjà présent, validé sur les ancres ; réutilisable, mais sa qualification ne prouve pas celle des occlusions natives (N1) |
 | `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
+| `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()` dans le template | Ajout N2.1 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, remplacement du port et diagnostic de libération |
 | `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Conserver ce contrat ; ajouter des modules natifs distincts (N1–N4) |
 | `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
 | `tests/render-frame.test.js`, `tests/simulateur-port.test.js` | Protections N1 ajoutées aux suites existantes ; étendre dans N2–N5 sans affaiblir les assertions ou modifier les références existantes |
@@ -1057,14 +1060,15 @@ commitées ; aucune qualification de release ou de GPU/composition visible.
 
 ## Tranches natives planifiées
 
-Hors modules N1 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
+Hors modules N1/N2.1 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
 des emplacements prévus. Chaque tranche reste réversible par désactivation ou
 suppression du chemin natif concerné ; aucune tranche ne réécrit le moteur ni
 les références Legacy/compatibilité. Une tranche ne commence qu'après réussite
 des gates de la précédente.
 
-**Suivi : N1 validée dans son périmètre isolé ; voir son bilan ci-dessous. N2 à N6
-restent planifiées, non commencées.** À chaque livraison, consigner les résultats
+**Suivi : N1 et N2.1 validées dans leur périmètre isolé, bilans ci-dessous.
+N2.2 (bateaux statiques), N2.3 (bouées/feux) et N3 à N6 restent non commencées.**
+À chaque livraison, consigner les résultats
 et limites avec son commit ou artefact, les contrôles exécutés et le retour
 arrière vérifié. Les règles de validation ci-dessous s'appliquent à chaque
 tranche selon son périmètre. Le statut initial « aucune commencée » désignait
@@ -1172,8 +1176,8 @@ la livraison documentaire, avant l'autorisation de code.
   statique ; un changement de port remplace puis libère exactement les ressources
   concernées ; les scènes de référence ne présentent ni omission ni perte de
   lisibilité.
-- **Découpage limité** : livrer successivement terrain/infrastructures,
-  bateaux statiques, puis bouées/feux. Chaque lot applique les invariants,
+- **Découpage limité** : livrer successivement N2.1 terrain/infrastructures,
+  N2.2 bateaux statiques, puis N2.3 bouées/feux. Chaque lot applique les invariants,
   tests et critères ci-dessus à ses seules familles, dépend du lot précédent
   et peut être désactivé séparément dans le prototype isolé. Ne pas exposer un
   assemblage de backends partiels au rendu actif.
@@ -1289,9 +1293,9 @@ Le défaut Legacy de coloration des contacts décrit dans le journal reste un
 défaut connu de la référence. Le reproduire dans Three de compatibilité satisfait
 son contrat historique ; Three natif ne doit ni revendiquer sa correction comme
 gain de migration ni introduire une correction fonctionnelle sans tranche
-distincte. Après la livraison N1 décrite ci-dessous, la prochaine tranche est
-**N2, premier lot terrain/infrastructures**, à engager sur une nouvelle demande.
-Les lots suivants de N2 puis N3 à N6 restent différés.
+distincte. Après N1 et N2.1 décrites ci-dessous, la prochaine tranche est
+**N2.2, bateaux statiques**, à engager sur une nouvelle demande.
+N2.3 puis N3 à N6 restent différées.
 
 ## Livraison N1 — 11 septembre 2026
 
@@ -1436,6 +1440,166 @@ Un retrait du prototype consisterait uniquement à retirer les deux modules,
 leur façade et les hooks/bloc de dessin N1 puis à rebâtir le HTML. Aucun retrait
 de code ni reset n'a été effectué pour simuler ce retour arrière.
 
-Prochaine tranche : **N2, lot terrain/infrastructures**, avec propriétaires des
+Suite prévue à la livraison N1 : **N2, lot terrain/infrastructures**, avec propriétaires des
 ressources, invalidations et libération répétée documentés/testés selon le plan
-ci-dessus. Elle n'est pas commencée. Ne pas activer le renderer natif par défaut.
+ci-dessus. Ce lot a depuis été engagé comme N2.1, voir le bilan suivant.
+Ne pas activer le renderer natif par défaut.
+
+## Livraison N2.1 — terrain et infrastructures
+
+**N2.1 validée dans son périmètre isolé.** Tous les critères de sortie de ce lot
+ont été vérifiés selon le bilan ci-dessous ; aucun échec exécuté ne reste non
+résolu. Cette livraison ne valide pas les lots suivants ni l'intégration visible.
+
+Reprise dans `/Users/arnaud/Codex_main/KJP_Port_Simulator`, sur
+`codex/threejs-v2`, HEAD `ae033d4d1093e16cbb2436ecf3106c0ee08202fb`
+(`refactor_v2:N1`). L'arbre était propre : N1 et son cadrage étaient commités.
+Le checkpoint Codex `20260911-163728-threejs-active-loop-profiling.md` reste un
+historique antérieur à l'orientation native ; sa prochaine étape sur le
+compilateur de compatibilité est remplacée par le présent plan. Aucun changement
+de branche, reset, nettoyage, dépendance ou référence existante dans N2.1.
+
+### Périmètre réalisé et propriétaires
+
+| Famille | Ressource monde réutilisée | Propriété et visibilité natives |
+| --- | --- | --- |
+| Terrain | `harborTerrain.polygons[].points` | Propriétaire `terrain:id/index`, remplissage concave et contour |
+| Quais, pontons, brise-lames, attente | `boxRenderGeometryById` via `addBox` | Propriétaire `dock:id`, dessus/côtés/arêtes et palette selon le type |
+| Catways et raccords | `addBox` et `addCatwayConnector` | Propriétaire `catway:id`, faces cachées, ouvertures, recouvrement visuel et raccords flush/hinge/ramp conservés |
+| Obstacles linéaires | `addExtrudedPolyline` | Propriétaire `obstacle:id`, mitres, dessus, côtés et extrémités |
+| Terres importées | `landAreas`, z monde 0,025 m existant | Propriétaire `land:id`, polygone concave et contour 1 px CSS |
+
+`nativeInfrastructureDefinition()` collecte ces seuls constructeurs monde sous
+`worldGeometryCapture`, restauré dans un `finally`. Les primitives sortent avant
+projection ; aucun appel au monde projeté complet, à `addHarborGeometry()` ou au
+suivi caméra n'est nécessaire pour cette collecte. Elle est exécutée à activation
+explicite et au remplacement du port, jamais par mouvement caméra. Les hooks de
+rapport peuvent la relire explicitement à des fins de diagnostic ; ils retournent
+des copies et ne font pas partie du chemin mesuré.
+
+Le module `native-infrastructure-resources.mjs` possède les attributs, géométries
+et matériaux. Il regroupe les primitives par propriétaire/style et partage les
+matériaux par rôle de palette, type et largeur. La triangulation utilise le plan
+dominant du polygone monde et `ShapeUtils.triangulateShape` r186, vérifié dans le
+runtime installé et la [documentation officielle](https://threejs.org/docs/pages/ShapeUtils.html).
+Elle ne reprend pas la triangulation écran Legacy. Les positions KJP restent
+inchangées ; les petites priorités des raccords sont un ordre de rendu, pas une
+translation du monde.
+
+Invalidation : un changement de port construit le nouveau catalogue puis libère
+l'ancien, dans le renderer détaché existant. Les géométries ne sont pas partagées
+entre ports. Dark/chart modifient uniquement couleurs et opacités des matériaux,
+sans nouveau catalogue, attribut ou upload géométrique. Le mode anatomie ne
+modifie aucune géométrie de ce lot. La désactivation libère aussi le renderer et
+son contexte ; elle reste idempotente. Une erreur de construction à l'import
+désactive le banc et conserve son message dans le rapport, tout en laissant
+l'installation autoritaire du port et Legacy se poursuivre.
+
+Visibilité : le premier rendu soumet tous les attributs statiques, même hors
+champ ; ensuite les faces utilisent les bounds calculés sur leurs vrais sommets,
+y compris rampes et mitres. Les traits de largeur écran restent soumis au
+clipping GPU sans culling CPU par sphère, qui pourrait couper leur bord. Aucun
+filtre radial Legacy ni second calcul caméra n'est ajouté. Ce choix conservateur
+peut soumettre davantage d'objets que Legacy ; il ne revendique pas un gain de
+performance. Les hooks d'isolation par famille/style n'agissent que sur `.visible`
+dans le prototype de test.
+
+Le prototype N1 reste disponible séparément. Son renderer et son adaptateur caméra
+sont réutilisés ; seuls le remplacement de ressources, les métriques de catalogue
+et la mise à jour des matériaux sont ajoutés. Le `RenderFrame` de compatibilité,
+le Canvas 2D, les commandes, le picking, l'eau et les constructeurs physiques
+restent inchangés. N2.2/N2.3, le joueur natif et l'intégration visible ne sont pas
+implémentés. Le chemin natif demeure désactivé par défaut.
+
+### Défauts trouvés et corrections dans le lot
+
+Le test unitaire initial a échoué avant création du module N2, puis est passé.
+Le premier contrôle navigateur échouait sur des avertissements autoplay audio et
+`GPU stall due to ReadPixels` également observés sans natif. Ces deux catégories
+précises sont maintenant consignées séparément ; toute autre alerte, erreur
+console/page ou requête HTTP(S) fait toujours échouer le contrôle.
+
+La revue a ajouté une gate par famille/style à la silhouette globale : cette
+dernière seule ne détectait pas tous les contours manquants. La gate renforcée a
+révélé deux défauts du candidat, corrigés sans diminuer ses seuils :
+
+- contours translucides trop faibles avec `alphaToCoverage` et blending cumulés ;
+  désactivation d'alpha-to-coverage pour ces matériaux N2, MSAA conservé ;
+- coupures des très longues arêtes de terre à un cadrage limite du ruban écran
+  Three ; subdivision collinéaire en segments d'au plus 16 m lors de la seule
+  construction monde. Les points restent sur l'arête, la largeur reste en pixels
+  CSS et aucune subdivision n'est déclenchée par la caméra.
+
+La protection de rollback couvre une erreur après allocations partielles en
+unité. La panne injectée dans le navigateur se produit avant la nouvelle
+construction : elle vérifie séparément que l'import, le snapshot, la caméra et
+les images Legacy sont exactement ceux de l'import sans prototype.
+
+### Vérifications N2.1
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| `npm run build:simulator`, `npm run check:simulator` | Réussis ; HTML autonome régénéré par le build existant |
+| `npm run test:rendering` | 12 tests réussis, dont catalogue concave/vertical, palette/alpha, copie source, disposal et rollback partiel |
+| `node --test --test-name-pattern='Three natif' tests/render-frame.test.js tests/simulateur-port.test.js` | 7 tests réussis : 2 unités N1/N2 et 5 tests navigateur N1/N2. Les tests N2 sont reliés à `test:e2e` et aux validations usuelles par le `require` dans la suite existante |
+| N2.1 : état et transferts | 20 frames skipper appariées aux mêmes entrées/timestamps : snapshots physiques/commandes/scénarios, pose, caméra, hitTargets et images actives exacts. Un seul RAF ; après soumission initiale complète, zéro construction et zéro appel/octet géométrique supplémentaire sur suivi, pan, rotation, zoom, changement de vue, thème et resize testés |
+| N2.1 : cycles de vie | 3 imports du grand port et 3 restaurations : chaque ancien catalogue libéré, nouvelles identités, aucune croissance des ressources vivantes ; import invalide sans changement natif ; double disposal sans buffers restants ; panne native injectée sans incidence sur l'import/Legacy, réactivation réussie |
+| N2.1 : fidélité globale | 24 cas (2 ports × 2 thèmes × 3 vues × DPR 1/2), occupation de silhouette réduite 64×48 : présence, rappel ≥95 %, débordement borné ; aucune exigence pixel exacte |
+| N2.1 : détail par famille | 20 cas (5 familles × 2 thèmes × remplissage/traits), masque 256×192 avec voisinage d'un échantillon : rappel observé 100 % (seuil 90 %), écart maximal des moyennes RGB pondérées par alpha 0,407/255 (seuil 25). Les 20 omissions réelles forcées font échouer la gate |
+| `node --test --test-name-pattern='^(profilage actif\|terrain Three\|monde Three\|caméra Three)' tests/simulateur-port.test.js` | 4 tests existants réussis : 338 comparaisons raster strictes, 0 pixel différent ; 24 traversées de ±π ; reprise skipper ; 2 211 ancres caméra, écart maximal 2,7731 × 10⁻⁸ px (seuil 0,5 px) |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques, références inchangées |
+| Inspection des captures | Dessus clair pédagogique, skipper clair grand port et contour de terre corrigé inspectés : infrastructures et contours présents, sans composition native active |
+| `git diff --check` et périmètre | Réussis. Fonctions `prepareInterpolatedFrameMotion`, `cameraBasis`, `drawMooringLayer`, `testSnapshot`, `buildBoxRenderGeometry`, `addCatwayConnector`, `addExtrudedPolyline`, `addHarborGeometry` identiques à HEAD. Aucun diff physique/profils/trajectoires/références, dépendance, script ou adaptateur caméra |
+| `graphify update .` | Réussi, AST : 1 083 nœuds, 1 885 arêtes, 55 communautés ; pas de réétiquetage LLM |
+
+Ressources natives vivantes après chaque retour au même port, après chauffe :
+
+| Port | Géométries | Matériaux partagés | Buffers GL suivis |
+| --- | ---: | ---: | ---: |
+| Pédagogique | 145 | 12 | 376 |
+| La Trinité importée | 1 834 | 11 | 4 606 |
+
+Ces compteurs comparent le natif à lui-même pendant ses cycles de vie, jamais
+au nombre de triangles ou de buffers Legacy. La persistance inclut les attributs
+interleavés des traits, leurs versions et leurs octets réellement transférés.
+Les matrices et uniforms ne sont pas des transferts géométriques.
+
+Fichiers du lot : nouveau `rendering/native-infrastructure-resources.mjs` ;
+adaptations de `rendering/native-static-prototype.mjs`, `rendering/index.js` et
+`template.html` sous `src/simulateur-port/` ; nouveau
+`tests/native-infrastructure.test.js`, compléments à `tests/render-frame.test.js`
+et `tests/simulateur-port.test.js` ; `simulateur-port.html` généré et présent
+journal. Aucun fichier d'instructions ou skill global modifié. Les fichiers
+N1 préexistants sont réutilisés, pas recommencés.
+
+SHA-256 du HTML vérifié :
+`05a5f3ce7703d2e2efbd7e6c08cf853b4f3c91cdf22614ee50f154a8d411ea3f`.
+Dernières captures temporaires sous
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/` :
+`kjp-native-n2-9GBZhU/` (cadrages), `kjp-native-n2-details-OURMKT/`
+(familles/styles), `kjp-native-n1-ZgmKtU/` (régression N1),
+`kjp-surface-comparison-yaPFad/` (compatibilité),
+`kjp-render-candidate-oqPXXc/` (Legacy). Les tests reproduisent ces captures ;
+leur répertoire temporaire n'est pas une archive permanente.
+
+### Limites, retour arrière et prochaine tranche
+
+Les tests sont exécutés sous Chromium headless sur cette machine. Aucun gain de
+performance, budget GPU ou cadence de composition visible n'est qualifié ; le
+catalogue conserve volontairement une granularité par propriétaire. Les suites
+physiques globales, trajectoires étalons, release complète, autres navigateurs et
+appareils ne sont pas rejoués. Les vérifications physiques exactes de cette
+tranche portent sur les scénarios appariés indiqués, sans affaiblir les suites
+ou références existantes. Les gestes d'aussières/pendilles dans un natif visible
+restent à qualifier en N4.
+
+Retour arrière testé : désactivation et double disposal, puis réactivation du
+prototype ; repli automatique après échec de construction. Legacy continue de
+dessiner tout le monde et les overlays. Le retrait éventuel du seul branchement
+N2.1 et de son module conserve le prototype N1. Aucun retrait/reset n'a été
+effectué pour cette vérification.
+
+Prochain lot prévu : **N2.2, bateaux statiques**, avec propriété et libération
+des ressources, visibilité et palette selon les gates N2. N2.3 bouées/feux vient
+ensuite. Ces lots ne sont pas commencés ; la tranche N2 complète n'est pas
+déclarée validée par la livraison de N2.1. Legacy reste le renderer par défaut.

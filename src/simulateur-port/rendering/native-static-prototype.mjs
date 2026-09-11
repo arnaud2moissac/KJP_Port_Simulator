@@ -3,8 +3,8 @@ import { createThreeCamera } from "./three-camera.mjs";
 import { createNativeStaticResources, nativeStaticResourceBuilds } from "./native-static-resources.mjs";
 
 // Banc N1 explicite, hors écran. Aucun RAF, contrôleur, horloge ou RenderFrame.
-export function createNativeStaticPrototype(definition) {
-  const resources = createNativeStaticResources(definition);
+export function createNativeStaticPrototype(definition, { resourceFactory = createNativeStaticResources } = {}) {
+  let resources = resourceFactory(definition);
   const canvas = document.createElement("canvas");
   canvas.id = "kjp-native-static-prototype";
   let renderer;
@@ -36,6 +36,7 @@ export function createNativeStaticPrototype(definition) {
     const w = Math.round(camera.width * pixelRatio), h = Math.round(camera.height * pixelRatio);
     if (canvas.width !== w || canvas.height !== h) renderer.setSize(w / pixelRatio, h / pixelRatio, false);
     renderer.render(scene, bridge.update(camera));
+    resources.afterRender?.();
     frames++;
   }
   function report({ images = false } = {}) {
@@ -52,9 +53,19 @@ export function createNativeStaticPrototype(definition) {
     return {
       frames, resourceBuilds: nativeStaticResourceBuilds(), camera: lastCamera ? structuredClone(lastCamera) : null,
       resources: resources.group.children.map(object => ({ role: object.name, geometry: object.geometry.uuid, attributes: attributes(object.geometry) })),
+      ...(resources.report ? { catalog: resources.report(), memory: { ...renderer.info.memory },
+        materials: [...new Set(resources.group.children.map(o => o.material))].map(m => ({
+          id: m.uuid, role: m.userData.role, color: m.color.getHexString(), opacity: m.opacity
+        })) } : {}),
       glError: renderer.getContext().getError(),
       ...(images && frames ? { image: canvas.toDataURL() } : {})
     };
+  }
+  function replaceResources(definition) {
+    ensureActive();
+    const next = resourceFactory(definition);
+    scene.remove(resources.group); resources.dispose();
+    resources = next; scene.add(resources.group);
   }
   function dispose() {
     if (disposed) return;
@@ -64,5 +75,6 @@ export function createNativeStaticPrototype(definition) {
     canvas.width = 0; canvas.height = 0;
   }
   // Les ressources sont accessibles au hook de mutation du banc, jamais au moteur.
-  return Object.freeze({ render, report, dispose, resources });
+  return Object.freeze({ render, report, dispose, replaceResources,
+    updatePalette: palette => resources.updatePalette?.(palette), get resources() { return resources; } });
 }

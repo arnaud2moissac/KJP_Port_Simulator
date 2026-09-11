@@ -3291,6 +3291,10 @@
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
     let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
+    let nativeInfrastructureEnabled = false; // Lot N2.1, même banc détaché.
+    let nativeInfrastructureTheme = null;
+    let nativeInfrastructureError = null;
+    let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
     let visibleHarborFrameCache = null;
     const renderPerformance = {
       samples: new Float32Array(240),
@@ -3314,8 +3318,10 @@
     }
 
     function installRuntimeTopology(topology) {
-      nativeStaticPrototype?.dispose();
-      nativeStaticPrototype = null;
+      if (!nativeInfrastructureEnabled) {
+        nativeStaticPrototype?.dispose();
+        nativeStaticPrototype = null;
+      }
       PORT_TOPOLOGY = topology;
       docks = clonePortData(topology.structures?.docks || []);
       catways = clonePortData(topology.structures?.catways || []);
@@ -3366,6 +3372,22 @@
       visibleHarborFrameCache = null;
       renderPerformance.staticCacheHits = 0;
       renderPerformance.staticCacheMisses = 0;
+      if (nativeInfrastructureEnabled) {
+        try {
+          if (failNextNativeInfrastructureBuild) {
+            failNextNativeInfrastructureBuild = false;
+            throw new Error("Native infrastructure: échec de construction injecté");
+          }
+          nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition());
+          nativeInfrastructureTheme = ui.visualTheme;
+        } catch (error) {
+          // Une panne du banc ne doit jamais interrompre l'installation du
+          // port ni empêcher la simulation d'utiliser sa nouvelle topologie.
+          nativeInfrastructureError = String(error.message || error);
+          nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
+          nativeInfrastructureEnabled = false;
+        }
+      }
     }
 
     installRuntimeTopology(BUILT_IN_TOPOLOGY);
@@ -6737,6 +6759,45 @@
       );
     }
 
+    function nativeInfrastructurePalette() {
+      const harbor = visualPalette().harbor;
+      return Object.fromEntries(Object.entries(harbor).flatMap(([key, value]) =>
+        Array.isArray(value) ? value.map((color, i) => [`${key}.${i}`, color]) : [[key, value]]));
+    }
+
+    function nativeInfrastructureDefinition() {
+      const owners = [];
+      const collect = (family, id, builder) => {
+        const previous = worldGeometryCapture;
+        const owner = { family, id, polygons: [], lines: [] };
+        worldGeometryCapture = owner;
+        try { builder(); } finally { worldGeometryCapture = previous; }
+        owners.push(owner);
+      };
+      // Réutilisation des constructeurs MONDE avant projection. Aucun appel à
+      // addHarborGeometry(), au cache projeté, à la caméra ou à la simulation.
+      for (const [index, polygon] of harborTerrain.polygons.entries()) {
+        collect("terrain", polygon.id || String(index), () => addPolygon(polygon.points,
+          `terrain.${Math.min(index, visualPalette().harbor.terrain.length - 1)}`, "terrainSide"));
+      }
+      for (const dock of docks) {
+        const role = ({ quay: "quay", breakwater: "breakwater", waiting: "waiting" })[dock.kind] || "pontoon";
+        collect("dock", dock.id, () => addBox(dock, `${role}Top`, `${role}Side`, "outline"));
+      }
+      for (const catway of catways) collect("catway", catway.id, () => {
+        addBox(catway, "catwayTop", "catwaySide", "outline");
+        addCatwayConnector(catway, dockById.get(catway.parentId || catway.attachment?.parentId),
+          "catwayTop", "catwaySide", "outline");
+      });
+      for (const obstacle of linearObstacles) {
+        const role = obstacle.type === "breakwater" ? "breakwater" : "quay";
+        collect("obstacle", obstacle.id, () => addExtrudedPolyline(obstacle, `${role}Top`, `${role}Side`, "outline"));
+      }
+      for (const area of landAreas) collect("land", area.id, () => addPolygon(
+        area.points.map(point => [point.east, point.north, .025]), "terrain.0", "terrainSide", 1));
+      return { owners, palette: nativeInfrastructurePalette() };
+    }
+
     function addHarborGeometry() {
       const palette = visualPalette();
       const harbor = palette.harbor;
@@ -7663,6 +7724,10 @@
       drawMooringLayer();
       drawUnderstandingOverlay();
       drawAnatomyLabels();
+      if (nativeInfrastructureEnabled && nativeInfrastructureTheme !== ui.visualTheme) {
+        nativeStaticPrototype.updatePalette(nativeInfrastructurePalette());
+        nativeInfrastructureTheme = ui.visualTheme;
+      }
       if (nativeStaticPrototype) nativeStaticPrototype.render(KJPThreeCamera.createCameraSnapshot({
         basis: frameBasis, width: canvasWidth, height: canvasHeight,
         focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
@@ -9322,6 +9387,25 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
+        enableNativeInfrastructurePrototype() {
+          const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition());
+          nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
+          nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
+          nativeInfrastructureError = null;
+        },
+        failNextNativeInfrastructureBuild() { failNextNativeInfrastructureBuild = true; },
+        nativeInfrastructureSourceReport({ geometry = false } = {}) {
+          const definition = nativeInfrastructureDefinition();
+          if (geometry) return structuredClone(definition);
+          return definition.owners.map(o => ({ id: o.id, family: o.family,
+            polygons: o.polygons.length, segments: o.lines.reduce((n, l) => n + l.points.length - 1, 0) }));
+        },
+        isolateNativeInfrastructure({ family = null, kind = null } = {}) {
+          if (!nativeInfrastructureEnabled) throw new Error("Catalogue natif inactif");
+          for (const object of nativeStaticPrototype.resources.group.children) {
+            object.visible = (!family || object.userData.family === family) && (!kind || object.userData.kind === kind);
+          }
+        },
         enableNativeStaticPrototype(definition) {
           if (!definition) {
             const geometry = [...boxRenderGeometryById.values()].find(g => g.top.length && g.edges.length);
@@ -9335,10 +9419,12 @@
           const next = KJPThreeNative.createNativeStaticPrototype(definition);
           nativeStaticPrototype?.dispose();
           nativeStaticPrototype = next;
+          nativeInfrastructureEnabled = false;
         },
         nativeStaticPrototypeReport(options = {}) {
           return {
             active: Boolean(nativeStaticPrototype),
+            ...(nativeInfrastructureError ? { nativeInfrastructureError } : {}),
             presentation: {
               basis: frameBasis ? structuredClone(frameBasis) : null,
               cameraSettings: { view: camera.view, distance: camera.distance, pan: [...camera.pan],
@@ -9365,6 +9451,7 @@
         },
         disposeNativeStaticPrototype() {
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
+          nativeInfrastructureEnabled = false;
         },
         startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
           if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");

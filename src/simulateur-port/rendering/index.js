@@ -5,8 +5,13 @@ import { createSurfaceFrame } from "./surface-frame.mjs";
 import { createThreeSurfaceRenderer } from "./three-surfaces.mjs";
 import { createSurfaceComparison } from "./surface-comparison.mjs";
 import { createNativeStaticPrototype } from "./native-static-prototype.mjs";
+import { createNativeInfrastructureResources } from "./native-infrastructure-resources.mjs";
 
 globalThis.KJPRenderFrames = Object.freeze(renderFrames);
 globalThis.KJPThreeCamera = Object.freeze({ createCameraSnapshot, createThreeCamera });
 globalThis.KJPThreeSurfaces = Object.freeze({ createSurfaceFrame, createThreeSurfaceRenderer, createSurfaceComparison });
-globalThis.KJPThreeNative = Object.freeze({ createNativeStaticPrototype });
+globalThis.KJPThreeNative = Object.freeze({ createNativeStaticPrototype,
+  createNativeInfrastructurePrototype: definition => createNativeStaticPrototype(definition, {
+    resourceFactory: createNativeInfrastructureResources
+  })
+});

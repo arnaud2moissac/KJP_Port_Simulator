@@ -13,6 +13,50 @@ function cameraSource() {
   };
 }
 
+test("Three natif N2 — catalogue concave, vertical, thèmes et propriétaires", async () => {
+  const { createNativeInfrastructureResources } = await import("../src/simulateur-port/rendering/native-infrastructure-resources.mjs");
+  const ring = [[0,0,0],[4,0,0],[4,1,0],[1,1,0],[1,4,0],[0,4,0]];
+  const definition = { palette: { top: "#ffcc88", edge: "rgba(10,20,30,.42)" }, owners: [
+    { id: "terre", family: "land", polygons: [{ points: ring, fill: "top", stroke: "edge", lineWidth: 1 }], lines: [] },
+    { id: "face", family: "dock", polygons: [{ points: [[0,0,0],[0,4,0],[0,4,2],[0,0,2]], fill: "top", stroke: false }], lines: [] }
+  ] };
+  const original = structuredClone(definition);
+  const resources = createNativeInfrastructureResources(definition);
+  const meshes = resources.group.children.filter(o => !o.isLineSegments2);
+  const areas = meshes.map(mesh => {
+    const p = mesh.geometry.attributes.position, indices = mesh.geometry.index.array;
+    let area = 0;
+    for (let i=0; i<indices.length; i+=3) {
+      const a = [p.getX(indices[i]),p.getY(indices[i]),p.getZ(indices[i])];
+      const b = [p.getX(indices[i+1])-a[0],p.getY(indices[i+1])-a[1],p.getZ(indices[i+1])-a[2]];
+      const c = [p.getX(indices[i+2])-a[0],p.getY(indices[i+2])-a[1],p.getZ(indices[i+2])-a[2]];
+      area += Math.hypot(b[1]*c[2]-b[2]*c[1],b[2]*c[0]-b[0]*c[2],b[0]*c[1]-b[1]*c[0])/2;
+    }
+    return area;
+  });
+  assert.deepEqual(areas, [7,8], "surfaces métriques concave et verticale conservées");
+  assert.deepEqual(definition, original, "aucune mutation de la topologie source");
+  const line = resources.group.children.find(o => o.isLineSegments2);
+  assert.equal(line.material.opacity, .42);
+  const geometry = meshes[0].geometry, array = geometry.attributes.position.array;
+  resources.updatePalette({ top: "#abcdef", edge: "rgba(30,40,50,.62)" });
+  assert.equal(meshes[0].geometry, geometry); assert.equal(geometry.attributes.position.array, array);
+  assert.equal(geometry.attributes.position.version, 0);
+  assert.equal(line.material.opacity, .62);
+  assert.equal(meshes[0].material.color.getHexString(), "abcdef");
+  const before = resources.report();
+  assert.equal(before.owners.length, 2);
+  assert.throws(() => createNativeInfrastructureResources({ ...definition, owners: [{ ...definition.owners[0], polygons: [{ points: [[NaN,0,0]], fill: "top" }] }] }), /Native/);
+  assert.equal(resources.report().liveGeometries, before.liveGeometries, "création invalide sans fuite");
+  assert.throws(() => createNativeInfrastructureResources({ ...definition, owners: [definition.owners[0],
+    { ...definition.owners[1], polygons: [{ ...definition.owners[1].polygons[0], fill: "missing" }] }] }), /Native/);
+  assert.equal(resources.report().liveGeometries, before.liveGeometries, "rollback après allocations partielles");
+  assert.equal(resources.report().liveMaterials, before.liveMaterials);
+  resources.dispose(); resources.dispose();
+  assert.equal(resources.report().liveGeometries, 0);
+  assert.equal(resources.report().liveMaterials, 0);
+});
+
 test("Three natif N1 — ressources monde indépendantes, métriques et libérables", async () => {
   const { createNativeStaticResources } = await import("../src/simulateur-port/rendering/native-static-resources.mjs");
   const definition = {
