@@ -3290,6 +3290,7 @@
     let boxRenderGeometryById = new Map();
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
+    let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
     let visibleHarborFrameCache = null;
     const renderPerformance = {
       samples: new Float32Array(240),
@@ -3313,6 +3314,8 @@
     }
 
     function installRuntimeTopology(topology) {
+      nativeStaticPrototype?.dispose();
+      nativeStaticPrototype = null;
       PORT_TOPOLOGY = topology;
       docks = clonePortData(topology.structures?.docks || []);
       catways = clonePortData(topology.structures?.catways || []);
@@ -7660,6 +7663,11 @@
       drawMooringLayer();
       drawUnderstandingOverlay();
       drawAnatomyLabels();
+      if (nativeStaticPrototype) nativeStaticPrototype.render(KJPThreeCamera.createCameraSnapshot({
+        basis: frameBasis, width: canvasWidth, height: canvasHeight,
+        focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
+        near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
+      }), pixelRatio);
       frameMotion = null;
       visibleHarborFrameCache = null;
       if (contacts.toastUntil && performance.now() > contacts.toastUntil) {
@@ -9314,6 +9322,50 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
+        enableNativeStaticPrototype(definition) {
+          if (!definition) {
+            const geometry = [...boxRenderGeometryById.values()].find(g => g.top.length && g.edges.length);
+            if (!geometry) throw new Error("Native static: aucune face de quai disponible");
+            definition = {
+              surface: { points: geometry.top[0], color: visualPalette().harbor.quayTop,
+                outlineColor: visualPalette().harbor.outline, outlineWidth: .7 },
+              stroke: { points: geometry.edges[0], color: visualPalette().harbor.outline, width: 3 }
+            };
+          }
+          const next = KJPThreeNative.createNativeStaticPrototype(definition);
+          nativeStaticPrototype?.dispose();
+          nativeStaticPrototype = next;
+        },
+        nativeStaticPrototypeReport(options = {}) {
+          return {
+            active: Boolean(nativeStaticPrototype),
+            presentation: {
+              basis: frameBasis ? structuredClone(frameBasis) : null,
+              cameraSettings: { view: camera.view, distance: camera.distance, pan: [...camera.pan],
+                yaw: camera.yaw, pitch: camera.pitch, skipperPan: [...camera.skipperPan],
+                skipperYawOffset: camera.skipperYawOffset, skipperPitch: camera.skipperPitch,
+                skipperFocalScale: camera.skipperFocalScale },
+              pose: { ...interpolatedFrameMotion },
+              hitTargets: structuredClone(moorings.hitTargets)
+            },
+            ...(nativeStaticPrototype?.report(options) || {})
+          };
+        },
+        mutateNativeStaticPrototype(action, role = "stroke") {
+          const object = nativeStaticPrototype?.resources.group.children.find(o => o.name === role);
+          if (!object) throw new Error("Native static: ressource absente");
+          if (action === "upload") {
+            const attribute = object.geometry.attributes.instanceStart || object.geometry.attributes.position;
+            (attribute.data || attribute).needsUpdate = true;
+          } else if (action === "rebuild") {
+            const old = object.geometry;
+            object.geometry = old.clone(); old.dispose();
+          } else if (action === "hide") object.visible = false;
+          else throw new TypeError("Native static: mutation inconnue");
+        },
+        disposeNativeStaticPrototype() {
+          nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
+        },
         startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
           if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
           if (captureAtFrame !== null && (!Number.isInteger(captureAtFrame) || captureAtFrame < 1 || captureAtFrame > 600)) {

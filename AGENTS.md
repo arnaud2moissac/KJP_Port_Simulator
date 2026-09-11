@@ -29,6 +29,23 @@ rapport, abstraction ou test si le besoin n'est ni demandé ni durable.
 - Ne charger le skill `validate-nautical-physics` que pour une demande classée
   `physics-check`, pas pour une modification purement visuelle ou éditoriale.
 
+## Migration du renderer Three.js
+
+Pour tout travail sur les backends Legacy ou Three du simulateur, lire le skill
+`kjp-three-render-migration` puis suivre le cadrage de référence dans
+[`docs/threejs-renderer-migration.md`](docs/threejs-renderer-migration.md), en
+particulier ses sections « Statut prescriptif et orientation de référence » et
+« Tranches natives planifiées ».
+
+Le backend Three actuel est un chemin de compatibilité alimenté par le
+`RenderFrame` projeté et reste soumis à la parité exacte de ses bancs. Le futur
+backend Three natif est un chemin distinct à géométries monde persistantes : il
+reste soumis aux invariants physiques et fonctionnels exacts, mais sa gate
+visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction,
+sans identité pixel par pixel ni identité des intermédiaires projetés. Ne pas
+appliquer au natif une exigence historique remplacée dans le document de
+référence.
+
 ## Valider proportionnellement au risque
 
 ### `patch-local`

@@ -13,6 +13,34 @@ function cameraSource() {
   };
 }
 
+test("Three natif N1 — ressources monde indépendantes, métriques et libérables", async () => {
+  const { createNativeStaticResources } = await import("../src/simulateur-port/rendering/native-static-resources.mjs");
+  const definition = {
+    surface: { points: [[10,20,1], [14,20,1], [14,22,1], [10,22,1]], color: "#d49b53", outlineColor: "#172b40", outlineWidth: .7 },
+    stroke: { points: [[10,21,2], [14,21,2]], color: "#e14671", width: 3 }
+  };
+  const resources = createNativeStaticResources(definition);
+  const [surface, outline, stroke] = resources.group.children;
+  assert.deepEqual([...surface.geometry.attributes.position.array], definition.surface.points.flat());
+  assert.equal(surface.geometry.boundingBox.max.x - surface.geometry.boundingBox.min.x, 4);
+  assert.equal(surface.geometry.boundingBox.max.y - surface.geometry.boundingBox.min.y, 2);
+  assert.equal(stroke.material.worldUnits, false);
+  assert.equal(outline.material.linewidth, .7);
+  assert.equal(stroke.material.linewidth, 3);
+  definition.surface.points[0][0] = 999;
+  definition.stroke.points[0][0] = 999;
+  assert.equal(surface.geometry.attributes.position.getX(0), 10);
+  assert.equal(stroke.geometry.attributes.instanceStart.getX(0), 10);
+  let disposed = 0;
+  for (const object of resources.group.children) {
+    object.geometry.addEventListener("dispose", () => disposed++);
+    object.material.addEventListener("dispose", () => disposed++);
+  }
+  resources.dispose(); resources.dispose();
+  assert.equal(disposed, 6, "chaque ressource est libérée une seule fois");
+  assert.throws(() => createNativeStaticResources({ ...definition, surface: { ...definition.surface, points: [[NaN,0,0]] } }), /Native/);
+});
+
 test("CameraSnapshot copie les repères et refuse un frustum invalide", async () => {
   const { createCameraSnapshot } = await import("../src/simulateur-port/rendering/three-camera.mjs");
   const input = cameraSource();

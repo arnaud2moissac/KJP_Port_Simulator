@@ -1,36 +1,181 @@
 # Migration du renderer du simulateur vers Three.js
 
-## Objectif et invariants
+## Statut prescriptif et orientation de référence — 11 septembre 2026
 
-La v2 remplace progressivement le renderer WebGL2 maison par Three.js afin de
-réduire le travail CPU et les transferts GPU sur les grands ports, puis de
-permettre des bateaux visuellement plus riches. La première migration reste
-strictement iso-rendu.
+Ce document est la référence du chantier renderer KJP. La présente section et
+la section [Tranches natives planifiées](#tranches-natives-planifiées) fixent le
+cadrage actuel. Les sections entre « Baseline Legacy » et « Tranches natives
+planifiées » constituent le journal historique de la migration de compatibilité,
+y compris celles sans date dans leur titre. Leurs mesures et validations restent
+attachées aux artefacts et environnements indiqués, sans qualification du natif.
+Leurs choix d'architecture ne s'appliquent au nouveau
+backend natif que lorsqu'ils sont repris explicitement ici.
 
-- Le moteur physique, les profils de bateau, le pas fixe et les trajectoires
-  étalons sont gelés.
-- Le Canvas 2D supérieur, les commandes, le picking et les overlays écran sont
-  conservés pendant le portage du monde WebGL.
-- Le livrable reste un unique `simulateur-port.html` utilisable hors ligne.
-- Aucun CDN, WebGPU, PBR, éclairage, ombre, brouillard ou post-traitement ne
-  fait partie de la phase d'iso-rendu.
-- Legacy et Three reçoivent à terme le même `RenderFrame` immuable ; le choix du
-  backend ne doit jamais modifier l'état autoritaire du simulateur.
+**Périmètre actuel : N1 uniquement (`ui-check`), autorisée après validation du
+cadrage par l'utilisateur.** La restriction « documentation seulement » de la
+revue précédente est levée pour le code de rendu, les tests, le suivi et la
+régénération du HTML nécessaires à N1. Les invariants ci-dessous restent
+stricts ; N2 à N6 ne sont pas engagées et Legacy reste actif par défaut.
+La revue documentaire précédente n'avait, à elle seule, autorisé aucune
+implémentation. Les résultats de cette livraison sont consignés dans
+[le suivi N1](#livraison-n1--11-septembre-2026).
 
-## Décisions vérifiées
+**État constaté à la revue documentaire et au début de N1 :** répertoire réel
+`/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, commit
+`24100376c9bfadfbb0a9caa18dc630487d2c101f`. Les quatre fichiers de cadrage
+listés ci-dessous étaient déjà modifiés au début de cette revue ; aucun autre
+changement Git n'était présent. Le suivi N1 complète ce document ; les trois
+autres fichiers de cadrage préexistants sont préservés. Aucun changement de
+branche, reset ni nettoyage de l'arbre.
 
-- Cible : Three.js `0.186.0` / révision `186`, version stable consultée le
-  8 septembre 2026 et épinglée exactement dans le lockfile.
-- Renderer : `WebGLRenderer`. Le projet est déjà WebGL2 et ne présente aucun
-  besoin TSL, compute ou post-processing justifiant le renderer WebGPU
-  expérimental.
-- Intégration : modules ES bundlés par esbuild dans le HTML autonome.
-- Composition : canevas Three transparent sur le fond de scène HTML, comme le
-  canevas WebGL Legacy actuel.
-- Boucle : un seul propriétaire actif. Le spike Three n'instancie un renderer
-  que depuis le test explicite et le détruit immédiatement.
+La cible reste Three.js `0.186.0` / révision `186` avec `WebGLRenderer`, modules
+ES intégrés par esbuild et HTML autonome hors ligne. Le chantier conserve trois
+chemins clairement nommés dans la documentation, sans renommer le code existant
+à ce stade :
 
-Référence de version : [guide de migration officiel Three.js r185 → r186](https://github.com/mrdoob/three.js/wiki/Migration-Guide#185--186).
+- **Legacy** : renderer WebGL2 maison, toujours actif par défaut et référence
+  fonctionnelle et visuelle stricte ;
+- **Three de compatibilité** : backend actuel de banc, implémenté notamment par
+  `createThreeSurfaceRenderer()` et `renderProjected()`, alimenté par le
+  `RenderFrame` projeté ;
+- **Three natif** : backend distinct à géométries monde persistantes, absent lors
+  de la décision documentaire initiale. N1 ajoute seulement son prototype
+  statique isolé, détaché du canevas actif et désactivé par défaut ; le monde
+  complet et l'intégration visible restent futurs.
+
+### Invariants physiques et fonctionnels stricts
+
+- `physics-core.js`, les profils, les collisions, le pas fixe, l'accumulateur,
+  la progression temporelle, les trajectoires étalons et l'interpolation
+  existante restent inchangés. Les commandes, scénarios et résultats physiques
+  sont comparés exactement avec les mêmes entrées et timestamps contrôlés.
+- La simulation et ses repères restent l'unique autorité. Aucun objet, rayon,
+  matrice, horloge ou calcul Three ne devient une entrée du moteur physique.
+- La fonction `render(time)`, `prepareInterpolatedFrameMotion()` et
+  `cameraBasis()` conservent la propriété de la boucle, de la pose affichée et
+  du suivi caméra. Le backend natif adapte cette base aux matrices Three sans
+  ajouter de boucle, d'horloge ni de suivi concurrent.
+- Le Canvas 2D supérieur, les overlays pédagogiques, le picking et les
+  `hitTargets`, notamment ceux reconstruits par `drawMooringLayer()`, restent
+  fonctionnels et propriétaires de leurs interactions. Le raycasting Three ne
+  remplace pas ce contrat dans ce chantier.
+- Le livrable reste un unique `simulateur-port.html` autonome hors ligne. Le
+  fond d'eau actuel et une apparence simple sont conservés. Aucun CDN, WebGPU,
+  PBR, éclairage, ombre, brouillard, post-traitement ou correction fonctionnelle
+  sans rapport avec la migration n'entre dans le périmètre.
+
+### Critères propres à chaque backend
+
+| Contrat | Legacy | Three de compatibilité | Three natif |
+| --- | --- | --- | --- |
+| Entrée normale | primitives projetées actuelles | même `RenderFrame` projeté que Legacy | ressources monde persistantes + état de présentation compact |
+| Parité raster | références Legacy exactes | identité pixel, géométrie intermédiaire et compteurs exacts dans les bancs existants | fidélité visuelle et fonctionnelle ; aucune identité pixel, tableau ou compteur de triangles exigée |
+| Physique et fonctions | exactes | exactes | exactes |
+| Activation | défaut actuel | diagnostic hors écran | chemin distinct, désactivé par défaut jusqu'à qualification |
+
+Les exigences historiques de `RenderFrame` commun, de projection/clipping
+Legacy, d'identité des tableaux intermédiaires, des compteurs et des pixels
+restent les critères de Legacy et du backend Three de compatibilité. Elles sont
+**remplacées pour Three natif** par les critères ci-dessous :
+
+- produire un rendu proche de Legacy et cohérent avec les dimensions et
+  positions KJP, les cadrages, silhouettes, couleurs, épaisseurs, thèmes,
+  priorités visuelles et occlusions utiles, sans réintroduire leur identité
+  raster comme condition implicite ;
+- ne perdre aucune primitive significative, information pédagogique,
+  lisibilité ni interaction ;
+- accepter les différences de rasterisation et de tessellation qui ne changent
+  pas ces propriétés ;
+- garder les validations exactes de Legacy et de Three de compatibilité sans
+  modifier leurs références pour faire accepter le chemin natif.
+
+### Architecture cible du backend Three natif
+
+- Le backend reçoit des ressources construites depuis le monde métrique et un
+  état de présentation compact : pose interpolée du joueur, base et paramètres
+  caméra existants, visibilité, thème et données visuelles réellement variables.
+  Le `RenderFrame` projeté n'est ni son entrée ni une condition d'acceptation.
+- Les géométries statiques sont construites au chargement du port ou à une
+  invalidation pertinente, conservées en coordonnées monde et possédées par un
+  cycle de vie explicite. Un changement de caméra ne les reconstruit pas et ne
+  marque pas leurs attributs pour retransfert.
+- La coque du joueur est conservée en coordonnées locales. Sa pose affichée met
+  à jour la transformation de l'objet ; seules les données visuelles réellement
+  variables peuvent modifier des attributs.
+- En fonctionnement natif normal, la boucle évite de construire le monde
+  projeté Legacy complet. Les projections nécessaires au Canvas 2D, aux
+  overlays et au picking restent autorisées. Une capture complète Legacy peut
+  être demandée dans un diagnostic explicite, hors du chemin natif normal et
+  hors de sa mesure de performance.
+- Le canevas Three reste composé avec le fond d'eau et le Canvas 2D existants.
+  Les ressources GPU ont un propriétaire, des invalidations identifiées et un
+  `dispose()` lors du changement de port ou de la destruction du backend.
+- Les backends partiels ne sont pas superposés comme s'ils partageaient un
+  tampon de profondeur. Le prototype isolé précède l'intégration d'un monde
+  natif complet ; l'overlay Canvas 2D conserve son rôle de composition.
+
+### Cartographie vérifiée et documents de cadrage
+
+| Emplacement existant | Constat et usage futur |
+| --- | --- |
+| `src/simulateur-port/template.html` : `render`, `prepareInterpolatedFrameMotion`, `cameraBasis` | Boucle, interpolation et suivi existants ; réutilisation sans changement de leur logique (N1/N3/N4) |
+| Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU, rejouées puis projetées par image ; ce n'est pas encore un catalogue Three persistant (N1/N2) |
+| `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel déjà présent, validé sur les ancres ; réutilisable, mais sa qualification ne prouve pas celle des occlusions natives (N1) |
+| `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
+| `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Conserver ce contrat ; ajouter des modules natifs distincts (N1–N4) |
+| `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
+| `tests/render-frame.test.js`, `tests/simulateur-port.test.js` | Protections N1 ajoutées aux suites existantes ; étendre dans N2–N5 sans affaiblir les assertions ou modifier les références existantes |
+| `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js` | Bancs réutilisables ; nouveau protocole complet natif à prévoir en N5, protocole projeté conservé |
+| `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native N1 bundlée localement ; script de build inchangé, intégration visible réservée à N4 |
+
+Les fonctions sans fichier explicite dans les tranches ci-dessous appartiennent
+à `src/simulateur-port/template.html`. Le cadrage est porté par quatre fichiers :
+ce document (décision, historique, validation et tranches), `AGENTS.md` (routage),
+`.codex/skills/kjp-three-render-migration/SKILL.md` (procédure dédiée) et son
+`agents/openai.yaml` (description). Aucun document d'architecture séparé ni
+référence dédiée supplémentaire n'a été trouvé nécessaire.
+
+### Acquis réutilisables
+
+Il n'est pas nécessaire de recommencer les tranches déjà validées :
+
+- Three r186 est épinglé, bundlé localement et vérifié dans le HTML autonome ;
+- les baselines Legacy, le contrôle réseau, les scènes déterministes, les
+  trajectoires et les hooks `__PORTANCE_TEST__` fournissent les références ;
+- `three-camera.mjs` documente et vérifie l'adaptation de la base caméra et ses
+  ancres, sans devenir propriétaire du suivi ;
+- le backend de compatibilité, son compilateur, ses comparaisons raster et ses
+  profils restent un oracle de diagnostic pour les choix visuels Legacy ;
+- `installRuntimeTopology()` possède déjà l'installation du monde et invalide
+  `staticWorldGeometryCache`; `addCachedWorldGeometry()` et les géométries de
+  boîtes/taquets pré-calculées décrivent les propriétaires et invalidations à
+  transposer dans des ressources Three, sans réutiliser leurs sorties projetées ;
+- le banc de boucle active sait rejouer les mêmes timestamps, états et caméras,
+  attribuer le coût CPU et contrôler les snapshots physiques. Son protocole
+  devra recevoir un chemin natif complet au lieu de lui imposer l'entrée
+  projetée de compatibilité.
+
+### Instructions externes au dépôt
+
+Le skill global `threejs-game-studio` reste une référence pour les API de la
+révision installée, la propriété des ressources et la validation navigateur.
+Ses valeurs par défaut génériques concernant la boucle, les matériaux ou
+l'éclairage ne remplacent pas le contrat KJP explicite ci-dessus, conformément
+à sa propre règle de priorité aux contraintes du projet et de l'utilisateur.
+Aucune modification d'un skill global n'est nécessaire pour cette orientation ;
+toute évolution de ces instructions externes constituerait une intervention
+distincte hors de ce dépôt.
+
+En particulier, la référence globale `threejs-game-studio/references/visual-regression.md`
+propose de partir d'une comparaison exacte et de ne tolérer que le bruit de
+plateforme. Cette règle ne définit pas la comparaison **Legacy/natif** : la
+présente consigne exige une fidélité sans identité pixel. Elle peut servir à la
+stabilité d'une référence propre à un backend. De même, les exemples génériques
+`Timer`, `setAnimationLoop`, éclairage ou raycasting ne justifient aucune
+substitution des propriétaires KJP. Ces écarts d'application sont signalés ici ;
+le skill global et ses références restent inchangés.
+
+Référence de version historique : [guide de migration officiel Three.js r185 → r186](https://github.com/mrdoob/three.js/wiki/Migration-Guide#185--186).
 
 ## Baseline Legacy
 
@@ -56,7 +201,10 @@ les backends dans le même environnement, pas à qualifier un GPU matériel. Deu
 passes Legacy consécutives, puis une passe après intégration du bundle Three,
 ont produit les mêmes six empreintes SHA-256.
 
-## Phases et gates
+## Historique des phases de compatibilité
+
+Ce tableau décrit les acquis du chemin Legacy/Three de compatibilité. Ses gates
+d'identité raster et géométrique ne sont pas des gates du backend Three natif.
 
 | Phase | État | Gate de sortie |
 | --- | --- | --- |
@@ -67,8 +215,23 @@ ont produit les mêmes six empreintes SHA-256.
 | 4 · caméra et projection Three | validé pour les ancres, hors rasterisation | 2 211 ancres dans la tolérance de 0,5 px ; Legacy toujours actif |
 | 5 · port, eau et infrastructures | terrain/quais/pontons/catways validés dans le banc isolé ; eau CSS conservée | 76 comparaisons raster exactes avant extension bateaux |
 | 6 · bateaux et overlays monde | monde complet et overlays composés ; contact/animation couverts, défaut de coloration Legacy identifié | 338 comparaisons raster + 24 traversées de ±π exactes |
-| 7 · optimisation | en attente | grand port plus rapide, allocations et mémoire stables |
-| 8 · bascule v2 | en attente | Three par défaut, Legacy retiré après qualification complète |
+| 7 · optimisation du compilateur projeté | partielle, mesures conservées ci-dessous | gain local mesuré ; coût structurel toujours présent |
+| 8 · bascule v2 de compatibilité | remplacée pour le chemin natif | aucune bascule de ce backend projeté n'est planifiée |
+
+Les anciennes phases 7 et 8 sont remplacées, pour Three natif uniquement, par
+les tranches N1 à N6 décrites en fin de document. Legacy et Three de
+compatibilité restent des références pendant cette qualification.
+
+Historique des décisions remplacées le 11 septembre 2026 : le cadrage initial
+visait une première migration strictement iso-rendu, puis des bateaux visuellement
+plus riches ; cette extension esthétique est hors du chantier natif actuel.
+L'ancienne phase 8 prévoyait « Three par défaut, Legacy retiré après qualification
+complète » : elle est remplacée par la qualification native et le maintien des
+deux références. La précédente « Prochaine tranche » préconisait de profiler
+l'intérieur du compilateur projeté (traits, triangulation, tableaux), après une
+attribution de 85–86 % du CPU et un coût dense de 68–70 ms. Ces mesures sont
+conservées ci-dessous ; cette priorité est remplacée par N1 pour le natif et
+n'impose pas de nouvelle optimisation préalable du compilateur de compatibilité.
 
 ## Contrat de frame — 9 septembre 2026
 
@@ -892,17 +1055,387 @@ réussissent. Aucun fichier physique ou étalon de trajectoire n'est modifié.
 55 communautés). Le renderer Legacy reste actif par défaut. Modifications non
 commitées ; aucune qualification de release ou de GPU/composition visible.
 
-## Prochaine tranche
+## Tranches natives planifiées
 
-La compilation est désormais identifiée comme propriétaire dominant de la boucle
-active (85–86 % avant cette optimisation). Le grand port dense reste à environ
-68–70 ms CPU : profiler l'intérieur du compilateur pour distinguer génération
-des traits, triangulation et construction des tableaux avant un changement plus
-structurant. Réutiliser `--owners` pour l'attribution et le chemin non instrumenté
-pour les comparaisons appariées. Conserver les références visuelles.
-Le temps GPU, la composition et la cadence naturelle d'un Three visible, ainsi
-que la stabilité longue avec activité, restent à qualifier avant toute bascule
-par défaut. Garder le défaut Legacy de coloration des contacts explicite dans les critères visuels ;
-ne pas revendiquer son bon fonctionnement au titre de la parité Three.
-Ne pas superposer deux canevas de backends partiels : leurs buffers de profondeur
-ne seraient pas partagés. Le renderer Legacy reste actif.
+Hors modules N1 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
+des emplacements prévus. Chaque tranche reste réversible par désactivation ou
+suppression du chemin natif concerné ; aucune tranche ne réécrit le moteur ni
+les références Legacy/compatibilité. Une tranche ne commence qu'après réussite
+des gates de la précédente.
+
+**Suivi : N1 validée dans son périmètre isolé ; voir son bilan ci-dessous. N2 à N6
+restent planifiées, non commencées.** À chaque livraison, consigner les résultats
+et limites avec son commit ou artefact, les contrôles exécutés et le retour
+arrière vérifié. Les règles de validation ci-dessous s'appliquent à chaque
+tranche selon son périmètre. Le statut initial « aucune commencée » désignait
+la livraison documentaire, avant l'autorisation de code.
+
+### Stratégie de validation commune
+
+- Réutiliser `npm run check:simulator`, `npm run test:rendering` et les tests
+  ciblés de `tests/simulateur-port.test.js`. Les six références Legacy se
+  contrôlent par `npm run capture:renderer-baseline`, sans `--update`. Les
+  comparaisons strictes de compatibilité sont conservées ; aucun résultat
+  historique n'est présenté comme une nouvelle exécution.
+- Comparer exactement les snapshots physiques, commandes, scénarios, poses
+  interpolées et bases caméra à entrées et timestamps identiques. Ne pas
+  modifier les pas, l'accumulateur ou le moteur pour stabiliser un test. Lors
+  de l'intégration N4/N5, rejouer aussi les trajectoires étalons existantes.
+- Les assertions fonctionnelles sont distinctes des seuils visuels : mêmes
+  `hitTargets` (identifiants, coordonnées, disponibilité), mêmes sélections et
+  mêmes résultats de gestes d'aussières/pendilles aux mêmes instants. Conserver
+  `drawMooringLayer()` dans le flux normal, sans second calcul du suivi caméra.
+- Les ancres matricielles conservent leur tolérance numérique existante de
+  0,5 px ; cela n'impose ni égalité des pixels ni même triangulation native.
+  Calibrer les critères de présence, d'occlusion et de lisibilité sur les
+  objets/informations à protéger ; un trait fin supprimé doit être détecté.
+- Un test d'identité d'attributs entre deux images **natives** protège leur
+  persistance. Il n'exige aucune identité entre tableaux natifs et tableaux
+  Legacy/compatibilité. Mesurer constructions et uploads dans une passe
+  diagnostique séparée des chronométrages de performance.
+- N5 compare chaque chemin complet à scène, état, caméra, viewport et DPR
+  identiques, avec chauffe et répétitions appariées alternant l'ordre. Inclure
+  préparation monde, soumission, overlays et interface ; distinguer CPU, GPU
+  et cadence visible, en déclarant ce qui est mesuré. Le banc actif actuel
+  dessine hors écran derrière un panneau : ses résultats seuls ne confirment
+  pas une performance visible. Les confirmer sur la scène effectivement
+  animée, notamment skipper (port et taquets se déplacent de façon cohérente).
+- En cas d'échec, conserver les références et le natif désactivé, corriger la
+  tranche concernée puis répéter ses contrôles. Aucun test physique ou
+  fonctionnel n'est rendu tolérant pour accepter un écart visuel.
+
+### N1 · Protections puis prototype statique persistant isolé
+
+- **Objectif** : écrire d'abord les protections du contrat, puis prouver sur un
+  sous-ensemble représentatif que Three conserve une géométrie statique en
+  coordonnées monde pendant les mouvements de caméra.
+- **Périmètre et points d'ancrage** : `render(time)`, `cameraBasis()`,
+  `installRuntimeTopology()`, `addCachedWorldGeometry()`,
+  `rendering/three-camera.mjs`, `rendering/index.js`, l'API
+  `__PORTANCE_TEST__`, `tests/render-frame.test.js` et
+  `tests/simulateur-port.test.js`. Les deux modules isolés N1 sous
+  `src/simulateur-port/rendering/` sont `native-static-resources.mjs` pour la
+  construction statique et `native-static-prototype.mjs` pour le renderer. Le prototype couvre
+  au moins une surface pleine, un contour fin et un trait de largeur écran
+  représentative, avec caméra dessus et skipper, y compris à proximité du plan
+  de clipping. Il reste hors du canevas actif et consomme directement des
+  ressources monde, sans passer par `RenderFrame` ou `renderProjected()`.
+- **Invariants protégés** : aucune modification de la physique, du pas, de
+  l'interpolation, du suivi caméra, des commandes, du `RenderFrame` de
+  compatibilité, du Canvas 2D, du picking ou des références existantes. Un seul
+  appel de la boucle existante peut piloter le prototype de test.
+- **Tests prévus** : tests de contrat sur la séparation des autorités et le
+  cycle de vie ; scénario navigateur déterministe qui initialise les ressources,
+  enregistre l'identité des géométries, attributs et tableaux, les versions des
+  attributs/buffers et les compteurs de construction, puis déplace et fait
+  tourner la caméra, et varie le zoom dans les deux vues. Observer également
+  les appels de transfert WebGL (`bufferData`/`bufferSubData`) et les octets
+  attribuables aux buffers statiques concernés, après leur premier rendu et
+  upload effectifs. Des compteurs de réallocation ou `needsUpdate` seuls ne
+  prouvent pas l'absence de retransfert. Vérifier simultanément les ancres caméra, les snapshots
+  physiques et l'absence d'erreur console/GL.
+- **Critère de sortie** : après initialisation, tout mouvement de caméra testé
+  conserve les mêmes géométries et tableaux d'attributs statiques, n'incrémente
+  ni construction ni upload de ces attributs et ne pose pas `needsUpdate` sur
+  eux. Les mises à jour des matrices d'objets et des paramètres/matrices caméra
+  restent permises. Le prototype montre ses surfaces et traits aux positions et
+  dimensions attendues dans les captures ciblées.
+  Démontrer que la protection échoue lorsqu'une mutation de test force un
+  rebuild ou un retransfert statique. Ne pas compter les mises à jour normales
+  de matrices, uniforms ou paramètres caméra comme des uploads géométriques.
+- **Dépendances** : acquis caméra r186, topologie runtime, scènes et hooks de
+  test existants. Les seuils visuels natifs sont fixés dans les tests de
+  protection avant d'accepter la capture du prototype.
+- **Retour arrière** : retirer les modules et hooks natifs isolés ; Legacy et le
+  banc de compatibilité restent inchangés et actifs comme avant la tranche.
+
+### N2 · Cycle de vie des ressources statiques du port
+
+- **Objectif** : étendre le prototype aux propriétaires statiques du monde et
+  définir précisément création, partage, visibilité, invalidation et disposal.
+- **Périmètre et points d'ancrage** : familles terrain/terre, quais, pontons,
+  catways, obstacles, bateaux statiques, bouées et feux ;
+  `installRuntimeTopology()`, `installCommunityDocument()`,
+  `restoreBuiltInPort()`, `buildHarborRenderIndex()`, les cartes
+  `boxRenderGeometryById`, `shoreCleatRenderGeometryById` et
+  `staticWorldGeometryCache`. Le futur propriétaire Three garde ses propres
+  ressources monde ; il ne met pas les primitives projetées dans ses buffers.
+- **Invariants protégés** : topologie et dimensions KJP inchangées, visibilité
+  fonctionnelle conservée, fond d'eau existant, aucune autorité Three sur les
+  collisions ou les scénarios.
+- **Tests prévus** : chargement/restauration/import répétés, changement de thème
+  selon son effet réel sur matériaux ou géométries, culling aux cadrages limites,
+  stabilité des identités/capacités après chauffe, libération des ressources à
+  l'invalidation et absence de croissance monotone après cycles.
+- **Critère de sortie** : chaque famille statique a un propriétaire et une cause
+  d'invalidation documentés ; une caméra mobile ne reconstruit aucun buffer
+  statique ; un changement de port remplace puis libère exactement les ressources
+  concernées ; les scènes de référence ne présentent ni omission ni perte de
+  lisibilité.
+- **Découpage limité** : livrer successivement terrain/infrastructures,
+  bateaux statiques, puis bouées/feux. Chaque lot applique les invariants,
+  tests et critères ci-dessus à ses seules familles, dépend du lot précédent
+  et peut être désactivé séparément dans le prototype isolé. Ne pas exposer un
+  assemblage de backends partiels au rendu actif.
+- **Dépendances** : N1 et inventaire des familles déjà couvertes par le banc de
+  compatibilité.
+- **Retour arrière** : désactiver la construction du catalogue natif et disposer
+  ses ressources ; réutiliser sans changement le cache et le renderer Legacy.
+
+### N3 · Joueur local et données visuelles variables
+
+- **Objectif** : conserver la coque du joueur en coordonnées locales et ne
+  mettre à jour que sa transformation et les données visuelles réellement
+  variables.
+- **Périmètre et points d'ancrage** : `addBoatMesh()`,
+  `prepareInterpolatedFrameMotion()`, `sceneMotion()`, pare-battages, gouvernail,
+  halos/états de contact et autres éléments animés. Inventorier aussi
+  `addChartGrid()`, `drawFlowParticles()`, `addGoalGeometry()`,
+  `addDistantShoreCleatGeometry()` et `addRudderAxis()` pour leur attribuer un
+  chemin natif ou une projection d'overlay conservée. Les flux ou marqueurs très
+  dynamiques peuvent rester sur un chemin séparé tant que leur propriétaire et
+  leur coût sont mesurés, sans reconstruire tout le monde projeté.
+- **Invariants protégés** : pose autoritaire, interpolation de x/y/cap y compris
+  les traversées de ±π, contacts, profils, dimensions de coque et sémantique des
+  couleurs inchangés.
+- **Tests prévus** : identité des attributs de coque sur une trajectoire
+  contrôlée, comparaison exacte des poses et snapshots, mises à jour de matrices
+  à chaque frame, cas de contact et animation, vérification visuelle des trois
+  vues et des deux thèmes.
+- **Critère de sortie** : le déplacement normal du bateau ne reconstruit ni ne
+  retransfère la coque ; seules les ressources déclarées dynamiques changent ;
+  mouvement, cap, contacts et informations pédagogiques restent cohérents avec
+  les références.
+- **Dépendances** : catalogue et instrumentation de N2.
+- **Retour arrière** : retirer les objets dynamiques natifs et conserver le
+  constructeur/rendu Legacy et la capture de compatibilité.
+
+### N4 · Intégration dans la boucle et composition interactive
+
+- **Objectif** : raccorder le backend natif à l'unique boucle existante derrière
+  une sélection de qualification désactivée par défaut, puis éviter la
+  construction du monde projeté Legacy complet lorsqu'il est sélectionné.
+- **Périmètre et points d'ancrage** : `render(time)`, `resizeCanvas()`,
+  `drawWater()`, la façade sous `rendering/index.js`, Canvas 2D supérieur,
+  `drawMooringLayer()`, `drawUnderstandingOverlay()`, `drawAnatomyLabels()`,
+  picking et `hitTargets`. Seules les projections nécessaires à ces overlays,
+  interactions et diagnostics sont maintenues.
+- **Invariants protégés** : un seul RAF, une seule progression physique, une
+  seule interpolation et une seule base caméra ; ordre fonctionnel des overlays,
+  interactions et resize/DPR inchangé ; Legacy reste le défaut.
+- **Tests prévus** : instrumentation qui échoue si le monde projeté complet ou
+  `createRenderFrame()` est construit dans le chemin natif normal ; contrôles
+  des `hitTargets`, gestes caméra, aussières, pendilles, thèmes, vues, resize et
+  reprise ; captures complètes monde + Canvas 2D ; console/page/GL/réseau.
+- **Critère de sortie** : le chemin natif visible fonctionne dans la boucle
+  existante, sans deuxième horloge ni double progression ; il omet le pipeline
+  projeté complet hors besoins explicitement autorisés ; les interactions et
+  informations pédagogiques restent disponibles.
+- **Dépendances** : N2 et N3.
+- **Retour arrière** : supprimer la sélection native ou la forcer inactive ; la
+  branche Legacy et le banc Three de compatibilité restent immédiatement
+  utilisables.
+
+### N5 · Qualification visuelle, fonctionnelle et de performance
+
+- **Objectif** : qualifier le chemin natif sans convertir l'oracle Legacy en
+  exigence d'identité raster.
+- **Périmètre et points d'ancrage** : scènes des six baselines, grand port dense,
+  vues dessus/anatomie/skipper, thèmes, DPR et overlays ; futurs validateurs
+  natifs dans les suites de rendu/simulateur et adaptation des scripts de profil
+  seulement après autorisation de cette tranche ; fichiers précis indiqués
+  dans la cartographie vérifiée ci-dessus.
+- **Invariants protégés** : tests physiques et fonctionnels exacts inchangés ;
+  références Legacy et comparaisons Three de compatibilité conservées exactes.
+- **Tests prévus** : mêmes entrées et progression temporelle contrôlée pour les
+  trois chemins ; inventaire sémantique des familles visibles, ancres et
+  dimensions écran bornées, captures avec régions/seuils calibrés pour détecter
+  une omission, un déplacement significatif, un texte/trait illisible ou une
+  interaction perdue. Une mutation volontaire doit faire échouer chaque seuil.
+  Les différences de pixels, de tessellation et de compteurs ne sont pas des
+  échecs en elles-mêmes. Effectuer des comparaisons appariées du chemin CPU
+  complet sur mêmes scènes/états/caméras après chauffe, puis confirmer en rendu
+  visible avec p50/p95/p99, stabilité mémoire, absence de reconstruction/upload
+  statique et inspection des captures.
+- **Critère de sortie** : zéro divergence physique ou fonctionnelle, zéro
+  omission significative et seuils de lisibilité/mutation démontrés ; gain de
+  performance reproductible sur le chemin complet et confirmé dans le canevas
+  visible, sans imposer au natif l'entrée projetée de compatibilité.
+- **Dépendances** : N4 ; environnement navigateur/GPU déclaré pour chaque
+  mesure et baseline.
+- **Retour arrière** : conserver le natif désactivé et ses résultats comme
+  diagnostic ; aucune référence Legacy/compatibilité n'est réécrite.
+
+### N6 · Activation contrôlée
+
+- **Objectif** : décider séparément d'une activation par défaut après les gates,
+  sans confondre qualification technique et suppression des références.
+- **Périmètre et points d'ancrage** : sélection du backend, démarrage, repli et
+  documentation utilisateur ; retrait éventuel différé seulement sur décision
+  explicite.
+- **Invariants protégés** : HTML hors ligne, physique/fonctions exactes, Canvas
+  2D et interactions, repli exploitable.
+- **Tests prévus** : matrice navigateur/appareil déclarée, démarrage propre,
+  reprise, resize, import de port, stabilité longue et contrôle du repli.
+- **Critère de sortie** : toutes les preuves de N5 sont archivées, le natif est
+  stable dans le rendu visible et le retour à Legacy reste opérant. Legacy et le
+  backend de compatibilité demeurent des références tant qu'une décision
+  ultérieure ne fixe pas leur retrait.
+- **Dépendances** : N5 et décision explicite d'activer le défaut.
+- **Retour arrière** : remettre Legacy par défaut par la sélection prévue, sans
+  migration de données ni modification du moteur.
+
+Le défaut Legacy de coloration des contacts décrit dans le journal reste un
+défaut connu de la référence. Le reproduire dans Three de compatibilité satisfait
+son contrat historique ; Three natif ne doit ni revendiquer sa correction comme
+gain de migration ni introduire une correction fonctionnelle sans tranche
+distincte. Après la livraison N1 décrite ci-dessous, la prochaine tranche est
+**N2, premier lot terrain/infrastructures**, à engager sur une nouvelle demande.
+Les lots suivants de N2 puis N3 à N6 restent différés.
+
+## Livraison N1 — 11 septembre 2026
+
+**N1 validée dans son périmètre de prototype isolé : tous ses critères de sortie
+testés ci-dessous sont satisfaits.** Travail non
+commité sur `codex/threejs-v2`, depuis HEAD
+`24100376c9bfadfbb0a9caa18dc630487d2c101f`, sans changement de branche.
+Le diff initial se limitait aux quatre fichiers de cadrage cités plus haut :
+leurs modifications sont conservées. Seul ce journal reçoit un complément
+N1 ; `AGENTS.md`, le skill dédié et son `agents/openai.yaml` ne sont pas
+modifiés par cette tranche. Les skills globaux restent inchangés.
+
+### Réalisation et frontières
+
+- `native-static-resources.mjs` construit une seule fois un quadrilatère plan
+  convexe en coordonnées monde, son contour de 0,7 px CSS et un segment de
+  3 px CSS. Les entrées sont copiées, les attributs conservés, les matériaux
+  simples et sans éclairage. Les traits utilisent les addons locaux r186
+  `LineSegments2`/`LineSegmentsGeometry`/`LineMaterial` avec `worldUnits: false`.
+  Leur largeur ne multiplie pas le DPR : la résolution du matériau suit le
+  viewport logique fourni par Three.
+- `native-static-prototype.mjs` possède le renderer, les ressources et leur
+  libération idempotente. Il reçoit uniquement la définition monde puis le
+  `CameraSnapshot` existant et le DPR. Il réutilise `createThreeCamera()` sans
+  ajouter de contrôleur ni de boucle. Son canvas transparent est détaché du DOM.
+  `preserveDrawingBuffer` sert aux captures diagnostiques ; ce prototype ne
+  constitue pas un candidat de performance du chemin complet.
+- `rendering/index.js` expose la fabrique native. Dans `template.html`, les
+  hooks `enableNativeStaticPrototype`, `nativeStaticPrototypeReport`,
+  `mutateNativeStaticPrototype` et `disposeNativeStaticPrototype` sont limités
+  à l'API `__PORTANCE_TEST__` activée par `?test`. Sans activation explicite,
+  aucune ressource ni aucun renderer natif n'est construit. L'activation sans
+  argument copie une face et une arête réelles du cache monde du port ; le banc
+  peut aussi fournir une définition métrique synthétique contrôlée.
+- Le seul raccord de dessin est à la fin du rendu existant, après les overlays,
+  avec `frameBasis` déjà calculée. Aucun `RenderFrame`, `SurfaceFrame` ou
+  `renderProjected()` n'alimente le prototype. Le rendu Legacy normal reste
+  complet et actif : son évitement concerne le futur chemin intégré de N4,
+  pas ce banc isolé. `installRuntimeTopology()` dispose le prototype lors d'un
+  remplacement du port ; sa recréation automatique et le catalogue multi-familles
+  sont réservés à N2.
+- Les ajouts à `tests/render-frame.test.js` et `tests/simulateur-port.test.js`
+  protègent ce contrat. Aucun test existant, référence raster/physique,
+  dépendance ou script n'est réécrit. `simulateur-port.html` est régénéré par
+  le build existant. SHA-256 de l'artefact N1 :
+  `3e739e3416941130077cb692778b824a176a24ead9b0d6dde0e7bee9e10490db`.
+
+### Preuves observées
+
+Les protections de contrat et le premier scénario navigateur ont d'abord
+échoué avec le module et le hook natifs absents, avant leur implémentation.
+Les seuils de présence et de largeur ont été fixés pour le fixture métrique
+avant son acceptation ; la revue a ajouté les contrôles analytiques du centre,
+de la hauteur et du bornage des traits clippés.
+
+Le scénario de persistance utilise les mêmes entrées et timestamps (pas de
+présentation de 1/60 s injecté par le pilote de test) dans deux pages, prototype
+absent puis activé. Il laisse inchangés le pas physique, l'accumulateur et le
+moteur. Pour les vues dessus/skipper et DPR 1/2 :
+
+- les premiers `bufferData`/`bufferSubData` natifs transfèrent effectivement
+  des octets ; après ce premier rendu, les 30 frames de suivi par configuration
+  et chaque geste effectif de pan, rotation, zoom et resize ajoutent **zéro
+  construction et zéro appel/octet de transfert géométrique** ;
+- géométries, attributs, buffers interleavés et tableaux gardent leurs identités,
+  versions et empreintes ; matrices/uniforms caméra ne sont pas comptés comme
+  attributs géométriques. L'instrumentation intercepte les véritables appels
+  WebGL2 du canvas natif, sans déduire les uploads de `needsUpdate` seul ;
+- une seule callback de la boucle reste en attente. Les 120 paires de snapshots
+  (30 × 2 vues × 2 DPR), commandes/scénarios inclus, poses interpolées, bases et
+  réglages caméra, `hitTargets` et images du monde/overlay actifs sont exactes.
+  La base de suivi se déplace effectivement ; chaque geste est vérifié avant
+  le suivant et le snapshot caméra natif correspond à celui de la frame ;
+- forcer séparément un retransfert puis une reconstruction fait échouer la
+  protection sur une référence fraîche pour chaque mutation : `bufferSubData`
+  et octets supplémentaires dans le premier cas ; nouvelle géométrie et
+  `bufferData` supplémentaire dans le second. Aucun écart n'est accepté au
+  prétexte du contrat visuel natif ;
+- la double désactivation conserve le snapshot physique ; la recréation depuis
+  une face réelle et la désactivation au remplacement du port fonctionnent.
+  Le test unitaire observe six libérations uniques (trois géométries et trois
+  matériaux), même après deux appels de disposal.
+
+Le scénario visuel vérifie la présence des trois familles, la largeur et la
+hauteur projetées du quad de 8 × 4 m (tolérance 4 px CSS), son centre (2 px CSS),
+le trait de 3 px CSS (±1,5 px), aux deux vues et DPR. Masquer séparément surface,
+contour ou segment échoue. Une surface, son contour et un trait traversant le
+plan proche restent visibles ; un segment traversant le plan de l'œil reste
+borné et fin (hauteur ≤6 px CSS, centre vertical à moins de 2 px). Les objets
+entièrement derrière la caméra sont rejetés. Aucune égalité raster ou de
+triangulation avec Legacy n'est imposée. Les échantillons contrôlés ne signalent
+aucune erreur GL, console ou page ; le scénario apparié n'émet aucune requête
+HTTP(S).
+
+### Vérifications de cette livraison
+
+| Contrôle exécuté | Résultat réellement observé |
+| --- | --- |
+| `npm run build:simulator`, puis `npm run check:simulator` | Réussis ; HTML autonome cohérent avec ses sources et la topologie intégrée |
+| `npm run test:rendering` | 11 tests réussis, dont la nouvelle protection unitaire N1 |
+| `node --test --test-name-pattern='Three natif N1' tests/render-frame.test.js tests/simulateur-port.test.js` | 3 tests réussis, 0 échec ; persistance, mutations, cycle de vie et gates visuelles ci-dessus |
+| `node --test --test-name-pattern='^(profilage actif\|terrain Three\|monde Three\|caméra Three)' tests/simulateur-port.test.js` | 4 tests existants réussis ; 338 comparaisons raster strictes, 0 pixel différent ; 24 traversées de ±π ; reprise skipper ; 2 211 ancres, écart maximal 2,7827 × 10⁻⁸ px (seuil 0,5 px) |
+| `npm run capture:renderer-baseline` sans `--update` | Réussi : 6/6 empreintes Legacy identiques, références du dépôt inchangées |
+| Inspection ciblée des captures | Dessus DPR1 et skipper DPR2 : surface, contour et trait présents et cohérents avec le fixture ; pas de qualification du monde complet |
+| Contrôle de périmètre et `git diff --check` | Réussis ; seules additions aux sources/hooks/tests de rendu. `cameraBasis`, `prepareInterpolatedFrameMotion`, `drawMooringLayer` et `testSnapshot` comparés textuellement à HEAD : identiques. Aucun diff dans physique, fixtures, références, dépendances ou scripts |
+| `graphify update .` | Mise à jour AST réussie : 1 050 nœuds, 1 843 arêtes, 54 communautés. Cinq noms de communautés ajustés automatiquement ; pas de réétiquetage sémantique/LLM |
+
+L'essai de lancement Chromium dans le sandbox a échoué sur
+`mach_port_rendezvous: Permission denied`, avant exécution du rendu. La même
+commande autorisée hors sandbox a ensuite réussi ; ce n'était pas un défaut du
+renderer. Les échecs de mutation attendus sont interceptés par les tests et ne
+sont pas des échecs de la suite. Aucun échec de test exécuté ne reste non résolu.
+
+Captures N1 de la dernière passe :
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/kjp-native-n1-uy6WkL/`
+(`top-dpr1.png`, `top-dpr2.png`, `skipper-dpr1.png`, `skipper-dpr2.png`).
+Les captures de compatibilité sont dans `kjp-surface-comparison-4vbmpF/` sous
+le même répertoire temporaire système ; les six captures Legacy candidates
+sont dans `kjp-render-candidate-voLMNp/`. Ces artefacts sont temporaires ; les
+tests permettent de les reproduire sans réécrire les références du dépôt.
+
+### Limites, retour arrière et suite
+
+Tests exécutés sous Chromium headless sur cette machine, pas de qualification
+multi-navigateur/appareil ni de mesures GPU ou de cadence visible. Aucune suite
+physique globale, trajectoire étalon ou release complète n'est rejouée ici : les
+comparaisons exactes N1 et les validations existantes ciblées ci-dessus couvrent
+le risque de cette tranche isolée. Les trajectoires restent intactes et leur
+rejeu d'intégration reste prévu en N4/N5. Les gestes d'aussières/pendilles avec
+un renderer natif visible relèvent de N4 ; N1 protège leurs snapshots et
+`hitTargets` ainsi que le Canvas actif inchangé.
+
+Le prototype couvre un quad convexe plan et des traits pleins, sans catalogue
+port, coque mobile, styles pointillés, profondeur à l'échelle d'un port complet
+ou synchronisation des thèmes. Leur qualification reste dans N2–N4 ; aucun gain
+de performance n'est revendiqué. Le fond d'eau et la présentation produit
+restent ceux de Legacy.
+
+Retour arrière opérationnel vérifié par désactivation, double disposal,
+réactivation et invalidation du port ; Legacy reste utilisable à chaque étape.
+Un retrait du prototype consisterait uniquement à retirer les deux modules,
+leur façade et les hooks/bloc de dessin N1 puis à rebâtir le HTML. Aucun retrait
+de code ni reset n'a été effectué pour simuler ce retour arrière.
+
+Prochaine tranche : **N2, lot terrain/infrastructures**, avec propriétaires des
+ressources, invalidations et libération répétée documentés/testés selon le plan
+ci-dessus. Elle n'est pas commencée. Ne pas activer le renderer natif par défaut.

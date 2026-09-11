@@ -62,6 +62,262 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
+test("Three natif N1 — caméra mobile sans rebuild ni upload statique", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  const artifacts = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "kjp-native-n1-"));
+  const hash = value => require("node:crypto").createHash("sha256").update(value).digest("hex");
+  const stable = (before, after) => {
+    assert.deepEqual(after.resources, before.resources, "identités, versions et données statiques inchangées");
+    assert.deepEqual(after.uploads, before.uploads, "aucun bufferData/bufferSubData géométrique après initialisation");
+  };
+  for (const dpr of [1, 2]) {
+    for (const view of ["top", "skipper"]) {
+      let reference;
+      for (const enabled of [false, true]) {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: dpr });
+        const errors = [];
+        page.on("pageerror", e => errors.push(e.message));
+        page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+        page.on("request", r => { if (/^https?:/.test(r.url())) errors.push(r.url()); });
+        await page.addInitScript(() => {
+          const originalRAF = requestAnimationFrame.bind(window);
+          let pending = [], time = 1000;
+          window.requestAnimationFrame = callback => { pending.push(callback); return pending.length; };
+          window.__nativeUploads = { calls: 0, bytes: 0, data: 0, subData: 0 };
+          for (const method of ["bufferData", "bufferSubData"]) {
+            const original = WebGL2RenderingContext.prototype[method];
+            WebGL2RenderingContext.prototype[method] = function (...args) {
+              const result = original.apply(this, args);
+              if (this.canvas.id === "kjp-native-static-prototype") {
+                const data = args[method === "bufferData" ? 1 : 2];
+                const offset = args[3] || 0;
+                const length = args[4];
+                const bytes = typeof data === "number" ? data :
+                  length ? length * data.BYTES_PER_ELEMENT : data.byteLength - offset * (data.BYTES_PER_ELEMENT || 1);
+                window.__nativeUploads.calls++;
+                window.__nativeUploads.bytes += bytes;
+                window.__nativeUploads[method === "bufferData" ? "data" : "subData"]++;
+              }
+              return result;
+            };
+          }
+          window.__nativeStep = () => new Promise((resolve, reject) => originalRAF(() => {
+            try {
+              const callbacks = pending; pending = []; time += 1000 / 60;
+              for (const callback of callbacks) callback(time);
+              resolve({
+                queued: pending.length,
+                snapshot: window.__PORTANCE_TEST__.snapshot(),
+                report: window.__PORTANCE_TEST__.nativeStaticPrototypeReport({ images: true }),
+                uploads: { ...window.__nativeUploads },
+                world: document.querySelector("#worldScene").toDataURL(),
+                overlay: document.querySelector("#scene").toDataURL()
+              });
+            } catch (error) { reject(error); }
+          }));
+        });
+        await page.goto(testUrl.href);
+        assert.equal(await page.evaluate(() => window.__PORTANCE_TEST__.nativeStaticPrototypeReport().active), false);
+        await page.evaluate(view => {
+          const api = window.__PORTANCE_TEST__;
+          api.reset({ x: 0, y: 0, heading: 0, u: 1 });
+          api.selectCameraView(view);
+        }, view);
+        const initial = await page.evaluate(() => window.__nativeStep());
+        if (enabled) await page.evaluate(() => {
+          const api = window.__PORTANCE_TEST__;
+          const { snapshot: c } = api.projectionComparisonReport();
+          const point = (x, y, depth) => c.position.map((v, i) => v + c.right[i]*x + c.up[i]*y + c.forward[i]*depth);
+          // 8 × 4 mètres, dans le repère monde KJP ; aucune projection en entrée.
+          api.enableNativeStaticPrototype({
+            surface: { points: [point(-4,-2,12), point(4,-2,12), point(4,2,12), point(-4,2,12)],
+              color: "#d49b53", outlineColor: "#172b40", outlineWidth: .7 },
+            stroke: { points: [point(-3,0,11.99), point(3,0,11.99)], color: "#e14671", width: 3 }
+          });
+        });
+        const first = await page.evaluate(() => window.__nativeStep());
+        if (enabled) {
+          assert.ok(first.uploads.calls > 0 && first.uploads.bytes > 0, "instrumentation observe les uploads initiaux");
+          assert.equal(first.report.glError, 0);
+          fs.writeFileSync(path.join(artifacts, `${view}-dpr${dpr}.png`), Buffer.from(first.report.image.split(",")[1], "base64"));
+          assert.equal(await page.locator("#kjp-native-static-prototype").count(), 0, "prototype détaché");
+        }
+        await page.evaluate(() => document.querySelector("#pauseButton").click());
+        const frames = [];
+        for (let i = 0; i < 30; i++) {
+          const frame = await page.evaluate(() => window.__nativeStep());
+          frames.push({ snapshot: frame.snapshot, presentation: frame.report.presentation, world: hash(frame.world), overlay: hash(frame.overlay) });
+          assert.equal(frame.queued, 1, "une seule boucle");
+          if (enabled) stable({ resources: first.report.resources, uploads: first.uploads }, { resources: frame.report.resources, uploads: frame.uploads });
+          if (enabled) assert.equal(frame.report.resourceBuilds, first.report.resourceBuilds);
+          if (enabled) assert.equal(frame.report.glError, 0);
+        }
+        if (!enabled) reference = frames;
+        else {
+          assert.deepEqual(frames, reference, "physique, caméra, pose interpolée, picking et rendu actif exacts");
+          assert.notDeepEqual(frames.at(-1).presentation.basis, initial.report.presentation.basis, "la caméra a réellement suivi le bateau");
+          // Vérifier chaque geste indépendamment ; le resize ne peut pas masquer un geste inopérant.
+          await page.evaluate(() => document.querySelector("#pauseButton").click());
+          const beforeGestures = await page.evaluate(() => window.__nativeStep());
+          const box = await page.locator("#scene").boundingBox();
+          await page.mouse.move(box.x + box.width*.7, box.y + box.height*.4);
+          await page.mouse.down({ button: "right" });
+          await page.mouse.move(box.x + box.width*.7 + 35, box.y + box.height*.4 + 15);
+          await page.mouse.up({ button: "right" });
+          const panned = await page.evaluate(() => window.__nativeStep());
+          const panField = view === "skipper" ? "skipperPan" : "pan";
+          assert.notDeepEqual(panned.report.presentation.cameraSettings[panField], beforeGestures.report.presentation.cameraSettings[panField]);
+          await page.mouse.move(box.x + box.width*.8, box.y + box.height*.3);
+          await page.mouse.down();
+          await page.mouse.move(box.x + box.width*.8 + 20, box.y + box.height*.3 + 10);
+          await page.mouse.up();
+          const rotated = await page.evaluate(() => window.__nativeStep());
+          const yawField = view === "skipper" ? "skipperYawOffset" : "yaw";
+          assert.notEqual(rotated.report.presentation.cameraSettings[yawField], panned.report.presentation.cameraSettings[yawField]);
+          await page.mouse.wheel(0, -90);
+          // Attendre la livraison de l'événement wheel, sans modifier le temps moteur.
+          const zoomField = view === "skipper" ? "skipperFocalScale" : "distance";
+          await page.waitForFunction(({ field, previous }) => window.__PORTANCE_TEST__.nativeStaticPrototypeReport().presentation.cameraSettings[field] !== previous,
+            { field: zoomField, previous: rotated.report.presentation.cameraSettings[zoomField] });
+          const zoomed = await page.evaluate(() => window.__nativeStep());
+          await page.setViewportSize({ width: 800, height: 600 });
+          const moved = await page.evaluate(() => window.__nativeStep());
+          assert.deepEqual(moved.report.camera, await page.evaluate(() => window.__PORTANCE_TEST__.projectionComparisonReport().snapshot),
+            "le natif consomme exactement la base et les paramètres caméra de la frame existante");
+          for (const sample of [panned, rotated, zoomed, moved]) {
+            stable({ resources: first.report.resources, uploads: first.uploads }, { resources: sample.report.resources, uploads: sample.uploads });
+            assert.equal(sample.report.resourceBuilds, first.report.resourceBuilds);
+            assert.equal(sample.report.glError, 0);
+          }
+          assert.notDeepEqual(moved.report.camera, first.report.camera);
+          for (const mutation of ["upload", "rebuild"]) {
+            const before = await page.evaluate(() => window.__nativeStep());
+            await page.evaluate(mutation => window.__PORTANCE_TEST__.mutateNativeStaticPrototype(mutation), mutation);
+            const mutated = await page.evaluate(() => window.__nativeStep());
+            assert.equal(mutated.report.glError, 0);
+            assert.throws(() => stable({ resources: before.report.resources, uploads: before.uploads }, { resources: mutated.report.resources, uploads: mutated.uploads }), assert.AssertionError);
+            if (mutation === "upload") {
+              assert.ok(mutated.uploads.subData > before.uploads.subData);
+              assert.ok(mutated.uploads.bytes > before.uploads.bytes);
+            } else {
+              assert.notEqual(mutated.report.resources.find(r => r.role === "stroke").geometry,
+                before.report.resources.find(r => r.role === "stroke").geometry);
+              assert.ok(mutated.uploads.data > before.uploads.data);
+            }
+          }
+          const beforeDispose = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+          await page.evaluate(() => { window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); });
+          assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot()), beforeDispose);
+          assert.equal((await page.evaluate(() => window.__nativeStep())).report.active, false);
+          // Recréation depuis une vraie face du port, puis invalidation à la restauration.
+          await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeStaticPrototype());
+          const recreated = await page.evaluate(() => window.__nativeStep());
+          assert.equal(recreated.report.active, true);
+          assert.equal(recreated.report.glError, 0);
+          assert.ok(recreated.report.resources.every(r => r.attributes.every(a => a.bytes > 0)));
+          await page.evaluate(() => window.__PORTANCE_TEST__.restoreBuiltInPort());
+          assert.equal((await page.evaluate(() => window.__nativeStep())).report.active, false);
+        }
+        assert.deepEqual(errors, []);
+        await page.close();
+      }
+    }
+  }
+  t.diagnostic(`Captures N1 : ${artifacts}`);
+});
+
+test("Three natif N1 — présence, dimensions, traits et clipping sans égalité raster", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  for (const dpr of [1, 2]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: dpr });
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
+    await page.goto(testUrl.href);
+    await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+    // Seuils sémantiques fixés avant l'implémentation. Aucune image Legacy requise.
+    const visible = s => {
+      assert.equal(s.glError, 0);
+      assert.ok(s.fill > 1000, "surface visible");
+      assert.ok(s.outline > 30, "contour fin lisible");
+      assert.ok(s.stroke > 100, "trait principal lisible");
+      assert.ok(Math.abs(s.fillWidth - s.expectedWidth) < 4, "largeur métrique projetée, tolérance 4 px CSS");
+      assert.ok(Math.abs(s.fillHeight - s.expectedHeight) < 4, "hauteur métrique projetée, tolérance 4 px CSS");
+      assert.ok(Math.abs(s.centerX) < 2 && Math.abs(s.centerY) < 2, "surface à l'ancre caméra attendue, tolérance 2 px CSS");
+      assert.ok(Math.abs(s.strokeThickness - 3) <= 1.5, "épaisseur 3 px CSS indépendante du DPR");
+    };
+    for (const view of ["top", "skipper"]) {
+      await page.evaluate(view => window.__PORTANCE_TEST__.selectCameraView(view), view);
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const run = async (mode = "normal", hidden = null) => page.evaluate(async ({ mode, hidden }) => {
+        const api = window.__PORTANCE_TEST__;
+        const { snapshot: c } = api.projectionComparisonReport();
+        const point = (x,y,z) => c.position.map((v,i) => v+c.right[i]*x+c.up[i]*y+c.forward[i]*z);
+        const depth = mode === "behind" ? -12 : 12;
+        api.enableNativeStaticPrototype({
+          surface: { points: mode === "near" ?
+            [point(-.012,-.012,c.near*.5),point(.012,-.012,c.near*2),point(.012,.012,c.near*2),point(-.012,.012,c.near*.5)] :
+            [point(-4,-2,depth),point(4,-2,depth),point(4,2,depth),point(-4,2,depth)],
+            color: "#d49b53", outlineColor: "#172b40", outlineWidth: .7 },
+          stroke: { points: ["near", "eye"].includes(mode) ? [point(-.01,0,mode === "near" ? c.near*.5 : -.05),point(.5,0,2)] :
+            [point(-3,0,depth-.01),point(3,0,depth-.01)], color: "#e14671", width: 3 }
+        });
+        if (hidden) api.mutateNativeStaticPrototype("hide", hidden);
+        const report = await new Promise(resolve => requestAnimationFrame(() => resolve(api.nativeStaticPrototypeReport({ images: true }))));
+        const image = new Image(); image.src = report.image; await image.decode();
+        const canvas = document.createElement("canvas"); canvas.width = image.width; canvas.height = image.height;
+        const ctx = canvas.getContext("2d"); ctx.drawImage(image,0,0);
+        const pixels = ctx.getImageData(0,0,image.width,image.height).data;
+        let fill=0, outline=0, stroke=0, minX=image.width, maxX=0, minY=image.height, maxY=0, strokeThickness=0;
+        let strokeMinY=image.height, strokeMaxY=0;
+        for (let y=0; y<image.height; y++) for (let x=0; x<image.width; x++) {
+          const i=(y*image.width+x)*4, r=pixels[i], g=pixels[i+1], b=pixels[i+2], a=pixels[i+3];
+          if (a < 40) continue;
+          if (r>180 && g>110 && g<180 && b<120) {
+            fill++; minX=Math.min(minX,x); maxX=Math.max(maxX,x); minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+          }
+          if (r<65 && g<85 && b>r) outline++;
+          if (r>180 && g<110 && b>75) {
+            stroke++; strokeMinY=Math.min(strokeMinY,y); strokeMaxY=Math.max(strokeMaxY,y);
+            if(x===Math.floor(image.width/2)) strokeThickness++;
+          }
+        }
+        const ratio=image.width/c.width;
+        return { fill,outline,stroke,fillWidth:(maxX-minX+1)/ratio, expectedWidth:c.focal*8/12,
+          fillHeight:(maxY-minY+1)/ratio, expectedHeight:c.focal*4/12,
+          centerX:((minX+maxX+1)/2-image.width/2)/ratio, centerY:((minY+maxY+1)/2-image.height/2)/ratio,
+          strokeHeight:(strokeMaxY-strokeMinY+1)/ratio,
+          strokeCenterY:((strokeMinY+strokeMaxY+1)/2-image.height/2)/ratio,
+          strokeThickness:strokeThickness/ratio,glError:report.glError };
+      }, { mode, hidden });
+      visible(await run());
+      for (const role of ["surface", "outline", "stroke"]) {
+        const missing = await run("normal", role);
+        assert.throws(() => visible(missing), assert.AssertionError, `omission ${role} détectée`);
+      }
+      const near = await run("near");
+      assert.ok(near.fill > 1000 && near.outline > 30, "surface et contour traversant le plan proche visibles");
+      assert.ok(near.stroke > 20, "segment traversant le plan proche visible");
+      assert.equal(near.glError, 0);
+      const eye = await run("eye");
+      assert.ok(eye.stroke > 20, "segment traversant le plan de l'œil visible");
+      assert.equal(eye.glError, 0);
+      for (const clipped of [near, eye]) {
+        assert.ok(clipped.strokeHeight <= 6 && Math.abs(clipped.strokeCenterY) < 2,
+          "le clipping conserve un trait horizontal fin et centré, sans explosion à l'écran");
+      }
+      const behind = await run("behind");
+      assert.equal(behind.glError, 0);
+      assert.equal(behind.fill + behind.outline + behind.stroke, 0, "géométrie arrière rejetée");
+    }
+    await page.evaluate(() => window.__PORTANCE_TEST__.disposeNativeStaticPrototype());
+    assert.deepEqual(errors, []);
+    await page.close();
+  }
+});
+
 test("profilage actif — skipper mobile, scène masquée et reprise sans image périmée", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
