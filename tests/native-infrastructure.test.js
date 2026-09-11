@@ -5,8 +5,24 @@ const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 const crypto = require("node:crypto");
 const root = path.resolve(__dirname, ".."), url = pathToFileURL(path.join(root, "simulateur-port.html"));
+const KJPCodec = require(path.join(root, "src", "ports", "kjp-codec.js"));
 url.searchParams.set("test", "1");
 const portText = fs.readFileSync(path.join(root, "examples/la-trinite-sur-mer.kjp"), "utf8");
+const seamarkPort = KJPCodec.createEmpty({ id: "native-seamarks", name: "Balisage natif" });
+const seamarkKinds = [
+  ["buoy_lateral", "port"], ["buoy_lateral", "starboard"],
+  ...["north", "east", "south", "west"].map(category => ["buoy_cardinal", category]),
+  ["buoy_isolated_danger", ""], ["buoy_safe_water", ""],
+  ["buoy_special_purpose", ""], ["buoy_installation", ""]
+];
+seamarkPort.structures.buoys = seamarkKinds.map(([seamarkType, category], index) => ({
+  id: `native-buoy-${index}`, seamarkType, category,
+  position: { east: (index % 5 - 2) * 5, north: 12 + Math.floor(index / 5) * 8 },
+  radius: .8, height: 2.2, collision: false,
+  ...KJPCodec.recommendedBuoyAppearance(seamarkType, category)
+}));
+seamarkPort.navigation.entries.push({ id: "entry-native", position: { east: 0, north: 0 }, heading: Math.PI / 2 });
+const seamarkText = KJPCodec.serialize(seamarkPort);
 const hash = value => crypto.createHash("sha256").update(value).digest("hex");
 
 async function pageFor(browser, dpr = 1) {
@@ -70,7 +86,7 @@ function persistence(first, next) {
   assert.equal(next.queued, 1);
 }
 
-test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de port", async t => {
+test("Three natif N2.3 — catalogue, transferts réels, thèmes et cycles de port", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   let reference;
   for (const enabled of [false, true]) {
@@ -88,7 +104,7 @@ test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de po
       const expected = await page.evaluate(() => window.__PORTANCE_TEST__.nativeInfrastructureSourceReport());
       assert.deepEqual(first.report.catalog.owners.map(o => [o.family,o.id,o.polygons,o.segments]),
         expected.map(o => [o.family,o.id,o.polygons,o.segments]));
-      assert.deepEqual([...new Set(expected.map(o => o.family))].sort(), ["boat", "catway", "dock", "terrain"]);
+      assert.deepEqual([...new Set(expected.map(o => o.family))].sort(), ["boat", "catway", "dock", "lights", "terrain"]);
     }
     await page.evaluate(() => document.querySelector("#pauseButton").click());
     const frames = [];
@@ -129,13 +145,16 @@ test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de po
         assert.deepEqual(dark.report.materials, first.report.materials);
       }
       await page.setViewportSize({ width: 800, height: 600 }); persistence(first, await step(page));
-      let previous = await step(page), builtinMemory, importedMemory;
-      for (let cycle=0; cycle<6; cycle++) {
-        const imported = cycle%2===0;
-        await page.evaluate(({ imported, portText }) => {
+      let previous = await step(page);
+      const memoryByPort = {};
+      const ports = ["imported", "built-in", "seamarks", "imported", "built-in", "seamarks"];
+      for (const port of ports) {
+        await page.evaluate(({ port, portText, seamarkText }) => {
           const api = window.__PORTANCE_TEST__;
-          if (imported) api.importPort(portText); else api.restoreBuiltInPort();
-        }, { imported, portText });
+          if (port === "imported") api.importPort(portText);
+          else if (port === "seamarks") api.importPort(seamarkText);
+          else api.restoreBuiltInPort();
+        }, { port, portText, seamarkText });
         const next = await step(page), a = previous.report.catalog, b = next.report.catalog;
         assert.equal(next.report.glError, 0);
         assert.equal(b.builds, a.builds+1);
@@ -145,29 +164,48 @@ test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de po
         assert.equal(next.report.memory.geometries, b.geometryCount);
         assert.ok(next.report.resources.every(r => !previous.report.resources.some(old => old.geometry===r.geometry)));
         const families = [...new Set(b.owners.map(o => o.family))].sort();
-        assert.deepEqual(families, imported ? ["boat","catway","dock","land","obstacle"] : ["boat","catway","dock","terrain"]);
+        const expectedFamilies = port === "imported"
+          ? ["boat","buoy","catway","dock","land","obstacle"]
+          : port === "seamarks" ? ["buoy"] : ["boat","catway","dock","lights","terrain"];
+        assert.deepEqual(families, expectedFamilies);
         const source = await page.evaluate(() => window.__PORTANCE_TEST__.nativeInfrastructureSourceReport());
         assert.deepEqual(b.owners.map(o => [o.family,o.id,o.polygons,o.segments]),source.map(o => [o.family,o.id,o.polygons,o.segments]),
           "chaque propriétaire, surface et trait source est représenté, indépendamment de sa triangulation");
         const memory = { geometries: b.geometryCount, materials: b.materialCount, buffers: next.uploads.live };
-        if (imported) { if (importedMemory) assert.deepEqual(memory, importedMemory); importedMemory = memory; }
-        else { if (builtinMemory) assert.deepEqual(memory, builtinMemory); builtinMemory = memory; }
+        if (memoryByPort[port]) assert.deepEqual(memory, memoryByPort[port]);
+        memoryByPort[port] = memory;
         persistence(next, await step(page)); previous = next;
       }
       const beforeInvalid = await step(page);
       await page.evaluate(() => { try { window.__PORTANCE_TEST__.importPort("{invalid"); } catch {} });
       persistence(beforeInvalid, await step(page));
-      await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype({ staticBoats: false }));
+      await page.evaluate(() => {
+        window.__PORTANCE_TEST__.restoreBuiltInPort();
+        window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype({ staticBoats: false });
+      });
       const withoutBoats = await step(page);
       assert.equal(withoutBoats.report.catalog.owners.some(owner => owner.family === "boat"), false);
+      assert.equal(withoutBoats.report.catalog.owners.some(owner => owner.family === "lights"), true);
       persistence(withoutBoats, await step(page));
       await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype());
-      const withBoats = await step(page);
-      assert.equal(withBoats.report.catalog.owners.filter(owner => owner.family === "boat").length > 0, true);
-      persistence(withBoats, await step(page));
+      const complete = await step(page);
+      assert.equal(complete.report.catalog.owners.some(owner => owner.family === "boat"), true);
+      assert.equal(complete.report.catalog.owners.some(owner => owner.family === "lights"), true);
+      persistence(complete, await step(page));
+      await page.evaluate(() => {
+        window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype({ seamarks: false });
+      });
+      const withoutSeamarks = await step(page);
+      assert.equal(withoutSeamarks.report.catalog.owners.some(owner => ["buoy","lights"].includes(owner.family)), false);
+      assert.equal(withoutSeamarks.report.catalog.owners.some(owner => owner.family === "boat"), true);
+      persistence(withoutSeamarks, await step(page));
+      await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype());
+      const withSeamarks = await step(page);
+      assert.equal(withSeamarks.report.catalog.owners.some(owner => owner.family === "lights"), true);
+      persistence(withSeamarks, await step(page));
       await page.evaluate(() => { window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); });
       const end = await step(page); assert.equal(end.report.active, false); assert.equal(end.uploads.live, 0);
-      t.diagnostic(`Mémoire stable après 3 imports/restaurations : ${JSON.stringify({ builtinMemory, importedMemory })}`);
+      t.diagnostic(`Mémoire stable après deux cycles des trois ports : ${JSON.stringify(memoryByPort)}`);
     }
     assert.deepEqual(errors, []); t.diagnostic(`${enabled ? "natif" : "référence"}: ${warnings.length} avertissements autoplay/readPixels connus`); await page.close();
   }
@@ -194,7 +232,7 @@ test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de po
   }
 });
 
-test("Three natif N2.2 — fidélité des infrastructures et bateaux aux cadrages et thèmes", async t => {
+test("Three natif N2.3 — fidélité du monde statique aux cadrages et thèmes", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-n2-"));
   let cases = 0;
@@ -202,14 +240,17 @@ test("Three natif N2.2 — fidélité des infrastructures et bateaux aux cadrage
     const { page, errors } = await pageFor(browser, dpr);
     await page.evaluate(() => {
       window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype();
-      window.__PORTANCE_TEST__.enableSurfaceComparison({ staticBoats: true });
+      window.__PORTANCE_TEST__.enableSurfaceComparison({ staticSeamarks: true });
     });
-    for (const port of ["built-in", "imported"]) {
-      await page.evaluate(({ port, portText }) => {
+    for (const port of ["built-in", "imported", "seamarks"]) {
+      await page.evaluate(({ port, portText, seamarkText }) => {
         const api = window.__PORTANCE_TEST__;
-        if (port === "built-in") api.restoreBuiltInPort(); else api.importPort(portText);
-        api.reset(port === "built-in" ? { x: 25, y: -38, heading: -Math.PI/2 } : { x: 200, y: 305, heading: .5084 });
-      }, { port, portText });
+        if (port === "built-in") api.restoreBuiltInPort();
+        else api.importPort(port === "imported" ? portText : seamarkText);
+        api.reset(port === "built-in" ? { x: 25, y: -38, heading: -Math.PI/2 }
+          : port === "imported" ? { x: 200, y: 305, heading: .5084 }
+            : { x: 0, y: 0, heading: Math.PI/2 });
+      }, { port, portText, seamarkText });
       for (const theme of ["dark", "chart"]) for (const view of ["top", "anatomy", "skipper"]) {
         await page.evaluate(({ theme, view }) => { const api=window.__PORTANCE_TEST__; api.selectVisualTheme(theme); api.selectCameraView(view); }, { theme, view });
         await step(page);
@@ -244,14 +285,14 @@ test("Three natif N2.2 — fidélité des infrastructures et bateaux aux cadrage
   t.diagnostic(`${cases} cadrages natifs ; captures ${directory}`);
 });
 
-test("Three natif N2.2 — couleurs, contours et omissions par famille", async t => {
+test("Three natif N2.3 — couleurs, contours et omissions par famille", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),"kjp-native-n2-details-"));
   t.diagnostic(`Détails : ${directory}`);
   const { page, errors } = await pageFor(browser);
   await page.evaluate(() => {
     window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype();
-    window.__PORTANCE_TEST__.enableSurfaceComparison({ staticBoats: true });
+    window.__PORTANCE_TEST__.enableSurfaceComparison({ staticSeamarks: true });
   });
   const check = result => {
     assert.equal(result.glError, 0);
@@ -260,21 +301,25 @@ test("Three natif N2.2 — couleurs, contours et omissions par famille", async t
     assert.ok(result.colorError < 25, `couleurs/contraste famille/style : ${result.colorError}`);
   };
   let cases = 0;
-  for (const port of ["built-in", "imported"]) {
-    await page.evaluate(({ port, portText }) => {
+  for (const port of ["built-in", "imported", "seamarks"]) {
+    await page.evaluate(({ port, portText, seamarkText }) => {
       const api=window.__PORTANCE_TEST__;
-      if (port === "built-in") api.restoreBuiltInPort(); else api.importPort(portText);
-    }, { port, portText });
-    const families = port === "built-in" ? ["terrain","dock","catway","boat"] : ["land","obstacle","boat"];
+      if (port === "built-in") api.restoreBuiltInPort();
+      else api.importPort(port === "imported" ? portText : seamarkText);
+    }, { port, portText, seamarkText });
+    const families = port === "built-in"
+      ? ["terrain","dock","catway","boat","lights"]
+      : port === "imported" ? ["land","obstacle","boat","buoy"] : ["buoy"];
     for (const family of families) for (const theme of ["dark","chart"]) {
       await page.evaluate(({ family, theme }) => {
         const api=window.__PORTANCE_TEST__, data=api.nativeInfrastructureSourceReport({ geometry:true });
-        const owner=data.owners.find(o=>o.family===family), p=owner.polygons[0].points[0];
+        const owner=data.owners.find(o=>o.family===family);
+        const p=owner.polygons[0]?.points[0] || owner.lines[0].points[0];
         api.reset({x:p[0],y:p[1],heading:0}); api.selectCameraView("top"); api.selectVisualTheme(theme);
         api.isolateNativeInfrastructure();
       }, { family, theme });
       const warmed = await step(page);
-      for (const kind of ["fill","line"]) {
+      for (const kind of family === "lights" ? ["line"] : ["fill","line"]) {
         await page.evaluate(({ family, kind }) => window.__PORTANCE_TEST__.isolateNativeInfrastructure({family,kind}), {family,kind});
         persistence(warmed, await step(page));
         // Les points monde servent d'oracle métrique pour une silhouette

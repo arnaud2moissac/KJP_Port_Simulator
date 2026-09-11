@@ -3291,8 +3291,9 @@
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
     let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
-    let nativeInfrastructureEnabled = false; // Lots N2.1/N2.2, même banc détaché.
+    let nativeInfrastructureEnabled = false; // Lots N2.1 à N2.3, même banc détaché.
     let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
+    let nativeStaticSeamarksEnabled = true; // Repli N2.3 indépendant, accessible seulement par ?test.
     let nativeInfrastructureTheme = null;
     let nativeInfrastructureError = null;
     let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
@@ -3380,7 +3381,8 @@
             throw new Error("Native infrastructure: échec de construction injecté");
           }
           nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition({
-            includeStaticBoats: nativeStaticBoatsEnabled
+            includeStaticBoats: nativeStaticBoatsEnabled,
+            includeSeamarks: nativeStaticSeamarksEnabled
           }));
           nativeInfrastructureTheme = ui.visualTheme;
         } catch (error) {
@@ -5111,7 +5113,7 @@
         renderPerformance.staticCacheHits += 1;
       }
       const owner = surfaceCapture ? key.split(":", 1)[0] : null;
-      const capture = surfaceCapture && (captureSurfaces === "world" ? true : captureSurfaces === "seamarks"
+      const capture = surfaceCapture && (captureSurfaces === "world" ? true : ["seamarks", "static-seamarks"].includes(captureSurfaces)
         ? /^(terrain|land|dock|catway|obstacle|boat|buoy|lights)$/.test(owner)
         : captureSurfaces === "boats" || captureSurfaces === "static-boats"
           ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
@@ -5559,8 +5561,9 @@
       return colours[String(name).toLowerCase()] || colours.yellow;
     }
 
-    function addBuoyGeometry(buoy) {
-      const palette = visualPalette();
+    function addBuoyGeometry(buoy, options = {}) {
+      const palette = options.palette || visualPalette();
+      const buoyColour = options.colour || (name => buoyCanvasColour(name, palette.id === "chart"));
       const appearance = resolvedBuoyAppearance(buoy);
       const colours = appearance.colours;
       const outline = palette.harbor.outline;
@@ -5587,14 +5590,14 @@
           radiusTop,
           z0,
           z1,
-          color: buoyCanvasColour(colours[index], palette.id === "chart"),
+          color: buoyColour(colours[index]),
           outline
         });
       }
       const mastTop = Math.max(waterline + bodyHeight, buoy.height);
       addWorldLine(
         [[buoy.x, buoy.y, waterline + bodyHeight], [buoy.x, buoy.y, mastTop]],
-        buoyCanvasColour(colours.at(-1), palette.id === "chart"),
+        buoyColour(colours.at(-1)),
         2.2,
         [],
         4
@@ -5611,7 +5614,7 @@
           radiusTop: .02,
           z0: mastTop,
           z1: mastTop + .45,
-          color: buoyCanvasColour(colours.at(-1), palette.id === "chart"),
+          color: buoyColour(colours.at(-1)),
           outline,
           segments: 8
         });
@@ -5621,7 +5624,7 @@
             [buoy.x - topmarkRadius, buoy.y - topmarkRadius, mastTop + .22],
             [buoy.x + topmarkRadius, buoy.y + topmarkRadius, mastTop + .22]
           ],
-          buoyCanvasColour("yellow", palette.id === "chart"),
+          buoyColour("yellow"),
           2.4,
           [],
           5
@@ -5631,7 +5634,7 @@
             [buoy.x - topmarkRadius, buoy.y + topmarkRadius, mastTop + .22],
             [buoy.x + topmarkRadius, buoy.y - topmarkRadius, mastTop + .22]
           ],
-          buoyCanvasColour("yellow", palette.id === "chart"),
+          buoyColour("yellow"),
           2.4,
           [],
           5
@@ -6769,7 +6772,9 @@
           : [[`${prefix}${key}`, value]]);
       return Object.fromEntries([
         ...flatten("", palette.harbor),
-        ...flatten("boat.", palette.boat)
+        ...flatten("boat.", palette.boat),
+        ...["red", "green", "yellow", "black", "white", "orange", "blue"]
+          .map(name => [`buoy.${name}`, buoyCanvasColour(name, palette.id === "chart")])
       ]);
     }
 
@@ -6781,7 +6786,41 @@
       return { boat: roles(visualPalette().boat) };
     }
 
-    function nativeInfrastructureDefinition({ includeStaticBoats = true } = {}) {
+    function nativeBuoyColourRole(name) {
+      const key = String(name).toLowerCase();
+      return `buoy.${["red", "green", "yellow", "black", "white", "orange", "blue"].includes(key) ? key : "yellow"}`;
+    }
+
+    function addHarborLightGeometry(harbor = visualPalette().harbor) {
+      for (const post of harborLights.posts) {
+        addWorldLine(
+          [[post.x,post.y,post.z0],[post.x,post.y,post.z1]],
+          post.head ? harbor.lightHead : harbor.lightPost,
+          post.head ? 2.4 : 2,
+          [],
+          post.head ? 5 : 3
+        );
+      }
+      const entrance = harborLights.entrance;
+      if (entrance) {
+        addWorldLine(
+          [[entrance.x,entrance.y,entrance.z0],[entrance.x,entrance.y,entrance.zLight]],
+          harbor.lightHead,
+          3,
+          [],
+          5
+        );
+        addWorldLine(
+          [[entrance.x,entrance.y,entrance.zLight],[entrance.x,entrance.y,entrance.zTop]],
+          harbor.entrance,
+          4,
+          [],
+          6
+        );
+      }
+    }
+
+    function nativeInfrastructureDefinition({ includeStaticBoats = true, includeSeamarks = true } = {}) {
       const owners = [];
       const collect = (family, id, builder) => {
         const previous = worldGeometryCapture;
@@ -6815,6 +6854,22 @@
         const boatPalette = nativeBoatPaletteRoles();
         for (const boat of staticBoats) {
           collect("boat", boat.id, () => addBoatMesh(boat, false, boatPalette));
+        }
+      }
+      if (includeSeamarks) {
+        const buoyPalette = { harbor: { outline: "outline" } };
+        for (const buoy of buoys) {
+          collect("buoy", buoy.id, () => addBuoyGeometry(buoy, {
+            palette: buoyPalette,
+            colour: nativeBuoyColourRole
+          }));
+        }
+        if (harborLights.posts.length || harborLights.entrance) {
+          collect("lights", "harbor", () => addHarborLightGeometry({
+            lightHead: "lightHead",
+            lightPost: "lightPost",
+            entrance: "entrance"
+          }));
         }
       }
       return { owners, palette: nativeInfrastructurePalette() };
@@ -6900,32 +6955,7 @@
       }
 
       addCachedWorldGeometry(`lights:${cachePrefix}`, () => {
-        for (const post of harborLights.posts) {
-          addWorldLine(
-            [[post.x,post.y,post.z0],[post.x,post.y,post.z1]],
-            post.head ? harbor.lightHead : harbor.lightPost,
-            post.head ? 2.4 : 2,
-            [],
-            post.head ? 5 : 3
-          );
-        }
-        const entrance = harborLights.entrance;
-        if (entrance) {
-          addWorldLine(
-            [[entrance.x,entrance.y,entrance.z0],[entrance.x,entrance.y,entrance.zLight]],
-            harbor.lightHead,
-            3,
-            [],
-            5
-          );
-          addWorldLine(
-            [[entrance.x,entrance.y,entrance.zLight],[entrance.x,entrance.y,entrance.zTop]],
-            harbor.entrance,
-            4,
-            [],
-            6
-          );
-        }
+        addHarborLightGeometry(harbor);
       });
     }
 
@@ -9409,19 +9439,22 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableNativeInfrastructurePrototype({ staticBoats = true } = {}) {
+        enableNativeInfrastructurePrototype({ staticBoats = true, seamarks = true } = {}) {
           const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
-            includeStaticBoats: staticBoats
+            includeStaticBoats: staticBoats,
+            includeSeamarks: seamarks
           }));
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
           nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
           nativeStaticBoatsEnabled = staticBoats;
+          nativeStaticSeamarksEnabled = seamarks;
           nativeInfrastructureError = null;
         },
         failNextNativeInfrastructureBuild() { failNextNativeInfrastructureBuild = true; },
         nativeInfrastructureSourceReport({ geometry = false } = {}) {
           const definition = nativeInfrastructureDefinition({
-            includeStaticBoats: nativeStaticBoatsEnabled
+            includeStaticBoats: nativeStaticBoatsEnabled,
+            includeSeamarks: nativeStaticSeamarksEnabled
           });
           if (geometry) return structuredClone(definition);
           return definition.owners.map(o => ({ id: o.id, family: o.family,
@@ -9516,10 +9549,12 @@
           activeFrameProfile = null;
           profile?.comparison.dispose();
         },
-        enableSurfaceComparison({ infrastructures = false, staticBoats = false, boats = false, seamarks = false, world = false } = {}) {
+        enableSurfaceComparison({ infrastructures = false, staticBoats = false, boats = false,
+          staticSeamarks = false, seamarks = false, world = false } = {}) {
           if (activeFrameProfile) throw new Error("Arrêter le profilage actif avant la capture");
           captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats"
-            : staticBoats ? "static-boats" : infrastructures ? "infrastructure" : "terrain";
+            : staticSeamarks ? "static-seamarks" : staticBoats ? "static-boats"
+              : infrastructures ? "infrastructure" : "terrain";
           surfaceCapture = null; // Attendre une frame du nouveau périmètre.
         },
         disposeSurfaceComparison() {
