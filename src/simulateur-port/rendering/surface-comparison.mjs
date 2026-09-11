@@ -60,10 +60,10 @@ export function createSurfaceComparison(createLegacy) {
     },
     // Un seul backend détaché, appelé par la boucle existante. Pas de capture
     // monde, seconde projection, readback ou synchronisation GPU dans ce chemin.
-    renderBackend(backend, projected, camera, pixelRatio) {
+    renderBackend(backend, projected, camera, pixelRatio, timings = null) {
       if (disposed) throw new Error("Surface comparison disposed");
       if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
-      if (backend === "three") return three.renderProjected(projected, camera, pixelRatio);
+      if (backend === "three") return three.renderProjected(projected, camera, pixelRatio, timings);
       const width = Math.round(camera.width * pixelRatio);
       const height = Math.round(camera.height * pixelRatio);
       if (legacyCanvas.width !== width) legacyCanvas.width = width;

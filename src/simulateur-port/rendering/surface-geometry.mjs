@@ -143,16 +143,20 @@ export function compileSurfaceBatches(frame, camera, parseColor) {
   );
   const appendQuad = (target, ax, ay, bx, by, cx, cy, dx, dy, firstDepth, secondDepth, color, offset) => {
     const az = depthNdc(firstDepth, offset), bz = depthNdc(secondDepth, offset);
-    const a = [ax / Math.max(1, camera.width) * 2 - 1, 1 - ay / Math.max(1, camera.height) * 2, az];
-    const b = [bx / Math.max(1, camera.width) * 2 - 1, 1 - by / Math.max(1, camera.height) * 2, bz];
-    const c = [cx / Math.max(1, camera.width) * 2 - 1, 1 - cy / Math.max(1, camera.height) * 2, bz];
-    const d = [dx / Math.max(1, camera.width) * 2 - 1, 1 - dy / Math.max(1, camera.height) * 2, az];
-    appendVertex(target, a, color);
-    appendVertex(target, b, color);
-    appendVertex(target, c, color);
-    appendVertex(target, a, color);
-    appendVertex(target, c, color);
-    appendVertex(target, d, color);
+    // Coordonnées scalaires : mêmes opérations et ordre a/b/c/a/c/d, sans
+    // quatre tableaux temporaires par quadrilatère de trait.
+    const aX = ax / Math.max(1, camera.width) * 2 - 1, aY = 1 - ay / Math.max(1, camera.height) * 2;
+    const bX = bx / Math.max(1, camera.width) * 2 - 1, bY = 1 - by / Math.max(1, camera.height) * 2;
+    const cX = cx / Math.max(1, camera.width) * 2 - 1, cY = 1 - cy / Math.max(1, camera.height) * 2;
+    const dX = dx / Math.max(1, camera.width) * 2 - 1, dY = 1 - dy / Math.max(1, camera.height) * 2;
+    target.push(
+      aX, aY, az, color[0], color[1], color[2], color[3],
+      bX, bY, bz, color[0], color[1], color[2], color[3],
+      cX, cY, bz, color[0], color[1], color[2], color[3],
+      aX, aY, az, color[0], color[1], color[2], color[3],
+      cX, cY, bz, color[0], color[1], color[2], color[3],
+      dX, dY, az, color[0], color[1], color[2], color[3]
+    );
   };
   const clipProjectedSegmentToViewport = (first, second, margin = 64) => {
     if (![first?.x, first?.y, first?.depth, second?.x, second?.y, second?.depth]

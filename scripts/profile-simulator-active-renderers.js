@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, "..");
 const quick = process.argv.includes("--quick");
 const headless = process.argv.includes("--headless");
 const allowSoftware = process.argv.includes("--allow-software");
+const owners = process.argv.includes("--owners");
 const warmup = quick ? 3 : 30;
 const samples = quick ? 6 : 120;
 const output = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-active-profile-"));
@@ -69,9 +70,9 @@ async function run(browser, backend, dpr, repetition, scene) {
       api.setControls({ throttleTarget: .55, rudderTarget: .12 });
     }, { portText, scene });
 
-    const contexts = await page.evaluate(({ backend, total }) =>
-      window.__PORTANCE_TEST__.startActiveFrameProfile(backend, { captureAtFrame: total }),
-    { backend, total: warmup + samples });
+    const contexts = await page.evaluate(({ backend, total, owners }) =>
+      window.__PORTANCE_TEST__.startActiveFrameProfile(backend, { captureAtFrame: total, owners }),
+    { backend, total: warmup + samples, owners });
     const hardwareVerified = Object.values(contexts).every(context =>
       /ANGLE Metal Renderer: Apple|NVIDIA|AMD|Intel\(R\)/i.test(context.renderer)
       && !/SwiftShader|llvmpipe|softpipe|software/i.test(context.renderer));
@@ -108,6 +109,16 @@ async function run(browser, backend, dpr, repetition, scene) {
     assert.notDeepEqual(result.before.motion, result.after.motion, "activité immobile");
     const measured = result.frames.slice(warmup);
     assert.ok(measured.every(frame => Number.isFinite(frame.cpuMs) && frame.cpuMs >= 0 && frame.renderer.drawCalls > 0));
+    const ownerCpuMs = owners ? Object.fromEntries(Object.keys(measured[0].ownerMs).map(key => {
+      const values = measured.map(frame => frame.ownerMs[key]);
+      assert.ok(values.every(value => Number.isFinite(value) && value >= 0), key);
+      return [key, { ...distribution(values), shareOfTotalCpu: values.reduce((a, b) => a + b, 0)
+        / measured.reduce((sum, frame) => sum + frame.cpuMs, 0) }];
+    })) : null;
+    if (owners) for (const frame of measured) {
+      const sum = ["physics", "prepare", "snapshot", "backend", "overlaysUi"].reduce((sum, key) => sum + frame.ownerMs[key], 0);
+      assert.ok(Math.abs(sum - frame.cpuMs) < .000001, "partition CPU incomplète");
+    }
     const imageHashes = {};
     for (const [kind, data] of Object.entries(result.images)) {
       const bytes = Buffer.from(data.split(",")[1], "base64");
@@ -117,16 +128,17 @@ async function run(browser, backend, dpr, repetition, scene) {
     delete result.images;
     const snapshotsSha256 = hash(JSON.stringify(result.snapshots));
     delete result.snapshots;
-    const replaySha256 = hash(JSON.stringify(result.frames.map(({ cpuMs, renderer, ...frame }) => frame)));
+    const replaySha256 = hash(JSON.stringify(result.frames.map(({ cpuMs, renderer, ownerMs, ...frame }) => frame)));
     const cpuMs = distribution(measured.map(frame => frame.cpuMs));
     console.log(`${scene.view} DPR ${dpr}, paire ${repetition + 1}, ${backend} : CPU p50/p95/p99 ${cpuMs.p50.toFixed(1)}/${cpuMs.p95.toFixed(1)}/${cpuMs.p99.toFixed(1)} ms`);
-    return { backend, contexts, hardwareVerified, cpuMs, snapshotsSha256, replaySha256, imageHashes, errors, warnings, ...result };
+    if (owners) console.log(`Propriétaires CPU : ${JSON.stringify(ownerCpuMs)}`);
+    return { backend, contexts, hardwareVerified, cpuMs, ownerCpuMs, snapshotsSha256, replaySha256, imageHashes, errors, warnings, ...result };
   } finally { await page.close(); }
 }
 
 async function main() {
   const report = {
-    protocol: "active-loop-projected-cpu-v1", generatedAt: new Date().toISOString(), complete: false,
+    protocol: owners ? "active-loop-owners-cpu-v1" : "active-loop-projected-cpu-v1", generatedAt: new Date().toISOString(), complete: false,
     quick, headless, allowSoftware, warmup, samples, viewport,
     platform: `${os.platform()} ${os.release()} ${os.arch()}`, cpu: os.cpus()[0]?.model,
     threeRevision: (await import("three")).REVISION,
@@ -135,6 +147,7 @@ async function main() {
     activity: "La Trinité, (200,305), heading .5084, initial u=1 m/s, throttle .55, rudder .12 rad, wind 8 kn and current .4 kn, time scale 1. Replayed RAF +1000/60 ms; not natural display cadence.",
     gpuTimeMs: null, gpuMemoryBytes: null,
     nativeRafNote: "Raw real RAF timestamps include harness snapshot collection between callbacks. They are not product FPS. CPU over16_67msRatio is a CPU budget exceedance, not a dropped-frame ratio.",
+    owners, ownerNote: owners ? "Instrumented attribution pass, Three top 1200 m DPR 1 only. Five disjoint phases; compileMs/stageMs/submitMs are children of backend. Shares use sums of samples, never sums of percentiles. Not a Legacy/Three performance comparison." : null,
     results: []
   };
   const browser = await chromium.launch({ headless });
@@ -142,12 +155,20 @@ async function main() {
     report.browser = browser.version();
     const cdp = await browser.newBrowserCDPSession();
     report.systemGpu = (await cdp.send("SystemInfo.getInfo")).gpu;
-    for (const scene of [{ view: "top", theme: "chart", wide: true }, { view: "skipper", theme: "chart", wide: false }]) {
-      for (const dpr of [1, 2]) for (let repetition = 0; repetition < (quick ? 1 : 3); repetition += 1) {
+    for (const scene of (owners ? [{ view: "top", theme: "chart", wide: true }]
+      : [{ view: "top", theme: "chart", wide: true }, { view: "skipper", theme: "chart", wide: false }])) {
+      for (const dpr of (owners ? [1] : [1, 2])) for (let repetition = 0; repetition < (quick ? 1 : 3); repetition += 1) {
         const pair = { scene, dpr, repetition, runs: [] };
         report.results.push(pair);
-        for (const backend of repetition % 2 ? ["three", "legacy"] : ["legacy", "three"]) {
+        for (const backend of (owners ? ["three"] : repetition % 2 ? ["three", "legacy"] : ["legacy", "three"])) {
           pair.runs.push(await run(browser, backend, dpr, repetition, scene));
+        }
+        if (owners) {
+          const reference = report.results[0].runs[0];
+          assert.equal(pair.runs[0].snapshotsSha256, reference.snapshotsSha256);
+          assert.equal(pair.runs[0].replaySha256, reference.replaySha256);
+          assert.deepEqual(pair.runs[0].imageHashes, reference.imageHashes);
+          continue;
         }
         const [a, b] = pair.runs;
         assert.equal(a.snapshotsSha256, b.snapshotsSha256, "snapshots physiques différents");

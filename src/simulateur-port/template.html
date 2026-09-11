@@ -5064,6 +5064,7 @@
     let surfaceCapture = null;
     let capturingPlayerBoat = false;
     let activeFrameProfile = null; // Accessible uniquement via l'API ?test.
+    let activeFrameProfileNotice = null;
 
     function addCachedWorldGeometry(key, builder) {
       let geometry = staticWorldGeometryCache.get(key);
@@ -7530,6 +7531,7 @@
 
     function render(time) {
       const renderCpuStart = performance.now();
+      const ownerMarks = activeFrameProfile?.owners ? {} : null;
       renderPerformance.visibilityComputations = 0;
       const elapsed = Math.min(.1, Math.max(0, (time - ui.lastFrame) / 1000));
       ui.lastFrame = time;
@@ -7545,6 +7547,7 @@
         }
       }
       ui.wallTime += elapsed;
+      if (ownerMarks) ownerMarks.physicsEnd = performance.now();
       frameMotion = prepareInterpolatedFrameMotion(ui.accumulator / FIXED_DT);
       resizeCanvas();
       frameBasis = cameraBasis();
@@ -7610,21 +7613,25 @@
           canvas2DLineLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
         };
       }
+      if (ownerMarks) ownerMarks.prepareEnd = performance.now();
       if (depthRenderer) {
         try {
           const projectedFrame = KJPRenderFrames.createRenderFrame({
             polygons,
             lines: overlayLines.filter(item => item.layer < 10)
           });
+          if (ownerMarks) ownerMarks.snapshotEnd = performance.now();
           if (activeFrameProfile) {
+            if (ownerMarks) ownerMarks.three = {};
             activeFrameProfile.lastRenderer = activeFrameProfile.comparison.renderBackend(
               activeFrameProfile.backend, projectedFrame,
               { width: canvasWidth, height: canvasHeight,
-                near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP }, pixelRatio
+                near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP }, pixelRatio, ownerMarks?.three
             );
           } else {
             KJPRenderFrames.renderLegacyFrame(depthRenderer, projectedFrame);
           }
+          if (ownerMarks) ownerMarks.backendEnd = performance.now();
           overlayLines
             .filter(item => item.layer >= 10)
             .sort((a, b) => a.layer - b.layer)
@@ -7672,11 +7679,23 @@
           camera: { distance: camera.distance, target: [...camera.target],
             position: [...frameBasis.position], forward: [...frameBasis.forward],
             right: [...frameBasis.right], up: [...frameBasis.up] },
-          renderer: activeFrameProfile.lastRenderer
+          renderer: activeFrameProfile.lastRenderer,
+          ...(ownerMarks ? { ownerMs: {
+            physics: ownerMarks.physicsEnd - renderCpuStart,
+            prepare: ownerMarks.prepareEnd - ownerMarks.physicsEnd,
+            snapshot: ownerMarks.snapshotEnd - ownerMarks.prepareEnd,
+            backend: ownerMarks.backendEnd - ownerMarks.snapshotEnd,
+            overlaysUi: renderCpuMs - (ownerMarks.backendEnd - renderCpuStart),
+            ...ownerMarks.three
+          } } : {})
         });
         if (activeFrameProfile.frameCount === activeFrameProfile.captureAtFrame) {
           activeFrameProfile.images = activeFrameProfile.comparison.captureBackend(activeFrameProfile.backend, canvas);
         }
+      } else if (activeFrameProfileNotice) {
+        // Attendre le premier monde Legacy frais avant de réafficher la scène.
+        activeFrameProfileNotice.remove();
+        activeFrameProfileNotice = null;
       }
       requestAnimationFrame(render);
     }
@@ -9295,7 +9314,7 @@
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        startActiveFrameProfile(backend, { captureAtFrame = null } = {}) {
+        startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
           if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
           if (captureAtFrame !== null && (!Number.isInteger(captureAtFrame) || captureAtFrame < 1 || captureAtFrame > 600)) {
             throw new RangeError("Frame de capture invalide");
@@ -9304,7 +9323,17 @@
             throw new Error("Profilage actif indisponible ou diagnostic déjà actif");
           }
           const comparison = KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
-          activeFrameProfile = { backend, comparison, frameCount: 0, frames: [], lastRenderer: null, captureAtFrame, images: null };
+          activeFrameProfile = { backend, comparison, frameCount: 0, frames: [], lastRenderer: null, captureAtFrame, images: null, owners: Boolean(owners) };
+          // Le monde visible n'est pas soumis pendant ce banc détaché. Ne pas
+          // présenter sa dernière image avec des taquets/overlays encore animés.
+          if (!activeFrameProfileNotice) {
+            activeFrameProfileNotice = document.createElement("div");
+            activeFrameProfileNotice.id = "activeFrameProfileNotice";
+            activeFrameProfileNotice.setAttribute("role", "status");
+            activeFrameProfileNotice.style.cssText = "position:absolute;inset:0;z-index:20;display:grid;place-content:center;text-align:center;padding:32px;background:var(--panel-solid);color:var(--ink);white-space:pre-line;";
+            activeFrameProfileNotice.textContent = "Mesure de performance en cours\nLe rendu est calculé hors écran.\nLa scène sera réaffichée à la fin.";
+            worldCanvas.parentElement.append(activeFrameProfileNotice);
+          }
           return comparison.contexts();
         },
         activeFrameProfileReport() {

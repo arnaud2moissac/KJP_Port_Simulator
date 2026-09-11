@@ -752,13 +752,154 @@ Les données brutes, métadonnées et captures locales sont dans
 Ce dossier temporaire peut disparaître ; le protocole et les résultats essentiels
 sont conservés ici. Cette tranche n'ajoute aucune optimisation du compilateur.
 
+### Correction de l'affichage du banc actif
+
+Le contrôle visuel utilisateur a révélé une erreur d'affichage du banc : pendant
+les mesures, `renderBackend` dessinait dans le canevas détaché et ne rafraîchissait
+plus `worldScene`, alors que le Canvas 2D des taquets continuait de s'animer.
+La fenêtre montrait donc un port figé avec des taquets mobiles. Les comparaisons
+précédentes portaient sur les captures hors écran, pas sur cette fenêtre visible ;
+elles ne pouvaient pas détecter ce défaut de présentation du diagnostic.
+
+La reproduction sur 60 images skipper confirme que le port visible évolue en
+mode normal. Au même instant, son image est strictement identique aux images
+hors écran Legacy et Three, et les trois snapshots physiques concordent. Le
+problème se situe dans l'affichage du banc, pas dans le suivi caméra ou la
+progression du monde calculé.
+
+Le banc couvre désormais toute la scène par un panneau opaque « Mesure de
+performance en cours — Le rendu est calculé hors écran ». À l'arrêt, ce panneau
+reste présent jusqu'au premier rendu Legacy complet, pour éviter de révéler
+une image périmée. Aucun changement du renderer, de la physique ou de la caméra.
+Le test ciblé `profilage actif — skipper mobile, scène masquée et reprise sans
+image périmée` vérifie le mouvement normal, l'identité des images calculées,
+la couverture de la scène, la conservation du snapshot à l'arrêt et le
+rafraîchissement visible avant retrait du panneau. Il passe sur les deux
+backends. Les chiffres ci-dessus restent ceux de l'artefact antérieur, identifié
+par son SHA-256 ; cette correction visuelle ne constitue pas une nouvelle
+qualification de performance ou d'animation Three visible.
+
+Validation de cette correction : build et `check:simulator` réussis, test
+skipper ciblé réussi sur 60 images pour chacun des trois chemins, smoke
+`profile:renderers:active -- --quick` réussi sur les deux vues et DPR 1/2.
+Le panneau opaque et le retour à la vue skipper ont été inspectés ; aucune
+erreur page. `git diff --check` passe et le graphe AST est actualisé. Aucune
+suite physique globale ni collecte longue de performance n'a été relancée.
+
+## Attribution du coût CPU dans la boucle active
+
+La commande `npm run profile:renderers:active -- --owners` lance une passe
+distincte `active-loop-owners-cpu-v1` : Three seulement, grand port dense dessus
+à 1 200 m, thème carte, DPR 1, trois séquences de 30 images de chauffe puis
+120 mesures. `--quick` reste un smoke test. Le panneau de profilage hors écran
+reste actif. Les mesures comparatives ordinaires n'activent pas ces horloges.
+
+Cinq phases disjointes couvrent le temps CPU complet : physique, préparation
+du monde (interpolation, caméra, visibilité, géométrie et projection), snapshot
+projeté immuable, backend, puis overlays/audio/interface. Chaque image vérifie
+que leur somme retrouve le temps total. Les trois mesures Three existantes
+compilation, staging et soumission sont des **sous-coûts du backend**. Le staging
+couvre la copie JavaScript vers Float32 et le marquage des buffers ; les uploads
+WebGL ont lieu dans la soumission `renderer.render`. Aucun de ces nombres ne
+mesure le temps d'exécution GPU. Les temps d'instrumentation sont inclus dans
+cette passe diagnostique, séparée de la comparaison des performances.
+
+Résultats sur Apple M1 / ANGLE Metal, Chromium 149.0.7827.55, avant le candidat
+d'optimisation décrit ci-dessous :
+
+| Phase | p50 CPU sur les trois répétitions | Part du CPU total |
+| --- | --- | --- |
+| Physique et gestion du temps | 1,6 / 1,5 / 1,6 ms | 2,29–2,42 % |
+| Préparation monde et projection | 2,6 / 2,4 / 2,4 ms | 3,46–3,99 % |
+| Snapshot projeté | 3,3 / 3,4 / 3,4 ms | 4,80–4,97 % |
+| Backend Three | 61,6 / 62,8 / 62,4 ms | 88,28–88,87 % |
+| Overlays, audio et interface | 0,4 / 0,3 / 0,3 ms | 0,46–0,51 % |
+
+La **compilation seule** prend 59,4 / 60,4 / 60,1 ms en médiane, soit
+**85,32–85,93 % du CPU total**. Le staging représente environ 1,63 %, la
+soumission CPU environ 1,30–1,32 %. Les médianes de boucle entière sont
+70,0 / 70,6 / 70,3 ms. Les parts sont calculées à partir des sommes des
+échantillons de chaque phase et du total ; les percentiles ne sont pas additionnés.
+Les snapshots physiques, caméras, complexités et captures finales des trois
+répétitions sont identiques. Les cinq phases ferment le budget sur les 360
+échantillons ; aucune erreur page/GL. Source et mesures brutes dans
+`/var/folders/5y/sj7vgmys4h98d70vjx_njb480000gn/T/kjp-active-profile-BCv0Y8/`.
+
+## Réduction des allocations des quadrilatères de traits
+
+Après attribution du coût actif, une seule optimisation est retenue dans
+`surface-geometry.mjs` : `appendQuad` conserve ses huit coordonnées écran dans
+des scalaires, puis émet directement les 42 nombres des six sommets. Elle
+supprime quatre tableaux temporaires par quadrilatère. Les deux profondeurs,
+divisions, ordre d'évaluation et ordre `a/b/c/a/c/d` sont conservés, sans cache
+inter-frame ni conversion Float32 anticipée. La triangulation, le clipping,
+les couleurs, les offsets et le renderer Legacy ne changent pas.
+
+La comparaison des compilateurs avant/candidat dans le même Chromium couvre
+huit cadrages La Trinité (dessus, anatomie, skipper, port entier, deux thèmes) :
+**7 375 998 nombres identiques avec `Object.is`**, capacités logiques et compteurs
+identiques. Le cadrage dense conserve 197 934 appels à `Math.log` : le gain ne
+provient pas d'un raccourci numérique. Trois séries appariées AB/BA, chacune
+avec 30 chauffes et 120 mesures par compilateur, donnent en ms :
+
+| Série | Avant p50 / p95 / p99 | Candidat p50 / p95 / p99 | Réduction p50 |
+| ---: | --- | --- | ---: |
+| 1 | 60,2 / 70,5 / 75,0 | 57,1 / 66,6 / 72,1 | 5,1 % |
+| 2 | 62,1 / 108,9 / 158,5 | 59,3 / 100,4 / 132,1 | 4,5 % |
+| 3 | 61,0 / 82,5 / 118,3 | 57,7 / 73,3 / 101,3 | 5,4 % |
+
+Une seconde comparaison porte sur le **coût CPU de la boucle active entière**,
+propriétaires désactivés. Un pilote temporaire réutilise `run` du banc et alterne
+les HTML avant/candidat dans le même navigateur matériel, sur la vue dense DPR 1.
+Chaque paire rejoue les mêmes 150 images (30 chauffe + 120 mesurées). Une première
+série de trois paires a montré un pic p95/p99 défavorable ; seule cette mesure
+a donc été répétée, en trois nouvelles paires. Tous les résultats sont conservés :
+
+| Série / paire | Avant p50 / p95 / p99 | Candidat p50 / p95 / p99 | Réduction p50 |
+| --- | --- | --- | ---: |
+| 1 / 1 | 69,9 / 87,6 / 125,8 | 68,5 / 82,9 / 110,1 | 2,0 % |
+| 1 / 2 | 70,3 / 82,7 / 95,0 | 67,7 / 74,7 / 77,7 | 3,7 % |
+| 1 / 3 | 70,3 / 79,0 / 88,3 | 69,7 / 120,9 / 143,0 | 0,9 % |
+| 2 / 1 | 70,2 / 103,7 / 139,0 | 69,7 / 83,7 / 97,3 | 0,7 % |
+| 2 / 2 | 70,7 / 77,3 / 85,9 | 67,8 / 77,0 / 87,5 | 4,1 % |
+| 2 / 3 | 70,4 / 78,4 / 88,6 | 67,8 / 81,8 / 85,5 | 3,7 % |
+
+Le bénéfice médian de boucle est donc **modeste, 0,7–4,1 % dans ces six paires**.
+Les pics restent variables et parfois moins bons : aucune amélioration
+systématique de p95/p99 n'est revendiquée. Tous les échantillons denses restent
+au-dessus de 16,67 ms. L'optimisation est conservée pour la réduction d'allocations,
+la parité exacte et le petit gain médian retrouvé dans les six paires, sans
+prétendre résoudre le coût du grand port ni qualifier une cadence visible.
+
+Les 900 paires d'états/caméras et tous les compteurs renderer sont identiques ;
+les captures monde et composition finales aussi. Le SHA-256 des 150 snapshots
+physiques reste `c67d19de3f82bc9e405d8d42f820dcaa2f3836368b18fc5422b69a718a98149f`.
+Les deux séries ont utilisé les mêmes artefacts : avant
+`3d7451ce17c6f5fb9d211285a3ed8d7a997ee2e28ae0b620f2dbff600710398f`, candidat
+`68adc876100dd291f32681858adb3f0520431ef4e4a5427f9158b69a5bcc9b74`.
+Le compilateur précédent, le HTML précédent, les pilotes ponctuels et les
+JSON bruts sont dans `/tmp/kjp-active-optimization-GQ4ZZ8/` ; ce répertoire est
+temporaire. Les captures appariées sont dans les dossiers temporaires
+`kjp-active-profile-IyTnCT` et `kjp-active-profile-3y8Ptp` du répertoire système.
+
+Validation finale : build et `check:simulator`, 10 tests unitaires de rendu,
+trois tests navigateur ciblés (338 comparaisons raster strictes sans différence,
+24 traversées de ±π, reprise skipper et identité du chemin instrumenté avec le
+chemin normal), puis six références Legacy inchangées. Une capture skipper avec
+overlays a été inspectée. Les smoke tests du banc détaillé et du banc habituel
+réussissent. Aucun fichier physique ou étalon de trajectoire n'est modifié.
+`git diff --check` passe ; graphe AST actualisé (1 025 nœuds, 1 804 arêtes,
+55 communautés). Le renderer Legacy reste actif par défaut. Modifications non
+commitées ; aucune qualification de release ou de GPU/composition visible.
+
 ## Prochaine tranche
 
-Le coût CPU de la boucle active est désormais mesuré sur GPU matériel. Le grand
-port dense reste très au-dessus du budget de 16,67 ms : isoler le propriétaire
-CPU dominant dans ce périmètre actif avant la prochaine optimisation appariée.
-La compilation est un candidat issu du microbenchmark précédent, pas encore une
-attribution mesurée dans cette nouvelle boucle. Conserver les références visuelles.
+La compilation est désormais identifiée comme propriétaire dominant de la boucle
+active (85–86 % avant cette optimisation). Le grand port dense reste à environ
+68–70 ms CPU : profiler l'intérieur du compilateur pour distinguer génération
+des traits, triangulation et construction des tableaux avant un changement plus
+structurant. Réutiliser `--owners` pour l'attribution et le chemin non instrumenté
+pour les comparaisons appariées. Conserver les références visuelles.
 Le temps GPU, la composition et la cadence naturelle d'un Three visible, ainsi
 que la stabilité longue avec activité, restent à qualifier avant toute bascule
 par défaut. Garder le défaut Legacy de coloration des contacts explicite dans les critères visuels ;

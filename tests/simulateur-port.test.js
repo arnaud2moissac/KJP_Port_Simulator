@@ -62,6 +62,93 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
+test("profilage actif — skipper mobile, scène masquée et reprise sans image périmée", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  const hash = value => require("node:crypto").createHash("sha256").update(value).digest("hex");
+  const text = fs.readFileSync(path.join(projectRoot, "examples/la-trinite-sur-mer.kjp"), "utf8");
+  let reference;
+  for (const backend of [null, "legacy", "three", "three-owners"]) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    await page.addInitScript(() => {
+      const raf = window.requestAnimationFrame.bind(window);
+      let queue = [], time = 1000;
+      window.requestAnimationFrame = callback => { queue.push(callback); return queue.length; };
+      window.__stepSkipper = () => new Promise((resolve, reject) => raf(() => {
+        try {
+          const pending = queue; queue = []; time += 1000 / 60;
+          for (const callback of pending) callback(time);
+          // Lire dans le callback, avant invalidation du framebuffer visible.
+          resolve({ world: document.querySelector("#worldScene").toDataURL(),
+            overlay: document.querySelector("#scene").toDataURL() });
+        } catch (error) { reject(error); }
+      }));
+    });
+    await page.goto(testUrl.href);
+    const result = await page.evaluate(async ({ backend, text }) => {
+      const api = window.__PORTANCE_TEST__;
+      document.querySelector('[data-mode="navigation"]').click();
+      api.importPort(text); api.reset({ x: 200, y: 305, heading: .5084, u: 1 });
+      api.selectCameraView("skipper");
+      for (let i = 0; i < 3; i += 1) await window.__stepSkipper();
+      api.setControls({ throttleTarget: .55, rudderTarget: .12 });
+      if (backend) api.startActiveFrameProfile(backend === "three-owners" ? "three" : backend,
+        { captureAtFrame: 60, owners: backend === "three-owners" });
+      const notice = document.querySelector("#activeFrameProfileNotice");
+      const stage = document.querySelector(".stage").getBoundingClientRect();
+      const covered = notice && [[.05, .05], [.95, .05], [.05, .95], [.95, .95], [.5, .5]]
+        .every(([x, y]) => document.elementFromPoint(stage.x + stage.width * x, stage.y + stage.height * y) === notice);
+      const noticeColor = notice ? getComputedStyle(notice).backgroundColor : null;
+      document.querySelector("#pauseButton").click();
+      let first, last;
+      for (let i = 0; i < 60; i += 1) {
+        last = await window.__stepSkipper();
+        if (i === 0) first = last;
+      }
+      const snapshot = api.snapshot();
+      const profile = backend ? api.activeFrameProfileReport() : null;
+      api.stopActiveFrameProfile();
+      const afterStop = api.snapshot();
+      const stillCovered = Boolean(document.querySelector("#activeFrameProfileNotice"));
+      const resumed = await window.__stepSkipper();
+      const removed = !document.querySelector("#activeFrameProfileNotice");
+      return { first, last, snapshot, afterStop, covered, noticeColor, stillCovered, removed, resumed,
+        frameCount: profile?.frameCount, glErrors: profile?.glErrors, images: profile?.images,
+        ownerMs: profile?.frames[0].ownerMs, cpuMs: profile?.frames[0].cpuMs };
+    }, { backend, text });
+    assert.deepEqual(errors, []);
+    assert.notEqual(hash(result.first.overlay), hash(result.last.overlay), "les overlays suivent le bateau");
+    assert.deepEqual(result.snapshot, result.afterStop, "arrêter le banc ne modifie pas la simulation");
+    assert.equal(result.removed, true);
+    if (!backend) {
+      assert.equal(result.covered, null);
+      assert.equal(result.stillCovered, false);
+      assert.notEqual(hash(result.first.world), hash(result.last.world), "le port visible doit bouger en skipper normal");
+      reference = { snapshot: result.snapshot, world: hash(result.last.world), overlay: hash(result.last.overlay) };
+    } else {
+      assert.equal(result.covered, true, "le port figé et les taquets animés ne doivent pas rester visibles");
+      assert.match(result.noticeColor, /^rgb\(/, "le masque doit être opaque");
+      assert.equal(result.stillCovered, true, "ne pas dévoiler le dernier monde figé avant le prochain rendu");
+      assert.equal(result.frameCount, 60, "un seul propriétaire de boucle");
+      assert.deepEqual(result.glErrors, [0, 0]);
+      assert.deepEqual(result.snapshot, reference.snapshot);
+      assert.equal(hash(result.images.world), reference.world, "le monde hors écran suit exactement le skipper normal");
+      assert.equal(hash(result.last.overlay), reference.overlay);
+      assert.notEqual(hash(result.resumed.world), hash(result.last.world), "la reprise doit rafraîchir le monde visible");
+    }
+    if (backend === "three-owners") {
+      assert.ok(result.ownerMs.compileMs > 0);
+      assert.ok(Object.values(result.ownerMs).every(value => Number.isFinite(value) && value >= 0));
+      const sum = ["physics", "prepare", "snapshot", "backend", "overlaysUi"].reduce((sum, key) => sum + result.ownerMs[key], 0);
+      assert.ok(Math.abs(sum - result.cpuMs) < .000001);
+    } else assert.equal(result.ownerMs, undefined, "le diagnostic détaillé reste optionnel");
+    await page.close();
+  }
+});
+
 test("terrain Three — balisage, bateaux, infrastructures, pixels Legacy et cycle de vie", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
