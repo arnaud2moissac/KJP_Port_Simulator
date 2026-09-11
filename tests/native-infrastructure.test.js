@@ -70,7 +70,7 @@ function persistence(first, next) {
   assert.equal(next.queued, 1);
 }
 
-test("Three natif N2.1 — catalogue, transferts réels, thèmes et cycles de port", async t => {
+test("Three natif N2.2 — catalogue, transferts réels, thèmes et cycles de port", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   let reference;
   for (const enabled of [false, true]) {
@@ -86,8 +86,9 @@ test("Three natif N2.1 — catalogue, transferts réels, thèmes et cycles de po
       assert.ok(first.uploads.bytes > 0); assert.equal(first.report.memory.geometries, first.report.catalog.geometryCount);
       assert.equal(first.report.catalog.liveGeometries, first.report.catalog.geometryCount);
       const expected = await page.evaluate(() => window.__PORTANCE_TEST__.nativeInfrastructureSourceReport());
-      assert.deepEqual(first.report.catalog.owners.map(o => [o.family,o.id,o.polygons]), expected.map(o => [o.family,o.id,o.polygons]));
-      assert.deepEqual([...new Set(expected.map(o => o.family))].sort(), ["catway", "dock", "terrain"]);
+      assert.deepEqual(first.report.catalog.owners.map(o => [o.family,o.id,o.polygons,o.segments]),
+        expected.map(o => [o.family,o.id,o.polygons,o.segments]));
+      assert.deepEqual([...new Set(expected.map(o => o.family))].sort(), ["boat", "catway", "dock", "terrain"]);
     }
     await page.evaluate(() => document.querySelector("#pauseButton").click());
     const frames = [];
@@ -144,10 +145,10 @@ test("Three natif N2.1 — catalogue, transferts réels, thèmes et cycles de po
         assert.equal(next.report.memory.geometries, b.geometryCount);
         assert.ok(next.report.resources.every(r => !previous.report.resources.some(old => old.geometry===r.geometry)));
         const families = [...new Set(b.owners.map(o => o.family))].sort();
-        assert.deepEqual(families, imported ? ["catway","dock","land","obstacle"] : ["catway","dock","terrain"]);
+        assert.deepEqual(families, imported ? ["boat","catway","dock","land","obstacle"] : ["boat","catway","dock","terrain"]);
         const source = await page.evaluate(() => window.__PORTANCE_TEST__.nativeInfrastructureSourceReport());
-        assert.deepEqual(b.owners.map(o => [o.family,o.id,o.polygons]),source.map(o => [o.family,o.id,o.polygons]),
-          "chaque propriétaire et surface source est représenté, indépendamment de sa triangulation");
+        assert.deepEqual(b.owners.map(o => [o.family,o.id,o.polygons,o.segments]),source.map(o => [o.family,o.id,o.polygons,o.segments]),
+          "chaque propriétaire, surface et trait source est représenté, indépendamment de sa triangulation");
         const memory = { geometries: b.geometryCount, materials: b.materialCount, buffers: next.uploads.live };
         if (imported) { if (importedMemory) assert.deepEqual(memory, importedMemory); importedMemory = memory; }
         else { if (builtinMemory) assert.deepEqual(memory, builtinMemory); builtinMemory = memory; }
@@ -156,6 +157,14 @@ test("Three natif N2.1 — catalogue, transferts réels, thèmes et cycles de po
       const beforeInvalid = await step(page);
       await page.evaluate(() => { try { window.__PORTANCE_TEST__.importPort("{invalid"); } catch {} });
       persistence(beforeInvalid, await step(page));
+      await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype({ staticBoats: false }));
+      const withoutBoats = await step(page);
+      assert.equal(withoutBoats.report.catalog.owners.some(owner => owner.family === "boat"), false);
+      persistence(withoutBoats, await step(page));
+      await page.evaluate(() => window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype());
+      const withBoats = await step(page);
+      assert.equal(withBoats.report.catalog.owners.filter(owner => owner.family === "boat").length > 0, true);
+      persistence(withBoats, await step(page));
       await page.evaluate(() => { window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); window.__PORTANCE_TEST__.disposeNativeStaticPrototype(); });
       const end = await step(page); assert.equal(end.report.active, false); assert.equal(end.uploads.live, 0);
       t.diagnostic(`Mémoire stable après 3 imports/restaurations : ${JSON.stringify({ builtinMemory, importedMemory })}`);
@@ -185,7 +194,7 @@ test("Three natif N2.1 — catalogue, transferts réels, thèmes et cycles de po
   }
 });
 
-test("Three natif N2.1 — fidélité des infrastructures aux cadrages et thèmes", async t => {
+test("Three natif N2.2 — fidélité des infrastructures et bateaux aux cadrages et thèmes", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-n2-"));
   let cases = 0;
@@ -193,7 +202,7 @@ test("Three natif N2.1 — fidélité des infrastructures aux cadrages et thème
     const { page, errors } = await pageFor(browser, dpr);
     await page.evaluate(() => {
       window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype();
-      window.__PORTANCE_TEST__.enableSurfaceComparison({ infrastructures: true });
+      window.__PORTANCE_TEST__.enableSurfaceComparison({ staticBoats: true });
     });
     for (const port of ["built-in", "imported"]) {
       await page.evaluate(({ port, portText }) => {
@@ -235,14 +244,14 @@ test("Three natif N2.1 — fidélité des infrastructures aux cadrages et thème
   t.diagnostic(`${cases} cadrages natifs ; captures ${directory}`);
 });
 
-test("Three natif N2.1 — couleurs, contours et omissions par famille", async t => {
+test("Three natif N2.2 — couleurs, contours et omissions par famille", async t => {
   const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
   const directory=fs.mkdtempSync(path.join(os.tmpdir(),"kjp-native-n2-details-"));
   t.diagnostic(`Détails : ${directory}`);
   const { page, errors } = await pageFor(browser);
   await page.evaluate(() => {
     window.__PORTANCE_TEST__.enableNativeInfrastructurePrototype();
-    window.__PORTANCE_TEST__.enableSurfaceComparison({ infrastructures: true });
+    window.__PORTANCE_TEST__.enableSurfaceComparison({ staticBoats: true });
   });
   const check = result => {
     assert.equal(result.glError, 0);
@@ -256,7 +265,7 @@ test("Three natif N2.1 — couleurs, contours et omissions par famille", async t
       const api=window.__PORTANCE_TEST__;
       if (port === "built-in") api.restoreBuiltInPort(); else api.importPort(portText);
     }, { port, portText });
-    const families = port === "built-in" ? ["terrain","dock","catway"] : ["land","obstacle"];
+    const families = port === "built-in" ? ["terrain","dock","catway","boat"] : ["land","obstacle","boat"];
     for (const family of families) for (const theme of ["dark","chart"]) {
       await page.evaluate(({ family, theme }) => {
         const api=window.__PORTANCE_TEST__, data=api.nativeInfrastructureSourceReport({ geometry:true });

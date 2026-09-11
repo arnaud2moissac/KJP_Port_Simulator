@@ -11,15 +11,16 @@ attachées aux artefacts et environnements indiqués, sans qualification du nati
 Leurs choix d'architecture ne s'appliquent au nouveau
 backend natif que lorsqu'ils sont repris explicitement ici.
 
-**Périmètre actuel : N2.1, lot terrain/infrastructures uniquement (`ui-check`),
-engagé sur la demande « continue » après N1.** L'autorisation de code couvre le
+**Périmètre actuel : N2.2, lot bateaux statiques uniquement (`ui-check`),
+engagé sur la demande « continue » après N2.1.** L'autorisation de code couvre le
 rendu, les tests, le suivi et la régénération du HTML nécessaires à ce lot.
-Les invariants ci-dessous restent stricts ; les lots suivants de N2 et N3 à N6
+Les invariants ci-dessous restent stricts ; N2.3 et N3 à N6
 ne sont pas engagés et Legacy reste actif par défaut.
 La revue documentaire précédente n'avait, à elle seule, autorisé aucune
 implémentation. Les résultats de cette livraison sont consignés dans
 [le suivi N1](#livraison-n1--11-septembre-2026) puis
-[le suivi N2.1](#livraison-n21--terrain-et-infrastructures).
+[le suivi N2.1](#livraison-n21--terrain-et-infrastructures), puis
+[le suivi N2.2](#livraison-n22--bateaux-statiques).
 
 **État constaté à la revue documentaire et au début de N1 :** répertoire réel
 `/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, commit
@@ -41,7 +42,8 @@ chemins clairement nommés dans la documentation, sans renommer le code existant
   `RenderFrame` projeté ;
 - **Three natif** : backend distinct à géométries monde persistantes, absent lors
   de la décision documentaire initiale. N1 ajoute seulement son prototype
-  statique isolé, étendu au catalogue terrain/infrastructures en N2.1,
+  statique isolé, étendu au catalogue terrain/infrastructures en N2.1 puis aux
+  bateaux statiques en N2.2,
   détaché du canevas actif et désactivé par défaut ; le monde
   complet et l'intégration visible restent futurs.
 
@@ -124,10 +126,10 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
 | Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU, rejouées puis projetées par image ; ce n'est pas encore un catalogue Three persistant (N1/N2) |
 | `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel déjà présent, validé sur les ancres ; réutilisable, mais sa qualification ne prouve pas celle des occlusions natives (N1) |
 | `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
-| `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()` dans le template | Ajout N2.1 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, remplacement du port et diagnostic de libération |
+| `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()` et `addBoatMesh()` dans le template | Ajouts N2.1/N2.2 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, bateaux statiques à pose figée, remplacement du port et diagnostic de libération |
 | `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Conserver ce contrat ; ajouter des modules natifs distincts (N1–N4) |
 | `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
-| `tests/render-frame.test.js`, `tests/simulateur-port.test.js` | Protections N1 ajoutées aux suites existantes ; étendre dans N2–N5 sans affaiblir les assertions ou modifier les références existantes |
+| `tests/render-frame.test.js`, `tests/native-infrastructure.test.js`, `tests/simulateur-port.test.js` | Protections N1 et N2.1/N2.2 reliées aux suites existantes ; étendre dans N2.3–N5 sans affaiblir les assertions ou modifier les références existantes |
 | `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js` | Bancs réutilisables ; nouveau protocole complet natif à prévoir en N5, protocole projeté conservé |
 | `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native N1 bundlée localement ; script de build inchangé, intégration visible réservée à N4 |
 
@@ -1060,14 +1062,14 @@ commitées ; aucune qualification de release ou de GPU/composition visible.
 
 ## Tranches natives planifiées
 
-Hors modules N1/N2.1 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
+Hors modules N1/N2.1/N2.2 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
 des emplacements prévus. Chaque tranche reste réversible par désactivation ou
 suppression du chemin natif concerné ; aucune tranche ne réécrit le moteur ni
 les références Legacy/compatibilité. Une tranche ne commence qu'après réussite
 des gates de la précédente.
 
-**Suivi : N1 et N2.1 validées dans leur périmètre isolé, bilans ci-dessous.
-N2.2 (bateaux statiques), N2.3 (bouées/feux) et N3 à N6 restent non commencées.**
+**Suivi : N1, N2.1 et N2.2 validées dans leur périmètre isolé, bilans ci-dessous.
+N2.3 (bouées/feux) et N3 à N6 restent non commencées.**
 À chaque livraison, consigner les résultats
 et limites avec son commit ou artefact, les contrôles exécutés et le retour
 arrière vérifié. Les règles de validation ci-dessous s'appliquent à chaque
@@ -1293,9 +1295,9 @@ Le défaut Legacy de coloration des contacts décrit dans le journal reste un
 défaut connu de la référence. Le reproduire dans Three de compatibilité satisfait
 son contrat historique ; Three natif ne doit ni revendiquer sa correction comme
 gain de migration ni introduire une correction fonctionnelle sans tranche
-distincte. Après N1 et N2.1 décrites ci-dessous, la prochaine tranche est
-**N2.2, bateaux statiques**, à engager sur une nouvelle demande.
-N2.3 puis N3 à N6 restent différées.
+distincte. Après N1, N2.1 et N2.2 décrites ci-dessous, la prochaine tranche est
+**N2.3, bouées et feux**, à engager sur une nouvelle demande.
+N3 à N6 restent différées.
 
 ## Livraison N1 — 11 septembre 2026
 
@@ -1508,8 +1510,9 @@ Le prototype N1 reste disponible séparément. Son renderer et son adaptateur ca
 sont réutilisés ; seuls le remplacement de ressources, les métriques de catalogue
 et la mise à jour des matériaux sont ajoutés. Le `RenderFrame` de compatibilité,
 le Canvas 2D, les commandes, le picking, l'eau et les constructeurs physiques
-restent inchangés. N2.2/N2.3, le joueur natif et l'intégration visible ne sont pas
-implémentés. Le chemin natif demeure désactivé par défaut.
+restent inchangés. À la clôture de N2.1, N2.2/N2.3, le joueur natif et
+l'intégration visible n'étaient pas implémentés. N2.2 est depuis livrée dans la
+section suivante ; le chemin natif demeure désactivé par défaut.
 
 ### Défauts trouvés et corrections dans le lot
 
@@ -1599,7 +1602,127 @@ dessiner tout le monde et les overlays. Le retrait éventuel du seul branchement
 N2.1 et de son module conserve le prototype N1. Aucun retrait/reset n'a été
 effectué pour cette vérification.
 
-Prochain lot prévu : **N2.2, bateaux statiques**, avec propriété et libération
-des ressources, visibilité et palette selon les gates N2. N2.3 bouées/feux vient
-ensuite. Ces lots ne sont pas commencés ; la tranche N2 complète n'est pas
-déclarée validée par la livraison de N2.1. Legacy reste le renderer par défaut.
+À la clôture de N2.1, le prochain lot prévu était **N2.2, bateaux statiques**,
+avec propriété et libération des ressources, visibilité et palette selon les
+gates N2. Ce lot est maintenant livré ci-dessous. N2.3 bouées/feux reste à
+faire ; la tranche N2 complète n'est donc pas encore déclarée validée. Legacy
+reste le renderer par défaut.
+
+## Livraison N2.2 — bateaux statiques
+
+**N2.2 validée dans son périmètre isolé.** Les bateaux statiques du port ont
+maintenant des ressources Three monde persistantes dans le catalogue N2. Les
+critères de propriété, pose, palette, visibilité, absence de retransfert après
+chauffe, remplacement de port et retour arrière ont été vérifiés. Cette
+livraison ne couvre ni le bateau joueur, ni les bouées/feux N2.3, ni
+l'intégration du renderer natif dans le canevas actif.
+
+Reprise dans `/Users/arnaud/Codex_main/KJP_Port_Simulator`, sur
+`codex/threejs-v2`, HEAD
+`b733c0d80943c722e4f19cadd0deb51b08d980e3` (`refactor_v2:N2.1`). L'arbre était
+propre. Le checkpoint repo-local disponible décrivait un état antérieur à N1 ;
+le présent plan et les commits N1/N2.1 constituent l'état de reprise effectif.
+Aucun changement de branche, reset ou suppression de travail préexistant.
+
+### Périmètre réalisé et cycle de vie
+
+`nativeInfrastructureDefinition()` crée un propriétaire `boat:<id>` par entrée
+de `staticBoats` au moment de l'activation explicite du prototype ou du
+remplacement de la topologie. Il appelle le constructeur monde existant
+`addBoatMesh(boat, false)` avant toute projection. La pose x/y/cap, la longueur
+et le maître-bau installés par la topologie sont donc figés dans les attributs
+monde du catalogue ; une caméra mobile ne relit ni ne transforme la topologie.
+Chaque coque actuelle produit neuf faces latérales, un pont, leurs contours et
+un mât pour les voiliers. Le joueur et ses pare-battages, contacts, anatomie et
+animation restent exclus.
+
+`addBoatMesh()` accepte désormais une palette de présentation optionnelle, avec
+la palette habituelle comme valeur par défaut. Le chemin Legacy continue donc
+d'utiliser exactement ses couleurs actuelles. Le collecteur natif lui fournit
+des rôles `boat.*` ; dark/chart modifient seulement les matériaux partagés, sans
+reconstruire ni marquer les attributs géométriques. Le module générique N2.1
+`native-infrastructure-resources.mjs` est réutilisé sans modification : il reste
+propriétaire des géométries, matériaux, bounds, diagnostics et `dispose()`.
+
+Le changement de port reconstruit le catalogue complet depuis la nouvelle
+topologie, installe le nouveau groupe, puis libère une fois toutes les anciennes
+ressources. La désactivation et le double `dispose()` libèrent le catalogue et
+le contexte. L'option de test
+`enableNativeInfrastructurePrototype({staticBoats:false})` fournit un repli
+indépendant N2.2 vers le seul catalogue N2.1 ; sa réactivation reconstruit les
+bateaux. Ce contrôle reste limité au banc `?test` détaché et ne crée aucun choix
+de backend partiel dans le produit.
+
+Le banc de comparaison distingue maintenant `{staticBoats:true}` de l'option
+historique `{boats:true}`. Le nouveau périmètre inclut terrain,
+infrastructures et bateaux statiques, mais exclut le joueur réservé à N3. La
+sémantique et les tests existants de `{boats:true}` restent inchangés. Cette
+séparation a corrigé la première exécution N2.2, qui comparait par erreur un
+candidat sans joueur à un oracle qui l'incluait.
+
+### Protections et résultats N2.2
+
+Les protections ont été modifiées avant le code. Elles ont d'abord échoué comme
+attendu : famille `boat` absente du catalogue, couverture globale insuffisante
+et aucune ressource `boat` isolable. Après implémentation, les résultats sont :
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| `npm run build:simulator`, `npm run check:simulator` | Réussis ; HTML autonome régénéré et cohérent avec les sources |
+| `npm run test:rendering` | 12/12 tests réussis ; contrats N1/N2 de géométrie, palette, copie, rollback et disposal inchangés |
+| `node --test --test-name-pattern='Three natif' tests/render-frame.test.js tests/simulateur-port.test.js` | 7/7 tests réussis : unités N1/N2, deux contrôles N1 et trois contrôles N2.2 reliés à la suite habituelle |
+| Catalogue et persistance | 18 propriétaires bateau dans le port pédagogique et 463 dans le port importé. Sur mouvement skipper, pan, rotation, zoom, trois vues, thème et resize : mêmes identités/attributs/versions, zéro allocation, libération ou appel/octet `bufferData`/`bufferSubData` supplémentaire après chauffe |
+| Cycles de vie et repli | 3 imports et 3 restaurations sans croissance ; anciennes géométries et matériaux libérés exactement. Repli N2.2 séparé, réactivation, import invalide, panne injectée, désactivation et double disposal réussis ; Legacy et les snapshots appariés restent exacts |
+| Fidélité globale native | 24 cadrages (2 ports × 2 thèmes × 3 vues × DPR 1/2) : scène présente, rappel d'occupation ≥95 %, débordement borné, sans égalité pixel exigée |
+| Détail par famille/style | 28 contrôles, dont 8 propres aux bateaux (2 ports × 2 thèmes × remplissage/traits) : rappel 100 % au seuil 90 %, erreur couleur maximale observée 3,210/255 au seuil 25. Chacune des 28 omissions forcées fait échouer la gate |
+| Compatibilité stricte existante | 4/4 tests réussis : 338 comparaisons raster, 0 pixel différent ; 24 traversées de ±π ; 2 211 ancres caméra, écart maximal 2,779 × 10⁻⁸ px au seuil 0,5 px |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques ; aucune référence réécrite |
+| Inspection visuelle ciblée | Couples natif/Legacy inspectés en skipper nuit pédagogique et dessus carte du port importé : pontons et bateaux cohérents ; coques, contours et mâts présents dans le cadrage qui les expose |
+| `graphify update .` | Réussi sans appel LLM : graphe AST actualisé à 1 092 nœuds, 1 894 arêtes et 63 communautés |
+
+SHA-256 du HTML autonome régénéré :
+`784be087a3860399dc55d7685d7c267290a8d46d3b8dd2ef091f7d2346a06ef3`.
+
+Ressources natives vivantes après chauffe et retour au même port :
+
+| Port | Géométries | Matériaux partagés | Buffers GL suivis |
+| --- | ---: | ---: | ---: |
+| Pédagogique, dont 18 bateaux | 253 | 18 | 700 |
+| La Trinité importée, dont 463 bateaux | 4 612 | 17 | 12 940 |
+
+Chaque bateau actuel ajoute six lots géométriques par propriétaire, soit 108
+géométries dans le port pédagogique et 2 778 dans le port importé. Ces compteurs
+servent uniquement à vérifier l'absence de croissance et la libération du même
+backend ; ils ne constituent pas une exigence de parité avec Legacy ni une
+preuve de performance. La granularité par bateau est volontaire pour ce lot et
+pourra être mesurée, sans modifier sa fidélité, lors de N5.
+
+Fichiers du lot : adaptations de `src/simulateur-port/template.html`, des
+protections `tests/native-infrastructure.test.js`, du livrable généré
+`simulateur-port.html` et du présent journal. Aucun moteur, profil, collision,
+pas de temps, interpolation, commande, trajectoire, référence Legacy,
+dépendance, script, adaptateur caméra, skill ou instruction globale n'est
+modifié. Le renderer Legacy reste actif par défaut ; le prototype natif reste
+détaché, sans deuxième RAF ni horloge.
+
+### Limites, retour arrière et prochaine tranche
+
+Les contrôles navigateur ont été exécutés avec Chromium headless sur cette
+machine. Les avertissements autoplay et synchronisation GPU `ReadPixels`, déjà
+présents sans le prototype, ont été consignés séparément ; aucune autre erreur
+console/page, requête HTTP(S) ou erreur GL n'a été observée. Les suites physiques
+globales, les trajectoires étalons complètes, la qualification release, les
+autres navigateurs/appareils et une mesure de performance en rendu visible
+n'ont pas été exécutés, car N2.2 ne modifie ni la physique ni le renderer actif
+et ne revendique aucun gain de performance.
+
+Retour arrière vérifié : omettre les propriétaires bateau par l'option de banc
+N2.2 libère leurs ressources et conserve N2.1 ; la réactivation restaure une
+nouvelle identité de catalogue. La désactivation complète rend le banc inactif
+et laisse zéro buffer GL suivi. Retirer ultérieurement la boucle `boat` et ses
+rôles de palette restituerait le catalogue N2.1 sans toucher à Legacy.
+
+Prochain lot prévu : **N2.3, bouées et feux**, avec propriétaires, apparences,
+visibilité, thèmes, invalidation et disposal selon les mêmes gates N2. Le joueur
+local N3 et l'intégration visible N4 restent différés. Ne pas activer le renderer
+natif par défaut.

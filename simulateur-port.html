@@ -14556,7 +14556,8 @@ void main() {
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
     let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
-    let nativeInfrastructureEnabled = false; // Lot N2.1, même banc détaché.
+    let nativeInfrastructureEnabled = false; // Lots N2.1/N2.2, même banc détaché.
+    let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
     let nativeInfrastructureTheme = null;
     let nativeInfrastructureError = null;
     let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
@@ -14643,7 +14644,9 @@ void main() {
             failNextNativeInfrastructureBuild = false;
             throw new Error("Native infrastructure: échec de construction injecté");
           }
-          nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition());
+          nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition({
+            includeStaticBoats: nativeStaticBoatsEnabled
+          }));
           nativeInfrastructureTheme = ui.visualTheme;
         } catch (error) {
           // Une panne du banc ne doit jamais interrompre l'installation du
@@ -16375,7 +16378,7 @@ void main() {
       const owner = surfaceCapture ? key.split(":", 1)[0] : null;
       const capture = surfaceCapture && (captureSurfaces === "world" ? true : captureSurfaces === "seamarks"
         ? /^(terrain|land|dock|catway|obstacle|boat|buoy|lights)$/.test(owner)
-        : captureSurfaces === "boats"
+        : captureSurfaces === "boats" || captureSurfaces === "static-boats"
           ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
           : captureSurfaces === "infrastructure"
             ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
@@ -17590,8 +17593,7 @@ void main() {
       );
     }
 
-    function addBoatMesh(boat, player = false) {
-      const palette = visualPalette();
+    function addBoatMesh(boat, player = false, palette = visualPalette()) {
       const boatPalette = palette.boat;
       const anatomyPalette = palette.anatomy;
       const accelerated = player && ui.timeScale === 2;
@@ -18025,12 +18027,26 @@ void main() {
     }
 
     function nativeInfrastructurePalette() {
-      const harbor = visualPalette().harbor;
-      return Object.fromEntries(Object.entries(harbor).flatMap(([key, value]) =>
-        Array.isArray(value) ? value.map((color, i) => [`${key}.${i}`, color]) : [[key, value]]));
+      const palette = visualPalette();
+      const flatten = (prefix, group) => Object.entries(group).flatMap(([key, value]) =>
+        Array.isArray(value)
+          ? value.map((color, i) => [`${prefix}${key}.${i}`, color])
+          : [[`${prefix}${key}`, value]]);
+      return Object.fromEntries([
+        ...flatten("", palette.harbor),
+        ...flatten("boat.", palette.boat)
+      ]);
     }
 
-    function nativeInfrastructureDefinition() {
+    function nativeBoatPaletteRoles() {
+      const roles = group => Object.fromEntries(Object.entries(group).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value.map((_, i) => `boat.${key}.${i}`) : `boat.${key}`
+      ]));
+      return { boat: roles(visualPalette().boat) };
+    }
+
+    function nativeInfrastructureDefinition({ includeStaticBoats = true } = {}) {
       const owners = [];
       const collect = (family, id, builder) => {
         const previous = worldGeometryCapture;
@@ -18060,6 +18076,12 @@ void main() {
       }
       for (const area of landAreas) collect("land", area.id, () => addPolygon(
         area.points.map(point => [point.east, point.north, .025]), "terrain.0", "terrainSide", 1));
+      if (includeStaticBoats) {
+        const boatPalette = nativeBoatPaletteRoles();
+        for (const boat of staticBoats) {
+          collect("boat", boat.id, () => addBoatMesh(boat, false, boatPalette));
+        }
+      }
       return { owners, palette: nativeInfrastructurePalette() };
     }
 
@@ -20652,18 +20674,25 @@ void main() {
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
       window.__PORTANCE_TEST__ = Object.freeze({
-        enableNativeInfrastructurePrototype() {
-          const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition());
+        enableNativeInfrastructurePrototype({ staticBoats = true } = {}) {
+          const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
+            includeStaticBoats: staticBoats
+          }));
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
           nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
+          nativeStaticBoatsEnabled = staticBoats;
           nativeInfrastructureError = null;
         },
         failNextNativeInfrastructureBuild() { failNextNativeInfrastructureBuild = true; },
         nativeInfrastructureSourceReport({ geometry = false } = {}) {
-          const definition = nativeInfrastructureDefinition();
+          const definition = nativeInfrastructureDefinition({
+            includeStaticBoats: nativeStaticBoatsEnabled
+          });
           if (geometry) return structuredClone(definition);
           return definition.owners.map(o => ({ id: o.id, family: o.family,
-            polygons: o.polygons.length, segments: o.lines.reduce((n, l) => n + l.points.length - 1, 0) }));
+            polygons: o.polygons.length,
+            segments: o.lines.reduce((n, l) => n + l.points.length - 1, 0)
+              + o.polygons.reduce((n, p) => n + (p.stroke !== false && p.stroke != null ? p.points.length : 0), 0) }));
         },
         isolateNativeInfrastructure({ family = null, kind = null } = {}) {
           if (!nativeInfrastructureEnabled) throw new Error("Catalogue natif inactif");
@@ -20752,9 +20781,10 @@ void main() {
           activeFrameProfile = null;
           profile?.comparison.dispose();
         },
-        enableSurfaceComparison({ infrastructures = false, boats = false, seamarks = false, world = false } = {}) {
+        enableSurfaceComparison({ infrastructures = false, staticBoats = false, boats = false, seamarks = false, world = false } = {}) {
           if (activeFrameProfile) throw new Error("Arrêter le profilage actif avant la capture");
-          captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats" : infrastructures ? "infrastructure" : "terrain";
+          captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats"
+            : staticBoats ? "static-boats" : infrastructures ? "infrastructure" : "terrain";
           surfaceCapture = null; // Attendre une frame du nouveau périmètre.
         },
         disposeSurfaceComparison() {
