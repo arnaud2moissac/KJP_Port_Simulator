@@ -7,6 +7,7 @@ import { createSurfaceComparison } from "./surface-comparison.mjs";
 import { createNativeStaticPrototype } from "./native-static-prototype.mjs";
 import { createNativeInfrastructureResources } from "./native-infrastructure-resources.mjs";
 import { createNativePlayerResources } from "./native-player-resources.mjs";
+import { createNativeFlowResources } from "./native-flow-resources.mjs";
 
 globalThis.KJPRenderFrames = Object.freeze(renderFrames);
 globalThis.KJPThreeCamera = Object.freeze({ createCameraSnapshot, createThreeCamera });
@@ -15,6 +16,8 @@ globalThis.KJPThreeNative = Object.freeze({ createNativeStaticPrototype,
   createNativeInfrastructurePrototype: (definition, options = {}) => createNativeStaticPrototype(definition, {
     resourceFactory: createNativeInfrastructureResources,
     playerFactory: createNativePlayerResources,
+    flowFactory: createNativeFlowResources,
+    layerFactory: createNativeInfrastructureResources,
     ...options
   })
 });

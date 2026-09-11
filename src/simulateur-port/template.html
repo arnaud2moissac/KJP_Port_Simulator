@@ -527,6 +527,7 @@
     }
 
     #worldScene,
+    #kjp-native-static-prototype,
     #scene {
       position: absolute;
       inset: 0;
@@ -536,7 +537,8 @@
       min-height: 0;
     }
 
-    #worldScene {
+    #worldScene,
+    #kjp-native-static-prototype {
       z-index: 0;
       pointer-events: none;
     }
@@ -3290,15 +3292,25 @@
     let boxRenderGeometryById = new Map();
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
-    let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
-    let nativeInfrastructureEnabled = false; // Lots N2.1 à N2.3, même banc détaché.
-    let nativePlayerEnabled = false; // Lot N3, joueur local dans le même banc détaché.
+    let nativeStaticPrototype = null; // Banc N1-N3 ou monde visible N4, activé seulement par ?test.
+    let nativeInfrastructureEnabled = false;
+    let nativePlayerEnabled = false;
+    let activeWorldRenderer = "legacy"; // Legacy reste le défaut pendant la qualification.
     let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
     let nativeStaticSeamarksEnabled = true; // Repli N2.3 indépendant, accessible seulement par ?test.
     let nativeInfrastructureTheme = null;
+    let nativeChartGridSignature = null;
     let nativeInfrastructureError = null;
     let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
     let visibleHarborFrameCache = null;
+    const nativeWorldRouting = {
+      legacyFrames: 0,
+      nativeFrames: 0,
+      projectedWorldBuilds: 0,
+      renderFrames: 0,
+      nativeGridBuilds: 0,
+      lastFrame: null
+    };
     const renderPerformance = {
       samples: new Float32Array(240),
       sampleCount: 0,
@@ -3384,9 +3396,11 @@
           }
           nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition({
             includeStaticBoats: nativeStaticBoatsEnabled,
-            includeSeamarks: nativeStaticSeamarksEnabled
+            includeSeamarks: nativeStaticSeamarksEnabled,
+            includeShoreCleats: activeWorldRenderer === "native"
           }));
           nativeInfrastructureTheme = ui.visualTheme;
+          nativeChartGridSignature = null;
         } catch (error) {
           // Une panne du banc ne doit jamais interrompre l'installation du
           // port ni empêcher la simulation d'utiliser sa nouvelle topologie.
@@ -3394,6 +3408,10 @@
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
           nativeInfrastructureEnabled = false;
           nativePlayerEnabled = false;
+          activeWorldRenderer = "legacy";
+          if (typeof worldCanvas !== "undefined") {
+            worldCanvas.style.display = depthRenderer ? "block" : "none";
+          }
         }
       }
     }
@@ -6609,7 +6627,7 @@
     function drawWater(time) {
       const palette = visualPalette();
       const water = palette.water;
-      if (depthRenderer) {
+      if (depthRenderer || activeWorldRenderer === "native") {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         const background = water.mode === "flat-chart"
           ? (camera.anatomy ? water.anatomyTop : water.top)
@@ -6706,18 +6724,18 @@
       ];
     }
 
-    function drawFlowParticles(simulationSeconds) {
+    function flowParticlePresentation(simulationSeconds) {
       const palette = visualPalette();
       const wrap = (value, minimum, span) => (
         minimum + ((value - minimum) % span + span) % span
       );
       const drawField = (vector, color, seed, count, z, trailSeconds, style) => {
         const speed = Math.hypot(vector[0], vector[1]);
-        if (speed < .02) return 0;
+        if (speed < .02) return [];
         const elapsed = reducedMotion ? 0 : simulationSeconds;
         const displacement = flowDisplacement(vector, elapsed);
         const trail = flowDisplacement(vector, trailSeconds);
-        let renderedSegments = 0;
+        const paths = [];
         for (let index = 0; index < count; index++) {
           const baseX = wrap(
             flowField.minX + index * 23.17 + seed * 11.3 + displacement[0],
@@ -6750,34 +6768,53 @@
               ];
             });
           }
-          renderedSegments += addWorldLine(
-            points,
-            color,
-            style.width,
-            style.shape === "wave" ? [] : index % 3 ? [] : [3, 3],
-            -2
-          );
+          paths.push({ points, dash: style.shape === "wave" ? [] : index % 3 ? [] : [3, 3] });
         }
-        return renderedSegments;
+        return paths;
       };
-      flowRenderStats.windSegments = drawField(
-        windWorldVector(),
-        palette.semantic.windTrail,
-        3,
-        30,
-        .72,
-        .65,
-        FLOW_VISUAL.wind
-      );
-      flowRenderStats.currentSegments = drawField(
-        currentWorldVector(),
-        palette.semantic.currentTrail,
-        7,
-        24,
-        .06,
-        1.5,
-        FLOW_VISUAL.current
-      );
+      return {
+        fields: [
+          { id: "wind", color: palette.semantic.windTrail, width: FLOW_VISUAL.wind.width,
+            paths: drawField(windWorldVector(), palette.semantic.windTrail, 3, 30, .72, .65, FLOW_VISUAL.wind) },
+          { id: "current", color: palette.semantic.currentTrail, width: FLOW_VISUAL.current.width,
+            paths: drawField(currentWorldVector(), palette.semantic.currentTrail, 7, 24, .06, 1.5, FLOW_VISUAL.current) }
+        ]
+      };
+    }
+
+    function flowSegments(field) {
+      return field.paths.flatMap(path => path.points.slice(1).map((point, index) => [path.points[index], point]));
+    }
+
+    function drawFlowParticles(simulationSeconds) {
+      const presentation = flowParticlePresentation(simulationSeconds);
+      for (const field of presentation.fields) {
+        flowRenderStats[`${field.id}Segments`] = field.paths.reduce((count, path) => (
+          count + addWorldLine(path.points, field.color, field.width, path.dash, -2)
+        ), 0);
+      }
+    }
+
+    function nativeFlowDefinition() {
+      return {
+        fields: [
+          { id: "wind", color: visualPalette().semantic.windTrail,
+            width: FLOW_VISUAL.wind.width, capacity: 30 },
+          { id: "current", color: visualPalette().semantic.currentTrail,
+            width: FLOW_VISUAL.current.width, capacity: 24 * (CURRENT_WAVE_PROFILE.length - 1) }
+        ]
+      };
+    }
+
+    function nativeFlowPresentation(simulationSeconds) {
+      const presentation = flowParticlePresentation(simulationSeconds);
+      return {
+        fields: presentation.fields.map(field => {
+          const segments = flowSegments(field);
+          flowRenderStats[`${field.id}Segments`] = segments.length;
+          return { id: field.id, color: field.color, segments };
+        })
+      };
     }
 
     function nativeInfrastructurePalette() {
@@ -6789,6 +6826,8 @@
       return Object.fromEntries([
         ...flatten("", palette.harbor),
         ...flatten("boat.", palette.boat),
+        ["semantic.cleat", palette.semantic.cleat],
+        ["semantic.cleatDisabled", palette.semantic.cleatDisabled],
         ...["red", "green", "yellow", "black", "white", "orange", "blue"]
           .map(name => [`buoy.${name}`, buoyCanvasColour(name, palette.id === "chart")])
       ]);
@@ -6836,7 +6875,11 @@
       }
     }
 
-    function nativeInfrastructureDefinition({ includeStaticBoats = true, includeSeamarks = true } = {}) {
+    function nativeInfrastructureDefinition({
+      includeStaticBoats = true,
+      includeSeamarks = true,
+      includeShoreCleats = false
+    } = {}) {
       const owners = [];
       const collect = (family, id, builder) => {
         const previous = worldGeometryCapture;
@@ -6886,6 +6929,16 @@
             lightPost: "lightPost",
             entrance: "entrance"
           }));
+        }
+      }
+      if (includeShoreCleats) {
+        for (const cleat of shoreCleats) {
+          const geometry = shoreCleatRenderGeometryById.get(cleat.id);
+          if (!geometry) continue;
+          collect("shore-cleat", cleat.id, () => {
+            addWorldLine(geometry.stem, "semantic.cleat", 2.4, [], 5);
+            addWorldLine(geometry.arm, "semantic.cleat", 2.4, [], 5);
+          });
         }
       }
       return { owners, palette: nativeInfrastructurePalette() };
@@ -7017,6 +7070,133 @@
         propellerAngle: ui.simTime * controls.throttleActual * 12,
         palette: nativePlayerPalette(contactFenders)
       };
+    }
+
+    function nativeCameraSnapshot() {
+      return KJPThreeCamera.createCameraSnapshot({
+        basis: frameBasis, width: canvasWidth, height: canvasHeight,
+        focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
+        near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
+      });
+    }
+
+    function nativeChartGridDefinition() {
+      const palette = visualPalette();
+      if (!palette.grid.enabled || camera.view === "skipper") {
+        return { signature: `off:${palette.id}:${camera.view}`, definition: null };
+      }
+      const step = chartGridStep();
+      const extent = Math.max(80, camera.distance * 1.65);
+      const boatMotion = sceneMotion();
+      const centerX = boatMotion.x + camera.pan[0];
+      const centerY = boatMotion.y + camera.pan[1];
+      const minX = Math.floor((centerX - extent) / step) * step;
+      const maxX = Math.ceil((centerX + extent) / step) * step;
+      const minY = Math.floor((centerY - extent) / step) * step;
+      const maxY = Math.ceil((centerY + extent) / step) * step;
+      const owners = [
+        { family: "chart-grid", id: "minor", polygons: [], lines: [] },
+        { family: "chart-grid", id: "major", polygons: [], lines: [] }
+      ];
+      const isMajor = value => Math.abs(Math.round(value / step)) % 5 === 0;
+      const add = (major, points) => owners[major ? 1 : 0].lines.push({
+        points,
+        color: major ? "grid.major" : "grid.minor",
+        width: major ? 1.05 : .65,
+        dash: [],
+        layer: -30
+      });
+      for (let x = minX; x <= maxX + step * .5; x += step) {
+        add(isMajor(x), [[x, minY, -.05], [x, maxY, -.05]]);
+      }
+      for (let y = minY; y <= maxY + step * .5; y += step) {
+        add(isMajor(y), [[minX, y, -.05], [maxX, y, -.05]]);
+      }
+      return {
+        signature: JSON.stringify([palette.id, camera.view, step, minX, maxX, minY, maxY]),
+        definition: {
+          owners,
+          palette: { "grid.minor": palette.grid.color, "grid.major": palette.grid.majorColor }
+        }
+      };
+    }
+
+    function syncNativeChartGrid() {
+      const next = nativeChartGridDefinition();
+      if (next.signature === nativeChartGridSignature) return false;
+      if (next.definition) {
+        nativeStaticPrototype.replaceLayer("chart-grid", next.definition);
+        nativeWorldRouting.nativeGridBuilds++;
+      } else {
+        nativeStaticPrototype.removeLayer("chart-grid");
+      }
+      nativeChartGridSignature = next.signature;
+      return true;
+    }
+
+    function syncNativeDistantShoreCleats() {
+      const semantic = visualPalette().semantic;
+      const visibleOwners = [];
+      if (camera.distance <= 220) {
+        const visible = visibleHarborIds();
+        const boatMotion = sceneMotion();
+        for (const cleat of shoreCleats) {
+          if (visible.has(cleat.parentId) && !shoreCleatIsInteractive(cleat, boatMotion)) {
+            visibleOwners.push(`shore-cleat:${cleat.id}`);
+          }
+        }
+      }
+      nativeStaticPrototype.updateFamily("shore-cleat", {
+        visibleOwners,
+        color: moorings.selected ? semantic.cleatDisabled : semantic.cleat,
+        linewidth: moorings.selected ? 1.5 : 2.4
+      });
+      return visibleOwners.length;
+    }
+
+    function selectNativeWorldRenderer() {
+      if (activeFrameProfile || captureSurfaces) {
+        throw new Error("Renderer natif visible indisponible pendant un diagnostic projeté");
+      }
+      let next;
+      try {
+        next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
+          includeStaticBoats: true,
+          includeSeamarks: true,
+          includeShoreCleats: true
+        }), {
+          playerDefinition: nativePlayerDefinition(),
+          flowDefinition: nativeFlowDefinition()
+        });
+        next.attach(canvas.parentElement, canvas);
+      } catch (error) {
+        next?.dispose();
+        nativeInfrastructureError = String(error.message || error);
+        throw error;
+      }
+      nativeStaticPrototype?.dispose();
+      nativeStaticPrototype = next;
+      nativeInfrastructureEnabled = true;
+      nativePlayerEnabled = true;
+      nativeStaticBoatsEnabled = true;
+      nativeStaticSeamarksEnabled = true;
+      nativeInfrastructureTheme = ui.visualTheme;
+      nativeChartGridSignature = null;
+      nativeInfrastructureError = null;
+      activeWorldRenderer = "native";
+      worldCanvas.style.display = "none";
+    }
+
+    function selectLegacyWorldRenderer() {
+      if (activeWorldRenderer === "native") {
+        nativeStaticPrototype?.dispose();
+        nativeStaticPrototype = null;
+        nativeInfrastructureEnabled = false;
+        nativePlayerEnabled = false;
+      }
+      activeWorldRenderer = "legacy";
+      nativeChartGridSignature = null;
+      worldCanvas.style.display = depthRenderer ? "block" : "none";
     }
 
     function addHarborGeometry() {
@@ -7812,8 +7992,10 @@
       resizeCanvas();
       frameBasis = cameraBasis();
       visibleHarborFrameCache = computeVisibleHarborIds();
+      const nativeWorldActive = activeWorldRenderer === "native"
+        && nativeInfrastructureEnabled && nativePlayerEnabled && nativeStaticPrototype;
       drawWater(time);
-      surfaceCapture = captureSurfaces ? {
+      surfaceCapture = captureSurfaces && !nativeWorldActive ? {
         camera: KJPThreeCamera.createCameraSnapshot({
           basis: frameBasis, width: canvasWidth, height: canvasHeight,
           focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
@@ -7824,62 +8006,108 @@
       } : null;
       polygons.length = 0;
       overlayLines.length = 0;
-      addChartGrid();
-      drawFlowParticles(ui.simTime);
-      addHarborGeometry();
-      addDistantShoreCleatGeometry();
-      addGoalGeometry();
-      const visible = visibleHarborFrameCache;
-      const boatCachePrefix = `${visualPalette().id}:${camera.anatomy ? "anatomy" : "surface"}`;
-      for (const boat of staticBoats) {
-        if (!visible.has(boat.id)) continue;
-        addCachedWorldGeometry(`boat:${boatCachePrefix}:${boat.id}`, () => {
-          addBoatMesh(boat, false);
-        });
-      }
-      if (surfaceCapture && ["boats", "seamarks", "world"].includes(captureSurfaces)) {
-        const firstPolygon = polygons.length;
-        const firstLine = overlayLines.length;
-        capturingPlayerBoat = true;
-        try {
+      if (!nativeWorldActive) {
+        nativeWorldRouting.projectedWorldBuilds++;
+        addChartGrid();
+        drawFlowParticles(ui.simTime);
+        addHarborGeometry();
+        addDistantShoreCleatGeometry();
+        addGoalGeometry();
+        const visible = visibleHarborFrameCache;
+        const boatCachePrefix = `${visualPalette().id}:${camera.anatomy ? "anatomy" : "surface"}`;
+        for (const boat of staticBoats) {
+          if (!visible.has(boat.id)) continue;
+          addCachedWorldGeometry(`boat:${boatCachePrefix}:${boat.id}`, () => {
+            addBoatMesh(boat, false);
+          });
+        }
+        if (surfaceCapture && ["boats", "seamarks", "world"].includes(captureSurfaces)) {
+          const firstPolygon = polygons.length;
+          const firstLine = overlayLines.length;
+          capturingPlayerBoat = true;
+          try {
+            addBoatMesh(frameMotion, true);
+          } finally {
+            capturingPlayerBoat = false;
+          }
+          if (captureSurfaces !== "world") {
+            surfaceCapture.projected.push(...polygons.slice(firstPolygon));
+            surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+          }
+          surfaceCapture.owners.player = 1;
+          surfaceCapture.player = {
+            x: frameMotion.x, y: frameMotion.y, heading: frameMotion.heading,
+            timeScale: ui.timeScale, simTime: ui.simTime,
+            interpolationRatio: controls.paused ? 1 : clamp(ui.accumulator / FIXED_DT, 0, 1),
+            previousPose: { ...previousPhysicsPose },
+            authoritativePose: { x: motion.x, y: motion.y, heading: motion.heading },
+            contactFenders: contacts.current.length,
+            polygons: polygons.length - firstPolygon, lines: overlayLines.length - firstLine
+          };
+        } else {
           addBoatMesh(frameMotion, true);
-        } finally {
-          capturingPlayerBoat = false;
         }
-        if (captureSurfaces !== "world") {
-          surfaceCapture.projected.push(...polygons.slice(firstPolygon));
-          surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
+        addRudderAxis();
+        if (surfaceCapture && captureSurfaces === "world") {
+          surfaceCapture.projected = [...polygons];
+          surfaceCapture.projectedLines = overlayLines.filter(item => item.layer < 10);
+          surfaceCapture.routing = {
+            worldPolygons: polygons.length,
+            worldLines: surfaceCapture.projectedLines.length,
+            canvas2DLineLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
+          };
         }
-        surfaceCapture.owners.player = 1;
-        surfaceCapture.player = {
-          x: frameMotion.x, y: frameMotion.y, heading: frameMotion.heading,
-          timeScale: ui.timeScale, simTime: ui.simTime,
-          interpolationRatio: controls.paused ? 1 : clamp(ui.accumulator / FIXED_DT, 0, 1),
-          previousPose: { ...previousPhysicsPose },
-          authoritativePose: { x: motion.x, y: motion.y, heading: motion.heading },
-          contactFenders: contacts.current.length,
-          polygons: polygons.length - firstPolygon, lines: overlayLines.length - firstLine
-        };
       } else {
-        addBoatMesh(frameMotion, true);
-      }
-      addRudderAxis();
-      if (surfaceCapture && captureSurfaces === "world") {
-        surfaceCapture.projected = [...polygons];
-        surfaceCapture.projectedLines = overlayLines.filter(item => item.layer < 10);
-        surfaceCapture.routing = {
-          worldPolygons: polygons.length,
-          worldLines: surfaceCapture.projectedLines.length,
-          canvas2DLineLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
-        };
+        // Projections conservées uniquement pour l'objectif pédagogique et
+        // l'axe de barre. Le picking et les aussières sont dessinés plus bas.
+        addGoalGeometry();
+        addRudderAxis();
       }
       if (ownerMarks) ownerMarks.prepareEnd = performance.now();
-      if (depthRenderer) {
+      if (nativeWorldActive) {
+        try {
+          if (nativeInfrastructureTheme !== ui.visualTheme) {
+            nativeStaticPrototype.updatePalette(nativeInfrastructurePalette());
+            nativeInfrastructureTheme = ui.visualTheme;
+          }
+          const gridRebuilt = syncNativeChartGrid();
+          const distantShoreCleats = syncNativeDistantShoreCleats();
+          nativeStaticPrototype.render(
+            nativeCameraSnapshot(),
+            pixelRatio,
+            nativePlayerPresentation(),
+            nativeFlowPresentation(ui.simTime)
+          );
+          overlayLines.sort((a, b) => a.layer - b.layer).forEach(drawLineItem);
+          nativeWorldRouting.nativeFrames++;
+          nativeWorldRouting.lastFrame = {
+            backend: "native",
+            projectedWorld: false,
+            renderFrame: false,
+            projectedPolygons: polygons.length,
+            projectedOverlayLines: overlayLines.length,
+            overlayLayers: overlayLines.map(item => item.layer),
+            gridRebuilt,
+            distantShoreCleats
+          };
+        } catch (error) {
+          nativeInfrastructureError = String(error.message || error);
+          nativeWorldRouting.lastFrame = {
+            backend: "native-failed",
+            projectedWorld: false,
+            renderFrame: false,
+            error: nativeInfrastructureError
+          };
+          console.warn("Rendu Three natif interrompu, retour à Legacy", error);
+          selectLegacyWorldRenderer();
+        }
+      } else if (depthRenderer) {
         try {
           const projectedFrame = KJPRenderFrames.createRenderFrame({
             polygons,
             lines: overlayLines.filter(item => item.layer < 10)
           });
+          nativeWorldRouting.renderFrames++;
           if (ownerMarks) ownerMarks.snapshotEnd = performance.now();
           if (activeFrameProfile) {
             if (ownerMarks) ownerMarks.three = {};
@@ -7905,7 +8133,7 @@
           worldCanvas.style.display = "none";
         }
       }
-      if (!depthRenderer) {
+      if (!nativeWorldActive && !depthRenderer) {
         polygons.sort((a, b) => b.depth - a.depth);
         overlayLines
           .filter(item => item.layer < 0)
@@ -7917,18 +8145,28 @@
           .sort((a, b) => a.layer - b.layer)
           .forEach(drawLineItem);
       }
+      if (!nativeWorldActive) {
+        nativeWorldRouting.legacyFrames++;
+        nativeWorldRouting.lastFrame = {
+          backend: "legacy",
+          projectedWorld: true,
+          renderFrame: Boolean(depthRenderer),
+          projectedPolygons: polygons.length,
+          projectedOverlayLines: overlayLines.length,
+          overlayLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
+        };
+      }
       drawMooringLayer();
       drawUnderstandingOverlay();
       drawAnatomyLabels();
-      if (nativeInfrastructureEnabled && nativeInfrastructureTheme !== ui.visualTheme) {
+      if (!nativeWorldActive && nativeInfrastructureEnabled && nativeInfrastructureTheme !== ui.visualTheme) {
         nativeStaticPrototype.updatePalette(nativeInfrastructurePalette());
         nativeInfrastructureTheme = ui.visualTheme;
       }
-      if (nativeStaticPrototype) nativeStaticPrototype.render(KJPThreeCamera.createCameraSnapshot({
-        basis: frameBasis, width: canvasWidth, height: canvasHeight,
-        focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
-        near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
-      }), pixelRatio, nativePlayerEnabled ? nativePlayerPresentation() : null);
+      if (!nativeWorldActive && nativeStaticPrototype) {
+        nativeStaticPrototype.render(nativeCameraSnapshot(), pixelRatio,
+          nativePlayerEnabled ? nativePlayerPresentation() : null);
+      }
       frameMotion = null;
       visibleHarborFrameCache = null;
       if (contacts.toastUntil && performance.now() > contacts.toastUntil) {
@@ -9401,7 +9639,10 @@
         precomputedShoreCleats: shoreCleatRenderGeometryById.size,
         interpolation: "fixed-step-visual",
         cameraSmoothing: "time-based",
-        renderer: depthRenderer?.report?.() || null
+        renderer: activeWorldRenderer === "native"
+          ? { backend: "native", frames: nativeWorldRouting.nativeFrames,
+            memory: nativeStaticPrototype?.report().memory || null }
+          : depthRenderer?.report?.() || null
       };
     }
 
@@ -9589,6 +9830,8 @@
           includeSeamarks: seamarks
         }), options);
         nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
+        activeWorldRenderer = "legacy";
+        worldCanvas.style.display = depthRenderer ? "block" : "none";
         nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
         nativeStaticBoatsEnabled = staticBoats;
         nativeStaticSeamarksEnabled = seamarks;
@@ -9596,6 +9839,35 @@
         nativeInfrastructureError = null;
       };
       window.__PORTANCE_TEST__ = Object.freeze({
+        selectWorldRenderer(renderer) {
+          if (renderer === "native") selectNativeWorldRenderer();
+          else if (renderer === "legacy") selectLegacyWorldRenderer();
+          else throw new TypeError("Renderer monde invalide");
+          return renderer;
+        },
+        worldRendererReport(options = {}) {
+          return {
+            active: activeWorldRenderer,
+            legacyDefault: true,
+            ...(nativeInfrastructureError ? { nativeInfrastructureError } : {}),
+            routing: structuredClone(nativeWorldRouting),
+            presentation: {
+              basis: frameBasis ? structuredClone(frameBasis) : null,
+              pose: { ...interpolatedFrameMotion },
+              hitTargets: structuredClone(moorings.hitTargets)
+            },
+            canvas: {
+              nativeConnected: Boolean(nativeStaticPrototype?.canvas.isConnected),
+              nativeDisplay: nativeStaticPrototype?.canvas.isConnected
+                ? getComputedStyle(nativeStaticPrototype.canvas).display : null,
+              legacyDisplay: getComputedStyle(worldCanvas).display,
+              overlayPointerEvents: getComputedStyle(canvas).pointerEvents,
+              nativePointerEvents: nativeStaticPrototype?.canvas.isConnected
+                ? getComputedStyle(nativeStaticPrototype.canvas).pointerEvents : null
+            },
+            ...(nativeStaticPrototype?.report(options) || {})
+          };
+        },
         enableNativeInfrastructurePrototype({ staticBoats = true, seamarks = true } = {}) {
           enableNativeInfrastructureBench({ staticBoats, seamarks }, false);
         },
@@ -9650,6 +9922,8 @@
           const next = KJPThreeNative.createNativeStaticPrototype(definition);
           nativeStaticPrototype?.dispose();
           nativeStaticPrototype = next;
+          activeWorldRenderer = "legacy";
+          worldCanvas.style.display = depthRenderer ? "block" : "none";
           nativeInfrastructureEnabled = false;
           nativePlayerEnabled = false;
         },
@@ -9685,6 +9959,9 @@
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
           nativeInfrastructureEnabled = false;
           nativePlayerEnabled = false;
+          activeWorldRenderer = "legacy";
+          nativeChartGridSignature = null;
+          worldCanvas.style.display = depthRenderer ? "block" : "none";
         },
         startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
           if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");

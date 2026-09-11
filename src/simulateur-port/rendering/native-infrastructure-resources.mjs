@@ -135,6 +135,20 @@ export function createNativeInfrastructureResources({ owners, palette }) {
     updatePalette(next) {
       for (const material of materials.values()) applyColor(material, next[material.userData.role]);
     },
+    updateFamily(family, { visibleOwners = null, color = null, linewidth = null } = {}) {
+      const visible = visibleOwners === null ? null : new Set(visibleOwners);
+      for (const object of group.children) {
+        if (object.userData.family !== family) continue;
+        object.visible = visible === null || visible.has(object.userData.owner);
+        if (color !== null) applyColor(object.material, color);
+        if (linewidth !== null && object.isLineSegments2) {
+          if (!Number.isFinite(linewidth) || linewidth <= 0) {
+            throw new TypeError("Native infrastructure: largeur de famille invalide");
+          }
+          object.material.linewidth = linewidth;
+        }
+      }
+    },
     report: () => ({ ...totals, owners: inventory.map(o => ({ ...o })), geometryCount: geometries.length,
       materialCount: materials.size, warmed })
   });

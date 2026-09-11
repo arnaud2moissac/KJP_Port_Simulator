@@ -2,20 +2,31 @@ import { Scene, WebGLRenderer, NoToneMapping, SRGBColorSpace } from "three";
 import { createThreeCamera } from "./three-camera.mjs";
 import { createNativeStaticResources, nativeStaticResourceBuilds } from "./native-static-resources.mjs";
 
-// Banc N1 à N3 explicite, hors écran. Aucun RAF, contrôleur, horloge ou RenderFrame.
+// Banc N1-N3 détaché ou renderer N4 explicitement sélectionné. Aucun RAF,
+// contrôleur, horloge ou RenderFrame n'est créé ici.
 export function createNativeStaticPrototype(definition, {
   resourceFactory = createNativeStaticResources,
   playerDefinition = null,
-  playerFactory = null
+  playerFactory = null,
+  flowDefinition = null,
+  flowFactory = null,
+  layerFactory = resourceFactory
 } = {}) {
   let resources = resourceFactory(definition);
   let playerResources = null;
+  let flowResources = null;
+  const layers = new Map();
   try {
     if (playerDefinition) {
       if (typeof playerFactory !== "function") throw new TypeError("Native static: fabrique joueur absente");
       playerResources = playerFactory(playerDefinition);
     }
+    if (flowDefinition) {
+      if (typeof flowFactory !== "function") throw new TypeError("Native static: fabrique de flux absente");
+      flowResources = flowFactory(flowDefinition);
+    }
   } catch (error) {
+    flowResources?.dispose();
     resources.dispose();
     throw error;
   }
@@ -25,6 +36,7 @@ export function createNativeStaticPrototype(definition, {
   try {
     renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
   } catch (error) {
+    flowResources?.dispose();
     playerResources?.dispose();
     resources.dispose();
     throw error;
@@ -35,6 +47,7 @@ export function createNativeStaticPrototype(definition, {
   const scene = new Scene();
   scene.add(resources.group);
   if (playerResources) scene.add(playerResources.group);
+  if (flowResources) scene.add(flowResources.group);
   const bridge = createThreeCamera();
   const identities = new WeakMap();
   let nextId = 1, frames = 0, lastCamera = null, disposed = false;
@@ -45,16 +58,18 @@ export function createNativeStaticPrototype(definition, {
   function ensureActive() {
     if (disposed) throw new Error("Native static prototype disposed");
   }
-  function render(camera, pixelRatio, playerPresentation = null) {
+  function render(camera, pixelRatio, playerPresentation = null, flowPresentation = null) {
     ensureActive();
     lastCamera = camera;
     if (playerResources) playerResources.update(playerPresentation);
+    if (flowResources) flowResources.update(flowPresentation);
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     const w = Math.round(camera.width * pixelRatio), h = Math.round(camera.height * pixelRatio);
     if (canvas.width !== w || canvas.height !== h) renderer.setSize(w / pixelRatio, h / pixelRatio, false);
     renderer.render(scene, bridge.update(camera));
     resources.afterRender?.();
     playerResources?.afterRender?.();
+    for (const layer of layers.values()) layer.afterRender?.();
     frames++;
   }
   function report({ images = false } = {}) {
@@ -70,7 +85,9 @@ export function createNativeStaticPrototype(definition, {
       });
     const objects = [
       ...resources.group.children,
-      ...(playerResources ? playerResources.group.children : [])
+      ...(playerResources ? playerResources.group.children : []),
+      ...(flowResources ? flowResources.group.children : []),
+      ...[...layers.values()].flatMap(layer => layer.group.children)
     ];
     return {
       frames, resourceBuilds: nativeStaticResourceBuilds(), camera: lastCamera ? structuredClone(lastCamera) : null,
@@ -83,6 +100,9 @@ export function createNativeStaticPrototype(definition, {
           ...(Number.isFinite(m.linewidth) ? { linewidth: m.linewidth, baseLinewidth: m.userData.baseLinewidth } : {})
         })) } : {}),
       ...(playerResources ? { player: playerResources.report() } : {}),
+      ...(flowResources ? { flow: flowResources.report() } : {}),
+      layers: Object.fromEntries([...layers].map(([name, layer]) => [name, layer.report?.() || null])),
+      attached: canvas.isConnected,
       glError: renderer.getContext().getError(),
       ...(images && frames ? { image: canvas.toDataURL() } : {})
     };
@@ -93,17 +113,49 @@ export function createNativeStaticPrototype(definition, {
     scene.remove(resources.group); resources.dispose();
     resources = next; scene.add(resources.group);
   }
+  function replaceLayer(name, definition) {
+    ensureActive();
+    if (typeof name !== "string" || !name) throw new TypeError("Native static: nom de couche invalide");
+    const next = layerFactory(definition);
+    const previous = layers.get(name);
+    if (previous) { scene.remove(previous.group); previous.dispose(); }
+    layers.set(name, next);
+    scene.add(next.group);
+  }
+  function removeLayer(name) {
+    ensureActive();
+    const previous = layers.get(name);
+    if (!previous) return;
+    scene.remove(previous.group);
+    previous.dispose();
+    layers.delete(name);
+  }
+  function attach(parent, before = null) {
+    ensureActive();
+    if (!(parent instanceof Element)) throw new TypeError("Native static: conteneur absent");
+    parent.insertBefore(canvas, before);
+  }
+  function detach() {
+    ensureActive();
+    canvas.remove();
+  }
   function dispose() {
     if (disposed) return;
     disposed = true;
     scene.remove(resources.group);
     if (playerResources) scene.remove(playerResources.group);
-    playerResources?.dispose(); resources.dispose(); renderer.dispose(); renderer.forceContextLoss();
+    if (flowResources) scene.remove(flowResources.group);
+    for (const layer of layers.values()) { scene.remove(layer.group); layer.dispose(); }
+    layers.clear();
+    canvas.remove();
+    flowResources?.dispose(); playerResources?.dispose(); resources.dispose(); renderer.dispose(); renderer.forceContextLoss();
     canvas.width = 0; canvas.height = 0;
   }
   // Les ressources sont accessibles au hook de mutation du banc, jamais au moteur.
-  return Object.freeze({ render, report, dispose, replaceResources,
+  return Object.freeze({ render, report, dispose, replaceResources, replaceLayer, removeLayer, attach, detach,
     updatePalette: palette => resources.updatePalette?.(palette),
+    updateFamily: (family, presentation) => resources.updateFamily?.(family, presentation),
     get resources() { return resources; },
-    get playerResources() { return playerResources; } });
+    get playerResources() { return playerResources; },
+    get canvas() { return canvas; } });
 }

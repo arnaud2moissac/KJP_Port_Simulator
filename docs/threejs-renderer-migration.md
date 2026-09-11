@@ -1976,3 +1976,122 @@ interactive**. Elle pourra sélectionner explicitement le chemin natif visible,
 composer fond d'eau et Canvas 2D, conserver picking/overlays, et prouver que le
 monde projeté Legacy complet n'est plus construit dans son fonctionnement
 normal. N4 n'est pas commencée dans cette livraison.
+
+## Livraison N4 — intégration dans la boucle et composition interactive
+
+**N4 est validée dans son périmètre : tous ses critères de sortie ont été
+vérifiés.** Le statut « N4 n'est pas commencée » ci-dessus est historique et
+remplacé par cette livraison. Départ du commit
+`f0565aa8dc8965ebf5e8cbb8705828f7cd74cede` (`refactor_v2:N3`) sur
+`codex/threejs-v2`, avec un arbre propre. Aucun changement de branche, reset ou
+nettoyage de modifications préexistantes n'a été effectué.
+
+### Routage visible et composition
+
+- `activeWorldRenderer` vaut `legacy` au démarrage. Le hook de qualification
+  `selectWorldRenderer("native")`, disponible uniquement avec `?test`, construit
+  le catalogue N2, le joueur N3, les taquets lointains et les buffers de flux,
+  puis insère le canvas Three sous `#scene`. Le Canvas 2D supérieur garde les
+  événements pointeur ; le canvas natif a `pointer-events:none`. Revenir à
+  `legacy` libère le monde natif et réaffiche immédiatement `worldScene`.
+- `render(time)` conserve son unique RAF, l'accumulateur et le pas fixe, puis
+  calcule une seule fois `frameMotion`, `frameBasis` et la visibilité. Dans le
+  chemin natif, il transmet ce même `CameraSnapshot` et la même pose interpolée
+  aux ressources persistantes. Aucun contrôleur, suivi caméra, horloge ou calcul
+  Three n'alimente la simulation.
+- Le chemin natif normal n'appelle pas `addHarborGeometry()`, le replay du cache
+  projeté, `addBoatMesh()` pour le joueur visible, ni
+  `KJPRenderFrames.createRenderFrame()`. Les tableaux projetés restent vides de
+  polygones. `addGoalGeometry()` et `addRudderAxis()` conservent seulement leurs
+  projections d'overlay autorisées. `drawMooringLayer()`,
+  `drawUnderstandingOverlay()` et `drawAnatomyLabels()` restent dans le même
+  ordre après le monde natif.
+- Le fond d'eau demeure celui de `.stage`; les deux canvases de monde restent
+  transparents. `resizeCanvas()` continue d'établir le viewport CSS et le DPR
+  communs. Aucun éclairage, ombre, post-traitement, raycasting ou ressource
+  réseau n'est ajouté.
+
+### Ressources variables achevées en N4
+
+- La grille carte est une couche métrique séparée. Sa signature contient thème,
+  vue, pas et bornes alignées. Elle persiste entre deux images et n'est remplacée
+  que lorsque cette signature change ; elle est retirée en thème nuit ou en vue
+  skipper. Une invalidation de grille ne remplace ni le port ni le joueur.
+- Tous les taquets de rive ont un propriétaire `shore-cleat:<id>` construit avec
+  le port. Chaque image ne change que leur visibilité et le matériau partagé
+  selon la visibilité du parent, la proximité du bateau et la sélection en
+  cours. Les taquets interactifs restent dessinés et indexés par
+  `drawMooringLayer()` sur Canvas 2D.
+- `native-flow-resources.mjs` alloue une fois deux buffers séparés, vent et
+  courant. `nativeFlowPresentation()` transmet leurs segments monde à chaque
+  image ; seuls ces attributs dynamiques sont marqués pour transfert. Le port,
+  la coque et les autres attributs ne sont pas invalidés par le temps ou les
+  vecteurs de flux. Les traits droits du vent et ondulés du courant conservent
+  leurs couleurs, largeurs, altitudes, densités et déplacements ; leur
+  qualification visuelle multi-scène reste attribuée à N5.
+- Une reconstruction de port remplace le catalogue monde en conservant le
+  joueur et les buffers de flux. Une panne injectée libère le natif, remet
+  `activeWorldRenderer` à `legacy` et restaure le canvas historique. Une nouvelle
+  sélection native repart ensuite d'un catalogue frais.
+
+### Vérifications N4
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| Protection N4 ciblée finale | `node --test tests/native-world-renderer.test.js` : 1/1 réussi après renforcement du picking et de la reprise ; 136 images natives lors de la dernière relance, 282 propriétaires monde et 288 185 pixels natifs non transparents dans le cadrage principal |
+| Routage et boucle | Pendant les images natives observées, compteurs de construction du monde projeté et de `RenderFrame` strictement constants ; zéro polygone projeté, uniquement couches d'overlay 9/10/12 selon l'état ; un seul callback `render` en attente et maximum simultané égal à 1 |
+| Persistance et transferts | Après chauffe avec flux nuls, attente et mouvement de caméra : identités des géométries, attributs, buffers, tableaux et versions du port/de la coque inchangées ; zéro appel/octet `bufferData` ou `bufferSubData` supplémentaire. Le déplacement du bateau modifie sa matrice et le `CameraSnapshot`, pas ces ressources |
+| Régression skipper signalée | Bateau avancé en vue skipper à temps contrôlé : pose joueur et base caméra évoluent, l'empreinte du canvas monde change, les identités géométriques restent stables. Le port n'est donc plus figé derrière les taquets Canvas 2D |
+| Interactions et composition | Nombre de `hitTargets` identique avant/après sélection ; clic réel sur un taquet bateau puis un taquet rive : une aussière ajoutée. Taquets, aussières, pendilles et overlays conservent le Canvas 2D et aucun raycasting n'est utilisé |
+| Vues, thèmes, flux, resize et reprise | Dessus, anatomie et skipper parcourus ; thèmes nuit/carte ; apparition/retrait persistant de la grille ; appendices anatomiques ; buffers vent/courant alimentés ; resize 840 × 620 ; panne de reconstruction injectée, retour Legacy puis réactivation native réussis |
+| Inspection visuelle ciblée | Vue skipper native visible inspectée à 1 180 × 760 : coque, ponton, taquets, axe de barre, fond d'eau et HUD composés et lisibles ; aucune erreur page/console/GL |
+| `npm run build:simulator`, `npm run check:simulator` | Réussis ; HTML autonome régénéré puis validé |
+| `npm run test:rendering` | 13/13 tests réussis ; contrats N1 à N3 et RenderFrame de compatibilité inchangés |
+| `npm run test:e2e` | 60/60 tests réussis, N4 incluse : 338 comparaisons raster Three de compatibilité avec zéro pixel différent, 24 traversées de ±π, 2 211 ancres caméra, picking, aussières, pendilles et trois trajectoires étalons exactes |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques ; aucune référence réécrite |
+| `git diff --check` et contrôle de périmètre | Réussis ; aucun diff sous physique, profils, ports, trajectoires, références Legacy, dépendances ou scripts |
+| `graphify update .` | Réussi sans appel LLM : graphe AST actualisé à 1 163 nœuds, 1 984 arêtes et 73 communautés |
+
+Le test N4 a d'abord échoué uniquement parce que `pngjs`, absent des
+dépendances du projet, avait été utilisé pour lire une capture. Cette dépendance
+n'a pas été ajoutée : la lecture a été déplacée dans le Canvas 2D du navigateur.
+Après ajout du scénario de panne, une assertion comparait un état physique qui
+avait normalement continué à progresser après le rechargement du scénario ; le
+test remet désormais explicitement la simulation en pause avant de vérifier le
+changement de renderer. Aucun comportement physique, seuil ou étalon n'a été
+adapté pour résoudre ces défauts de banc.
+
+Les fichiers N4 sont le nouveau
+`src/simulateur-port/rendering/native-flow-resources.mjs`, les adaptations de
+`native-static-prototype.mjs`, `native-infrastructure-resources.mjs`,
+`rendering/index.js` et `src/simulateur-port/template.html`, le nouveau
+`tests/native-world-renderer.test.js`, son branchement dans
+`tests/simulateur-port.test.js`, le livrable régénéré `simulateur-port.html` et
+le présent journal. Aucun fichier de physique, profil, collision, trajectoire,
+référence visuelle Legacy, dépendance ou script n'est modifié.
+SHA-256 du HTML autonome :
+`cf22d3e549dcf30c8f8ae8a0afd92a500a3cb5f3399bdb58d938f13c9a210d21`.
+
+### Limites, retour arrière et prochaine tranche
+
+Les contrôles navigateur ont été exécutés avec Chromium headless sur cette
+machine. Une relance finale a été bloquée avant chargement de page par le sandbox
+macOS (`MachPortRendezvousServer: Permission denied`) ; la même commande relancée
+hors sandbox a réussi 1/1. L'inspection visuelle N4 est ciblée ; les seuils visuels sémantiques des
+six scènes, les mutations volontaires par famille, les autres navigateurs et
+appareils, le soak mémoire et les mesures appariées p50/p95/p99 du chemin complet
+restent à réaliser. Aucun gain de performance n'est encore revendiqué. Les
+pointillés raster exacts ne constituent pas une exigence du natif ; N5 devra
+toutefois vérifier que les flux et marqueurs restent lisibles et qu'aucune
+information pédagogique n'est perdue.
+
+Le retour arrière est le hook `selectWorldRenderer("legacy")`; son cycle de
+libération et la reprise après panne sont testés. Sans appel explicite au hook,
+le canvas natif n'est pas attaché et Legacy reste le renderer actif. Le backend
+Three de compatibilité et ses comparaisons exactes restent disponibles.
+
+Prochaine tranche prête : **N5, qualification visuelle, fonctionnelle et de
+performance**. Elle doit ajouter les seuils natifs multi-scènes et mutations,
+mesurer le chemin complet sur les mêmes états et caméras puis confirmer en rendu
+visible, sans modifier les références Legacy ni basculer le renderer par défaut.
+N5 n'est pas commencée dans cette livraison.
