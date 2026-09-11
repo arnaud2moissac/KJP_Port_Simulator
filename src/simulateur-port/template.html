@@ -3292,6 +3292,7 @@
     let staticWorldGeometryCache = new Map();
     let nativeStaticPrototype = null; // Banc N1, activé uniquement par l'API ?test.
     let nativeInfrastructureEnabled = false; // Lots N2.1 à N2.3, même banc détaché.
+    let nativePlayerEnabled = false; // Lot N3, joueur local dans le même banc détaché.
     let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
     let nativeStaticSeamarksEnabled = true; // Repli N2.3 indépendant, accessible seulement par ?test.
     let nativeInfrastructureTheme = null;
@@ -3323,6 +3324,7 @@
       if (!nativeInfrastructureEnabled) {
         nativeStaticPrototype?.dispose();
         nativeStaticPrototype = null;
+        nativePlayerEnabled = false;
       }
       PORT_TOPOLOGY = topology;
       docks = clonePortData(topology.structures?.docks || []);
@@ -3391,6 +3393,7 @@
           nativeInfrastructureError = String(error.message || error);
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
           nativeInfrastructureEnabled = false;
+          nativePlayerEnabled = false;
         }
       }
     }
@@ -6275,8 +6278,8 @@
       };
     }
 
-    function transformShape(boat, shape, z) {
-      return shape.map(([x, y]) => localPoint(boat, x, y, z));
+    function transformShape(boat, shape, z, pointFor = localPoint) {
+      return shape.map(([x, y]) => pointFor(boat, x, y, z));
     }
 
     function shapeHalfWidthAtX(shape, x) {
@@ -6331,10 +6334,17 @@
       );
     }
 
-    function addBoatMesh(boat, player = false, palette = visualPalette()) {
+    function addBoatMesh(boat, player = false, palette = visualPalette(), options = {}) {
       const boatPalette = palette.boat;
       const anatomyPalette = palette.anatomy;
-      const accelerated = player && ui.timeScale === 2;
+      const pointFor = options.pointFor || localPoint;
+      const parts = options.parts ? new Set(options.parts) : null;
+      const includes = part => !parts || parts.has(part) || part.startsWith("fender:") && parts.has("fenders");
+      const accelerated = options.accelerated ?? (player && ui.timeScale === 2);
+      const cameraView = options.cameraView || camera.view;
+      const anatomyVisible = options.anatomy ?? camera.anatomy;
+      const contactItems = options.contacts || contacts.current;
+      const propellerAngle = options.propellerAngle ?? (ui.simTime * controls.throttleActual * 12);
       const boatOutline = accelerated
         ? boatPalette.acceleratedOutline
         : boatPalette.outline;
@@ -6343,9 +6353,9 @@
       const deckZ = player
         ? BOAT_PROFILE.visual.playerDeckZ
         : BOAT_PROFILE.visual.staticDeckZ;
-      const water = transformShape(boat, hull, waterlineZ);
+      const water = transformShape(boat, hull, waterlineZ, pointFor);
       const deckShape = hull.map(([x,y]) => [x * .96, y * .94]);
-      const deck = transformShape(boat, deckShape, deckZ);
+      const deck = transformShape(boat, deckShape, deckZ, pointFor);
       const hullColor = accelerated
         ? boatPalette.acceleratedHull
         : player
@@ -6359,63 +6369,65 @@
       const starboardSide = accelerated
         ? boatPalette.acceleratedSide
         : boatPalette.sideStarboard;
-      for (let index = 0; index < hull.length; index++) {
-        const next = (index + 1) % hull.length;
-        addPolygon(
-          [water[index], water[next], deck[next], deck[index]],
-          index < 5 ? portSide : starboardSide,
-          boatOutline
-        );
-      }
-      addPolygon(deck, hullColor, boatOutline, accelerated ? 1.4 : .9, -.01);
-      if (player) {
-        const collisionVisual = BOAT_PROFILE.visual.collision;
-        const collisionHull = transformShape(boat, hull, deckZ + .025);
-        const hullPath = [...collisionHull, collisionHull[0]];
-        addWorldLine(
-          hullPath,
-          boatPalette.collisionHalo,
-          camera.view === "skipper"
-            ? collisionVisual.skipperHaloWidth
-            : collisionVisual.hullHaloWidth,
-          [],
-          5
-        );
-        addWorldLine(
-          hullPath,
-          boatPalette.collisionOutline,
-          camera.view === "skipper"
-            ? collisionVisual.skipperOutlineWidth
-            : collisionVisual.hullOutlineWidth,
-          [],
-          6
-        );
+      if (includes("hull")) {
+        for (let index = 0; index < hull.length; index++) {
+          const next = (index + 1) % hull.length;
+          addPolygon(
+            [water[index], water[next], deck[next], deck[index]],
+            index < 5 ? portSide : starboardSide,
+            boatOutline
+          );
+        }
+        addPolygon(deck, hullColor, boatOutline, accelerated ? 1.4 : .9, -.01);
+        if (player) {
+          const collisionVisual = BOAT_PROFILE.visual.collision;
+          const collisionHull = transformShape(boat, hull, deckZ + .025, pointFor);
+          const hullPath = [...collisionHull, collisionHull[0]];
+          addWorldLine(
+            hullPath,
+            boatPalette.collisionHalo,
+            cameraView === "skipper"
+              ? collisionVisual.skipperHaloWidth
+              : collisionVisual.hullHaloWidth,
+            [],
+            5
+          );
+          addWorldLine(
+            hullPath,
+            boatPalette.collisionOutline,
+            cameraView === "skipper"
+              ? collisionVisual.skipperOutlineWidth
+              : collisionVisual.hullOutlineWidth,
+            [],
+            6
+          );
+        }
+
+        if (boat.vesselType !== "motorboat") {
+          const mastBase = pointFor(boat, .55, 0, deckZ + .02);
+          const mastTop = pointFor(boat, .55, 0, player ? 13.8 : 10.5);
+          addWorldLine(
+            [mastBase, mastTop],
+            player ? boatPalette.mastPlayer : boatPalette.mastStatic,
+            player ? 3 : 1.6,
+            [],
+            4
+          );
+        }
       }
 
-      if (boat.vesselType !== "motorboat") {
-        const mastBase = localPoint(boat, .55, 0, deckZ + .02);
-        const mastTop = localPoint(boat, .55, 0, player ? 13.8 : 10.5);
-        addWorldLine(
-          [mastBase, mastTop],
-          player ? boatPalette.mastPlayer : boatPalette.mastStatic,
-          player ? 3 : 1.6,
-          [],
-          4
-        );
-      }
-
-      if (player && camera.anatomy) {
+      if (player && anatomyVisible && includes("anatomy")) {
         const keelPort = [
-          localPoint(boat, 1.05, .2, -.15),
-          localPoint(boat, -.95, .2, -.15),
-          localPoint(boat, -1.15, .14, -1.78),
-          localPoint(boat, .35, .14, -1.92)
+          pointFor(boat, 1.05, .2, -.15),
+          pointFor(boat, -.95, .2, -.15),
+          pointFor(boat, -1.15, .14, -1.78),
+          pointFor(boat, .35, .14, -1.92)
         ];
         const keelStarboard = [
-          localPoint(boat, 1.05, -.2, -.15),
-          localPoint(boat, -.95, -.2, -.15),
-          localPoint(boat, -1.15, -.14, -1.78),
-          localPoint(boat, .35, -.14, -1.92)
+          pointFor(boat, 1.05, -.2, -.15),
+          pointFor(boat, -.95, -.2, -.15),
+          pointFor(boat, -1.15, -.14, -1.78),
+          pointFor(boat, .35, -.14, -1.92)
         ];
         addPolygon(keelPort, anatomyPalette.keelPort, anatomyPalette.keelEdge, 1.2, .03);
         addPolygon(keelStarboard, anatomyPalette.keelStarboard, anatomyPalette.keelEdge, 1.1, .03);
@@ -6426,26 +6438,29 @@
         addWorldLine([...keelPort, keelPort[0]], anatomyPalette.keelEdge, 1.5, [], 7);
 
         const rudderPort = [
-          localPoint(boat, -3.8, .12, -.2),
-          localPoint(boat, -4.72, .12, -.35),
-          localPoint(boat, -4.55, .1, -1.55),
-          localPoint(boat, -3.95, .1, -1.35)
+          pointFor(boat, -3.8, .12, -.2),
+          pointFor(boat, -4.72, .12, -.35),
+          pointFor(boat, -4.55, .1, -1.55),
+          pointFor(boat, -3.95, .1, -1.35)
         ];
         const rudderStarboard = [
-          localPoint(boat, -3.8, -.12, -.2),
-          localPoint(boat, -4.72, -.12, -.35),
-          localPoint(boat, -4.55, -.1, -1.55),
-          localPoint(boat, -3.95, -.1, -1.35)
+          pointFor(boat, -3.8, -.12, -.2),
+          pointFor(boat, -4.72, -.12, -.35),
+          pointFor(boat, -4.55, -.1, -1.55),
+          pointFor(boat, -3.95, -.1, -1.35)
         ];
         addPolygon(rudderPort, anatomyPalette.rudderPort, anatomyPalette.rudderEdge, 1.2, .04);
         addPolygon(rudderStarboard, anatomyPalette.rudderStarboard, anatomyPalette.rudderEdge, 1.1, .04);
         addWorldLine([...rudderPort, rudderPort[0]], anatomyPalette.rudderEdge, 1.5, [], 7);
-        const shaftStart = localPoint(boat, -2.35, 0, -.34);
-        const propCenter = localPoint(boat, BOAT_PROFILE.propellerX, 0, -.55);
+        const shaftStart = pointFor(boat, -2.35, 0, -.34);
+        const propCenter = pointFor(boat, BOAT_PROFILE.propellerX, 0, -.55);
         addWorldLine([shaftStart, propCenter], anatomyPalette.shaft, 2, [], 5);
+      }
+      if (player && anatomyVisible && includes("propeller")) {
+        const propCenter = pointFor(boat, BOAT_PROFILE.propellerX, 0, -.55);
         for (let blade = 0; blade < 3; blade++) {
-          const angle = blade * Math.PI * 2 / 3 + ui.simTime * controls.throttleActual * 12;
-          const end = localPoint(
+          const angle = blade * Math.PI * 2 / 3 + propellerAngle;
+          const end = pointFor(
             boat,
             BOAT_PROFILE.propellerX,
             Math.cos(angle) * .34,
@@ -6463,17 +6478,18 @@
         const topZ = bottomZ + collisionVisual.fenderHeight;
         for (const [fenderIndex, fender] of BOAT_PROFILE.fenders.entries()) {
           const sign = Math.sign(fender.y) || 1;
-          const contact = contacts.current.find(item => item.id.startsWith(`${fenderIndex}:`));
+          if (!includes(`fender:${fenderIndex}`)) continue;
+          const contact = contactItems.find(item => item.id.startsWith(`${fenderIndex}:`));
           const fenderFill = contact ? palette.semantic.contact : boatPalette.fender;
           const fenderOutline = contact ? palette.semantic.contact : boatPalette.fenderOutline;
           const localHullHalfWidth = shapeHalfWidthAtX(hull, fender.x);
-          const tetherStart = localPoint(
+          const tetherStart = pointFor(
             boat,
             fender.x,
             sign * localHullHalfWidth * .98,
             deckZ * .84
           );
-          const tetherEnd = localPoint(boat, fender.x, fender.y, topZ);
+          const tetherEnd = pointFor(boat, fender.x, fender.y, topZ);
           addWorldLine(
             [tetherStart, tetherEnd],
             fenderOutline,
@@ -6483,7 +6499,7 @@
           );
           const innerY = fender.y - sign * halfThickness;
           const outerY = fender.y + sign * halfThickness;
-          const point = (x, y, z) => localPoint(boat, x, y, z);
+          const point = (x, y, z) => pointFor(boat, x, y, z);
           const x0 = fender.x - halfWidth;
           const x1 = fender.x + halfWidth;
           const outerFace = [
@@ -6873,6 +6889,134 @@
         }
       }
       return { owners, palette: nativeInfrastructurePalette() };
+    }
+
+    function nativePlayerPaletteRoles(fenderIndex = null) {
+      const roles = (prefix, group) => Object.fromEntries(Object.entries(group).map(([key, value]) => [
+        key,
+        Array.isArray(value) ? value.map((_, index) => `${prefix}${key}.${index}`) : `${prefix}${key}`
+      ]));
+      const boat = roles("boat.", visualPalette().boat);
+      if (fenderIndex !== null) {
+        boat.fender = `player.fender.${fenderIndex}.fill`;
+        boat.fenderOutline = `player.fender.${fenderIndex}.outline`;
+      }
+      return {
+        boat,
+        anatomy: roles("anatomy.", visualPalette().anatomy),
+        semantic: { contact: fenderIndex === null ? "semantic.contact" : `player.fender.${fenderIndex}.fill` }
+      };
+    }
+
+    function nativePlayerContactFenders() {
+      const stations = ["bow", "mid", "stern"];
+      return BOAT_PROFILE.fenders.flatMap((fender, index) => {
+        const physicsId = `fender-${stations[index % stations.length]}-${fender.side}:`;
+        return contacts.current.some(contact => (
+          contact.id.startsWith(physicsId) || contact.id.startsWith(`${index}:`)
+        )) ? [index] : [];
+      });
+    }
+
+    function nativePlayerPalette(contactFenders = nativePlayerContactFenders()) {
+      const palette = visualPalette();
+      const boat = { ...palette.boat };
+      if (ui.timeScale === 2) {
+        boat.playerHull = palette.boat.acceleratedHull;
+        boat.playerSidePort = palette.boat.acceleratedSide;
+        boat.sideStarboard = palette.boat.acceleratedSide;
+        boat.outline = palette.boat.acceleratedOutline;
+      }
+      const flatten = (prefix, group) => Object.entries(group).flatMap(([key, value]) => (
+        Array.isArray(value)
+          ? value.map((color, index) => [`${prefix}${key}.${index}`, color])
+          : [[`${prefix}${key}`, value]]
+      ));
+      const contactSet = new Set(contactFenders);
+      return Object.fromEntries([
+        ...flatten("boat.", boat),
+        ...flatten("anatomy.", palette.anatomy),
+        ["semantic.contact", palette.semantic.contact],
+        ...BOAT_PROFILE.fenders.flatMap((_, index) => {
+          const color = contactSet.has(index) ? palette.semantic.contact : palette.boat.fender;
+          const outline = contactSet.has(index) ? palette.semantic.contact : palette.boat.fenderOutline;
+          return [[`player.fender.${index}.fill`, color], [`player.fender.${index}.outline`, outline]];
+        })
+      ]);
+    }
+
+    function nativePlayerDefinition() {
+      const owners = [];
+      const collect = (family, id, palette, parts) => {
+        const previous = worldGeometryCapture;
+        const owner = { family, id, polygons: [], lines: [] };
+        worldGeometryCapture = owner;
+        try {
+          addBoatMesh(
+            { x: 0, y: 0, heading: 0, length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam },
+            true,
+            palette,
+            {
+              pointFor: (_boat, x, y, z) => [x, y, z],
+              parts,
+              accelerated: false,
+              cameraView: "top",
+              anatomy: true,
+              contacts: [],
+              propellerAngle: 0
+            }
+          );
+        } finally {
+          worldGeometryCapture = previous;
+        }
+        owners.push(owner);
+      };
+      collect("player", "hull", nativePlayerPaletteRoles(), ["hull"]);
+      collect("player-anatomy", "static", nativePlayerPaletteRoles(), ["anatomy"]);
+      collect("player-propeller", "blades", nativePlayerPaletteRoles(), ["propeller"]);
+      for (const [index] of BOAT_PROFILE.fenders.entries()) {
+        collect("player-fender", String(index), nativePlayerPaletteRoles(index), [`fender:${index}`]);
+      }
+      const collision = BOAT_PROFILE.visual.collision;
+      return {
+        owners,
+        palette: nativePlayerPalette([]),
+        player: {
+          propeller: {
+            owner: "player-propeller:blades",
+            center: [BOAT_PROFILE.propellerX, 0, -.55],
+            radius: .34,
+            blades: 3,
+            initialAngle: 0
+          },
+          anatomyFamilies: ["player-anatomy", "player-propeller"],
+          collisionWidths: {
+            halo: { role: "boat.collisionHalo", regular: collision.hullHaloWidth, skipper: collision.skipperHaloWidth },
+            outline: { role: "boat.collisionOutline", regular: collision.hullOutlineWidth, skipper: collision.skipperOutlineWidth }
+          },
+          acceleratedWidths: [{ owner: "player:hull", role: "boat.outline", regular: .9, accelerated: 1.4 }],
+          fenderWidths: [
+            { regular: 1.7, contact: 2.8 },
+            { regular: 1.3, contact: 2.4 },
+            { regular: 1, contact: 2.2 },
+            { regular: 1.1, contact: 2.2 }
+          ]
+        }
+      };
+    }
+
+    function nativePlayerPresentation() {
+      const pose = sceneMotion();
+      const contactFenders = nativePlayerContactFenders();
+      return {
+        pose: { x: pose.x, y: pose.y, heading: pose.heading },
+        anatomy: camera.anatomy,
+        accelerated: ui.timeScale === 2,
+        cameraView: camera.view,
+        contactFenders,
+        propellerAngle: ui.simTime * controls.throttleActual * 12,
+        palette: nativePlayerPalette(contactFenders)
+      };
     }
 
     function addHarborGeometry() {
@@ -7784,7 +7928,7 @@
         basis: frameBasis, width: canvasWidth, height: canvasHeight,
         focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
         near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
-      }), pixelRatio);
+      }), pixelRatio, nativePlayerEnabled ? nativePlayerPresentation() : null);
       frameMotion = null;
       visibleHarborFrameCache = null;
       if (contacts.toastUntil && performance.now() > contacts.toastUntil) {
@@ -9438,17 +9582,25 @@
       controls.paused = true;
       const threeCamera = KJPThreeCamera.createThreeCamera();
       let surfaceComparison = null;
+      const enableNativeInfrastructureBench = ({ staticBoats = true, seamarks = true } = {}, player = false) => {
+        const options = player ? { playerDefinition: nativePlayerDefinition() } : {};
+        const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
+          includeStaticBoats: staticBoats,
+          includeSeamarks: seamarks
+        }), options);
+        nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
+        nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
+        nativeStaticBoatsEnabled = staticBoats;
+        nativeStaticSeamarksEnabled = seamarks;
+        nativePlayerEnabled = player;
+        nativeInfrastructureError = null;
+      };
       window.__PORTANCE_TEST__ = Object.freeze({
         enableNativeInfrastructurePrototype({ staticBoats = true, seamarks = true } = {}) {
-          const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
-            includeStaticBoats: staticBoats,
-            includeSeamarks: seamarks
-          }));
-          nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
-          nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
-          nativeStaticBoatsEnabled = staticBoats;
-          nativeStaticSeamarksEnabled = seamarks;
-          nativeInfrastructureError = null;
+          enableNativeInfrastructureBench({ staticBoats, seamarks }, false);
+        },
+        enableNativePlayerPrototype({ staticBoats = true, seamarks = true } = {}) {
+          enableNativeInfrastructureBench({ staticBoats, seamarks }, true);
         },
         failNextNativeInfrastructureBuild() { failNextNativeInfrastructureBuild = true; },
         nativeInfrastructureSourceReport({ geometry = false } = {}) {
@@ -9462,9 +9614,26 @@
             segments: o.lines.reduce((n, l) => n + l.points.length - 1, 0)
               + o.polygons.reduce((n, p) => n + (p.stroke !== false && p.stroke != null ? p.points.length : 0), 0) }));
         },
+        nativePlayerSourceReport({ geometry = false } = {}) {
+          const definition = nativePlayerDefinition();
+          if (geometry) return structuredClone(definition);
+          return definition.owners.map(owner => ({
+            id: owner.id,
+            family: owner.family,
+            polygons: owner.polygons.length,
+            segments: owner.lines.reduce((count, line) => count + line.points.length - 1, 0)
+              + owner.polygons.reduce((count, polygon) => count + (polygon.stroke !== false && polygon.stroke != null ? polygon.points.length : 0), 0)
+          }));
+        },
         isolateNativeInfrastructure({ family = null, kind = null } = {}) {
           if (!nativeInfrastructureEnabled) throw new Error("Catalogue natif inactif");
           for (const object of nativeStaticPrototype.resources.group.children) {
+            object.visible = (!family || object.userData.family === family) && (!kind || object.userData.kind === kind);
+          }
+        },
+        isolateNativePlayer({ family = null, kind = null } = {}) {
+          if (!nativePlayerEnabled) throw new Error("Joueur natif inactif");
+          for (const object of nativeStaticPrototype.playerResources.group.children) {
             object.visible = (!family || object.userData.family === family) && (!kind || object.userData.kind === kind);
           }
         },
@@ -9482,6 +9651,7 @@
           nativeStaticPrototype?.dispose();
           nativeStaticPrototype = next;
           nativeInfrastructureEnabled = false;
+          nativePlayerEnabled = false;
         },
         nativeStaticPrototypeReport(options = {}) {
           return {
@@ -9514,6 +9684,7 @@
         disposeNativeStaticPrototype() {
           nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
           nativeInfrastructureEnabled = false;
+          nativePlayerEnabled = false;
         },
         startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
           if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");

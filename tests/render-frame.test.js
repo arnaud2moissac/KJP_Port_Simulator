@@ -57,6 +57,79 @@ test("Three natif N2 — catalogue concave, vertical, thèmes et propriétaires"
   assert.equal(resources.report().liveMaterials, 0);
 });
 
+test("Three natif N3 — joueur local persistant et seules pales variables", async () => {
+  const { createNativePlayerResources } = await import("../src/simulateur-port/rendering/native-player-resources.mjs");
+  const palette = {
+    hull: "#f8f7f0", outline: "#243746", halo: "rgba(255,255,255,.8)",
+    anatomy: "#176b78", propeller: "#8d6500",
+    "player.fender.0.fill": "#e9f0ed", "player.fender.0.outline": "#17333d"
+  };
+  const definition = {
+    palette,
+    owners: [
+      { id: "hull", family: "player", polygons: [{
+        points: [[-2,-1,0],[2,0,0],[-2,1,0]], fill: "hull", stroke: "outline", lineWidth: .9
+      }], lines: [{ points: [[-2,-1,.1],[2,0,.1],[-2,1,.1],[-2,-1,.1]], color: "halo", width: 6.4, dash: [], layer: 5 }] },
+      { id: "static", family: "player-anatomy", polygons: [{
+        points: [[-1,0,-.2],[0,0,-1],[1,0,-.2]], fill: "anatomy", stroke: false
+      }], lines: [] },
+      { id: "blades", family: "player-propeller", polygons: [], lines: Array.from({ length: 3 }, (_, blade) => {
+        const angle = blade * Math.PI * 2 / 3;
+        return { points: [[-1,0,-.5],[-1,Math.cos(angle)*.3,-.5+Math.sin(angle)*.3]], color: "propeller", width: 2.2, dash: [], layer: 6 };
+      }) },
+      { id: "0", family: "player-fender", polygons: [{
+        points: [[0,1,0],[.3,1,0],[.3,1,.7],[0,1,.7]], fill: "player.fender.0.fill",
+        stroke: "player.fender.0.outline", lineWidth: 1.3
+      }], lines: [{ points: [[0,.8,.7],[0,1,.7]], color: "player.fender.0.outline", width: 1.7, dash: [], layer: 7 }] }
+    ],
+    player: {
+      propeller: { owner: "player-propeller:blades", center: [-1,0,-.5], radius: .3, blades: 3, initialAngle: 0 },
+      anatomyFamilies: ["player-anatomy", "player-propeller"],
+      collisionWidths: { halo: { role: "halo", regular: 6.4, skipper: 7.4 } },
+      acceleratedWidths: [{ owner: "player:hull", role: "outline", regular: .9, accelerated: 1.4 }],
+      fenderWidths: [{ regular: 1.7, contact: 2.8 }, { regular: 1.3, contact: 2.4 }]
+    }
+  };
+  const resources = createNativePlayerResources(definition);
+  const hull = resources.group.children.find(object => object.userData.owner === "player:hull" && object.isMesh);
+  const propeller = resources.group.children.find(object => object.userData.owner === "player-propeller:blades");
+  const hullPosition = hull.geometry.attributes.position;
+  const propellerData = propeller.geometry.attributes.instanceStart.data;
+  const update = overrides => resources.update({
+    pose: { x: 12, y: -8, heading: .7 }, anatomy: false, accelerated: false,
+    cameraView: "top", contactFenders: [], propellerAngle: 0, palette, ...overrides
+  });
+  update();
+  const firstMatrix = [...resources.group.matrix.elements];
+  update({ pose: { x: 14, y: -5, heading: -2.9 } });
+  assert.notDeepEqual([...resources.group.matrix.elements], firstMatrix);
+  assert.equal(resources.group.position.x, 14); assert.equal(resources.group.position.y, -5);
+  assert.equal(resources.group.rotation.z, -2.9);
+  assert.equal(hull.geometry.attributes.position, hullPosition);
+  assert.equal(hullPosition.version, 0, "la pose ne touche pas aux attributs de coque");
+  assert.equal(propellerData.version, 0, "l'hélice cachée ne produit aucun upload");
+
+  update({ anatomy: true, accelerated: true, cameraView: "skipper", contactFenders: [0], propellerAngle: .4 });
+  assert.equal(hull.geometry.attributes.position, hullPosition);
+  assert.equal(hullPosition.version, 0);
+  assert.equal(propeller.geometry.attributes.instanceStart.data, propellerData, "buffer dynamique conservé");
+  assert.equal(propellerData.version, 1, "seul le buffer déclaré dynamique est invalidé");
+  assert.equal(resources.group.children.find(object => object.userData.family === "player-anatomy").visible, true);
+  const widths = Object.fromEntries(resources.group.children.filter(object => object.isLineSegments2)
+    .map(object => [`${object.material.userData.role}:${object.material.userData.baseLinewidth}`, object.material.linewidth]));
+  assert.equal(widths["halo:6.4"], 7.4);
+  assert.equal(widths["outline:0.9"], 1.4);
+  assert.equal(widths["player.fender.0.outline:1.7"], 2.8);
+  assert.equal(widths["player.fender.0.outline:1.3"], 2.4);
+
+  const recolored = { ...palette, hull: "#abcdef", "player.fender.0.fill": "#ff3344", "player.fender.0.outline": "#ff3344" };
+  update({ anatomy: true, accelerated: true, cameraView: "skipper", contactFenders: [0], propellerAngle: .4, palette: recolored });
+  assert.equal(hull.material.color.getHexString(), "abcdef");
+  assert.equal(propellerData.version, 1, "une mise à jour de matériau ne touche pas la géométrie");
+  assert.throws(() => update({ pose: { x: NaN, y: 0, heading: 0 } }), /joueur natif/i);
+  resources.dispose(); resources.dispose();
+});
+
 test("Three natif N1 — ressources monde indépendantes, métriques et libérables", async () => {
   const { createNativeStaticResources } = await import("../src/simulateur-port/rendering/native-static-resources.mjs");
   const definition = {

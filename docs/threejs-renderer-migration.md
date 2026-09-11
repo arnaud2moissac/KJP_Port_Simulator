@@ -11,17 +11,24 @@ attachées aux artefacts et environnements indiqués, sans qualification du nati
 Leurs choix d'architecture ne s'appliquent au nouveau
 backend natif que lorsqu'ils sont repris explicitement ici.
 
-**Périmètre actuel : N2.3, lot bouées/feux uniquement (`ui-check`),
-engagé sur la demande « continue » après N2.2.** L'autorisation de code couvre le
-rendu, les tests, le suivi et la régénération du HTML nécessaires à ce lot.
-Les invariants ci-dessous restent stricts ; N3 à N6
-ne sont pas engagés et Legacy reste actif par défaut.
+**Périmètre de la livraison courante : N3, joueur local et données visuelles
+variables (`ui-check`).** L'autorisation de code couvre le rendu, les tests, le
+suivi et la régénération du HTML nécessaires à cette tranche. Les invariants
+ci-dessous restent stricts ; N4 à N6 ne sont pas engagés et Legacy reste actif
+par défaut.
 La revue documentaire précédente n'avait, à elle seule, autorisé aucune
 implémentation. Les résultats de cette livraison sont consignés dans
 [le suivi N1](#livraison-n1--11-septembre-2026) puis
 [le suivi N2.1](#livraison-n21--terrain-et-infrastructures), puis
 [le suivi N2.2](#livraison-n22--bateaux-statiques), puis
-[le suivi N2.3](#livraison-n23--bouées-et-feux).
+[le suivi N2.3](#livraison-n23--bouées-et-feux), puis
+[le suivi N3](#livraison-n3--joueur-local-et-données-visuelles-variables).
+
+**État constaté au début de N3 :** même répertoire et même branche, HEAD
+`f69900fdf7d5378debf7e10b6da69650eeae99bf` (`refactor_v2:N2.3`), arbre Git
+propre. Les livraisons N1 et N2 étaient donc déjà commitées et ont été
+réutilisées. Aucun changement de branche, reset, suppression ou reprise des
+travaux validés.
 
 **État constaté à la revue documentaire et au début de N1 :** répertoire réel
 `/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, commit
@@ -44,9 +51,9 @@ chemins clairement nommés dans la documentation, sans renommer le code existant
 - **Three natif** : backend distinct à géométries monde persistantes, absent lors
   de la décision documentaire initiale. N1 ajoute seulement son prototype
   statique isolé, étendu au catalogue terrain/infrastructures en N2.1 puis aux
-  bateaux statiques en N2.2 puis aux bouées et feux en N2.3,
-  détaché du canevas actif et désactivé par défaut ; le monde
-  complet et l'intégration visible restent futurs.
+  bateaux statiques en N2.2, aux bouées et feux en N2.3, puis au joueur local
+  persistant en N3. Il reste détaché du canevas actif et désactivé par défaut ;
+  le monde complet et l'intégration visible restent futurs.
 
 ### Invariants physiques et fonctionnels stricts
 
@@ -128,9 +135,10 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
 | `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel déjà présent, validé sur les ancres ; réutilisable, mais sa qualification ne prouve pas celle des occlusions natives (N1) |
 | `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
 | `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()`, `addBoatMesh()`, `addBuoyGeometry()` et `addHarborLightGeometry()` dans le template | Ajouts N2.1 à N2.3 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, bateaux/bouées/feux figés, remplacement du port et diagnostic de libération |
+| `rendering/native-player-resources.mjs`, `nativePlayerDefinition()`, `nativePlayerPresentation()` | Ajout N3 : coque et appendices locaux persistants, groupe transformé par la pose interpolée, matériaux/visibilités variables et unique buffer dynamique des pales |
 | `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Conserver ce contrat ; ajouter des modules natifs distincts (N1–N4) |
 | `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
-| `tests/render-frame.test.js`, `tests/native-infrastructure.test.js`, `tests/simulateur-port.test.js` | Protections N1 et N2.1 à N2.3 reliées aux suites existantes ; étendre dans N3–N5 sans affaiblir les assertions ou modifier les références existantes |
+| `tests/render-frame.test.js`, `tests/native-infrastructure.test.js`, `tests/native-player.test.js`, `tests/simulateur-port.test.js` | Protections N1 à N3 reliées aux suites existantes ; étendre dans N4/N5 sans affaiblir les assertions ou modifier les références existantes |
 | `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js` | Bancs réutilisables ; nouveau protocole complet natif à prévoir en N5, protocole projeté conservé |
 | `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native N1 bundlée localement ; script de build inchangé, intégration visible réservée à N4 |
 
@@ -160,6 +168,10 @@ Il n'est pas nécessaire de recommencer les tranches déjà validées :
   attribuer le coût CPU et contrôler les snapshots physiques. Son protocole
   devra recevoir un chemin natif complet au lieu de lui imposer l'entrée
   projetée de compatibilité.
+- N3 fournit désormais le groupe joueur local, sa pose de présentation compacte,
+  la propriété séparée des éléments statiques/variables et l'instrumentation des
+  transferts. N4 peut les composer sans reconstruire la coque ni reprendre son
+  constructeur.
 
 ### Instructions externes au dépôt
 
@@ -1057,8 +1069,8 @@ trois tests navigateur ciblés (338 comparaisons raster strictes sans différenc
 chemin normal), puis six références Legacy inchangées. Une capture skipper avec
 overlays a été inspectée. Les smoke tests du banc détaillé et du banc habituel
 réussissent. Aucun fichier physique ou étalon de trajectoire n'est modifié.
-`git diff --check` passe ; graphe AST actualisé (1 025 nœuds, 1 804 arêtes,
-55 communautés). Le renderer Legacy reste actif par défaut. Modifications non
+`git diff --check` passe ; graphe AST actualisé après N3 (1 135 nœuds,
+1 947 arêtes, 72 communautés). Le renderer Legacy reste actif par défaut. Modifications non
 commitées ; aucune qualification de release ou de GPU/composition visible.
 
 ## Tranches natives planifiées
@@ -1069,8 +1081,8 @@ suppression du chemin natif concerné ; aucune tranche ne réécrit le moteur ni
 les références Legacy/compatibilité. Une tranche ne commence qu'après réussite
 des gates de la précédente.
 
-**Suivi : N1 et les trois lots N2.1 à N2.3 sont validés dans leur périmètre
-isolé ; N2 est donc complète. N3 à N6 restent non commencées.**
+**Suivi : N1, les trois lots N2.1 à N2.3 et N3 sont validés dans leur périmètre
+isolé. N4 à N6 restent non commencées.**
 À chaque livraison, consigner les résultats
 et limites avec son commit ou artefact, les contrôles exécutés et le retour
 arrière vérifié. Les règles de validation ci-dessous s'appliquent à chaque
@@ -1191,6 +1203,9 @@ la livraison documentaire, avant l'autorisation de code.
 
 ### N3 · Joueur local et données visuelles variables
 
+**Statut : livrée et validée dans le prototype isolé ; preuves détaillées dans
+[Livraison N3](#livraison-n3--joueur-local-et-données-visuelles-variables).**
+
 - **Objectif** : conserver la coque du joueur en coordonnées locales et ne
   mettre à jour que sa transformation et les données visuelles réellement
   variables.
@@ -1294,11 +1309,14 @@ la livraison documentaire, avant l'autorisation de code.
 
 Le défaut Legacy de coloration des contacts décrit dans le journal reste un
 défaut connu de la référence. Le reproduire dans Three de compatibilité satisfait
-son contrat historique ; Three natif ne doit ni revendiquer sa correction comme
-gain de migration ni introduire une correction fonctionnelle sans tranche
-distincte. Après N1 et N2.1 à N2.3 décrites ci-dessous, la prochaine tranche est
-**N3, joueur local et données visuelles variables**, à engager sur une nouvelle
-demande. N4 à N6 restent différées.
+son contrat historique. La règle initiale qui interdisait au natif de s'en
+écarter sans tranche distincte est désormais satisfaite par N3 : son état de
+présentation associe explicitement les identifiants physiques existants aux six
+propriétaires visuels de pare-battages. Cette divergence visuelle est limitée au
+backend natif ; elle ne modifie ni le moteur, ni les contacts calculés, ni Legacy,
+ni ses références. Après N1 à N3 décrites ci-dessous, la prochaine tranche est
+**N4, intégration dans la boucle et composition interactive**. N5 et N6 restent
+différées.
 
 ## Livraison N1 — 11 septembre 2026
 
@@ -1839,4 +1857,122 @@ Prochaine tranche prévue : **N3, joueur local et données visuelles variables**
 Elle devra conserver la coque du joueur en coordonnées locales, ne mettre à jour
 que sa transformation et ses éléments réellement animés, et protéger exactement
 pose interpolée, contacts, commandes et picking. N3 n'est pas commencée dans
-cette livraison. Ne pas activer le renderer natif par défaut.
+cette livraison N2.3. Ce statut historique est remplacé par la livraison N3
+ci-dessous. Ne pas activer le renderer natif par défaut.
+
+## Livraison N3 — joueur local et données visuelles variables
+
+**N3 est validée dans le prototype isolé : ses critères de sortie sont
+satisfaits.** Départ du commit
+`f69900fdf7d5378debf7e10b6da69650eeae99bf` (`refactor_v2:N2.3`) sur
+`codex/threejs-v2`, avec un arbre propre. Les acquis N1/N2 ont été conservés et
+étendus ; aucune branche ni référence Legacy n'a été changée.
+
+### Réalisation et propriété des ressources
+
+- `addBoatMesh()` reste le constructeur partagé par Legacy. Des options de
+  collecte, sans effet sur ses appels historiques, permettent à
+  `nativePlayerDefinition()` de l'exécuter une seule fois avec un transformeur
+  local. Les quatre groupes obtenus sont `player:hull`,
+  `player-anatomy:static`, `player-propeller:blades` et six propriétaires
+  `player-fender:<index>`. La coque, le mât, les halos, la quille, le safran,
+  l'arbre et les pare-battages conservent ainsi les dimensions, faces, couches,
+  couleurs et largeurs KJP existantes sans dépendre d'une pose monde.
+- `native-player-resources.mjs` possède ces géométries et leur groupe Three.
+  `nativePlayerPresentation()` lui transmet uniquement la pose interpolée
+  fournie par `sceneMotion()`, la vue, le thème, l'état anatomie, la vitesse
+  d'affichage, les indices de pare-battages en contact et l'angle visuel de
+  l'hélice. La pose met à jour `position`/`rotation.z` et la matrice du groupe ;
+  elle ne modifie aucun attribut de coque.
+- Les changements de thème, de mode ×2, de vue skipper et de contact mettent à
+  jour les matériaux, leurs couleurs, opacités ou largeurs. Les appendices sont
+  masqués hors anatomie. Les trois pales partagent un seul buffer interleaved de
+  72 octets ; il conserve son identité et constitue la seule donnée géométrique
+  invalidée lorsque l'angle change en vue anatomie. Une hélice masquée ne produit
+  aucun transfert. Après chauffe, le joueur représente 9 propriétaires,
+  52 géométries/objets et 50 matériaux ; ces nombres servent au contrôle de
+  stabilité interne, sans constituer une cible de parité avec Legacy.
+- Les identifiants de contacts physiques `fender-{bow|mid|stern}-{side}:…` sont
+  associés aux six propriétaires locaux. Le repli numérique historique reste
+  accepté. Cela restaure dans le natif la couleur pédagogique du pare-battage
+  réellement sollicité sans modifier le contact, le profil ou le rendu Legacy.
+- `native-static-prototype.mjs` compose le catalogue N2 et le joueur N3 dans sa
+  scène détachée. Il est toujours appelé par l'unique boucle existante et réutilise
+  le même snapshot caméra. Un changement de port remplace et libère le catalogue
+  N2, mais conserve les identités du joueur ; la désactivation libère les deux.
+  Ni `RenderFrame`, ni projection Legacy, ni second RAF ou horloge n'entre dans
+  l'entrée du joueur natif.
+
+Le hook de qualification `enableNativePlayerPrototype()` reste accessible
+uniquement avec `?test`. Il n'insère pas son canvas dans le DOM, ne sélectionne
+aucun backend visible et ne change pas le défaut Legacy.
+
+### Inventaire des autres données variables
+
+| Producteur existant | Propriété retenue pour la suite | Invalidation / raison |
+| --- | --- | --- |
+| `addChartGrid()` | Ressource native séparée, métrique et persistante entre deux changements de maille/étendue | Vue, thème, distance ou franchissement de cellule ; éviter sa reconstruction à chaque image |
+| `drawFlowParticles()` | Buffer natif dynamique dédié au vent et au courant | Temps de présentation et vecteurs de flux ; coût et uploads à mesurer séparément en N5 |
+| `addDistantShoreCleatGeometry()` | Propriétaires natifs du port avec visibilité et matériau variables | Port, visibilité, proximité et sélection ; les taquets interactifs restent au Canvas 2D |
+| `addGoalGeometry()` | Projection d'overlay conservée | Objectif/scénario ; les pointillés et l'information pédagogique sont autorisés dans l'overlay |
+| `addRudderAxis()` | Canvas 2D supérieur conservé | Angle de barre et pose interpolée ; couche 12 déjà exclue du monde Three |
+| `drawMooringLayer()` et `hitTargets` | Canvas 2D et picking existants conservés | Reconstruction par image nécessaire aux interactions ; aucun raycasting prévu |
+
+Ces affectations préparent N4 mais ne l'implémentent pas. En particulier, le
+chemin visible continue de construire et dessiner son monde Legacy complet.
+
+### Vérifications N3
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| Protection écrite avant le module | Échec attendu `ERR_MODULE_NOT_FOUND`, puis réussite après ajout de `native-player-resources.mjs` |
+| `npm run test:rendering` | 13/13 tests réussis, dont le contrat N3 sur matrice, identités d'attributs, visibilité, matériaux, contact et buffer de pales |
+| `node --test tests/native-player.test.js` | 2/2 tests réussis : trajectoire appariée, gestes caméra, thèmes, ×2, import, contacts sur les deux bords, animation et fidélité visuelle |
+| Persistance et transferts réels | Sur 20 images de déplacement en vue normale : mêmes géométries/attributs/versions et zéro `bufferData`/`bufferSubData` après chauffe. En anatomie animée : une seule soumission de 72 octets par changement d'angle, attribuée au buffer des pales ; zéro allocation/libération et identités inchangées |
+| Pose, fonctions et repli | Pose x/y/cap identique à la pose interpolée à chaque image, matrices mises à jour, franchissement continu de ±π, snapshots/rendu actif/overlay/`hitTargets` exacts avec ou sans prototype ; changement de port sans rebuild joueur ; double disposal avec zéro buffer GL restant |
+| Fidélité native du joueur | 12 cadrages (2 DPR × 2 thèmes × 3 vues) sur un port vide : silhouette présente, rappel ≥82 %, débordement et erreur couleur bornés ; anatomie présente uniquement dans sa vue ; omission forcée détectée |
+| Inspection des captures | Les six couples natif/Legacy à DPR 1 ont été inspectés : coque, franc-bord, mât, pare-battages et appendices anatomiques présents et lisibles dans les trois vues et les deux thèmes |
+| Régression N2 ciblée | Les 38 contrôles de famille/style et omissions forcées repassent après correction du rapport de visibilité ; les 36 cadrages et cycles N2 passent dans la suite complète |
+| `npm run test:e2e` | 59/59 tests réussis : 338 comparaisons Three de compatibilité à zéro pixel différent, 24 traversées de ±π, 2 211 ancres caméra, interactions et trois trajectoires étalons exactes |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques ; aucune référence réécrite |
+| `npm run build:simulator`, `npm run check:simulator`, `git diff --check` | Réussis ; HTML autonome régénéré et diff sans erreur d'espacement |
+| `graphify update .` | Réussi sans appel LLM : 1 135 nœuds, 1 947 arêtes et 72 communautés ; les fichiers `graphify-out` sont actualisés |
+
+Une régression intermédiaire du test N2 d'omission a révélé que le rapport
+commun exposait temporairement `visible` et rendait donc l'identité statique
+sensible au hook d'isolation. La visibilité a été déplacée dans le rapport N3
+propre au joueur ; la gate N2 ciblée puis la suite complète passent. Aucun seuil
+visuel, physique ou fonctionnel n'a été diminué.
+
+Les fichiers N3 sont le nouveau
+`src/simulateur-port/rendering/native-player-resources.mjs`, les adaptations de
+`native-static-prototype.mjs`, `native-infrastructure-resources.mjs`,
+`rendering/index.js` et `src/simulateur-port/template.html`, le nouveau
+`tests/native-player.test.js`, les compléments à `tests/render-frame.test.js` et
+`tests/simulateur-port.test.js`, le livrable régénéré `simulateur-port.html` et
+ce journal. SHA-256 final du HTML :
+`f55894e0328cc8094a637ba9542f4dc5cac9399a65e1491b94b6b923e0eb4da2`.
+Aucun moteur, profil, collision, pas de temps, interpolation,
+commande, trajectoire, référence Legacy, dépendance, script, skill ou instruction
+globale n'est modifié.
+
+### Limites, retour arrière et prochaine tranche
+
+Les contrôles ont été exécutés avec Chromium headless sur cette machine. Les
+avertissements autoplay et synchronisation `ReadPixels`
+connus ont été séparés ; aucune erreur console/page/GL ni requête HTTP(S) n'a
+été observée. Les suites physiques autonomes, `verify:release`, les autres
+navigateurs/appareils, la composition native visible et les mesures de
+performance du chemin complet n'ont pas été exécutés. Aucun gain de performance
+n'est revendiqué à partir du prototype détaché.
+
+Retour arrière vérifié : ne pas appeler `enableNativePlayerPrototype()` laisse
+N2 inchangée ; disposer le prototype laisse zéro buffer suivi. Retirer le module
+joueur, son option de façade et ses hooks rend le banc N2.3 sans toucher au
+renderer actif. Legacy reste le défaut.
+
+Prochaine tranche prête : **N4, intégration dans la boucle et composition
+interactive**. Elle pourra sélectionner explicitement le chemin natif visible,
+composer fond d'eau et Canvas 2D, conserver picking/overlays, et prouver que le
+monde projeté Legacy complet n'est plus construit dans son fonctionnement
+normal. N4 n'est pas commencée dans cette livraison.

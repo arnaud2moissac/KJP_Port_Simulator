@@ -7,6 +7,7 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 require("./native-infrastructure.test.js"); // Protections N2 incluses dans test:e2e et verify:release.
+require("./native-player.test.js"); // Protections N3 du joueur local persistant.
 
 const projectRoot = path.resolve(__dirname, "..");
 const simulatorPath = path.join(projectRoot, "simulateur-port.html");

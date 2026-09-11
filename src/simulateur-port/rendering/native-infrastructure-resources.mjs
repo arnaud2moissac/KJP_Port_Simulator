@@ -9,12 +9,12 @@ const totals = { builds: 0, liveGeometries: 0, liveMaterials: 0, disposedGeometr
 function checkedPoints(points, minimum) {
   if (!Array.isArray(points) || points.length < minimum || points.some(p =>
     !Array.isArray(p) || p.length !== 3 || !p.every(Number.isFinite))) {
-    throw new TypeError("Native infrastructure: points monde invalides");
+    throw new TypeError("Native infrastructure: points 3D invalides");
   }
   return points.map(p => [...p]);
 }
 
-// Le plan dominant est déterminé dans le monde, une fois : terres concaves,
+// Le plan dominant est déterminé dans l'espace métrique source, une fois : terres concaves,
 // faces verticales et rampes inclinées n'utilisent pas la projection caméra.
 function triangles(points) {
   const normal = [0, 0, 0];
@@ -39,8 +39,9 @@ function applyColor(material, value) {
   if (material.transparent !== transparent) { material.transparent = transparent; material.needsUpdate = true; }
 }
 
-// Entrée : propriétaires et primitives MONDE à rôles de palette, sans état,
-// RenderFrame, caméra, filtrage de visibilité ou compteurs Legacy.
+// Entrée : propriétaires et primitives 3D métriques à rôles de palette. Les
+// infrastructures sont en coordonnées monde ; N3 réutilise ce constructeur
+// pour le joueur en coordonnées locales. Aucun RenderFrame ni calcul caméra.
 export function createNativeInfrastructureResources({ owners, palette }) {
   const group = new Group(), geometries = [], materials = new Map(), inventory = [];
   let disposed = false, warmed = false;
@@ -83,7 +84,7 @@ export function createNativeInfrastructureResources({ owners, palette }) {
           const a = points[i-1], end = points[i];
           // Des arêtes de plusieurs centaines de mètres traversant le plan de
           // l'œil dégradent la précision du ruban écran LineMaterial. Découpage
-          // collinéaire MONDE à l'initialisation, indépendant de toute caméra.
+          // collinéaire métrique à l'initialisation, indépendant de toute caméra.
           const parts = Math.max(1, Math.ceil(Math.hypot(...end.map((v, axis) => v-a[axis])) / 16));
           const point = ratio => a.map((v, axis) => v+(end[axis]-v)*ratio);
           for (let part = 0; part < parts; part++) b.positions.push(...point(part/parts), ...point((part+1)/parts));
