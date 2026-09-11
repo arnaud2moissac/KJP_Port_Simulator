@@ -37,9 +37,9 @@ Pour tout travail sur les backends Legacy ou Three du simulateur, lire le skill
 particulier ses sections « Statut prescriptif et orientation de référence » et
 « Tranches natives planifiées ».
 
-Le backend Three actuel est un chemin de compatibilité alimenté par le
-`RenderFrame` projeté et reste soumis à la parité exacte de ses bancs. Le futur
-backend Three natif est un chemin distinct à géométries monde persistantes : il
+Le backend Three de compatibilité est alimenté par le `RenderFrame` projeté et
+reste soumis à la parité exacte de ses bancs. Le backend Three natif est un
+chemin distinct à géométries monde persistantes, actif par défaut depuis N6 : il
 reste soumis aux invariants physiques et fonctionnels exacts, mais sa gate
 visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction,
 sans identité pixel par pixel ni identité des intermédiaires projetés. Ne pas

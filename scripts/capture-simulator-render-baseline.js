@@ -76,6 +76,7 @@ async function captureScene(browser, browserVersion, scene, communityPortText) {
 
   const simulatorUrl = new URL(pathToFileURL(simulatorPath));
   simulatorUrl.searchParams.set("test", "1");
+  simulatorUrl.searchParams.set("renderer", "legacy");
   await page.goto(simulatorUrl.href);
   await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
   await configureScene(page, scene, communityPortText);

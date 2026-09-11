@@ -55,7 +55,7 @@ async function run(browser, backend, dpr, repetition, scene) {
         } catch (error) { reject(error); }
       }));
     });
-    await page.goto(`${pathToFileURL(path.join(root, "simulateur-port.html")).href}?test=1`);
+    await page.goto(`${pathToFileURL(path.join(root, "simulateur-port.html")).href}?test=1&renderer=legacy`);
     await page.evaluate(async ({ portText, scene }) => {
       const api = window.__PORTANCE_TEST__;
       document.querySelector('[data-mode="navigation"]').click();

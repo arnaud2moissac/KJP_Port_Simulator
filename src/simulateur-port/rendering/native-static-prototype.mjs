@@ -32,6 +32,7 @@ export function createNativeStaticPrototype(definition, {
   }
   const canvas = document.createElement("canvas");
   canvas.id = "kjp-native-static-prototype";
+  canvas.setAttribute("aria-hidden", "true");
   let renderer;
   try {
     renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });

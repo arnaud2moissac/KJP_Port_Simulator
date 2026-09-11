@@ -32,7 +32,7 @@ du journal sont un historique dont la portée est explicitée dans ce cadrage.
 
 Conserver les validations exactes existantes de Legacy et de Three de
 compatibilité, y compris leurs intermédiaires projetés et références raster.
-Le futur Three natif reçoit des ressources monde persistantes et un état de
+Le backend Three natif reçoit des ressources monde persistantes et un état de
 présentation compact ; le `RenderFrame` projeté commun et l'identité des pixels,
 tableaux ou compteurs entre backends ne sont pas ses critères d'acceptation.
 Sa fidélité visuelle ne relâche aucune comparaison physique ou fonctionnelle.

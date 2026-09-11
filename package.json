@@ -15,6 +15,7 @@
     "profile:renderers": "node scripts/profile-simulator-renderers.js",
     "profile:renderers:active": "node scripts/profile-simulator-active-renderers.js",
     "profile:renderers:native": "node scripts/profile-simulator-native-renderer.js",
+    "qualify:renderer:native": "node scripts/qualify-simulator-native-activation.js",
     "test:rendering": "node --test tests/render-frame.test.js",
     "build:port-generator": "node scripts/build-port-generator.js",
     "check:build": "node scripts/build-simulateur-port.js --check",

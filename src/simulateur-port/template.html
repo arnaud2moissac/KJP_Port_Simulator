@@ -3292,10 +3292,17 @@
     let boxRenderGeometryById = new Map();
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
-    let nativeStaticPrototype = null; // Banc N1-N3 ou monde visible N4, activé seulement par ?test.
+    const worldRendererParameters = new URLSearchParams(location.search);
+    const DEFAULT_WORLD_RENDERER = "native";
+    const requestedWorldRenderer = ["legacy", "native"].includes(worldRendererParameters.get("renderer"))
+      ? worldRendererParameters.get("renderer") : null;
+    const startupWorldRenderer = requestedWorldRenderer || DEFAULT_WORLD_RENDERER;
+    let nativeStaticPrototype = null;
     let nativeInfrastructureEnabled = false;
     let nativePlayerEnabled = false;
-    let activeWorldRenderer = "legacy"; // Legacy reste le défaut pendant la qualification.
+    // État de bootstrap sûr, remplacé par activateInitialWorldRenderer() une
+    // fois le scénario et l'interface installés.
+    let activeWorldRenderer = "legacy";
     let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
     let nativeStaticSeamarksEnabled = true; // Repli N2.3 indépendant, accessible seulement par ?test.
     let nativeInfrastructureTheme = null;
@@ -7166,6 +7173,10 @@
       }
       let next;
       try {
+        if (failNextNativeInfrastructureBuild) {
+          failNextNativeInfrastructureBuild = false;
+          throw new Error("Native infrastructure: échec de construction injecté");
+        }
         next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
           includeStaticBoats: true,
           includeSeamarks: true,
@@ -7190,6 +7201,7 @@
       nativeChartGridSignature = null;
       nativeInfrastructureError = null;
       activeWorldRenderer = "native";
+      document.body.dataset.worldRenderer = "native";
       worldCanvas.style.display = "none";
     }
 
@@ -7201,8 +7213,25 @@
         nativePlayerEnabled = false;
       }
       activeWorldRenderer = "legacy";
+      document.body.dataset.worldRenderer = "legacy";
       nativeChartGridSignature = null;
       worldCanvas.style.display = depthRenderer ? "block" : "none";
+    }
+
+    function activateInitialWorldRenderer() {
+      if (startupWorldRenderer === "legacy") {
+        selectLegacyWorldRenderer();
+        return;
+      }
+      try {
+        if (worldRendererParameters.has("test") && worldRendererParameters.has("failNativeStartup")) {
+          failNextNativeInfrastructureBuild = true;
+        }
+        selectNativeWorldRenderer();
+      } catch (error) {
+        console.warn("Rendu Three natif indisponible au démarrage, utilisation de Legacy", error);
+        selectLegacyWorldRenderer();
+      }
     }
 
     function addHarborGeometry() {
@@ -9855,7 +9884,10 @@
         worldRendererReport(options = {}) {
           return {
             active: activeWorldRenderer,
-            legacyDefault: true,
+            defaultRenderer: DEFAULT_WORLD_RENDERER,
+            startupRenderer: startupWorldRenderer,
+            requestedRenderer: requestedWorldRenderer,
+            legacyDefault: DEFAULT_WORLD_RENDERER === "legacy",
             ...(nativeInfrastructureError ? { nativeInfrastructureError } : {}),
             routing: structuredClone(nativeWorldRouting),
             presentation: {
@@ -10379,6 +10411,7 @@
     applyScenario("dockForward");
     syncSidebarForViewport();
     installTestApi();
+    activateInitialWorldRenderer();
     requestAnimationFrame(render);
   })();
   </script>

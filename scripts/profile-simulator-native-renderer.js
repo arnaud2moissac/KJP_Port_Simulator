@@ -93,6 +93,7 @@ async function collectRun(browser, backend, scene, dpr, repetition) {
   try {
     const url = new URL(pathToFileURL(simulatorPath));
     url.searchParams.set("test", "1");
+    url.searchParams.set("renderer", "legacy");
     await page.goto(url.href);
     await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
     await page.evaluate(({ backend, portText, scene }) => {

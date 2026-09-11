@@ -14,6 +14,7 @@ const root = path.resolve(__dirname, "..");
 const portText = fs.readFileSync(path.join(root, "examples", "la-trinite-sur-mer.kjp"), "utf8");
 const simulatorUrl = new URL(pathToFileURL(path.join(root, "simulateur-port.html")));
 simulatorUrl.searchParams.set("test", "1");
+simulatorUrl.searchParams.set("renderer", "legacy");
 const viewport = { width: 1280, height: 800 };
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
 

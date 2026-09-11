@@ -10,6 +10,7 @@ require("./native-infrastructure.test.js"); // Protections N2 incluses dans test
 require("./native-player.test.js"); // Protections N3 du joueur local persistant.
 require("./native-world-renderer.test.js"); // Intégration visible N4 et composition Canvas 2D.
 require("./native-renderer-qualification.test.js"); // Qualification sémantique multi-scène N5.
+require("./native-renderer-activation.test.js"); // Activation, repli et soak N6.
 
 const projectRoot = path.resolve(__dirname, "..");
 const simulatorPath = path.join(projectRoot, "simulateur-port.html");
@@ -22,6 +23,7 @@ const trajectoryFixture = JSON.parse(
 const simulatorUrl = pathToFileURL(simulatorPath);
 const testUrl = new URL(simulatorUrl);
 testUrl.searchParams.set("test", "1");
+testUrl.searchParams.set("renderer", "legacy");
 
 function createPortInformationText() {
   const document = KJPCodec.createEmpty({

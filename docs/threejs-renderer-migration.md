@@ -11,18 +11,28 @@ attachées aux artefacts et environnements indiqués, sans qualification du nati
 Leurs choix d'architecture ne s'appliquent au nouveau
 backend natif que lorsqu'ils sont repris explicitement ici.
 
-**Périmètre de la livraison courante : N3, joueur local et données visuelles
-variables (`ui-check`).** L'autorisation de code couvre le rendu, les tests, le
-suivi et la régénération du HTML nécessaires à cette tranche. Les invariants
-ci-dessous restent stricts ; N4 à N6 ne sont pas engagés et Legacy reste actif
-par défaut.
+**Périmètre de la livraison courante : N6, activation contrôlée
+(`ui-check`).** L'autorisation de code couvre la sélection du renderer, le
+repli, les tests, le suivi, la documentation utilisateur et la régénération du
+HTML nécessaires à cette tranche. Les invariants ci-dessous restent stricts.
+N1 à N5 sont réutilisées sans reprise ; N6 active Three natif par défaut tout en
+conservant Legacy comme repli et référence exacte.
 La revue documentaire précédente n'avait, à elle seule, autorisé aucune
 implémentation. Les résultats de cette livraison sont consignés dans
 [le suivi N1](#livraison-n1--11-septembre-2026) puis
 [le suivi N2.1](#livraison-n21--terrain-et-infrastructures), puis
 [le suivi N2.2](#livraison-n22--bateaux-statiques), puis
 [le suivi N2.3](#livraison-n23--bouées-et-feux), puis
-[le suivi N3](#livraison-n3--joueur-local-et-données-visuelles-variables).
+[le suivi N3](#livraison-n3--joueur-local-et-données-visuelles-variables),
+[le suivi N4](#livraison-n4--intégration-dans-la-boucle-et-composition-interactive),
+[le suivi N5](#livraison-n5--qualification-visuelle-fonctionnelle-et-de-performance)
+et [le suivi N6](#livraison-n6--activation-contrôlée).
+
+**État constaté au début de N6 :** répertoire réel
+`/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, HEAD
+`f136091d2ccfbfd6628587454f9ece16806710a8` (`refactor_v2:N5`), arbre Git
+propre. Aucun changement de branche, reset, suppression ou reprise des travaux
+validés n'a été effectué.
 
 **État constaté au début de N3 :** même répertoire et même branche, HEAD
 `f69900fdf7d5378debf7e10b6da69650eeae99bf` (`refactor_v2:N2.3`), arbre Git
@@ -43,17 +53,15 @@ ES intégrés par esbuild et HTML autonome hors ligne. Le chantier conserve troi
 chemins clairement nommés dans la documentation, sans renommer le code existant
 à ce stade :
 
-- **Legacy** : renderer WebGL2 maison, toujours actif par défaut et référence
-  fonctionnelle et visuelle stricte ;
+- **Legacy** : renderer WebGL2 maison, repli explicite ou automatique et
+  référence fonctionnelle et visuelle stricte ;
 - **Three de compatibilité** : backend actuel de banc, implémenté notamment par
   `createThreeSurfaceRenderer()` et `renderProjected()`, alimenté par le
   `RenderFrame` projeté ;
-- **Three natif** : backend distinct à géométries monde persistantes, absent lors
-  de la décision documentaire initiale. N1 ajoute seulement son prototype
-  statique isolé, étendu au catalogue terrain/infrastructures en N2.1 puis aux
-  bateaux statiques en N2.2, aux bouées et feux en N2.3, puis au joueur local
-  persistant en N3. Il reste détaché du canevas actif et désactivé par défaut ;
-  le monde complet et l'intégration visible restent futurs.
+- **Three natif** : backend distinct à géométries monde persistantes, construit
+  de N1 à N3, intégré au canevas visible en N4, qualifié en N5 et activé par
+  défaut en N6. Il ne reçoit pas le `RenderFrame` projeté et ne devient jamais
+  une autorité pour la simulation.
 
 ### Invariants physiques et fonctionnels stricts
 
@@ -83,7 +91,7 @@ chemins clairement nommés dans la documentation, sans renommer le code existant
 | Entrée normale | primitives projetées actuelles | même `RenderFrame` projeté que Legacy | ressources monde persistantes + état de présentation compact |
 | Parité raster | références Legacy exactes | identité pixel, géométrie intermédiaire et compteurs exacts dans les bancs existants | fidélité visuelle et fonctionnelle ; aucune identité pixel, tableau ou compteur de triangles exigée |
 | Physique et fonctions | exactes | exactes | exactes |
-| Activation | défaut actuel | diagnostic hors écran | chemin distinct, désactivé par défaut jusqu'à qualification |
+| Activation | repli par `?renderer=legacy` ou échec natif | diagnostic hors écran | défaut actuel après qualification N6 |
 
 Les exigences historiques de `RenderFrame` commun, de projection/clipping
 Legacy, d'identité des tableaux intermédiaires, des compteurs et des pixels
@@ -128,19 +136,20 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
 
 ### Cartographie vérifiée et documents de cadrage
 
-| Emplacement existant | Constat et usage futur |
+| Emplacement existant | Constat et usage |
 | --- | --- |
 | `src/simulateur-port/template.html` : `render`, `prepareInterpolatedFrameMotion`, `cameraBasis` | Boucle, interpolation et suivi existants ; réutilisation sans changement de leur logique (N1/N3/N4) |
-| Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU, rejouées puis projetées par image ; ce n'est pas encore un catalogue Three persistant (N1/N2) |
-| `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel déjà présent, validé sur les ancres ; réutilisable, mais sa qualification ne prouve pas celle des occlusions natives (N1) |
+| Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU du chemin Legacy ; le catalogue Three persistant est possédé séparément par le natif |
+| `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel validé sur les ancres et réutilisé par le natif ; les occlusions visibles sont qualifiées séparément en N5 |
 | `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
 | `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()`, `addBoatMesh()`, `addBuoyGeometry()` et `addHarborLightGeometry()` dans le template | Ajouts N2.1 à N2.3 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, bateaux/bouées/feux figés, remplacement du port et diagnostic de libération |
 | `rendering/native-player-resources.mjs`, `nativePlayerDefinition()`, `nativePlayerPresentation()` | Ajout N3 : coque et appendices locaux persistants, groupe transformé par la pose interpolée, matériaux/visibilités variables et unique buffer dynamique des pales |
-| `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Conserver ce contrat ; ajouter des modules natifs distincts (N1–N4) |
+| `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Ce contrat est conservé séparément des modules natifs livrés en N1–N4 |
 | `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
-| `tests/render-frame.test.js`, `tests/native-infrastructure.test.js`, `tests/native-player.test.js`, `tests/simulateur-port.test.js` | Protections N1 à N3 reliées aux suites existantes ; étendre dans N4/N5 sans affaiblir les assertions ou modifier les références existantes |
-| `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js` | Bancs réutilisables ; nouveau protocole complet natif à prévoir en N5, protocole projeté conservé |
-| `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native N1 bundlée localement ; script de build inchangé, intégration visible réservée à N4 |
+| `tests/render-frame.test.js`, tests `native-*.test.js`, `tests/simulateur-port.test.js` | Protections N1 à N6 reliées aux suites existantes ; exactitude Legacy/compatibilité et fidélité fonctionnelle native conservées sans modifier les références |
+| `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js`, `scripts/profile-simulator-native-renderer.js` | Bancs projetés conservés pour la compatibilité ; protocole complet natif apparié livré en N5 |
+| `scripts/qualify-simulator-native-activation.js` | Matrice N6 du démarrage natif visible sur trois moteurs et trois formats, sans requête réseau |
+| `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native bundlée localement et intégrée au rendu visible ; script de build inchangé |
 
 Les fonctions sans fichier explicite dans les tranches ci-dessous appartiennent
 à `src/simulateur-port/template.html`. Le cadrage est porté par quatre fichiers :
@@ -160,18 +169,18 @@ Il n'est pas nécessaire de recommencer les tranches déjà validées :
   ancres, sans devenir propriétaire du suivi ;
 - le backend de compatibilité, son compilateur, ses comparaisons raster et ses
   profils restent un oracle de diagnostic pour les choix visuels Legacy ;
-- `installRuntimeTopology()` possède déjà l'installation du monde et invalide
+- `installRuntimeTopology()` possède l'installation du monde et invalide
   `staticWorldGeometryCache`; `addCachedWorldGeometry()` et les géométries de
-  boîtes/taquets pré-calculées décrivent les propriétaires et invalidations à
-  transposer dans des ressources Three, sans réutiliser leurs sorties projetées ;
-- le banc de boucle active sait rejouer les mêmes timestamps, états et caméras,
-  attribuer le coût CPU et contrôler les snapshots physiques. Son protocole
-  devra recevoir un chemin natif complet au lieu de lui imposer l'entrée
-  projetée de compatibilité.
-- N3 fournit désormais le groupe joueur local, sa pose de présentation compacte,
-  la propriété séparée des éléments statiques/variables et l'instrumentation des
-  transferts. N4 peut les composer sans reconstruire la coque ni reprendre son
-  constructeur.
+  boîtes/taquets pré-calculées ont guidé les propriétaires et invalidations des
+  ressources Three, sans réutiliser leurs sorties projetées ;
+- le banc de boucle active rejoue les mêmes timestamps, états et caméras,
+  attribue le coût CPU et contrôle les snapshots physiques. Le protocole N5
+  mesure le chemin natif complet sans lui imposer l'entrée projetée de
+  compatibilité.
+- N1 à N4 fournissent le catalogue persistant, le groupe joueur local, la pose
+  compacte et la composition visible sans `RenderFrame` natif. N5 archive la
+  fidélité et le gain de performance apparié ; N6 réutilise ces preuves sans
+  recommencer ces constructions.
 
 ### Instructions externes au dépôt
 
@@ -1075,15 +1084,15 @@ commitées ; aucune qualification de release ou de GPU/composition visible.
 
 ## Tranches natives planifiées
 
-Hors modules N1 et N2.1 à N2.3 livrés et nommés ci-dessous, les nouveaux modules évoqués restent
-des emplacements prévus. Chaque tranche reste réversible par désactivation ou
-suppression du chemin natif concerné ; aucune tranche ne réécrit le moteur ni
-les références Legacy/compatibilité. Une tranche ne commence qu'après réussite
-des gates de la précédente.
+Les modules et points d'ancrage ci-dessous ont été livrés dans l'ordre prévu.
+Chaque tranche reste réversible par désactivation ou suppression du chemin natif
+concerné ; aucune tranche ne réécrit le moteur ni les références
+Legacy/compatibilité. Chaque tranche a commencé après réussite des gates de la
+précédente.
 
-**Suivi : N1, les trois lots N2.1 à N2.3 et N3 sont validés dans leur périmètre
-isolé. N4 à N6 restent non commencées.**
-À chaque livraison, consigner les résultats
+**Suivi : N1, les trois lots N2.1 à N2.3, N3, N4, N5 et N6 sont validés. Three
+natif est actif par défaut depuis N6 ; Legacy reste le repli et une référence
+exacte.** À chaque livraison, consigner les résultats
 et limites avec son commit ou artefact, les contrôles exécutés et le retour
 arrière vérifié. Les règles de validation ci-dessous s'appliquent à chaque
 tranche selon son périmètre. Le statut initial « aucune commencée » désignait
@@ -1119,9 +1128,9 @@ la livraison documentaire, avant l'autorisation de code.
   dessine hors écran derrière un panneau : ses résultats seuls ne confirment
   pas une performance visible. Les confirmer sur la scène effectivement
   animée, notamment skipper (port et taquets se déplacent de façon cohérente).
-- En cas d'échec, conserver les références et le natif désactivé, corriger la
-  tranche concernée puis répéter ses contrôles. Aucun test physique ou
-  fonctionnel n'est rendu tolérant pour accepter un écart visuel.
+- En cas de régression, conserver les références, utiliser le repli Legacy,
+  corriger la tranche concernée puis répéter ses contrôles. Aucun test physique
+  ou fonctionnel n'est rendu tolérant pour accepter un écart visuel.
 
 ### N1 · Protections puis prototype statique persistant isolé
 
@@ -1177,7 +1186,7 @@ la livraison documentaire, avant l'autorisation de code.
   `installRuntimeTopology()`, `installCommunityDocument()`,
   `restoreBuiltInPort()`, `buildHarborRenderIndex()`, les cartes
   `boxRenderGeometryById`, `shoreCleatRenderGeometryById` et
-  `staticWorldGeometryCache`. Le futur propriétaire Three garde ses propres
+  `staticWorldGeometryCache`. Le propriétaire Three garde ses propres
   ressources monde ; il ne met pas les primitives projetées dans ses buffers.
 - **Invariants protégés** : topologie et dimensions KJP inchangées, visibilité
   fonctionnelle conservée, fond d'eau existant, aucune autorité Three sur les
@@ -1235,7 +1244,7 @@ la livraison documentaire, avant l'autorisation de code.
 ### N4 · Intégration dans la boucle et composition interactive
 
 - **Objectif** : raccorder le backend natif à l'unique boucle existante derrière
-  une sélection de qualification désactivée par défaut, puis éviter la
+  une sélection de qualification, initialement désactivée jusqu'à N6, puis éviter la
   construction du monde projeté Legacy complet lorsqu'il est sélectionné.
 - **Périmètre et points d'ancrage** : `render(time)`, `resizeCanvas()`,
   `drawWater()`, la façade sous `rendering/index.js`, Canvas 2D supérieur,
@@ -1244,7 +1253,7 @@ la livraison documentaire, avant l'autorisation de code.
   interactions et diagnostics sont maintenues.
 - **Invariants protégés** : un seul RAF, une seule progression physique, une
   seule interpolation et une seule base caméra ; ordre fonctionnel des overlays,
-  interactions et resize/DPR inchangé ; Legacy reste le défaut.
+  interactions et resize/DPR inchangé ; Legacy reste le défaut pendant N4.
 - **Tests prévus** : instrumentation qui échoue si le monde projeté complet ou
   `createRenderFrame()` est construit dans le chemin natif normal ; contrôles
   des `hitTargets`, gestes caméra, aussières, pendilles, thèmes, vues, resize et
@@ -1263,9 +1272,9 @@ la livraison documentaire, avant l'autorisation de code.
 - **Objectif** : qualifier le chemin natif sans convertir l'oracle Legacy en
   exigence d'identité raster.
 - **Périmètre et points d'ancrage** : scènes des six baselines, grand port dense,
-  vues dessus/anatomie/skipper, thèmes, DPR et overlays ; futurs validateurs
-  natifs dans les suites de rendu/simulateur et adaptation des scripts de profil
-  seulement après autorisation de cette tranche ; fichiers précis indiqués
+  vues dessus/anatomie/skipper, thèmes, DPR et overlays ; validateurs natifs
+  dans les suites de rendu/simulateur et adaptation des scripts de profil après
+  autorisation de cette tranche ; fichiers précis indiqués
   dans la cartographie vérifiée ci-dessus.
 - **Invariants protégés** : tests physiques et fonctionnels exacts inchangés ;
   références Legacy et comparaisons Three de compatibilité conservées exactes.
@@ -1289,6 +1298,9 @@ la livraison documentaire, avant l'autorisation de code.
   diagnostic ; aucune référence Legacy/compatibilité n'est réécrite.
 
 ### N6 · Activation contrôlée
+
+**État : validée le 11 septembre 2026 ; Three natif est le défaut, Legacy reste
+disponible et les deux références historiques sont conservées.**
 
 - **Objectif** : décider séparément d'une activation par défaut après les gates,
   sans confondre qualification technique et suppression des références.
@@ -1314,9 +1326,9 @@ son contrat historique. La règle initiale qui interdisait au natif de s'en
 présentation associe explicitement les identifiants physiques existants aux six
 propriétaires visuels de pare-battages. Cette divergence visuelle est limitée au
 backend natif ; elle ne modifie ni le moteur, ni les contacts calculés, ni Legacy,
-ni ses références. Après N1 à N3 décrites ci-dessous, la prochaine tranche est
-**N4, intégration dans la boucle et composition interactive**. N5 et N6 restent
-différées.
+ni ses références. N1 à N5 ont construit et qualifié le chemin natif ; la
+livraison N6 ci-dessous termine l'activation prévue par ce plan. Tout retrait
+ultérieur de Legacy ou du backend de compatibilité exige une décision distincte.
 
 ## Livraison N1 — 11 septembre 2026
 
@@ -2223,3 +2235,102 @@ Legacy. Prochaine tranche prévue : **N6, activation contrôlée**. Elle décide
 séparément du défaut, complétera la matrice navigateurs/appareils et le soak, et
 vérifiera le repli en conditions d'activation. N6 n'est pas commencée dans cette
 livraison.
+
+## Livraison N6 — activation contrôlée
+
+**N6 est validée : Three natif est activé par défaut et chaque critère de sortie
+du plan a été vérifié.** La tranche a commencé sur `codex/threejs-v2`, HEAD
+`f136091d2ccfbfd6628587454f9ece16806710a8` (`refactor_v2:N5`), avec un arbre
+Git propre. Les livraisons N1 à N5 et leurs preuves ont été réutilisées sans
+reconstruction ni modification de leurs références.
+
+### Activation, repli et frontières
+
+- `DEFAULT_WORLD_RENDERER` sélectionne désormais `native` au démarrage produit
+  et diagnostic. Le paramètre public `?renderer=legacy` force le repli ;
+  `?renderer=native` explicite le choix natif. Une valeur inconnue est ignorée.
+- La création initiale native est entourée par un repli automatique vers Legacy.
+  Un échec de construction libère les ressources partielles, réaffiche
+  `worldScene` et expose l'état courant dans `data-world-renderer`. Le scénario
+  injecté `?test=1&failNativeStartup=1` valide ce chemin sans ajouter de mode
+  produit.
+- Legacy et Three de compatibilité restent présents. Les bancs et tests qui
+  mesurent leurs contrats les demandent explicitement avec `renderer=legacy` ;
+  les six références raster Legacy et les 338 comparaisons de compatibilité
+  n'ont pas été modifiées.
+- Le Canvas Three est masqué aux technologies d'assistance, conserve
+  `pointer-events: none` et reste sous le Canvas 2D. Le picking, les
+  `hitTargets`, les commandes et les overlays gardent donc leurs propriétaires
+  existants.
+- Aucune ligne de physique, profil, collision, gestion du temps, interpolation,
+  commande ou trajectoire étalon n'est modifiée par N6. La boucle, la pose et la
+  caméra restent celles qualifiées en N4 et N5.
+
+### Matrice et stabilité observées
+
+Le rapport `docs/validation/threejs-native-n6-matrix.json` archive neuf cas
+réussis sous macOS 15.7.7 arm64 : Chromium 149.0.7827.55, Firefox 151.0 et
+WebKit 26.5, chacun en 1280 × 800 DPR 1, 1024 × 720 DPR 2 et 390 × 844 DPR 3.
+Le DPR effectif reste borné à 2 par le comportement KJP existant. Chaque cas
+charge le HTML produit sans API de test, constate le WebGL2 sans erreur, le
+canvas natif visible et dimensionné, le Canvas Legacy masqué, le Canvas 2D
+interactif, l'absence de débordement et de requête réseau, puis vérifie par
+capture qu'une interaction visible modifie la scène. Les dix-huit captures ont
+été inspectées localement ; leurs empreintes sont archivées, leurs fichiers
+temporaires ne sont pas versionnés.
+
+Le test ciblé complète la matrice par le chargement de La Trinité, un
+redimensionnement, le passage Legacy puis natif avec état exact, l'échec de
+démarrage injecté, et le repli produit `?renderer=legacy` sans API de test. Le
+soak fait avancer une vue skipper durant 1 200 images et 20,00 secondes simulées
+avec une unique callback d'animation en attente. Les 537 géométries, les
+identités, contenus et versions d'attributs, la mémoire WebGL et les compteurs
+d'upload restent strictement constants après initialisation ; la pose et la
+caméra avancent réellement et aucun monde projeté ni `RenderFrame` n'est
+construit.
+
+### Vérifications N6
+
+| Commande / contrôle | Résultat de cette livraison |
+| --- | --- |
+| `npm run qualify:renderer:native -- --output docs/validation/threejs-native-n6-matrix.json` | 9/9 cas réussis sur trois moteurs et trois formats ; rapport archivé |
+| `node --test tests/native-renderer-activation.test.js` | 2/2 tests réussis : activation produit, interactions, import, resize, repli et soak |
+| Inspection visuelle | Captures bureau skipper, compact et mobile inspectées sur Chromium, Firefox et WebKit ; monde, coque, objectif, HUD et commandes lisibles |
+| `npm run build:simulator`, puis `npm run check:simulator` | Réussis ; HTML autonome régénéré et cohérent avec ses sources |
+| `npm run test:rendering` | 13/13 tests réussis ; contrats N1 à N3 et compatibilité inchangés |
+| `npm run verify:simulator` | Réussi : 42/42 tests physiques et 64/64 tests navigateur, trois trajectoires étalons exactes |
+| `npm run capture:renderer-baseline` sans `--update` | 6/6 empreintes Legacy identiques ; aucune référence réécrite |
+| Contrôles statiques | `node --check` sur le script et le test N6, puis `git diff --check`, réussis |
+| `graphify update .` | Réussi sans appel LLM : graphe AST à 1 248 nœuds, 2 079 arêtes et 79 communautés |
+
+Les premiers essais de validation ont échoué sur quatre hypothèses du nouveau
+protocole, sans défaut produit : le DPR demandé à 3 est volontairement borné à
+2 par KJP ; les onglets de vue et de mode sont masqués par la mise en page
+compacte ; l'état devait être mis en pause avant une comparaison exacte pendant
+le repli ; Firefox formule autrement l'avertissement AudioContext attendu. Les
+assertions ont été corrigées pour décrire ces comportements existants sans
+élargir le filtre aux autres avertissements. Aucun seuil physique, fonctionnel,
+Legacy ou de compatibilité n'a été affaibli.
+
+Limites déclarées : la matrice utilise les moteurs headless fournis par
+Playwright sur cette machine, pas des navigateurs installés ni des appareils
+physiques. Elle contrôle WebGL2, les captures et les interactions, sans mesurer
+le temps GPU ou le compositing. Ces mesures de performance restent celles de N5
+sur Chromium/Metal. `verify:release` n'a pas été lancé, N6 étant un `ui-check`
+du simulateur et non une qualification explicite des deux produits.
+
+Les fichiers N6 sont la sélection et le repli dans
+`src/simulateur-port/template.html`, l'accessibilité du canvas dans
+`rendering/native-static-prototype.mjs`, les tests et scripts explicitant leurs
+backends, `tests/native-renderer-activation.test.js`,
+`scripts/qualify-simulator-native-activation.js`, `package.json`, le rapport de
+matrice, le guide utilisateur, les instructions propres au dépôt, le présent
+journal et le HTML autonome régénéré. SHA-256 du HTML autonome :
+`bb09ce2444aebaa6a16a21f16a71f2cd06dad418243d4da80e3703f4270b4044`.
+
+Retour arrière : définir `DEFAULT_WORLD_RENDERER` à `legacy` remet le défaut
+historique sans migration de données ni changement du moteur ; le repli
+immédiat reste disponible par `?renderer=legacy`. N6 termine les tranches
+planifiées. Aucun retrait de Legacy ou du backend Three de compatibilité n'est
+engagé ; une telle évolution demanderait un nouveau cadrage et une décision
+explicite.

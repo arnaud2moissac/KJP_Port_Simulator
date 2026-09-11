@@ -108,7 +108,7 @@ async function main() {
         const raf = window.requestAnimationFrame.bind(window);
         window.requestAnimationFrame = callback => raf(() => callback(12345));
       });
-      await page.goto(`${pathToFileURL(path.join(root, "simulateur-port.html")).href}?test=1`);
+      await page.goto(`${pathToFileURL(path.join(root, "simulateur-port.html")).href}?test=1&renderer=legacy`);
       await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
       await page.locator('[data-mode="navigation"]').click();
       const scan = [];

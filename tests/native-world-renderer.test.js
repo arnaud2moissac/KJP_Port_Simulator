@@ -8,6 +8,7 @@ const { chromium } = require("playwright");
 const simulatorPath = path.resolve(__dirname, "..", "simulateur-port.html");
 const simulatorUrl = new URL(pathToFileURL(simulatorPath));
 simulatorUrl.searchParams.set("test", "1");
+simulatorUrl.searchParams.set("renderer", "legacy");
 
 const settle = (page, frames = 3) => page.evaluate(count => new Promise(resolve => {
   const next = remaining => requestAnimationFrame(() => (
@@ -82,7 +83,10 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   await settle(page, 4);
   const initial = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
   assert.equal(initial.active, "legacy");
-  assert.equal(initial.legacyDefault, true);
+  assert.equal(initial.defaultRenderer, "native");
+  assert.equal(initial.startupRenderer, "legacy");
+  assert.equal(initial.requestedRenderer, "legacy");
+  assert.equal(initial.legacyDefault, false);
   assert.equal(initial.canvas.nativeConnected, false);
 
   await page.evaluate(() => {

@@ -7,6 +7,7 @@ const crypto = require("node:crypto");
 const root = path.resolve(__dirname, ".."), url = pathToFileURL(path.join(root, "simulateur-port.html"));
 const KJPCodec = require(path.join(root, "src", "ports", "kjp-codec.js"));
 url.searchParams.set("test", "1");
+url.searchParams.set("renderer", "legacy");
 const portText = fs.readFileSync(path.join(root, "examples/la-trinite-sur-mer.kjp"), "utf8");
 const seamarkPort = KJPCodec.createEmpty({ id: "native-seamarks", name: "Balisage natif" });
 const seamarkKinds = [

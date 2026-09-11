@@ -15,6 +15,10 @@ Le simulateur est conçu pour essayer, observer et recommencer. Il aide à const
 
 Les mêmes commandes sont disponibles sur écran tactile. La barre se règle en faisant glisser son curseur, comme un volant qui garde sa position.
 
+## Rendu et solution de repli
+
+Le renderer Three.js natif est utilisé au démarrage. Si son initialisation échoue, le simulateur revient automatiquement au renderer Legacy sans modifier la manœuvre. Pour forcer ce repli lors d'un diagnostic, ajoutez `?renderer=legacy` à l'adresse de `simulateur-port.html`. Retirez ce paramètre, ou utilisez `?renderer=native`, pour revenir au renderer natif.
+
 ![Commandes et vues du bateau](images/02-commandes-et-vues.jpg)
 
 ## Lire ce que fait le bateau

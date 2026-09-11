@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "protocol": "native-default-browser-device-matrix-v1",
+  "generatedAt": "2026-09-11T19:29:58.251Z",
+  "status": "passed",
+  "sourceSha256": "bb09ce2444aebaa6a16a21f16a71f2cd06dad418243d4da80e3703f4270b4044",
+  "platform": "darwin 24.6.0 arm64",
+  "headless": true,
+  "browserVersions": {
+    "chromium": "149.0.7827.55",
+    "firefox": "151.0",
+    "webkit": "26.5"
+  },
+  "matrix": [
+    {
+      "engine": "chromium",
+      "device": "desktop-dpr1",
+      "status": "passed",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "requestedDeviceScaleFactor": 1,
+      "initialSha256": "b70e585edb62406f640193cdf11008b6a4933f7b0e6e12b6e8991ad36fc34e5d",
+      "changedSha256": "2ca2068eaaf1f47458ff235e7bf86e4370b68752735b3bf004e1c5fa6c9bd9c2",
+      "stage": {
+        "width": 954,
+        "height": 734
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 954,
+        "height": 734,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "device": "compact-dpr2",
+      "status": "passed",
+      "viewport": {
+        "width": 1024,
+        "height": 720
+      },
+      "requestedDeviceScaleFactor": 2,
+      "initialSha256": "18beca597c13990e818eaf32bbdde26dce2422ab962f6005dd45a0c4f92415af",
+      "changedSha256": "d6b0609f62ab037b58ead63d430360ca384e918f4d43a4da0ed3c0c74fe73bd7",
+      "stage": {
+        "width": 712,
+        "height": 654
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 1424,
+        "height": 1308,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "chromium",
+      "device": "mobile-dpr3",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "requestedDeviceScaleFactor": 3,
+      "initialSha256": "1e7616aede25a29746b77595a3e61a3f3b1444be705387674f44055a9f4e78fc",
+      "changedSha256": "f6d85d79afc7aebb4f53190f83a4c5dfe0356952d7fd8d3607bf2d42ca4f4b78",
+      "stage": {
+        "width": 390,
+        "height": 780
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 780,
+        "height": 1560,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "firefox",
+      "device": "desktop-dpr1",
+      "status": "passed",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "requestedDeviceScaleFactor": 1,
+      "initialSha256": "12688b40d748bc5f7ec50c4df709ab1fb3e43af68a4c4c69dc354a611cee951a",
+      "changedSha256": "36de0ef952e9cac1ae04e3d86c79af5b99818d20225cb41faf1f029cfae5b2c6",
+      "stage": {
+        "width": 954,
+        "height": 734
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 954,
+        "height": 734,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "firefox",
+      "device": "compact-dpr2",
+      "status": "passed",
+      "viewport": {
+        "width": 1024,
+        "height": 720
+      },
+      "requestedDeviceScaleFactor": 2,
+      "initialSha256": "55bbd3bbb704a0f13fc8fd4c62f3b4cfbc742b1c050b1f971b7f313d11a81e40",
+      "changedSha256": "40fec5a209ec6bef35ca0a0e5e2653871e89d9d94dfc24506403df993cc708b5",
+      "stage": {
+        "width": 712,
+        "height": 654
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 1424,
+        "height": 1308,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "firefox",
+      "device": "mobile-dpr3",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "requestedDeviceScaleFactor": 3,
+      "initialSha256": "038784f548900b51bef49646c5a2e4529cba1261e08508631ac606852fddbac0",
+      "changedSha256": "47d211ea6d24cac6ce7a7c5b101cb6a955245c91c9528fa258728bbd1fd6ac85",
+      "stage": {
+        "width": 390,
+        "height": 780
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 780,
+        "height": 1560,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "webkit",
+      "device": "desktop-dpr1",
+      "status": "passed",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "requestedDeviceScaleFactor": 1,
+      "initialSha256": "eb0e715d0729a50b2b61ffb5c77e01de074b97dcc3066d66efac800ab6faba91",
+      "changedSha256": "c2c853066a1f6af56e0f47761e31cde2c85ba34eb7abd9c4766b80b2ad2078ff",
+      "stage": {
+        "width": 954,
+        "height": 734
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 954,
+        "height": 734,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "webkit",
+      "device": "compact-dpr2",
+      "status": "passed",
+      "viewport": {
+        "width": 1024,
+        "height": 720
+      },
+      "requestedDeviceScaleFactor": 2,
+      "initialSha256": "4443f1893ee6a87ec7ce2fb56c334448d53abc422292d0b1884533f78d7273b9",
+      "changedSha256": "bbabfc5073648a4e1da2d4c09be8fbc415797ad35f5913a914f029a13e611aff",
+      "stage": {
+        "width": 712,
+        "height": 654
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 1424,
+        "height": 1308,
+        "glError": 0
+      }
+    },
+    {
+      "engine": "webkit",
+      "device": "mobile-dpr3",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "requestedDeviceScaleFactor": 3,
+      "initialSha256": "3c152c2e6d5ebface44fb2cb6e26630888f9cf4ef89b8f3a426a43dfaa3b5ec9",
+      "changedSha256": "1a4bca0bbb7c80a73a5b00bdc215bae5b79de291cf6f2b3b6193bf930b39ce16",
+      "stage": {
+        "width": 390,
+        "height": 779.984375
+      },
+      "canvas": {
+        "connected": true,
+        "display": "block",
+        "pointerEvents": "none",
+        "width": 780,
+        "height": 1560,
+        "glError": 0
+      }
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "expected": 9
+  },
+  "captures": {
+    "retained": false,
+    "policy": "Inspection locale temporaire ; empreintes SHA-256 archivées dans la matrice."
+  }
+}

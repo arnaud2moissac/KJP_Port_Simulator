@@ -13,6 +13,7 @@ const KJPCodec = require("../src/ports/kjp-codec.js");
 const root = path.resolve(__dirname, "..");
 const simulatorUrl = pathToFileURL(path.join(root, "simulateur-port.html"));
 simulatorUrl.searchParams.set("test", "1");
+simulatorUrl.searchParams.set("renderer", "legacy");
 const emptyPort = KJPCodec.createEmpty({ id: "native-player-empty", name: "Banc joueur natif" });
 emptyPort.navigation.entries.push({ id: "entry", position: { east: 0, north: 0 }, heading: 0 });
 const emptyPortText = KJPCodec.serialize(emptyPort);
