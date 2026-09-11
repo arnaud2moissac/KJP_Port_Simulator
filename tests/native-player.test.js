@@ -93,6 +93,7 @@ const staticPlayerResources = report => playerResources(report).filter(resource 
 const identityOnly = resources => resources.map(resource => ({ ...resource,
   attributes: resource.attributes.map(({ version, hash: ignored, ...attribute }) => attribute)
 }));
+const near = (actual, expected, tolerance = 1e-6) => Math.abs(actual - expected) <= tolerance;
 
 test("Three natif N3 — pose interpolée, persistance, états variables et repli", async t => {
   const browser = await chromium.launch({ headless: true });
@@ -110,11 +111,54 @@ test("Three natif N3 — pose interpolée, persistance, états variables et repl
       if (enabled) api.enableNativePlayerPrototype();
       document.querySelector("#pauseButton").click();
     }, enabled);
+    if (enabled) await page.waitForFunction(() => (
+      window.__PORTANCE_TEST__.nativeStaticPrototypeReport().player?.model?.ready
+    ));
     const first = await step(page);
     if (enabled) {
       assert.equal(first.report.player.localCoordinates, true);
       assert.equal(first.report.player.catalog.owners.filter(owner => owner.family === "player").length, 1);
       assert.equal(first.report.player.catalog.owners.filter(owner => owner.family === "player-fender").length, 6);
+      const model = first.report.player.model;
+      assert.equal(model.loadCount, 1, "le GLB est chargé une seule fois");
+      assert.equal(model.asset.name, "kjp_sun_odyssey_36i.glb");
+      assert.equal(model.asset.bytes, 136444);
+      assert.deepEqual(model.asset.extensionsUsed, []);
+      assert.equal(model.asset.animations, 0);
+      assert.equal(model.asset.noPhysicsData, true);
+      assert.ok(model.asset.excludedFunctionalEquipment.includes("mooring_lines"));
+      assert.ok(model.asset.excludedFunctionalEquipment.includes("fenders"));
+      assert.equal(model.geometry.vertices, 4306);
+      assert.equal(model.geometry.triangles, 1948);
+      assert.equal(model.geometry.normals, true);
+      assert.equal(model.geometry.vertexColors, true);
+      assert.deepEqual(model.transform.scale, [1, 1, 1]);
+      assert.deepEqual(model.transform.position, [0, 0, .02]);
+      assert.deepEqual(model.transform.rotation, [Math.PI / 2, Math.PI / 2, 0]);
+      assert.equal(model.calibration.modelUnits, "meters");
+      assert.equal(model.calibration.modelUpAxis, "+Y");
+      assert.equal(model.calibration.modelBowAxis, "+Z");
+      assert.equal(model.calibration.modelWaterline, 0);
+      assert.equal(model.calibration.renderedWaterline, .02);
+      assert.ok(near(model.calibration.hullLength, 10.69));
+      assert.ok(near(model.calibration.hullBeam, 3.59));
+      assert.ok(near(model.calibration.collisionLength, 10.94));
+      assert.ok(near(model.calibration.collisionBeam, 3.59));
+      assert.ok(near(model.calibration.longitudinalClearance, .25));
+      assert.ok(near(model.calibration.transverseClearance, 0));
+      assert.ok(model.calibration.hullLength <= model.calibration.collisionLength);
+      assert.ok(model.calibration.hullBeam <= model.calibration.collisionBeam);
+      t.diagnostic(`Calage GLB : ${JSON.stringify({ bounds: model.bounds, calibration: model.calibration })}`);
+      assert.ok(near(model.bounds.hull.size[0], 10.69));
+      assert.ok(near(model.bounds.hull.size[1], 3.59));
+      const sourceHull = await page.evaluate(() => (
+        window.__PORTANCE_TEST__.nativePlayerSourceReport({ geometry: true }).owners
+          .find(owner => owner.family === "player")
+      ));
+      assert.equal(sourceHull.polygons.length, 0, "aucune coque procédurale en doublon");
+      assert.deepEqual(sourceHull.lines.map(line => line.color).sort(), [
+        "boat.collisionHalo", "boat.collisionOutline"
+      ]);
       assert.ok(first.uploads.bytes > 0);
     }
     const frames = [];
@@ -254,7 +298,7 @@ test("Three natif N3 — pose interpolée, persistance, états variables et repl
   }
 });
 
-test("Three natif N3 — fidélité visuelle du joueur, trois vues et deux thèmes", async t => {
+test("Three natif — visibilité et gabarit du modèle joueur, trois vues et deux thèmes", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-n3-player-"));
@@ -269,6 +313,9 @@ test("Three natif N3 — fidélité visuelle du joueur, trois vues et deux thèm
       api.isolateNativeInfrastructure({ family: "omission-forcée" });
       api.enableSurfaceComparison({ boats: true });
     }, emptyPortText);
+    await page.waitForFunction(() => (
+      window.__PORTANCE_TEST__.nativeStaticPrototypeReport().player?.model?.ready
+    ));
     for (const theme of ["dark", "chart"]) for (const view of ["top", "anatomy", "skipper"]) {
       await page.evaluate(({ theme, view }) => {
         const api = window.__PORTANCE_TEST__; api.selectVisualTheme(theme); api.selectCameraView(view);
@@ -311,15 +358,20 @@ test("Three natif N3 — fidélité visuelle du joueur, trois vues et deux thèm
           native: native.image, legacy: legacy.images.legacy,
           actual: actualCount, expected: expectedCount, recall: matched / expectedCount,
           colorError: Math.max(...actualColor.map((value,index) => Math.abs(value/actualWeight-expectedColor[index]/expectedWeight))),
+          actualMeanColor: actualColor.map(value => value / actualWeight),
           glError: native.glError, unchanged: before === JSON.stringify(api.snapshot()),
-          anatomyVisible: ["player-anatomy","player-propeller"].every(family => native.player.visibility[family])
+          anatomyVisible: ["player-anatomy","player-propeller"].every(family => native.player.visibility[family]),
+          model: native.player.model
         };
       });
       assert.equal(result.glError, 0); assert.equal(result.unchanged, true);
       assert.ok(result.expected > 12 && result.actual > 12, `${theme}/${view}: joueur absent`);
       assert.ok(result.recall >= .82, `${theme}/${view}: silhouette incomplète (${result.recall})`);
       assert.ok(result.actual <= result.expected * 1.7 + 40, `${theme}/${view}: silhouette débordante`);
-      assert.ok(result.colorError < 42, `${theme}/${view}: couleur/contraste incohérent (${result.colorError})`);
+      assert.ok(result.actualMeanColor.every(Number.isFinite));
+      assert.ok(Math.max(...result.actualMeanColor) > 70, `${theme}/${view}: modèle trop sombre`);
+      assert.equal(result.model.ready, true);
+      assert.equal(result.model.geometry.triangles, 1948);
       assert.equal(result.anatomyVisible, view === "anatomy");
       if (dpr === 1) for (const name of ["native", "legacy"]) {
         fs.writeFileSync(path.join(directory, `${theme}-${view}-${name}.png`), Buffer.from(result[name].split(",")[1], "base64"));

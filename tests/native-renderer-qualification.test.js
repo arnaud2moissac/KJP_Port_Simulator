@@ -78,9 +78,15 @@ async function configure(page, scene) {
 }
 
 async function capture(page, backend) {
-  return page.evaluate(async backend => {
+  await page.evaluate(backend => {
     const api = window.__PORTANCE_TEST__;
     if (api.worldRendererReport().active !== backend) api.selectWorldRenderer(backend);
+  }, backend);
+  if (backend === "native") await page.waitForFunction(() => (
+    window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready
+  ));
+  return page.evaluate(async backend => {
+    const api = window.__PORTANCE_TEST__;
     window.__n5Step(5);
     const world = api.worldRendererReport({ images: backend === "native" });
     return {
@@ -171,6 +177,10 @@ async function visualMetrics(page, reference, candidate, transform = "none") {
       metrics,
       gates: {
         presence: a.count > 20 && b.count >= Math.max(20, a.count * .65) && b.count <= a.count * 1.4,
+        // La forme GLB validée du joueur remplace la coque procédurale Legacy.
+        // Le gabarit du modèle est contrôlé séparément dans native-player.test.js ;
+        // ce seuil monde doit détecter une omission ou un déplacement sans
+        // imposer l'ancienne surface de coque pixel par pixel au natif.
         alignment: metrics.coverageRecall >= .80 && metrics.centerDx <= .16 && metrics.centerDy <= .16,
         scale: metrics.widthRatio >= .65 && metrics.widthRatio <= 1.4 && metrics.heightRatio >= .65 && metrics.heightRatio <= 1.4,
         stroke: b.edges >= 20 && metrics.edgeRatio >= .50 && metrics.edgeRatio <= 2

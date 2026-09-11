@@ -7066,8 +7066,13 @@
           worldGeometryCapture = previous;
         }
         owners.push(owner);
+        return owner;
       };
-      collect("player", "hull", nativePlayerPaletteRoles(), ["hull"]);
+      const collisionOwner = collect("player", "hull", nativePlayerPaletteRoles(), ["hull"]);
+      collisionOwner.polygons = [];
+      collisionOwner.lines = collisionOwner.lines.filter(line => (
+        line.color === "boat.collisionHalo" || line.color === "boat.collisionOutline"
+      ));
       collect("player-anatomy", "static", nativePlayerPaletteRoles(), ["anatomy"]);
       collect("player-propeller", "blades", nativePlayerPaletteRoles(), ["propeller"]);
       for (const [index] of BOAT_PROFILE.fenders.entries()) {
@@ -7078,6 +7083,13 @@
         owners,
         palette: nativePlayerPalette([]),
         player: {
+          model: {
+            role: "boat.playerHull",
+            position: [0, 0, BOAT_PROFILE.visual.waterlineZ],
+            rotation: [Math.PI / 2, Math.PI / 2, 0],
+            scale: 1,
+            collision: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
+          },
           propeller: {
             owner: "player-propeller:blades",
             center: [BOAT_PROFILE.propellerX, 0, -.55],

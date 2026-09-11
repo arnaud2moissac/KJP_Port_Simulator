@@ -21,7 +21,8 @@ function sameNumber(first, second) {
 // présentation compacte et des états visuels ; aucun objet Three n'en devient
 // une source d'autorité.
 export function createNativePlayerResources(definition, {
-  resourceFactory = createNativeInfrastructureResources
+  resourceFactory = createNativeInfrastructureResources,
+  modelFactory = null
 } = {}) {
   const configuration = definition?.player;
   if (!configuration || typeof configuration !== "object") {
@@ -29,6 +30,22 @@ export function createNativePlayerResources(definition, {
   }
   const resources = resourceFactory({ owners: definition.owners, palette: definition.palette });
   const group = resources.group;
+  let modelResources = null;
+  try {
+    if (configuration.model) {
+      if (typeof modelFactory !== "function") {
+        throw new TypeError("Joueur natif : fabrique de modèle absente");
+      }
+      modelResources = modelFactory({
+        ...configuration.model,
+        color: definition.palette[configuration.model.role]
+      });
+      modelResources.attach(group);
+    }
+  } catch (error) {
+    resources.dispose();
+    throw error;
+  }
   const anatomyFamilies = new Set(configuration.anatomyFamilies || []);
   const collisionWidths = Object.values(configuration.collisionWidths || {});
   const acceleratedWidths = configuration.acceleratedWidths || [];
@@ -104,6 +121,7 @@ export function createNativePlayerResources(definition, {
 
     const contactFenders = new Set(presentation.contactFenders.map(String));
     resources.updatePalette(presentation.palette);
+    if (modelResources) modelResources.updateColor(presentation.palette[configuration.model.role]);
     group.position.set(presentation.pose.x, presentation.pose.y, 0);
     group.rotation.set(0, 0, presentation.pose.heading);
     group.updateMatrix();
@@ -154,6 +172,7 @@ export function createNativePlayerResources(definition, {
         bufferBytes: propellerStart.data.array.byteLength,
         bufferVersion: propellerStart.data.version
       },
+      ...(modelResources ? { model: modelResources.report() } : {}),
       catalog: resources.report()
     };
   }
@@ -161,9 +180,10 @@ export function createNativePlayerResources(definition, {
   function dispose() {
     if (disposed) return;
     disposed = true;
+    modelResources?.dispose();
     resources.dispose();
   }
 
   return Object.freeze({ group, update, report, dispose,
-    afterRender: () => resources.afterRender?.() });
+    afterRender: () => { resources.afterRender?.(); modelResources?.afterRender?.(); } });
 }

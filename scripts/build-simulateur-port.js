@@ -194,12 +194,16 @@ function bundleThreeRendering() {
     format: "iife",
     platform: "browser",
     target: ["safari15", "chrome100", "firefox100"],
+    loader: { ".glb": "binary" },
+    define: { fetch: "globalThis.__KJP_OFFLINE_REQUEST_BLOCKED__" },
     minify: true,
     legalComments: "inline"
   });
   const javascript = result.outputFiles[0]?.text;
   if (!javascript) throw new Error("Bundle Three.js du simulateur absent.");
   return javascript
+    .replaceAll("ImageBitmapLoader: fetch() not supported.",
+      "ImageBitmapLoader: chargement réseau indisponible.")
     .replace(/[ \t]+$/gm, "")
     .replace(/^ +(?=\t)/gm, "");
 }

@@ -2354,3 +2354,78 @@ exact externe `la trinv2.kjp`, la vérification finale observe respectivement
 vent/courant, sans erreur console. `npm run check:simulator`, les 13 tests de
 rendu et la protection navigateur ciblée réussissent ; les six empreintes
 Legacy restent identiques sans mise à jour des références.
+
+## Intégration post-N6 — modèle GLB du bateau joueur
+
+Le 11 septembre 2026, le modèle fourni `kjp_sun_odyssey_36i.glb` remplace la
+coque procédurale du seul bateau joueur dans le backend Three natif. Le fichier
+source reste importé directement, sans reconstruction, simplification ni
+modification de ses attributs. Son SHA-256 est
+`b16e5d0c656e71a25ef12d4e6e278c7f9b358f35ddd75eeebb620fdffaba4dc9` pour
+136 444 octets. Il contient un maillage, 4 306 sommets, 1 948 triangles, une
+matière à couleurs de sommets, aucune texture, aucune animation et aucune
+extension glTF optionnelle.
+
+### Calage métrique et séparation fonctionnelle
+
+Les métadonnées embarquées donnent une coque seule de 10,69 × 3,59 m, hors
+gréement et accessoires, contre le contour KJP de 10,94 × 3,59 m. L'échelle
+reste donc uniforme et métrique à `1`. La largeur coïncide ; la coque conserve
+0,25 m de marge longitudinale totale, soit 2,3 %, tandis que le rouleau d'étrave
+porte l'encombrement total du modèle à 10,94 m. Aucune déformation ni adaptation
+physique n'est appliquée. L'axe `+Z` du GLB devient l'avant `+X` KJP, son axe
+`+Y` devient la verticale `+Z` KJP, et son plan de flottaison `Y=0` est placé au
+niveau visuel existant `z=0,02 m`. Les bornes locales obtenues pour la coque
+sont `[-5,345 ; +5,345] × [-1,795 ; +1,795] × [-0,66 ; +1,16] m`.
+
+Le contour de collision natif existant est conservé comme aide visuelle et
+reste alimenté par le gabarit KJP. Les six pare-battages, les six taquets
+fonctionnels du Canvas 2D, les aussières, le picking, les `hitTargets`, les
+appendices pédagogiques et leurs états de contact ne changent pas. Le mât et la
+coque procéduraux ne sont plus construits dans le chemin natif, ce qui évite un
+doublon décoratif. Les bateaux statiques gardent leur représentation existante.
+
+### Chargement et cycle de vie
+
+`native-player-model.mjs` précharge une fois les octets GLB intégrés au bundle,
+les confie à `GLTFLoader.parseAsync()` puis conserve la géométrie durant la vie
+de la page. Chaque activation du renderer réutilise cette géométrie et ne crée
+qu'une matière de présentation locale ; un changement de port ne recharge ni ne
+reconstruit le modèle. La pose interpolée continue de déplacer le groupe joueur
+parent. Les gestes caméra ne modifient aucun attribut du GLB. La matière
+`MeshBasicMaterial` conserve les couleurs de sommets et permet le rendu dans la
+scène KJP non éclairée, sans lumière, ombre ou post-traitement supplémentaire.
+Le chemin réseau inutilisé de `GLTFLoader` est neutralisé au bundling ; le HTML
+reste autonome et ne contient aucun appel `fetch`, `XMLHttpRequest` ou
+`WebSocket`.
+
+### Vérifications et coût observé
+
+- `node --test tests/native-player.test.js` réussit 2/2 tests : chargement
+  unique, métrique, axes, flottaison, absence de coque procédurale, ressources
+  persistantes, thèmes, ×2, contacts, import de port et douze cadrages
+  vue/thème/DPR.
+- Le contrôle N5 des huit scènes/DPR réussit avec ses seuils d'origine après
+  attente explicite de la ressource embarquée. Les mutations d'omission,
+  déplacement, miniature et perte de lisibilité restent détectées.
+- `npm run test:rendering` réussit 13/13 contrats ; le test N4 du renderer
+  visible réussit, de même que les six empreintes Legacy sans modification de
+  référence. Le premier passage de `npm run test:e2e` a exposé deux assertions
+  de banc devenues obsolètes : capture du natif avant la fin du parse GLB et mot
+  `fetch()` présent dans un message mort de Three. Les deux contrôles ciblés
+  réussissent après correction ; la suite complète n'a pas été relancée une
+  seconde fois.
+- La comparaison avant/après utilise le même profil court visible attaché,
+  La Trinité en vue dessus sombre, DPR 1, huit images de chauffe puis trente
+  images mesurées sous Chromium headless/SwiftShader. Le natif passe de
+  17,76 à 17,86 ms de moyenne, de 16,0 à 16,9 ms au p50 et de 23,3 à 22,9 ms au
+  p95. Les appels de dessin passent de 3 299 à 3 294, les triangles de 210 793
+  à 212 440, les géométries de 7 055 à 7 050 et les octets chargés au GPU de
+  2 298 826 à 2 428 700. Cette unique mesure logicielle courte montre un coût
+  CPU moyen quasi stable (+0,6 %) mais ne constitue pas une qualification GPU
+  matérielle.
+
+Le HTML autonome final mesure 1 941 960 octets, contre 1 676 064 avant
+l'intégration. Aucun moteur, profil, collision, commande, interpolation,
+trajectoire, autre bateau, eau, ponton, caméra, éclairage global ou référence
+Legacy n'est modifié.
