@@ -31,9 +31,26 @@ async function createPage(browser, dpr = 1) {
     if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
   });
   await page.addInitScript(() => {
-    let callbacks = new Map(), nextId = 0, timestamp = 12_345;
-    window.requestAnimationFrame = callback => { callbacks.set(++nextId, callback); return nextId; };
+    let callbacks = new Map(), nextId = 0, timestamp = 12_345, maximumPending = 0;
+    window.requestAnimationFrame = callback => {
+      callbacks.set(++nextId, callback);
+      maximumPending = Math.max(maximumPending, callbacks.size);
+      return nextId;
+    };
     window.cancelAnimationFrame = id => callbacks.delete(id);
+    window.__n5Uploads = { calls: 0, bytes: 0 };
+    for (const name of ["bufferData", "bufferSubData"]) {
+      const original = WebGL2RenderingContext.prototype[name];
+      WebGL2RenderingContext.prototype[name] = function (...args) {
+        const result = original.apply(this, args);
+        if (this.canvas.id === "kjp-native-world") {
+          const data = args[name === "bufferData" ? 1 : 2];
+          window.__n5Uploads.calls++;
+          window.__n5Uploads.bytes += typeof data === "number" ? data : data?.byteLength || 0;
+        }
+        return result;
+      };
+    }
     window.__n5Step = (count = 1) => {
       for (let index = 0; index < count; index++) {
         const pending = callbacks;
@@ -54,6 +71,15 @@ async function createPage(browser, dpr = 1) {
         });
       }
       return states;
+    };
+    window.__n5Soak = count => {
+      for (let index = 0; index < count; index++) {
+        const pending = callbacks;
+        callbacks = new Map();
+        timestamp += 1000 / 60;
+        for (const callback of pending.values()) callback(timestamp);
+      }
+      return { pending: callbacks.size, maximumPending };
     };
   });
   await page.goto(simulatorUrl.href);
@@ -311,4 +337,62 @@ test("renderer natif — progression contrôlée reproductible et caméra mobile
     }
     assert.deepEqual(runs[1], runs[0], `${view}: progression native non reproductible`);
   }
+});
+
+test("renderer natif — soak skipper sans dérive de ressources", async t => {
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  const { page, errors, externalRequests } = await createPage(browser, 2);
+  await page.waitForFunction(() => (
+    window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready
+  ));
+  await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    api.reset({ x: 25, y: -27.35, heading: 0, u: 1 });
+    api.selectCameraView("skipper");
+    api.selectVisualTheme("dark");
+    api.setControls({ throttleTarget: .42, rudderTarget: .08 });
+    window.__n5Step(12);
+    document.querySelector("#pauseButton").click();
+  });
+  const before = await page.evaluate(() => ({
+    report: window.__PORTANCE_TEST__.worldRendererReport(),
+    snapshot: window.__PORTANCE_TEST__.snapshot(),
+    uploads: { ...window.__n5Uploads }
+  }));
+  const loop = await page.evaluate(() => window.__n5Soak(1200));
+  const after = await page.evaluate(() => ({
+    report: window.__PORTANCE_TEST__.worldRendererReport(),
+    snapshot: window.__PORTANCE_TEST__.snapshot(),
+    uploads: { ...window.__n5Uploads }
+  }));
+  const fingerprint = report => report.resources.map(resource => ({
+    role: resource.role,
+    owner: resource.owner,
+    family: resource.family,
+    geometry: resource.geometry,
+    attributes: resource.attributes.map(attribute => ({
+      name: attribute.name,
+      buffer: attribute.buffer,
+      array: attribute.array,
+      version: attribute.version,
+      bytes: attribute.bytes,
+      hash: attribute.hash
+    }))
+  }));
+  assert.equal(loop.pending, 1);
+  assert.equal(loop.maximumPending, 1);
+  assert.equal(after.report.active, "native");
+  assert.equal(after.report.routing.projectedWorldBuilds, before.report.routing.projectedWorldBuilds);
+  assert.deepEqual(fingerprint(after.report), fingerprint(before.report));
+  assert.deepEqual(after.report.memory, before.report.memory);
+  assert.deepEqual(after.uploads, before.uploads);
+  assert.notDeepEqual(after.snapshot.motion, before.snapshot.motion);
+  assert.ok(after.snapshot.timing.simulatedSeconds - before.snapshot.timing.simulatedSeconds > 19);
+  assert.notDeepEqual(after.report.camera, before.report.camera);
+  assert.equal(after.report.glError, 0);
+  assert.deepEqual(errors, []);
+  assert.deepEqual(externalRequests, []);
+  await page.close();
+  t.diagnostic(`1200 images skipper, ${after.snapshot.timing.simulatedSeconds.toFixed(2)} s simulées, ${after.report.memory.geometries} géométries stables`);
 });
