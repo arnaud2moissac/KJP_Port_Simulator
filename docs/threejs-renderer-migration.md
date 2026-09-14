@@ -2508,3 +2508,64 @@ et
 [`threejs-native-closure-performance.json`](validation/threejs-native-closure-performance.json).
 Les limites matérielles et les tentatives échouées corrigées sont distinguées
 dans le manifeste de clôture.
+
+## Maintenance post-clôture — rail de fargue et coque émergée
+
+Le 14 septembre 2026, le profil `sun-odyssey-36i-pedagogical` passe à la
+version `5.3.0` pour corriger le contour de contact du bateau joueur. Cette
+décision remplace le paragraphe de l'intégration post-N6 qui conservait le
+gabarit générique de 10,94 × 3,59 m comme contour affiché. Le moteur reste en
+version `5.2.0` : les lois de contact, rigidités, amortissement, intégrateur,
+pas de temps, hydrodynamique, aérodynamique et commandes ne changent pas.
+
+### Référence géométrique et équipements
+
+Quinze stations du rail de fargue ont été relevées directement sur le GLB déjà
+calé, dans le repère local KJP. Elles couvrent `x=-4,800 m` à `x=+5,297 m`,
+atteignent une demi-largeur maximale de `1,795 m` à `x=-1,400 m` et conservent
+la hauteur locale du rail entre `1,041 m` et `1,166 m`. Cette mesure est copiée
+dans `geometry.gunwale` du profil versionné : le moteur ne consulte jamais le
+maillage Three et le GLB ne devient pas une autorité de simulation.
+
+L'enveloppe physique est désormais constituée de trente échantillons
+circulaires de rayon `0,22 m`, décalés vers l'intérieur selon la normale locale
+et tangents aux stations du rail, au tableau arrière et à l'étrave. Les six
+pare-battages de rayon `0,175 m` sont décalés vers l'extérieur selon la même
+normale, avec la précharge conservée de `0,01 m`. Leur rendu devient un cylindre
+vertical de diamètre `0,35 m` et de hauteur `0,70 m`. Les six taquets sont
+placés `0,07 m` à l'intérieur du rail et `0,04 m` au-dessus de sa hauteur
+locale. Leurs identifiants, capacités, interactions, `hitTargets`, aussières et
+comportements restent inchangés.
+
+Le contour de collision n'est plus construit ni affiché dans le produit. Le
+secours Canvas dessine sa coque joueur avec le même contour de rail et conserve
+les cylindres, les taquets et le picking. Les bateaux statiques gardent leur
+silhouette précédente.
+
+### Partie immergée du GLB
+
+La géométrie source reste intacte et chargée une seule fois. Une plane de
+clipping locale Three, active au plan monde `z=0,02 m` correspondant à
+`waterlineY=0` du GLB, élimine du rendu tous ses fragments immergés. Les
+appendices pédagogiques restent ainsi seuls visibles sous la flottaison en mode
+anatomie. La plane n'altère aucun attribut, n'entraîne aucun transfert de
+géométrie par image et suit le plan d'eau, indépendant de la pose horizontale du
+joueur.
+
+### Trajectoires et validations
+
+Le nouvel étalon conserve `dockReverse` et `approach` bit à bit. `dockForward`
+change uniquement après son premier voisinage avec le ponton : l'écart maximal
+avec l'ancien contour est de `0,04197 m` en position, `0,02350 rad` en cap,
+`0,00588 m/s` en vitesse longitudinale et `0,05057 m/s` sur le pic de contact.
+Deux relectures successives produisent exactement les mêmes valeurs. La fixture
+indique désormais le profil `5.3.0` et le moteur réellement utilisé `5.2.0`.
+
+Les contrôles ciblés réussissent : 4/4 contacts portuaires, 29/29 contrôles du
+cœur physique, 10/10 contrôles d'environnement, 3/3 contrats de ressources
+natives, 6/6 intégrations renderer rapides et 47/47 scénarios fonctionnels. Les
+douze cadrages vue/thème/DPR restent lisibles, le secours Canvas conserve son
+picking, le GLB reste chargé une seule fois et un mouvement de caméra ne
+retransfère aucun attribut statique. Les captures manuelles en vues dessus et
+anatomie confirment les cylindres, les taquets repositionnés, l'absence du
+contour affiché et la séparation visuelle de la coque émergée et des appendices.

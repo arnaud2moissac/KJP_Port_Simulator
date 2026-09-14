@@ -757,23 +757,36 @@
     let activePendilleIds = new Set();
     let simulationTime = 0;
     const hullPickupOutline = (() => {
-      const halfBeam = profile.dimensions.beam / 2;
-      const halfLength = profile.dimensions.lengthOverall / 2;
-      const sections = [...profile.geometry.hullSections].sort((left, right) => left.x - right.x);
-      const starboard = sections.map(section => ({
-        east: section.x,
-        north: halfBeam * section.breadthFactor
+      const gunwale = [...(profile.geometry.gunwale || [])]
+        .sort((left, right) => left.x - right.x);
+      if (!gunwale.length) {
+        const halfBeam = profile.dimensions.beam / 2;
+        const halfLength = profile.dimensions.lengthOverall / 2;
+        const sections = [...profile.geometry.hullSections].sort((left, right) => left.x - right.x);
+        const starboard = sections.map(section => ({
+          east: section.x,
+          north: halfBeam * section.breadthFactor
+        }));
+        const port = [...sections].reverse().map(section => ({
+          east: section.x,
+          north: -halfBeam * section.breadthFactor
+        }));
+        return [
+          { east: -halfLength, north: 0 },
+          ...starboard,
+          { east: halfLength, north: 0 },
+          ...port
+        ];
+      }
+      const starboard = gunwale.map(point => ({
+        east: point.x,
+        north: point.halfBeam
       }));
-      const port = [...sections].reverse().map(section => ({
-        east: section.x,
-        north: -halfBeam * section.breadthFactor
+      const port = gunwale.slice(0, -1).reverse().map(point => ({
+        east: point.x,
+        north: -point.halfBeam
       }));
-      return [
-        { east: -halfLength, north: 0 },
-        ...starboard,
-        { east: halfLength, north: 0 },
-        ...port
-      ];
+      return [...starboard, ...port];
     })();
 
     function normalizedMooringElasticity(definition = {}) {

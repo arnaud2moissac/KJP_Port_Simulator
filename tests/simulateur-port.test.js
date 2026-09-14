@@ -1808,7 +1808,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(matrix[0][0] * matrix[1][1] > 0);
     assert.ok(matrix[1][1] * matrix[2][2] - matrix[1][2] ** 2 > 0);
     assert.equal(report.profile.id, "sun-odyssey-36i-pedagogical");
-    assert.equal(report.profile.version, "5.2.0");
+    assert.equal(report.profile.version, "5.3.0");
     assert.equal(report.profile.schemaVersion, 3);
   });
 
@@ -1989,18 +1989,20 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(await page.locator(".keyboard-help").textContent(), /Q.*W/s);
   });
 
-  await t.test("la silhouette de collision reprend exactement le rayon physique des pare-battages", async () => {
+  await t.test("le rail de fargue, les cylindres de défense et le renderer natif restent cohérents", async () => {
     const visual = await page.evaluate(() => window.__PORTANCE_TEST__.visualReport());
     assert.equal(visual.collision.fenderRadius, visual.physicsFenderRadius);
-    assert.equal(visual.fender.model, "vertical-rectangular-panel");
+    assert.equal(visual.fender.model, "vertical-cylinder");
     assert.equal(visual.fender.radius, visual.physicsFenderRadius);
-    assert.ok(visual.fender.width > 0 && visual.fender.thickness > 0);
-    assert.equal(visual.fender.width, .35);
-    assert.equal(visual.fender.thickness, .35);
+    assert.equal(visual.fender.diameter, .35);
     assert.equal(visual.fender.radius, .175);
     assert.ok(visual.fender.height >= visual.fender.radius * 2);
-    assert.equal(visual.fender.thickness, visual.fender.radius * 2);
-    assert.ok(visual.fender.clearances.every(item => Math.abs(item.gap) <= .021));
+    assert.ok(visual.fender.clearances.every(item => Math.abs(item.gap + .01) <= 1e-9));
+    assert.deepEqual(visual.collisionEnvelope, {
+      visible: false,
+      reference: "gunwale",
+      samples: 30
+    });
     assert.equal(visual.renderer.webgl2, true);
     assert.equal(visual.renderer.painterFallback, false);
     assert.equal(visual.renderer.backend, "native");
@@ -2008,9 +2010,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(visual.flow.wind.shape, "straight");
     assert.equal(visual.flow.current.shape, "wave");
     assert.ok(visual.flow.current.amplitudeMeters >= .2);
-    assert.ok(visual.collision.hullHaloWidth >= 6);
-    assert.ok(visual.collision.hullOutlineWidth >= 2.5);
-    assert.ok(visual.collision.skipperOutlineWidth > visual.collision.hullOutlineWidth);
+    assert.equal(visual.collision.hullVisible, false);
     assert.deepEqual(visual.boatMesh, {
       cockpit: "recessed-ring",
       overlappingCockpitSurfaces: false
@@ -2165,8 +2165,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("les trois situations rejouent leur trajectoire étalon exactement", async () => {
     assert.equal(trajectoryFixture.profileId, "sun-odyssey-36i-pedagogical");
-    assert.equal(trajectoryFixture.profileVersion, "5.2.0");
-    assert.equal(trajectoryFixture.physicsVersion, "5.1.0");
+    assert.equal(trajectoryFixture.profileVersion, "5.3.0");
+    assert.equal(trajectoryFixture.physicsVersion, "5.2.0");
     const trajectories = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       const scripts = {

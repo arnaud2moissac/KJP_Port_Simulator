@@ -27,6 +27,68 @@ function runContactCase(dt, obstacle) {
   return { snapshot: simulator.snapshot(), samples };
 }
 
+function gunwaleAt(gunwale, x) {
+  const foundIndex = gunwale.findIndex(point => point.x >= x);
+  const rightIndex = Math.min(
+    gunwale.length - 1,
+    Math.max(1, foundIndex < 0 ? gunwale.length - 1 : foundIndex)
+  );
+  const left = gunwale[rightIndex - 1];
+  const right = gunwale[rightIndex];
+  const ratio = (x - left.x) / (right.x - left.x);
+  return {
+    halfBeam: left.halfBeam + (right.halfBeam - left.halfBeam) * ratio,
+    z: left.z + (right.z - left.z) * ratio
+  };
+}
+
+test("profil joueur: enveloppe, pare-battages et taquets sont calés sur le rail de fargue", () => {
+  const profile = Physics.DEFAULT_PROFILE;
+  const gunwale = profile.geometry.gunwale;
+  const envelope = profile.contacts.hullEnvelope;
+  assert.equal(profile.version, "5.3.0");
+  assert.equal(gunwale.length, 15);
+  assert.equal(envelope.length, 30);
+  assert.deepEqual(gunwale[0], { x: -4.8, halfBeam: 1.22, z: 1.137 });
+  assert.deepEqual(gunwale.at(-1), { x: 5.297, halfBeam: 0, z: 1.166 });
+  assert.equal(Math.max(...gunwale.map(point => point.halfBeam)), 1.795);
+
+  for (const sample of envelope) {
+    assert.ok(Number.isFinite(sample.position.x + sample.position.y + sample.radius));
+    assert.ok(Math.abs(
+      Math.hypot(
+        sample.reference.x - sample.position.x,
+        sample.reference.y - sample.position.y
+      ) - sample.radius
+    ) < 1e-12, `${sample.id}: le cercle doit être tangent à sa référence`);
+  }
+  assert.equal(Math.min(...envelope.map(sample => sample.reference.x)), -4.8);
+  assert.equal(Math.max(...envelope.map(sample => sample.reference.x)), 5.297);
+  assert.equal(Math.max(...envelope.map(sample => Math.abs(sample.reference.y))), 1.795);
+
+  for (const fender of profile.contacts.fenders) {
+    const distance = Math.hypot(
+      fender.x - fender.attachment.x,
+      fender.y - fender.attachment.y
+    );
+    assert.ok(Math.abs(
+      distance - (profile.contacts.fenderRadius - fender.preload)
+    ) < 1e-12, `${fender.id}: précharge incohérente`);
+    const rail = gunwaleAt(gunwale, fender.attachment.x);
+    assert.ok(Math.abs(Math.abs(fender.attachment.y) - rail.halfBeam) < 1e-12);
+    assert.ok(Math.abs(fender.attachment.z - rail.z) < 1e-12);
+  }
+
+  for (const cleat of profile.mooring.cleats) {
+    const distance = Math.hypot(
+      cleat.x - cleat.attachment.x,
+      cleat.y - cleat.attachment.y
+    );
+    assert.ok(Math.abs(distance - 0.07) < 1e-12, `${cleat.id}: retrait au rail incohérent`);
+    assert.ok(Math.abs(cleat.z - cleat.attachment.z - 0.04) < 1e-12);
+  }
+});
+
 test("contacts analytiques: rectangle orienté, digue courbe et terre polygonale", () => {
   const rectangle = {
     id: "rotated",

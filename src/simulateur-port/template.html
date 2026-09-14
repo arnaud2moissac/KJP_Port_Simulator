@@ -2352,32 +2352,29 @@
         rudderAxisLengthFactor: 1.2,
         collision: {
           fenderRadius: .175,
-          fenderWidth: .35,
-          fenderThickness: .35,
           fenderHeight: .70,
           fenderBottomZ: .15,
-          hullHaloWidth: 6.4,
-          hullOutlineWidth: 2.7,
-          skipperHaloWidth: 7.4,
-          skipperOutlineWidth: 3.2
+          hullVisible: false,
+          reference: "gunwale"
         }
       },
-      fenders: [
-        { x: 3.55, y: 1.617, side: "port", preload: .01 },
-        { x: 0, y: 1.918, side: "port", preload: .01 },
-        { x: -3.55, y: 1.821, side: "port", preload: .01 },
-        { x: 3.55, y: -1.617, side: "starboard", preload: .01 },
-        { x: 0, y: -1.918, side: "starboard", preload: .01 },
-        { x: -3.55, y: -1.821, side: "starboard", preload: .01 }
-      ],
-      cleats: [
-        { id: "bow-port", x: 4.25, y: 1.45, z: 1.16, side: "port", station: "bow" },
-        { id: "mid-port", x: 0, y: 1.68, z: 1.16, side: "port", station: "mid" },
-        { id: "stern-port", x: -4.2, y: 1.42, z: 1.16, side: "port", station: "stern" },
-        { id: "bow-starboard", x: 4.25, y: -1.45, z: 1.16, side: "starboard", station: "bow" },
-        { id: "mid-starboard", x: 0, y: -1.68, z: 1.16, side: "starboard", station: "mid" },
-        { id: "stern-starboard", x: -4.2, y: -1.42, z: 1.16, side: "starboard", station: "stern" }
-      ]
+      gunwale: PortPhysics.DEFAULT_PROFILE.geometry.gunwale.map(point => ({ ...point })),
+      fenders: PortPhysics.DEFAULT_PROFILE.contacts.fenders.map(fender => ({
+        ...fender,
+        y: -fender.y,
+        attachment: {
+          ...fender.attachment,
+          y: -fender.attachment.y
+        }
+      })),
+      cleats: PortPhysics.DEFAULT_PROFILE.mooring.cleats.map(cleat => ({
+        ...cleat,
+        y: -cleat.y,
+        attachment: {
+          ...cleat.attachment,
+          y: -cleat.attachment.y
+        }
+      }))
     };
 
     const VISUAL_THEMES = Object.freeze({
@@ -5063,6 +5060,20 @@
       ];
     }
 
+    function playerGunwaleShape(boat, scale = 1) {
+      const lengthScale = (boat.length || BOAT_PROFILE.length) / BOAT_PROFILE.length * scale;
+      const beamScale = (boat.beam || BOAT_PROFILE.beam) / BOAT_PROFILE.beam * scale;
+      const starboard = [...BOAT_PROFILE.gunwale].reverse().map(point => [
+        point.x * lengthScale,
+        point.halfBeam * beamScale
+      ]);
+      const port = BOAT_PROFILE.gunwale.slice(0, -1).map(point => [
+        point.x * lengthScale,
+        -point.halfBeam * beamScale
+      ]);
+      return [...starboard, ...port];
+    }
+
     function boatFootprint(boat, clearance = 0) {
       const shape = boatShape(boat);
       return shape.map(([x, y]) => {
@@ -5684,25 +5695,6 @@
       return shape.map(([x, y]) => pointFor(boat, x, y, z));
     }
 
-    function shapeHalfWidthAtX(shape, x) {
-      let halfWidth = 0;
-      for (let index = 0; index < shape.length; index += 1) {
-        const first = shape[index];
-        const second = shape[(index + 1) % shape.length];
-        const minimum = Math.min(first[0], second[0]) - 1e-9;
-        const maximum = Math.max(first[0], second[0]) + 1e-9;
-        if (x < minimum || x > maximum) continue;
-        const deltaX = second[0] - first[0];
-        if (Math.abs(deltaX) < 1e-9) {
-          halfWidth = Math.max(halfWidth, Math.abs(first[1]), Math.abs(second[1]));
-          continue;
-        }
-        const ratio = clamp((x - first[0]) / deltaX, 0, 1);
-        halfWidth = Math.max(halfWidth, Math.abs(lerp(first[1], second[1], ratio)));
-      }
-      return halfWidth;
-    }
-
     function rudderAxisGeometry() {
       const boatMotion = sceneMotion();
       const length = (
@@ -5743,14 +5735,13 @@
       const parts = options.parts ? new Set(options.parts) : null;
       const includes = part => !parts || parts.has(part) || part.startsWith("fender:") && parts.has("fenders");
       const accelerated = options.accelerated ?? (player && ui.timeScale === 2);
-      const cameraView = options.cameraView || camera.view;
       const anatomyVisible = options.anatomy ?? camera.anatomy;
       const contactItems = options.contacts || contacts.current;
       const propellerAngle = options.propellerAngle ?? (ui.simTime * controls.throttleActual * 12);
       const boatOutline = accelerated
         ? boatPalette.acceleratedOutline
         : boatPalette.outline;
-      const hull = boatShape(boat);
+      const hull = player ? playerGunwaleShape(boat) : boatShape(boat);
       const waterlineZ = BOAT_PROFILE.visual.waterlineZ;
       const deckZ = player
         ? BOAT_PROFILE.visual.playerDeckZ
@@ -5781,30 +5772,6 @@
           );
         }
         addPolygon(deck, hullColor, boatOutline, accelerated ? 1.4 : .9, -.01);
-        if (player) {
-          const collisionVisual = BOAT_PROFILE.visual.collision;
-          const collisionHull = transformShape(boat, hull, deckZ + .025, pointFor);
-          const hullPath = [...collisionHull, collisionHull[0]];
-          addWorldLine(
-            hullPath,
-            boatPalette.collisionHalo,
-            cameraView === "skipper"
-              ? collisionVisual.skipperHaloWidth
-              : collisionVisual.hullHaloWidth,
-            [],
-            5
-          );
-          addWorldLine(
-            hullPath,
-            boatPalette.collisionOutline,
-            cameraView === "skipper"
-              ? collisionVisual.skipperOutlineWidth
-              : collisionVisual.hullOutlineWidth,
-            [],
-            6
-          );
-        }
-
         if (boat.vesselType !== "motorboat") {
           const mastBase = pointFor(boat, .55, 0, deckZ + .02);
           const mastTop = pointFor(boat, .55, 0, player ? 13.8 : 10.5);
@@ -5874,23 +5841,23 @@
 
       if (player) {
         const collisionVisual = BOAT_PROFILE.visual.collision;
-        const halfWidth = collisionVisual.fenderWidth / 2;
-        const halfThickness = collisionVisual.fenderThickness / 2;
-        const bottomZ = collisionVisual.fenderBottomZ;
-        const topZ = bottomZ + collisionVisual.fenderHeight;
+        const radius = collisionVisual.fenderRadius;
+        const segments = 12;
         for (const [fenderIndex, fender] of BOAT_PROFILE.fenders.entries()) {
-          const sign = Math.sign(fender.y) || 1;
           if (!includes(`fender:${fenderIndex}`)) continue;
-          const contact = contactItems.find(item => item.id.startsWith(`${fenderIndex}:`));
+          const contact = contactItems.find(item => (
+            item.id.startsWith(`${fender.id}:`) || item.id.startsWith(`${fenderIndex}:`)
+          ));
           const fenderFill = contact ? palette.semantic.contact : boatPalette.fender;
           const fenderOutline = contact ? palette.semantic.contact : boatPalette.fenderOutline;
-          const localHullHalfWidth = shapeHalfWidthAtX(hull, fender.x);
           const tetherStart = pointFor(
             boat,
-            fender.x,
-            sign * localHullHalfWidth * .98,
-            deckZ * .84
+            fender.attachment.x,
+            fender.attachment.y,
+            fender.attachment.z
           );
+          const bottomZ = fender.z - collisionVisual.fenderHeight / 2;
+          const topZ = fender.z + collisionVisual.fenderHeight / 2;
           const tetherEnd = pointFor(boat, fender.x, fender.y, topZ);
           addWorldLine(
             [tetherStart, tetherEnd],
@@ -5899,43 +5866,31 @@
             [],
             7
           );
-          const innerY = fender.y - sign * halfThickness;
-          const outerY = fender.y + sign * halfThickness;
-          const point = (x, y, z) => pointFor(boat, x, y, z);
-          const x0 = fender.x - halfWidth;
-          const x1 = fender.x + halfWidth;
-          const outerFace = [
-            point(x0, outerY, bottomZ),
-            point(x1, outerY, bottomZ),
-            point(x1, outerY, topZ),
-            point(x0, outerY, topZ)
-          ];
-          const innerFace = [
-            point(x1, innerY, bottomZ),
-            point(x0, innerY, bottomZ),
-            point(x0, innerY, topZ),
-            point(x1, innerY, topZ)
-          ];
-          addPolygon(outerFace, fenderFill, fenderOutline, contact ? 2.4 : 1.3);
-          addPolygon(innerFace, fenderFill, fenderOutline, contact ? 2.2 : 1);
-          addPolygon([
-            point(x0, innerY, bottomZ),
-            point(x0, outerY, bottomZ),
-            point(x0, outerY, topZ),
-            point(x0, innerY, topZ)
-          ], fenderFill, fenderOutline, contact ? 2.2 : 1);
-          addPolygon([
-            point(x1, outerY, bottomZ),
-            point(x1, innerY, bottomZ),
-            point(x1, innerY, topZ),
-            point(x1, outerY, topZ)
-          ], fenderFill, fenderOutline, contact ? 2.2 : 1);
-          addPolygon([
-            point(x0, innerY, topZ),
-            point(x0, outerY, topZ),
-            point(x1, outerY, topZ),
-            point(x1, innerY, topZ)
-          ], fenderFill, fenderOutline, contact ? 2.2 : 1.1);
+          const ring = z => Array.from({ length: segments }, (_, index) => {
+            const angle = index * Math.PI * 2 / segments;
+            return pointFor(
+              boat,
+              fender.x + Math.cos(angle) * radius,
+              fender.y + Math.sin(angle) * radius,
+              z
+            );
+          });
+          const bottom = ring(bottomZ);
+          const top = ring(topZ);
+          for (let index = 0; index < segments; index++) {
+            const next = (index + 1) % segments;
+            addPolygon(
+              [bottom[index], bottom[next], top[next], top[index]],
+              fenderFill,
+              false
+            );
+          }
+          addPolygon(top, fenderFill, false);
+          addWorldLine([...top, top[0]], fenderOutline, contact ? 2.4 : 1.3, [], 8);
+          addWorldLine([...bottom, bottom[0]], fenderOutline, contact ? 2.2 : 1, [], 7);
+          for (const index of [0, 3, 6, 9]) {
+            addWorldLine([bottom[index], top[index]], fenderOutline, contact ? 2.2 : 1, [], 7);
+          }
         }
       }
     }
@@ -6437,17 +6392,11 @@
         owners.push(owner);
         return owner;
       };
-      const collisionOwner = collect("player", "hull", nativePlayerPaletteRoles(), ["hull"]);
-      collisionOwner.polygons = [];
-      collisionOwner.lines = collisionOwner.lines.filter(line => (
-        line.color === "boat.collisionHalo" || line.color === "boat.collisionOutline"
-      ));
       collect("player-anatomy", "static", nativePlayerPaletteRoles(), ["anatomy"]);
       collect("player-propeller", "blades", nativePlayerPaletteRoles(), ["propeller"]);
       for (const [index] of BOAT_PROFILE.fenders.entries()) {
         collect("player-fender", String(index), nativePlayerPaletteRoles(index), [`fender:${index}`]);
       }
-      const collision = BOAT_PROFILE.visual.collision;
       return {
         owners,
         palette: nativePlayerPalette([]),
@@ -6457,9 +6406,10 @@
             position: [0, 0, BOAT_PROFILE.visual.waterlineZ],
             rotation: [Math.PI / 2, Math.PI / 2, 0],
             scale: 1,
+            clipBelowZ: BOAT_PROFILE.visual.waterlineZ,
             failLoad: worldRendererParameters.has("test")
               && worldRendererParameters.has("failNativePlayerModel"),
-            collision: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
+            reference: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
           },
           propeller: {
             owner: "player-propeller:blades",
@@ -6469,11 +6419,6 @@
             initialAngle: 0
           },
           anatomyFamilies: ["player-anatomy", "player-propeller"],
-          collisionWidths: {
-            halo: { role: "boat.collisionHalo", regular: collision.hullHaloWidth, skipper: collision.skipperHaloWidth },
-            outline: { role: "boat.collisionOutline", regular: collision.hullOutlineWidth, skipper: collision.skipperOutlineWidth }
-          },
-          acceleratedWidths: [{ owner: "player:hull", role: "boat.outline", regular: .9, accelerated: 1.4 }],
           fenderWidths: [
             { regular: 1.7, contact: 2.8 },
             { regular: 1.3, contact: 2.4 },
@@ -9378,19 +9323,24 @@
             }
           },
           fender: {
-            model: "vertical-rectangular-panel",
+            model: "vertical-cylinder",
             radius: BOAT_PROFILE.visual.collision.fenderRadius,
-            width: BOAT_PROFILE.visual.collision.fenderWidth,
-            thickness: BOAT_PROFILE.visual.collision.fenderThickness,
+            diameter: BOAT_PROFILE.visual.collision.fenderRadius * 2,
             height: BOAT_PROFILE.visual.collision.fenderHeight,
             bottomZ: BOAT_PROFILE.visual.collision.fenderBottomZ,
             clearances: BOAT_PROFILE.fenders.map(fender => ({
               x: fender.x,
               side: fender.side,
-              gap: Math.abs(fender.y)
-                - BOAT_PROFILE.visual.collision.fenderThickness / 2
-                - shapeHalfWidthAtX(boatShape(motion), fender.x)
+              gap: Math.hypot(
+                fender.x - fender.attachment.x,
+                fender.y - fender.attachment.y
+              ) - BOAT_PROFILE.visual.collision.fenderRadius
             }))
+          },
+          collisionEnvelope: {
+            visible: false,
+            reference: BOAT_PROFILE.visual.collision.reference,
+            samples: physicsSimulator.getProfile().contacts.hullEnvelope.length
           },
           boatMesh: {
             cockpit: "recessed-ring",

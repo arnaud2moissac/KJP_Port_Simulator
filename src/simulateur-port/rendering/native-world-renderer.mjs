@@ -47,6 +47,7 @@ export function createNativeWorldRenderer(definition, {
   renderer.setClearColor(0, 0);
   renderer.toneMapping = NoToneMapping;
   renderer.outputColorSpace = SRGBColorSpace;
+  renderer.localClippingEnabled = true;
   const scene = new Scene();
   scene.add(resources.group);
   if (playerResources) scene.add(playerResources.group);
@@ -132,6 +133,7 @@ export function createNativeWorldRenderer(definition, {
       ...(flowResources ? { flow: flowResources.report() } : {}),
       layers: Object.fromEntries([...layers].map(([name, layer]) => [name, layer.report?.() || null])),
       attached: canvas.isConnected,
+      localClippingEnabled: renderer.localClippingEnabled,
       glError: renderer.getContext().getError(),
       ...(images && frames ? { image: canvas.toDataURL() } : {})
     };

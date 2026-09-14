@@ -1,4 +1,4 @@
-import { Box3, Mesh, MeshBasicMaterial } from "three";
+import { Box3, Mesh, MeshBasicMaterial, Plane, Vector3 } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import embeddedPlayerModel from "../../../kjp_sun_odyssey_36i.glb";
 
@@ -82,11 +82,13 @@ export function createNativePlayerModelResources(configuration) {
   const position = finiteVector(configuration?.position, 3, "position");
   const rotation = finiteVector(configuration?.rotation, 3, "rotation");
   const scale = configuration?.scale;
-  const collisionLength = configuration?.collision?.length;
-  const collisionBeam = configuration?.collision?.beam;
+  const referenceLength = configuration?.reference?.length;
+  const referenceBeam = configuration?.reference?.beam;
+  const clipBelowZ = configuration?.clipBelowZ;
   const role = configuration?.role;
-  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(collisionLength)
-    || collisionLength <= 0 || !Number.isFinite(collisionBeam) || collisionBeam <= 0
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(referenceLength)
+    || referenceLength <= 0 || !Number.isFinite(referenceBeam) || referenceBeam <= 0
+    || !Number.isFinite(clipBelowZ)
     || typeof role !== "string" || !role || typeof configuration?.color !== "string") {
     throw new TypeError("Modèle joueur natif : calage invalide");
   }
@@ -111,7 +113,8 @@ export function createNativePlayerModelResources(configuration) {
       toneMapped: false,
       side: template.sourceMaterial.side,
       transparent: template.sourceMaterial.transparent,
-      opacity: template.sourceMaterial.opacity
+      opacity: template.sourceMaterial.opacity,
+      clippingPlanes: [new Plane(new Vector3(0, 0, 1), -clipBelowZ)]
     });
     material.name = `${ASSET_NAME}:unlit-vertex-colors`;
     material.userData.role = role;
@@ -189,11 +192,17 @@ export function createNativePlayerModelResources(configuration) {
         renderedWaterline: position[2],
         hullLength: metadata.hullReference.length * scale,
         hullBeam: metadata.hullReference.beam * scale,
-        collisionLength,
-        collisionBeam,
-        longitudinalClearance: collisionLength - metadata.hullReference.length * scale,
-        transverseClearance: collisionBeam - metadata.hullReference.beam * scale
-      } : null
+        simulatorLength: referenceLength,
+        simulatorBeam: referenceBeam,
+        longitudinalClearance: referenceLength - metadata.hullReference.length * scale,
+        transverseClearance: referenceBeam - metadata.hullReference.beam * scale
+      } : null,
+      waterlineClipping: {
+        enabled: Boolean(material?.clippingPlanes?.length),
+        worldZ: clipBelowZ,
+        sourceY: metadata?.waterlineY ?? null,
+        hiddenSide: "below"
+      }
     };
   }
 

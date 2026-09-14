@@ -195,23 +195,125 @@
     ];
   }
 
-  const REFERENCE_CLEATS = [
-    { id: "bow-port", position: { x: 4.25, y: -1.45, z: 1.16 }, side: "port", station: "bow" },
-    { id: "mid-port", position: { x: 0, y: -1.68, z: 1.16 }, side: "port", station: "mid" },
-    { id: "stern-port", position: { x: -4.2, y: -1.42, z: 1.16 }, side: "port", station: "stern" },
-    { id: "bow-starboard", position: { x: 4.25, y: 1.45, z: 1.16 }, side: "starboard", station: "bow" },
-    { id: "mid-starboard", position: { x: 0, y: 1.68, z: 1.16 }, side: "starboard", station: "mid" },
-    { id: "stern-starboard", position: { x: -4.2, y: 1.42, z: 1.16 }, side: "starboard", station: "stern" }
+  // Mesure du rail de fargue du GLB validé, après son calage métrique dans le
+  // repère bateau KJP. La physique consomme cette copie versionnée ; elle ne lit
+  // jamais le maillage Three à l'exécution.
+  const REFERENCE_GUNWALE = [
+    { x: -4.800, halfBeam: 1.220, z: 1.137 },
+    { x: -4.500, halfBeam: 1.470, z: 1.125 },
+    { x: -4.000, halfBeam: 1.630, z: 1.106 },
+    { x: -3.300, halfBeam: 1.735, z: 1.084 },
+    { x: -2.400, halfBeam: 1.785, z: 1.063 },
+    { x: -1.400, halfBeam: 1.795, z: 1.047 },
+    { x: -0.400, halfBeam: 1.767, z: 1.041 },
+    { x: 0.650, halfBeam: 1.675, z: 1.044 },
+    { x: 1.650, halfBeam: 1.480, z: 1.056 },
+    { x: 2.527, halfBeam: 1.179, z: 1.062 },
+    { x: 3.320, halfBeam: 0.916, z: 1.084 },
+    { x: 4.063, halfBeam: 0.620, z: 1.111 },
+    { x: 4.658, halfBeam: 0.348, z: 1.135 },
+    { x: 5.054, halfBeam: 0.135, z: 1.154 },
+    { x: 5.297, halfBeam: 0, z: 1.166 }
   ];
 
-  const REFERENCE_FENDERS = [
-    { id: "fender-bow-port", position: { x: 3.55, y: -1.617, z: 0.9 }, side: "port", preload: 0.01 },
-    { id: "fender-mid-port", position: { x: 0, y: -1.918, z: 0.9 }, side: "port", preload: 0.01 },
-    { id: "fender-stern-port", position: { x: -3.55, y: -1.821, z: 0.9 }, side: "port", preload: 0.01 },
-    { id: "fender-bow-starboard", position: { x: 3.55, y: 1.617, z: 0.9 }, side: "starboard", preload: 0.01 },
-    { id: "fender-mid-starboard", position: { x: 0, y: 1.918, z: 0.9 }, side: "starboard", preload: 0.01 },
-    { id: "fender-stern-starboard", position: { x: -3.55, y: 1.821, z: 0.9 }, side: "starboard", preload: 0.01 }
-  ];
+  function gunwaleAt(x, gunwale = REFERENCE_GUNWALE) {
+    const index = gunwale.findIndex(point => point.x >= x);
+    const rightIndex = Math.min(
+      gunwale.length - 1,
+      Math.max(1, index < 0 ? gunwale.length - 1 : index)
+    );
+    const left = gunwale[rightIndex - 1];
+    const right = gunwale[rightIndex];
+    const span = right.x - left.x;
+    const ratio = Math.max(0, Math.min(1, (x - left.x) / span));
+    const slope = (right.halfBeam - left.halfBeam) / span;
+    return {
+      x,
+      halfBeam: left.halfBeam + (right.halfBeam - left.halfBeam) * ratio,
+      z: left.z + (right.z - left.z) * ratio,
+      slope
+    };
+  }
+
+  function offsetFromGunwale(x, side, distance, gunwale = REFERENCE_GUNWALE) {
+    const rail = gunwaleAt(x, gunwale);
+    const sideSign = side === "starboard" ? 1 : -1;
+    const normalLength = Math.hypot(1, rail.slope);
+    const normalX = -rail.slope / normalLength;
+    const normalY = sideSign / normalLength;
+    return {
+      position: {
+        x: rail.x + normalX * distance,
+        y: sideSign * rail.halfBeam + normalY * distance,
+        z: rail.z
+      },
+      attachment: { x: rail.x, y: sideSign * rail.halfBeam, z: rail.z },
+      normal: { x: normalX, y: normalY }
+    };
+  }
+
+  function referenceDeckEquipment(kind, station, x, side) {
+    const rail = offsetFromGunwale(x, side, kind === "fender" ? 0.165 : -0.07);
+    if (kind === "fender") {
+      return {
+        id: `fender-${station}-${side}`,
+        position: { ...rail.position, z: 0.5 },
+        attachment: rail.attachment,
+        side,
+        preload: 0.01
+      };
+    }
+    return {
+      id: `${station}-${side}`,
+      position: { ...rail.position, z: rail.position.z + 0.04 },
+      attachment: rail.attachment,
+      side,
+      station
+    };
+  }
+
+  const REFERENCE_CLEATS = ["port", "starboard"].flatMap(side => [
+    referenceDeckEquipment("cleat", "bow", 4.25, side),
+    referenceDeckEquipment("cleat", "mid", 0, side),
+    referenceDeckEquipment("cleat", "stern", -4.2, side)
+  ]);
+
+  const REFERENCE_FENDERS = ["port", "starboard"].flatMap(side => [
+    referenceDeckEquipment("fender", "bow", 3.55, side),
+    referenceDeckEquipment("fender", "mid", 0, side),
+    referenceDeckEquipment("fender", "stern", -3.55, side)
+  ]);
+
+  function contactEnvelopeFromGunwale(gunwale, radius) {
+    const sideSamples = ["port", "starboard"].flatMap(side => (
+      gunwale.slice(0, -2).map((rail, index) => {
+        const sample = offsetFromGunwale(rail.x, side, -radius, gunwale);
+        return {
+          id: `hull-${side}-${index}`,
+          position: sample.position,
+          radius,
+          reference: sample.attachment
+        };
+      })
+    ));
+    const stern = [-0.8, 0, 0.8].map((y, index) => ({
+      id: `hull-transom-${index}`,
+      position: { x: gunwale[0].x + radius, y },
+      radius,
+      reference: { x: gunwale[0].x, y }
+    }));
+    const bow = gunwale[gunwale.length - 1];
+    return [
+      ...sideSamples,
+      ...stern,
+      {
+        id: "hull-bow",
+        position: { x: bow.x - radius, y: 0 },
+        radius,
+        reference: { x: bow.x, y: 0 }
+      }
+    ];
+  }
 
   const REFERENCE_PROPELLER_SPEC = {
     diameter: 0.406,
@@ -238,7 +340,7 @@
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "5.2.0",
+    version: "5.3.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -260,6 +362,7 @@
       draft: 1.94,
       canoeDraft: 0.68,
       wettedArea: 28.5,
+      gunwale: REFERENCE_GUNWALE,
       hullSections: scaledHullSections(9.84, 0.68)
     },
     mass: {
@@ -380,21 +483,14 @@
     },
     contacts: {
       fenderRadius: 0.175,
-      hullRadius: 0.32,
+      hullRadius: 0.22,
       fenderStiffness: 48000,
       hullStiffness: 98000,
       dampingRatio: 0.82,
       friction: 0.30,
       forceLimit: 90000,
       fenders: REFERENCE_FENDERS,
-      hullEnvelope: [
-        { id: "hull-bow", position: { x: 5.22, y: 0 }, radius: 0.32 },
-        { id: "hull-stern", position: { x: -5.22, y: 0 }, radius: 0.32 },
-        { id: "hull-port-bow", position: { x: 2.3, y: -1.695 }, radius: 0.22 },
-        { id: "hull-port-stern", position: { x: -2.3, y: -1.695 }, radius: 0.22 },
-        { id: "hull-starboard-bow", position: { x: 2.3, y: 1.695 }, radius: 0.22 },
-        { id: "hull-starboard-stern", position: { x: -2.3, y: 1.695 }, radius: 0.22 }
-      ]
+      hullEnvelope: contactEnvelopeFromGunwale(REFERENCE_GUNWALE, 0.22)
     },
     deckHardware: {
       cleats: REFERENCE_CLEATS
@@ -424,6 +520,13 @@
           source: "Jeanneau Sun Odyssey 36i inventory",
           unit: "m",
           uncertainty: 0
+        },
+        "geometry.gunwale": {
+          sourceType: "calibrated",
+          source: "Rail de fargue mesuré sur kjp_sun_odyssey_36i.glb après calage métrique KJP",
+          unit: "m",
+          uncertainty: 0.01,
+          domain: "contour de contact émergé du bateau joueur"
         },
         "mass.displacement": {
           sourceType: "estimated",
@@ -459,10 +562,24 @@
         },
         "contacts.fenders": {
           sourceType: "estimated",
-          source: "Tangence géométrique au bordé local avec précharge de 1 cm",
+          source: "Cylindres tangents à la normale locale du rail de fargue avec précharge de 1 cm",
           unit: "m",
           uncertainty: 0.03,
           domain: "pare-battages de diamètre 0,35 m"
+        },
+        "contacts.hullEnvelope": {
+          sourceType: "calibrated",
+          source: "Échantillons circulaires tangents au rail de fargue GLB versionné dans geometry.gunwale",
+          unit: "m",
+          uncertainty: 0.02,
+          domain: "contacts portuaires 2D à basse vitesse"
+        },
+        "deckHardware.cleats": {
+          sourceType: "calibrated",
+          source: "Positions ramenées 7 cm à l'intérieur du rail de fargue local",
+          unit: "m",
+          uncertainty: 0.04,
+          domain: "six points d'amarrage fonctionnels"
         },
         "mooring.elasticity": {
           sourceType: "calibrated",
@@ -505,6 +622,11 @@
         x: cleat.position.x * lengthScale,
         y: cleat.position.y * (spec.beam / SUN_ODYSSEY_36I.geometry.beam),
         z: cleat.position.z * lengthScale
+      },
+      attachment: {
+        x: cleat.attachment.x * lengthScale,
+        y: cleat.attachment.y * (spec.beam / SUN_ODYSSEY_36I.geometry.beam),
+        z: cleat.attachment.z * lengthScale
       }
     }));
     const fenders = REFERENCE_FENDERS.map(fender => ({
@@ -513,7 +635,18 @@
         x: fender.position.x * lengthScale,
         y: fender.position.y * (spec.beam / SUN_ODYSSEY_36I.geometry.beam),
         z: fender.position.z * lengthScale
-      }
+      },
+      attachment: {
+        x: fender.attachment.x * lengthScale,
+        y: fender.attachment.y * (spec.beam / SUN_ODYSSEY_36I.geometry.beam),
+        z: fender.attachment.z * lengthScale
+      },
+      preload: fender.preload * lengthScale
+    }));
+    const gunwale = REFERENCE_GUNWALE.map(point => ({
+      x: point.x * lengthScale,
+      halfBeam: point.halfBeam * (spec.beam / SUN_ODYSSEY_36I.geometry.beam),
+      z: point.z * lengthScale
     }));
     return {
       schemaVersion: SCHEMA_VERSION,
@@ -535,6 +668,7 @@
         draft: spec.draft,
         canoeDraft: spec.canoeDraft,
         wettedArea: spec.wettedArea,
+        gunwale,
         hullSections: scaledHullSections(spec.lwl, spec.canoeDraft)
       },
       mass: {
@@ -649,17 +783,14 @@
       },
       contacts: {
         fenderRadius: 0.175 * lengthScale,
-        hullRadius: 0.32 * lengthScale,
+        hullRadius: 0.22 * lengthScale,
         fenderStiffness: spec.contact.fenderStiffness,
         hullStiffness: spec.contact.hullStiffness,
         dampingRatio: 0.82,
         friction: 0.3,
         forceLimit: spec.contact.forceLimit,
         fenders,
-        hullEnvelope: [
-          { id: "hull-bow", position: { x: spec.loa / 2 - 0.25 * lengthScale, y: 0 }, radius: 0.32 * lengthScale },
-          { id: "hull-stern", position: { x: -spec.loa / 2 + 0.25 * lengthScale, y: 0 }, radius: 0.32 * lengthScale }
-        ]
+        hullEnvelope: contactEnvelopeFromGunwale(gunwale, 0.22 * lengthScale)
       },
       deckHardware: { cleats },
       mooring: {
@@ -798,6 +929,7 @@
     "geometry.draft",
     "geometry.canoeDraft",
     "geometry.wettedArea",
+    "geometry.gunwale",
     "geometry.hullSections",
     "mass.displacement",
     "mass.yawRadius",
@@ -832,6 +964,41 @@
     const upgraded = deepClone(rawProfile);
     const sourceVersion = upgraded.schemaVersion;
     upgraded.schemaVersion = SCHEMA_VERSION;
+    const referenceLengthScale = (
+      upgraded.geometry?.loa || SUN_ODYSSEY_36I.geometry.loa
+    ) / SUN_ODYSSEY_36I.geometry.loa;
+    const referenceBeamScale = (
+      upgraded.geometry?.beam || SUN_ODYSSEY_36I.geometry.beam
+    ) / SUN_ODYSSEY_36I.geometry.beam;
+    upgraded.geometry ||= {};
+    upgraded.geometry.gunwale ||= REFERENCE_GUNWALE.map(point => ({
+      x: point.x * referenceLengthScale,
+      halfBeam: point.halfBeam * referenceBeamScale,
+      z: point.z * referenceLengthScale
+    }));
+    upgraded.contacts ||= {};
+    upgraded.contacts.hullRadius ||= 0.22 * referenceLengthScale;
+    upgraded.contacts.hullEnvelope ||= contactEnvelopeFromGunwale(
+      upgraded.geometry.gunwale,
+      upgraded.contacts.hullRadius
+    );
+    for (const fender of upgraded.contacts.fenders || []) {
+      fender.preload ??= 0.01 * referenceLengthScale;
+      fender.attachment ||= offsetFromGunwale(
+        fender.position.x,
+        fender.side,
+        0,
+        upgraded.geometry.gunwale
+      ).attachment;
+    }
+    for (const cleat of upgraded.deckHardware?.cleats || []) {
+      cleat.attachment ||= offsetFromGunwale(
+        cleat.position.x,
+        cleat.side,
+        0,
+        upgraded.geometry.gunwale
+      ).attachment;
+    }
     for (const propulsor of sourceVersion === LEGACY_SCHEMA_VERSION ? upgraded.propulsors || [] : []) {
       const propeller = propulsor.propeller || {};
       const mechanics = propulsionMechanics({
@@ -984,6 +1151,52 @@
     }
     if (rawProfile.geometry?.lwl > rawProfile.geometry?.loa) {
       errors.push("geometry.lwl ne peut pas dépasser geometry.loa.");
+    }
+    const gunwale = rawProfile.geometry?.gunwale;
+    if (
+      !Array.isArray(gunwale)
+      || gunwale.length < 3
+      || gunwale.some((point, index) => (
+        ![point?.x, point?.halfBeam, point?.z].every(Number.isFinite)
+        || point.halfBeam < 0
+        || index > 0 && point.x <= gunwale[index - 1].x
+      ))
+    ) {
+      errors.push("geometry.gunwale doit décrire au moins trois stations finies, de demi-largeur non négative et ordonnées par x.");
+    }
+    const contactPoints = rawProfile.contacts?.hullEnvelope;
+    if (
+      !Array.isArray(contactPoints)
+      || contactPoints.length < 3
+      || contactPoints.some(point => (
+        !point?.id
+        || ![point.position?.x, point.position?.y, point.radius].every(Number.isFinite)
+        || point.radius <= 0
+      ))
+    ) {
+      errors.push("contacts.hullEnvelope doit contenir au moins trois échantillons circulaires valides.");
+    }
+    for (const fender of rawProfile.contacts?.fenders || []) {
+      if (
+        !fender?.id
+        || ![fender.position?.x, fender.position?.y, fender.position?.z,
+          fender.attachment?.x, fender.attachment?.y, fender.attachment?.z,
+          fender.preload].every(Number.isFinite)
+        || fender.preload < 0
+        || !["port", "starboard"].includes(fender.side)
+      ) {
+        errors.push(`Pare-battage invalide : ${fender?.id || "sans identifiant"}.`);
+      }
+    }
+    for (const cleat of rawProfile.deckHardware?.cleats || []) {
+      if (
+        !cleat?.id
+        || ![cleat.position?.x, cleat.position?.y, cleat.position?.z,
+          cleat.attachment?.x, cleat.attachment?.y, cleat.attachment?.z].every(Number.isFinite)
+        || !["port", "starboard"].includes(cleat.side)
+      ) {
+        errors.push(`Taquet invalide : ${cleat?.id || "sans identifiant"}.`);
+      }
     }
     const linearDampingFroude = rawProfile.hull?.crossFlow?.linearDampingFroude;
     if (
@@ -1214,14 +1427,17 @@
       y: cleat.position.y,
       z: cleat.position.z,
       side: cleat.side,
-      station: cleat.station
+      station: cleat.station,
+      attachment: deepClone(cleat.attachment)
     }));
     const fenders = raw.contacts.fenders.map(fender => ({
       id: fender.id,
       x: fender.position.x,
       y: fender.position.y,
       z: fender.position.z,
-      side: fender.side
+      side: fender.side,
+      preload: fender.preload,
+      attachment: deepClone(fender.attachment)
     }));
     const compiled = {
       compiled: true,

@@ -85,19 +85,24 @@ test("joueur natif — GLB calé, chargé une fois et indépendant de la physiqu
   assert.equal(model.geometry.vertexColors, true);
   assert.ok(near(model.calibration.hullLength, 10.69));
   assert.ok(near(model.calibration.hullBeam, 3.59));
-  assert.ok(near(model.calibration.collisionLength, 10.94));
-  assert.ok(near(model.calibration.collisionBeam, 3.59));
+  assert.ok(near(model.calibration.simulatorLength, 10.94));
+  assert.ok(near(model.calibration.simulatorBeam, 3.59));
   assert.ok(near(model.calibration.longitudinalClearance, .25));
   assert.ok(near(model.calibration.transverseClearance, 0));
   assert.ok(near(model.bounds.hull.size[0], 10.69));
   assert.ok(near(model.bounds.hull.size[1], 3.59));
-  const sourceHull = await page.evaluate(() => (
+  assert.deepEqual(model.waterlineClipping, {
+    enabled: true,
+    worldZ: .02,
+    sourceY: 0,
+    hiddenSide: "below"
+  });
+  assert.equal(first.report.localClippingEnabled, true);
+  const sourceOwners = await page.evaluate(() => (
     window.__PORTANCE_TEST__.nativePlayerSourceReport({ geometry: true }).owners
-      .find(owner => owner.family === "player")
   ));
-  assert.equal(sourceHull.polygons.length, 0);
-  assert.deepEqual(sourceHull.lines.map(line => line.color).sort(),
-    ["boat.collisionHalo", "boat.collisionOutline"]);
+  assert.equal(sourceOwners.some(owner => owner.family === "player"), false,
+    "l'enveloppe de collision corrigée ne doit plus être affichée");
 
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;

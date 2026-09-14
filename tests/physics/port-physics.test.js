@@ -989,9 +989,12 @@ test("pendilles: la prise dépend du bord de coque et respecte strictement 0,6 n
   assert.ok(transomResult.pendille.pickupHullDistance <= 1.8);
   assert.ok(transomResult.pendille.transferDuration > directBowDistance * 0.8);
 
+  const maximumBeamStation = Physics.DEFAULT_PROFILE.geometry.gunwale.reduce(
+    (maximum, station) => station.halfBeam > maximum.halfBeam ? station : maximum
+  );
   const sidePickup = {
-    east: dimensions.beam / 2 + 1.75,
-    north: 0,
+    east: maximumBeamStation.halfBeam + 1.75,
+    north: maximumBeamStation.x,
     z: 0.4
   };
   const sideResult = createPickupSimulator("from-side", sidePickup)
