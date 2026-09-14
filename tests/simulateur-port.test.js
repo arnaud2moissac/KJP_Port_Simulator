@@ -393,7 +393,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
         .replace(",", ".")
     );
     assert.ok(
-      Math.abs(displayedKnots - motion.signedGroundSpeed / 0.514444) <= 0.051,
+      Math.abs(displayedKnots - motion.groundSpeed / 0.514444) <= 0.051,
       "la vitesse affichée ne correspond pas à la vitesse physique"
     );
   });
@@ -867,12 +867,14 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(normalReport.playerHull, normalReport.normalPlayerHull);
   });
 
-  await t.test("les vitesses affichées sont signées selon l'erre du bateau", async () => {
+  await t.test("les vitesses affichent les normes et conservent l'erre signée", async () => {
     const readDisplays = async () => {
       await page.waitForTimeout(50);
       return {
         sog: await page.locator("#sogValue").textContent(),
-        stw: await page.locator("#stwValue").textContent()
+        stw: await page.locator("#stwValue").textContent(),
+        sogAxial: await page.locator("#sogAxialValue").textContent(),
+        stwAxial: await page.locator("#stwAxialValue").textContent()
       };
     };
     const parseDisplay = value => Number(
@@ -886,13 +888,19 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       return api.advance(5);
     });
     const aheadDisplay = await readDisplays();
-    assert.match(aheadDisplay.sog, /^\+/);
-    assert.match(aheadDisplay.stw, /^\+/);
     assert.ok(
-      Math.abs(parseDisplay(aheadDisplay.sog) - ahead.signedGroundSpeed / 0.514444) <= 0.051
+      Math.abs(parseDisplay(aheadDisplay.sog) - ahead.groundSpeed / 0.514444) <= 0.051
     );
     assert.ok(
-      Math.abs(parseDisplay(aheadDisplay.stw) - ahead.signedWaterSpeed / 0.514444) <= 0.051
+      Math.abs(parseDisplay(aheadDisplay.stw) - ahead.waterSpeed / 0.514444) <= 0.051
+    );
+    assert.match(aheadDisplay.sogAxial, /^\+/);
+    assert.match(aheadDisplay.stwAxial, /^\+/);
+    assert.ok(
+      Math.abs(parseDisplay(aheadDisplay.sogAxial) - ahead.signedGroundSpeed / 0.514444) <= 0.051
+    );
+    assert.ok(
+      Math.abs(parseDisplay(aheadDisplay.stwAxial) - ahead.signedWaterSpeed / 0.514444) <= 0.051
     );
 
     const astern = await page.evaluate(() => {
@@ -902,13 +910,37 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       return api.advance(5);
     });
     const asternDisplay = await readDisplays();
-    assert.match(asternDisplay.sog, /^−/);
-    assert.match(asternDisplay.stw, /^−/);
     assert.ok(
-      Math.abs(parseDisplay(asternDisplay.sog) - astern.signedGroundSpeed / 0.514444) <= 0.051
+      Math.abs(parseDisplay(asternDisplay.sog) - astern.groundSpeed / 0.514444) <= 0.051
     );
     assert.ok(
-      Math.abs(parseDisplay(asternDisplay.stw) - astern.signedWaterSpeed / 0.514444) <= 0.051
+      Math.abs(parseDisplay(asternDisplay.stw) - astern.waterSpeed / 0.514444) <= 0.051
+    );
+    assert.match(asternDisplay.sogAxial, /^−/);
+    assert.match(asternDisplay.stwAxial, /^−/);
+    assert.ok(
+      Math.abs(parseDisplay(asternDisplay.sogAxial) - astern.signedGroundSpeed / 0.514444) <= 0.051
+    );
+    assert.ok(
+      Math.abs(parseDisplay(asternDisplay.stwAxial) - astern.signedWaterSpeed / 0.514444) <= 0.051
+    );
+
+    const beamCurrent = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.reset(
+        { x: 200, y: 200, heading: -110 * Math.PI / 180 },
+        { currentSpeedKn: 2.5, currentFromDeg: 270 }
+      );
+      return api.advance(25);
+    });
+    const beamCurrentDisplay = await readDisplays();
+    assert.ok(beamCurrent.groundSpeed / 0.514444 > 2.2);
+    assert.ok(beamCurrent.signedGroundSpeed < 0);
+    assert.ok(
+      Math.abs(parseDisplay(beamCurrentDisplay.sog) - beamCurrent.groundSpeed / 0.514444) <= 0.051
+    );
+    assert.ok(
+      Math.abs(parseDisplay(beamCurrentDisplay.sogAxial) - beamCurrent.signedGroundSpeed / 0.514444) <= 0.051
     );
 
     await page.evaluate(() => window.__PORTANCE_TEST__.reset(
@@ -917,6 +949,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     const stoppedDisplay = await readDisplays();
     assert.equal(stoppedDisplay.sog, "0,0");
     assert.equal(stoppedDisplay.stw, "0,0");
+    assert.equal(stoppedDisplay.sogAxial, "0,0");
+    assert.equal(stoppedDisplay.stwAxial, "0,0");
   });
 
   await t.test("aucun bateau ne chevauche un ponton, un catway ou un autre bateau", async () => {

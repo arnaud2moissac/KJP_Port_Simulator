@@ -613,6 +613,15 @@
       font-size: 11px;
     }
 
+    .metric-detail {
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 9px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
     .environment-readout {
       --flow-chip-width: 174px;
       position: absolute;
@@ -1912,10 +1921,12 @@
           <div class="metric primary">
             <div class="metric-label">Vitesse fond</div>
             <div class="metric-value"><strong id="sogValue">0,0</strong> <small>nd</small></div>
+            <div class="metric-detail">Erre <span id="sogAxialValue">0,0</span> nd</div>
           </div>
           <div class="metric">
             <div class="metric-label">Vitesse surface</div>
             <div class="metric-value"><span id="stwValue">0,0</span> <small>nd</small></div>
+            <div class="metric-detail">Erre <span id="stwAxialValue">0,0</span> nd</div>
           </div>
           <div class="metric">
             <div class="metric-label">Cap</div>
@@ -19301,20 +19312,22 @@ void main() {
     }
 
     function updateInterface() {
+      const ground = groundVelocityWorld();
       const relative = waterVelocityBody();
       /*
-       * Pour la pédagogie portuaire, les deux afficheurs sont des vitesses
-       * longitudinales signées dans l'axe du bateau : + vers l'étrave,
-       * − vers la poupe. Les normes vectorielles restent utilisées pour le
-       * score et les diagnostics.
+       * Les vitesses fond et surface sont les normes nautiques usuelles.
+       * L'erre signée conserve séparément la composante longitudinale utile
+       * aux manœuvres : + vers l'étrave, − vers la poupe.
        */
-      const sog = motion.u / KNOT;
-      const stw = relative[0] / KNOT;
+      const sog = Math.hypot(ground[0], ground[1]) / KNOT;
+      const stw = Math.hypot(relative[0], relative[1]) / KNOT;
       const drift = Math.abs(relative[0]) > .03
         ? Math.atan2(relative[1], Math.abs(relative[0])) * RAD
         : 0;
-      setText("#sogValue", fmtSigned(sog, 1));
-      setText("#stwValue", fmtSigned(stw, 1));
+      setText("#sogValue", fmt(sog, 1));
+      setText("#stwValue", fmt(stw, 1));
+      setText("#sogAxialValue", fmtSigned(motion.u / KNOT, 1));
+      setText("#stwAxialValue", fmtSigned(relative[0] / KNOT, 1));
       setText("#headingValue", padHeading(nauticalHeading()));
       setText("#driftValue", `${drift >= 0 ? "+" : "−"}${fmt(Math.abs(drift), 1)}`);
       setText("#rpmValue", Math.round((latestPhysicsSnapshot || physicsSimulator.snapshot()).propulsion.engineRpm));

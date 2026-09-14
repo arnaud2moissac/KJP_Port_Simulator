@@ -23,8 +23,9 @@ Le renderer Three.js natif est utilisé au démarrage. Si WebGL2, le modèle du 
 
 ## Lire ce que fait le bateau
 
-- **Vitesse fond** : mouvement par rapport au quai. Elle est positive en marche avant et négative en marche arrière.
-- **Vitesse surface** : mouvement longitudinal par rapport à l'eau. Dans un courant qui emporte le bateau avec lui, elle peut rester proche de zéro alors que la vitesse fond est non nulle.
+- **Vitesse fond** : norme du mouvement par rapport au quai. Elle reste positive quelle que soit la direction du déplacement.
+- **Vitesse surface** : norme du mouvement par rapport à l'eau. Dans un courant qui emporte le bateau avec lui, elle peut rester proche de zéro alors que la vitesse fond est non nulle.
+- **Erre** : ligne secondaire sous chaque vitesse, signée dans l'axe du bateau : positive vers l'étrave et négative vers la poupe. Dans un courant traversier, l'erre peut être faible ou négative tandis que la vitesse fond reste proche de celle du courant.
 - **Dérive** : angle entre l'axe du bateau et sa vitesse relative à l'eau.
 - **Régime** : vitesse réelle du moteur, qui peut chuter quand l'hélice est fortement chargée.
 
