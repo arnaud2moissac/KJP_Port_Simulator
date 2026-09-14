@@ -29,14 +29,18 @@ function environment(overrides = {}) {
   };
 }
 
-function create(environmentInput) {
+function create(environmentInput, initial = {}) {
   const simulator = Physics.createSimulator({
     environment: environmentInput,
     obstacles: []
   });
   simulator.reset({
-    pose: { east: 0, north: 0, heading: HEADING },
-    velocity: { u: 0, v: 0, r: 0 }
+    pose: { east: 0, north: 0, heading: initial.heading ?? HEADING },
+    velocity: {
+      u: initial.u ?? 0,
+      v: initial.v ?? 0,
+      r: initial.r ?? 0
+    }
   }, environmentInput);
   return simulator;
 }
@@ -98,7 +102,7 @@ function compactSnapshot(snapshot) {
     timeS: round(snapshot.time, 1),
     eastM: round(snapshot.pose.east, 2),
     northM: round(snapshot.pose.north, 2),
-    headingDeg: round(snapshot.pose.heading / Physics.DEG, 2),
+    headingDeg: round(snapshot.pose.heading / Physics.DEG, 3),
     surgeKn: round(snapshot.velocity.u / Physics.KNOT, 3),
     swayKn: round(snapshot.velocity.v / Physics.KNOT, 3),
     yawDegS: round(snapshot.velocity.r / Physics.DEG, 4),
@@ -107,19 +111,82 @@ function compactSnapshot(snapshot) {
   };
 }
 
-function timeHistory(environmentInput, checkpoints) {
-  const simulator = create(environmentInput);
+function timeHistory(environmentInput, checkpoints, options = {}) {
+  const simulator = create(environmentInput, options.initial);
+  const controls = options.controls || ZERO_CONTROLS;
   const result = [];
   let completedSteps = 0;
   for (const checkpoint of checkpoints) {
     const targetSteps = Math.round(checkpoint / DT);
     while (completedSteps < targetSteps) {
-      simulator.step(ZERO_CONTROLS, DT);
+      simulator.step(controls, DT);
       completedSteps += 1;
     }
     result.push(compactSnapshot(simulator.snapshot()));
   }
   return result;
+}
+
+function crosswindResponseMatrix() {
+  const checkpoints = [1, 3, 5, 10, 30, 60, 300];
+  const rows = [];
+  for (const windSpeedKn of [6, 12, 20, 30]) {
+    for (const windFromDeg of [60, 90, 120, 240, 270, 300]) {
+      rows.push({
+        windSpeedKn,
+        windFromDeg,
+        history: timeHistory(environment({ windSpeedKn, windFromDeg }), checkpoints)
+      });
+    }
+  }
+  return rows;
+}
+
+function poweredCouplingMatrix() {
+  return [
+    { id: "ahead-starboard", throttle: 0.4, windFromDeg: 90, currentFromDeg: 45 },
+    { id: "neutral-starboard", throttle: 0, windFromDeg: 90, currentFromDeg: 45 },
+    { id: "astern-starboard", throttle: -0.4, windFromDeg: 90, currentFromDeg: 45 },
+    { id: "ahead-port", throttle: 0.4, windFromDeg: 270, currentFromDeg: 315 },
+    { id: "neutral-port", throttle: 0, windFromDeg: 270, currentFromDeg: 315 },
+    { id: "astern-port", throttle: -0.4, windFromDeg: 270, currentFromDeg: 315 }
+  ].map(definition => ({
+    ...definition,
+    history: timeHistory(environment({
+      windSpeedKn: 12,
+      windFromDeg: definition.windFromDeg,
+      currentSpeedKn: 1,
+      currentFromDeg: definition.currentFromDeg
+    }), [10, 30, 60], {
+      controls: { throttle: definition.throttle, rudder: 0 }
+    })
+  }));
+}
+
+function transverseBalance() {
+  const windInspection = create(environment({
+    windSpeedKn: 12,
+    windFromDeg: 90
+  })).inspectForces();
+  const air = sumForces(
+    windInspection.forces,
+    force => force.source === "Vent"
+  );
+  const swayInspection = create(environment(), { v: -0.2 }).inspectForces();
+  const water = sumForces(
+    swayInspection.forces,
+    force => force.category === "passive"
+  );
+  return {
+    aerodynamic: {
+      ...Object.fromEntries(Object.entries(air).map(([key, value]) => [key, round(value, 3)])),
+      centerX: round(air.N / air.Y, 4)
+    },
+    hydrodynamicAtSway02: {
+      ...Object.fromEntries(Object.entries(water).map(([key, value]) => [key, round(value, 3)])),
+      centerX: round(water.N / water.Y, 4)
+    }
+  };
 }
 
 function scenarioMatrix() {
@@ -241,6 +308,9 @@ const windPolarData = windPolar();
 const currentPolarData = currentPolar();
 const historiesData = scenarioMatrix();
 const invarianceData = invarianceChecks();
+const crosswindData = crosswindResponseMatrix();
+const poweredCouplingData = poweredCouplingMatrix();
+const transverseBalanceData = transverseBalance();
 const windOnlyHistory = historiesData.find(item => item.id === "wind-beam-12").history;
 const currentOnlyHistory = historiesData.find(item => item.id === "current-beam-1").history;
 const windOnlyFinal = windOnlyHistory[windOnlyHistory.length - 1];
@@ -267,6 +337,9 @@ const report = {
   windPolar12Kn: windPolarData,
   currentPolar1Kn: currentPolarData,
   histories: historiesData,
+  crosswindResponses: crosswindData,
+  poweredCouplings: poweredCouplingData,
+  transverseBalance: transverseBalanceData,
   invariance: invarianceData,
   assessments: {
     beamWindForceN: beamWind.resultantN,
@@ -289,10 +362,37 @@ const report = {
 const coupledWaterSpeeds = historiesData
   .filter(item => item.id.startsWith("wind-"))
   .map(item => item.history[item.history.length - 1].stwKn);
+const finiteHistory = history => history.every(sample => Object.values(sample).every(Number.isFinite));
+const beamResponses = crosswindData.filter(item => [90, 270].includes(item.windFromDeg));
+const crosswindMirrorError = Math.max(...[6, 12, 20, 30].map(speed => {
+  const starboard = beamResponses.find(item => (
+    item.windSpeedKn === speed && item.windFromDeg === 90
+  )).history.at(-1);
+  const port = beamResponses.find(item => (
+    item.windSpeedKn === speed && item.windFromDeg === 270
+  )).history.at(-1);
+  return Math.abs(starboard.headingDeg + port.headingDeg);
+}));
+const poweredCommandCausality = ["starboard", "port"].every(side => {
+  const surge = command => poweredCouplingData.find(
+    item => item.id === `${command}-${side}`
+  ).history.at(-1).surgeKn;
+  return surge("ahead") > surge("neutral") && surge("neutral") > surge("astern");
+});
+report.assessments.aerodynamicCenterX = transverseBalanceData.aerodynamic.centerX;
+report.assessments.hydrodynamicCenterXAtSway02 = (
+  transverseBalanceData.hydrodynamicAtSway02.centerX
+);
+report.assessments.crosswindMirrorErrorDeg = round(crosswindMirrorError, 6);
+report.assessments.beamWindHeadingsAt300S = beamResponses.map(item => ({
+  windSpeedKn: item.windSpeedKn,
+  windFromDeg: item.windFromDeg,
+  headingDeg: item.history.at(-1).headingDeg
+}));
 report.acceptance = {
   beamWindForce: (
-    report.assessments.beamWindForceN >= 330
-    && report.assessments.beamWindForceN <= 520
+    report.assessments.beamWindForceN >= 300
+    && report.assessments.beamWindForceN <= 420
   ),
   headTailAsymmetry: report.assessments.headTailForceDifferenceN > 20,
   directionalCenterOfPressure: report.assessments.sideCenterOfPressureRangeM > 0.35,
@@ -304,7 +404,25 @@ report.acceptance = {
   currentFrameInvariance: (
     invarianceData.relativeVelocityError <= 1e-9
     && invarianceData.hydrodynamicForceErrorN <= 1e-9
-  )
+  ),
+  transverseCentersOrdered: (
+    transverseBalanceData.aerodynamic.centerX
+    > transverseBalanceData.hydrodynamicAtSway02.centerX + 0.1
+  ),
+  beamWindBowFallOff: beamResponses.every(item => {
+    const headingDeg = item.history.at(-1).headingDeg;
+    return item.windFromDeg === 90 ? headingDeg < -1 : headingDeg > 1;
+  }),
+  beamWindInitialBowFallOff: beamResponses.every(item => {
+    const first = item.history[0];
+    return item.windFromDeg === 90
+      ? first.headingDeg < 0 && first.yawDegS < 0
+      : first.headingDeg > 0 && first.yawDegS > 0;
+  }),
+  crosswindSymmetry: crosswindMirrorError <= 0.02,
+  crosswindFinite: crosswindData.every(item => finiteHistory(item.history)),
+  poweredCouplingsFinite: poweredCouplingData.every(item => finiteHistory(item.history)),
+  poweredCommandCausality
 };
 report.acceptance.ok = Object.values(report.acceptance).every(Boolean);
 

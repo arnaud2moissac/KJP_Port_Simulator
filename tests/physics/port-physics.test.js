@@ -755,9 +755,9 @@ test("vent: loi quadratique, symétrie bâbord-tribord et ordre de grandeur", ()
   assert.ok(Math.abs(starboard12.Y + port12.Y) < 1e-9);
   assert.ok(Math.abs(starboard12.N + port12.N) < 1e-9);
   assert.ok(Math.abs(starboard12.X - port12.X) < 1e-9);
-  assert.ok(Math.abs(starboard12.X) < Math.abs(starboard12.Y) * 0.02);
-  assert.ok(Math.hypot(starboard12.X, starboard12.Y) >= 330);
-  assert.ok(Math.hypot(starboard12.X, starboard12.Y) <= 520);
+  assert.ok(Math.abs(starboard12.X) < Math.abs(starboard12.Y) * 0.08);
+  assert.ok(Math.hypot(starboard12.X, starboard12.Y) >= 300);
+  assert.ok(Math.hypot(starboard12.X, starboard12.Y) <= 420);
 });
 
 test("vent et courant: superposition initiale sans mélange des référentiels", () => {

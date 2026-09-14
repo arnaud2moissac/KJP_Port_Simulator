@@ -148,6 +148,22 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
     large.contacts.fenderStiffness,
     reference.contacts.fenderStiffness
   );
+  const referencePanel = reference.aerodynamics.panels.find(
+    panel => panel.id === "freeboard-0-starboard"
+  );
+  for (const profile of [small, large]) {
+    const panel = profile.aerodynamics.panels.find(
+      item => item.id === referencePanel.id
+    );
+    assert.ok(Math.abs(
+      panel.center.x / profile.dimensions.lengthOverall
+      - referencePanel.center.x / reference.dimensions.lengthOverall
+    ) < 1e-12);
+    assert.ok(Math.abs(
+      panel.center.y / profile.dimensions.beam
+      - referencePanel.center.y / reference.dimensions.beam
+    ) < 1e-12);
+  }
 
   const historical = structuredClone(
     Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
@@ -337,8 +353,8 @@ test("polarité de vent: continuité, directionnalité et référence à 10 m", 
   const tail = windForce(profile, 12, 180);
   const beam = windForce(profile, 12, 90);
   assert.ok(Math.abs(Math.hypot(head.X, head.Y) - Math.hypot(tail.X, tail.Y)) > 20);
-  assert.ok(Math.hypot(beam.X, beam.Y) >= 330);
-  assert.ok(Math.hypot(beam.X, beam.Y) <= 520);
+  assert.ok(Math.hypot(beam.X, beam.Y) >= 300);
+  assert.ok(Math.hypot(beam.X, beam.Y) <= 420);
 
   const centers = twelve
     .filter(force => Math.abs(force.Y) > 15)
@@ -348,7 +364,240 @@ test("polarité de vent: continuité, directionnalité et référence à 10 m", 
   assert.ok(Math.max(...centers) - Math.min(...centers) > 0.35);
 });
 
-test("dérive libre à 12 nd: enveloppe USCG sur douze caps perturbés", () => {
+test("vent local par panneau: translation, lacet et gradient vertical restent séparés", () => {
+  const raw = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  raw.id = "synthetic-local-panel-airflow";
+  raw.version = "1.0.0";
+  raw.aerodynamics.panels = [
+    {
+      id: "low-aft",
+      area: 1,
+      normalBody: { x: 0, y: 1 },
+      center: { x: -2, y: 0, z: 1 },
+      cdNormal: 1,
+      cdTangential: 1,
+      exposure: 1,
+      omnidirectional: true
+    },
+    {
+      id: "high-fore",
+      area: 1,
+      normalBody: { x: 0, y: 1 },
+      center: { x: 2, y: 0, z: 10 },
+      cdNormal: 1,
+      cdTangential: 1,
+      exposure: 1,
+      omnidirectional: true
+    }
+  ];
+  const profile = Physics.compileVesselProfile(raw);
+
+  const translation = create(profile, environment(), {
+    velocity: { u: 1, v: 0, r: 0 }
+  }).inspectForces();
+  assert.equal(translation.wind.apparent.u, -1);
+  assert.equal(translation.wind.apparent.v, 0);
+  for (const panel of translation.wind.panels) {
+    assert.ok(Math.abs(panel.trueWind.u) < 1e-12);
+    assert.ok(Math.abs(panel.trueWind.v) < 1e-12);
+    assert.equal(panel.bodyVelocity.u, 1);
+    assert.equal(panel.apparent.u, -1);
+    assert.equal(panel.speed, 1);
+    assert.ok(panel.aerodynamicDissipation > 0);
+  }
+  assert.equal(
+    translation.wind.panels[0].speed,
+    translation.wind.panels[1].speed,
+    "le gradient de vent ne doit pas réduire la vitesse propre du bateau"
+  );
+
+  const rotation = create(profile, environment(), {
+    velocity: { u: 0, v: 0, r: 0.1 }
+  }).inspectForces();
+  const aft = rotation.wind.panels.find(panel => panel.id === "low-aft");
+  const fore = rotation.wind.panels.find(panel => panel.id === "high-fore");
+  assert.ok(aft.apparent.v > 0);
+  assert.ok(fore.apparent.v < 0);
+  assert.ok(Math.abs(aft.apparent.v + fore.apparent.v) < 1e-12);
+  assert.ok(rotation.total.N < 0, "la traînée de l'air doit amortir un lacet positif");
+  assert.ok(rotation.wind.panels.every(
+    panel => panel.aerodynamicDissipation > 0
+  ));
+
+  const shearedWind = create(profile, environment({
+    windSpeedKn: 12,
+    windFromDeg: 0
+  }), { velocity: { u: 1, v: 0, r: 0 } }).inspectForces();
+  const low = shearedWind.wind.panels.find(panel => panel.id === "low-aft");
+  const high = shearedWind.wind.panels.find(panel => panel.id === "high-fore");
+  assert.ok(low.heightFactor < high.heightFactor);
+  assert.equal(low.bodyVelocity.u, high.bodyVelocity.u);
+  assert.ok(Math.abs(
+    low.trueWind.u / high.trueWind.u - low.heightFactor / high.heightFactor
+  ) < 1e-12);
+});
+
+test("panneau aérodynamique: la pression normale suit la vitesse normale au carré", () => {
+  const raw = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  raw.id = "synthetic-normal-panel-incidence";
+  raw.version = "1.0.0";
+  raw.aerodynamics.verticalProfile = null;
+  raw.aerodynamics.panels = [{
+    id: "normal-panel",
+    area: 1,
+    normalBody: { x: 0, y: 1 },
+    center: { x: 0, y: 0, z: 1 },
+    cdNormal: 1,
+    cdTangential: 0,
+    exposure: 1,
+    twoSided: true
+  }];
+  const profile = Physics.compileVesselProfile(raw);
+  const beam = windForce(profile, 12, 90);
+  const oblique = windForce(profile, 12, 45);
+  assert.ok(Math.abs(Math.abs(oblique.Y / beam.Y) - 0.5) < 1e-12);
+});
+
+test("équilibre transversal: le centre aérodynamique reste devant la résistance immergée", () => {
+  const profile = Physics.DEFAULT_PROFILE;
+  const wind = create(profile, environment({
+    windSpeedKn: 12,
+    windFromDeg: 90
+  })).inspectForces();
+  const air = sumForces(wind, force => force.source === "Vent");
+  const sway = create(profile, environment(), {
+    velocity: { u: 0, v: -0.2, r: 0 }
+  }).inspectForces();
+  const water = sumForces(sway, force => force.category === "passive");
+  const airCenterX = air.N / air.Y;
+  const waterCenterX = water.N / water.Y;
+  assert.ok(Number.isFinite(airCenterX));
+  assert.ok(Number.isFinite(waterCenterX));
+  assert.ok(
+    airCenterX > waterCenterX + 0.1,
+    `centres longitudinalement inversés: air ${airCenterX}, eau ${waterCenterX}`
+  );
+});
+
+test("franc-bord aérodynamique: aire et centroïde suivent le rail de fargue", () => {
+  const profile = Physics.DEFAULT_PROFILE;
+  const gunwale = profile.geometry.gunwale;
+  const panels = profile.aerodynamics.panels.filter(
+    panel => panel.id.startsWith("freeboard-")
+  );
+  const starboard = panels.filter(panel => panel.id.endsWith("-starboard"));
+  const port = panels.filter(panel => panel.id.endsWith("-port"));
+  let expectedArea = 0;
+  let expectedMomentX = 0;
+  for (let index = 0; index < gunwale.length - 1; index += 1) {
+    const left = gunwale[index];
+    const right = gunwale[index + 1];
+    const dx = right.x - left.x;
+    expectedArea += dx * (left.z + right.z) / 2;
+    expectedMomentX += dx * (
+      left.z * (2 * left.x + right.x)
+      + right.z * (left.x + 2 * right.x)
+    ) / 6;
+    const starboardPanel = starboard.find(
+      panel => panel.id === `freeboard-${index}-starboard`
+    );
+    const portPanel = port.find(
+      panel => panel.id === `freeboard-${index}-port`
+    );
+    assert.ok(starboardPanel);
+    assert.ok(portPanel);
+    assert.equal(starboardPanel.area, portPanel.area);
+    assert.equal(starboardPanel.normalBody.x, portPanel.normalBody.x);
+    assert.equal(starboardPanel.normalBody.y, -portPanel.normalBody.y);
+    assert.equal(starboardPanel.center.x, portPanel.center.x);
+    assert.equal(starboardPanel.center.y, -portPanel.center.y);
+    assert.equal(starboardPanel.center.z, portPanel.center.z);
+  }
+  const projectedArea = starboard.reduce(
+    (sum, panel) => sum + panel.area * Math.abs(panel.normalBody.y),
+    0
+  );
+  const projectedMomentX = starboard.reduce(
+    (sum, panel) => (
+      sum + panel.area * Math.abs(panel.normalBody.y) * panel.center.x
+    ),
+    0
+  );
+  assert.ok(Math.abs(projectedArea - expectedArea) < 1e-12);
+  assert.ok(Math.abs(projectedMomentX - expectedMomentX) < 1e-12);
+  assert.ok(expectedMomentX / expectedArea > 0);
+});
+
+test("vent de travers: l'accélération initiale abat sans lof transitoire", () => {
+  const profile = Physics.DEFAULT_PROFILE;
+  for (const windSpeedKn of [6, 12, 20, 30]) {
+    for (const windFromDeg of [90, 270]) {
+      const simulator = create(
+        profile,
+        environment({ windSpeedKn, windFromDeg })
+      );
+      const initial = simulator.inspectForces();
+      const air = sumForces(initial, force => force.source === "Vent");
+      const expectedSign = windFromDeg === 90 ? -1 : 1;
+      assert.ok(
+        expectedSign * air.N > 0,
+        `${windSpeedKn} nd/${windFromDeg}°: moment initial au lof`
+      );
+      for (const duration of [1, 2, 2]) {
+        const snapshot = advance(simulator, duration);
+        assert.ok(
+          expectedSign * snapshot.pose.heading > 0,
+          `${windSpeedKn} nd/${windFromDeg}°: lof transitoire à ${snapshot.time}s`
+        );
+        assert.ok(
+          expectedSign * snapshot.velocity.r > 0,
+          `${windSpeedKn} nd/${windFromDeg}°: lacet inversé à ${snapshot.time}s`
+        );
+      }
+    }
+  }
+});
+
+test("vent de travers à l'arrêt: abattée, symétrie et robustesse", () => {
+  const profile = Physics.DEFAULT_PROFILE;
+  for (const windSpeedKn of [6, 12, 20]) {
+    const finalBySide = [];
+    for (const windFromDeg of [90, 270]) {
+      const wind = environment({ windSpeedKn, windFromDeg });
+      const snapshot = advance(create(profile, wind), 300);
+      finalBySide.push(snapshot);
+      const expectedSign = windFromDeg === 90 ? -1 : 1;
+      assert.ok(
+        expectedSign * snapshot.pose.heading > 1 * Physics.DEG,
+        `${windSpeedKn} nd/${windFromDeg}°: l'étrave n'abat pas`
+      );
+      assert.ok(Math.abs(snapshot.velocity.r) < 0.12 * Physics.DEG);
+    }
+    assert.ok(Math.abs(
+      finalBySide[0].pose.heading + finalBySide[1].pose.heading
+    ) < 1e-8);
+  }
+
+  for (const windFromDeg of [60, 120, 240, 300]) {
+    const wind = environment({ windSpeedKn: 12, windFromDeg });
+    const snapshot = advance(create(profile, wind), 120);
+    assert.ok([
+      snapshot.pose.east,
+      snapshot.pose.north,
+      snapshot.pose.heading,
+      snapshot.velocity.u,
+      snapshot.velocity.v,
+      snapshot.velocity.r
+    ].every(Number.isFinite));
+    assert.ok(snapshot.diagnostics.waterSpeed / Physics.KNOT < 0.62);
+  }
+});
+
+test("dérive libre à 12 nd: branches transverse et vent arrière", () => {
   const profile = Physics.DEFAULT_PROFILE;
   const wind = environment({ windSpeedKn: 12, windFromDeg: 90 });
   const outcomes = [];
@@ -363,24 +612,42 @@ test("dérive libre à 12 nd: enveloppe USCG sur douze caps perturbés", () => {
       }
     });
     let snapshot = advance(simulator, 300);
-    // Un bateau initialisé presque exactement sur l'équilibre de vent instable
-    // peut mettre plus de cinq minutes à choisir sa branche lorsque la
-    // dissipation linéaire basse vitesse est active. On prolonge uniquement ce
-    // cas transitoire sans élargir l'enveloppe finale de lacet.
+    // Une trajectoire proche de la séparatrice entre équilibres peut converger
+    // en plus de cinq minutes avec la dissipation linéaire basse vitesse. On
+    // prolonge uniquement un lacet encore non établi, sans élargir sa borne.
     if (Math.abs(snapshot.velocity.r) >= 0.12 * Physics.DEG) {
       snapshot = advance(simulator, 300);
     }
     const speedKn = snapshot.diagnostics.waterSpeed / Physics.KNOT;
-    outcomes.push({ headingDeg, speedKn, yaw: snapshot.velocity.r });
-    assert.ok(
-      speedKn >= 0.36 && speedKn <= 0.60,
-      `${headingDeg}°: dérive ${speedKn.toFixed(3)} nd`
-    );
-    assert.ok(speedKn < 0.72);
+    const apparentBeta = simulator.inspectForces().wind.beta;
+    const longitudinal = Math.abs(Math.sin(apparentBeta)) < 0.15;
+    outcomes.push({
+      headingDeg,
+      speedKn,
+      yaw: snapshot.velocity.r,
+      longitudinal
+    });
+    if (longitudinal) {
+      // La branche stable vent arrière sollicite la faible résistance axiale.
+      // Elle reste bornée séparément au lieu d'être assimilée à la dérive
+      // transverse USCG de 4 %.
+      assert.ok(
+        speedKn >= 0.75 && speedKn <= 1.10,
+        `${headingDeg}°: branche longitudinale ${speedKn.toFixed(3)} nd`
+      );
+    } else {
+      assert.ok(
+        speedKn >= 0.36 && speedKn <= 0.60,
+        `${headingDeg}°: dérive transverse ${speedKn.toFixed(3)} nd`
+      );
+    }
     assert.ok(Math.abs(snapshot.velocity.r) < 0.12 * Physics.DEG);
   }
-  const speeds = outcomes.map(outcome => outcome.speedKn);
+  const speeds = outcomes
+    .filter(outcome => !outcome.longitudinal)
+    .map(outcome => outcome.speedKn);
   assert.ok(Math.max(...speeds) - Math.min(...speeds) < 0.03);
+  assert.equal(outcomes.filter(outcome => outcome.longitudinal).length, 1);
 
   const perturbations = [-0.001, 0.001].map(r => {
     const simulator = create(profile, wind, {

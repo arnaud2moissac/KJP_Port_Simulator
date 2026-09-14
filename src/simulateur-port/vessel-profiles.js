@@ -132,13 +132,18 @@
     };
   }
 
-  function aerodynamicPanels(scaleLength = 1, scaleArea = 1) {
+  function aerodynamicPanels(
+    gunwale = REFERENCE_GUNWALE,
+    scaleLength = 1,
+    scaleBeam = scaleLength,
+    scaleArea = scaleLength * scaleLength
+  ) {
     const point = (x, y, z) => ({
-      // Décalage calibré conjointement avec la résistance latérale : il place
-      // le centre aérodynamique de la coque nue derrière le CG, sans fixer le
-      // point de pivot ni ajouter de couple de rappel.
-      x: (x - 0.30) * scaleLength,
-      y: y * scaleLength,
+      // Chaque centre reste celui du composant décrit. Le bilan de lacet doit
+      // émerger de ces bras de levier et des résistances immergées, sans
+      // translation globale destinée à imposer une trajectoire particulière.
+      x: x * scaleLength,
+      y: y * scaleBeam,
       z: z * scaleLength
     });
     const side = (id, area, normalX, normalY, x, y, z, exposure = 1) => ({
@@ -151,11 +156,65 @@
       exposure,
       twoSided: false
     });
+    const freeboard = [];
+    for (let index = 0; index < gunwale.length - 1; index += 1) {
+      const left = gunwale[index];
+      const right = gunwale[index + 1];
+      const dx = right.x - left.x;
+      const projectedArea = dx * (left.z + right.z) / 2;
+      const breadthSlope = (right.halfBeam - left.halfBeam) / dx;
+      const normalScale = Math.hypot(breadthSlope, 1);
+      const surfaceArea = projectedArea * normalScale;
+      const centerX = dx * (
+        left.z * (2 * left.x + right.x)
+        + right.z * (left.x + 2 * right.x)
+      ) / (6 * projectedArea);
+      const centerHalfBeam = dx * (
+        2 * left.halfBeam * left.z
+        + left.halfBeam * right.z
+        + right.halfBeam * left.z
+        + 2 * right.halfBeam * right.z
+      ) / (6 * projectedArea);
+      const centerZ = dx * (
+        left.z * left.z
+        + left.z * right.z
+        + right.z * right.z
+      ) / (6 * projectedArea);
+      for (const [sideName, sideSign] of [["starboard", 1], ["port", -1]]) {
+        freeboard.push({
+          id: `freeboard-${index}-${sideName}`,
+          // Surface réglée engendrée par le rail et la flottaison. Sa pente
+          // porte aussi l'effort longitudinal de la coque convergente.
+          area: surfaceArea,
+          normalBody: {
+            x: -breadthSlope / normalScale,
+            y: sideSign / normalScale
+          },
+          center: {
+            x: centerX,
+            y: sideSign * centerHalfBeam,
+            z: centerZ
+          },
+          cdNormal: 1.08,
+          cdTangential: 0.055,
+          exposure: 1,
+          twoSided: false
+        });
+      }
+    }
+    const stern = gunwale[0];
+    const transom = {
+      id: "transom-closure",
+      area: 2 * stern.halfBeam * stern.z,
+      normalBody: { x: -1, y: 0 },
+      center: { x: stern.x, y: 0, z: stern.z / 2 },
+      cdNormal: 1.02,
+      cdTangential: 0.04,
+      exposure: 0.96,
+      twoSided: false
+    };
     return [
-      side("freeboard-aft-starboard", 7.0, -0.12, 0.993, -2.30, 1.42, 1.02),
-      side("freeboard-aft-port", 7.0, -0.12, -0.993, -2.30, -1.42, 1.02),
-      side("freeboard-fore-starboard", 4.4, 0.18, 0.984, 2.00, 1.25, 1.08),
-      side("freeboard-fore-port", 4.4, 0.18, -0.984, 2.00, -1.25, 1.08),
+      ...freeboard,
       side("coachroof-aft-starboard", 2.5, -0.08, 0.997, -1.00, 0.82, 1.82),
       side("coachroof-aft-port", 2.5, -0.08, -0.997, -1.00, -0.82, 1.82),
       side("coachroof-fore-starboard", 1.5, 0.12, 0.993, 1.20, 0.70, 1.88),
@@ -172,26 +231,7 @@
         exposure: 0.95,
         omnidirectional: true
       },
-      {
-        id: "bow-front",
-        area: 4.0 * scaleArea,
-        normalBody: { x: 1, y: 0 },
-        center: point(3.05, 0, 1.24),
-        cdNormal: 0.72,
-        cdTangential: 0.04,
-        exposure: 0.92,
-        twoSided: false
-      },
-      {
-        id: "transom-cockpit",
-        area: 5.2 * scaleArea,
-        normalBody: { x: -1, y: 0 },
-        center: point(-3.20, 0, 1.28),
-        cdNormal: 1.02,
-        cdTangential: 0.04,
-        exposure: 0.96,
-        twoSided: false
-      }
+      transom
     ];
   }
 
@@ -340,7 +380,7 @@
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "5.3.0",
+    version: "5.5.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -540,12 +580,19 @@
           unit: "mixed",
           uncertainty: 0
         },
-        "aerodynamics.panels": {
-          sourceType: "calibrated",
-          source: "Geometric decomposition; USCG medium-displacement sailboat leeway prior",
+        "aerodynamics.panels.geometry": {
+          sourceType: "estimated",
+          source: "Freeboard panels integrated from the versioned KJP gunwale; coachroof, boom and rig decomposition estimated from the published Sun Odyssey 36i profile/deck layout",
           unit: "m2,m",
           uncertainty: 0.2,
-          domain: "bare cruising yacht, 6-20 kn apparent wind"
+          domain: "bare cruising yacht, furled sails; freeboard surface is derived without a trajectory-dependent center shift"
+        },
+        "aerodynamics.panels.coefficients": {
+          sourceType: "calibrated",
+          source: "Bluff-body drag priors constrained by the USCG medium-displacement sailboat leeway envelope",
+          unit: "dimensionless",
+          uncertainty: 0.2,
+          domain: "bare cruising yacht, furled sails, 6-20 kn apparent wind"
         },
         "hull.crossFlow": {
           sourceType: "literature",
@@ -651,7 +698,7 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       id: spec.id,
-      version: "3.2.0",
+      version: "3.4.0",
       name: spec.name,
       modelClass: MODEL_CLASS,
       validity: {
@@ -779,7 +826,12 @@
           minimumVelocityFactor: 0.82,
           maximumVelocityFactor: 1.05
         },
-        panels: aerodynamicPanels(lengthScale, areaScale)
+        panels: aerodynamicPanels(
+          gunwale,
+          lengthScale,
+          spec.beam / SUN_ODYSSEY_36I.geometry.beam,
+          areaScale
+        )
       },
       contacts: {
         fenderRadius: 0.175 * lengthScale,
@@ -1324,6 +1376,12 @@
         || ![panel.center?.x, panel.center?.y, panel.center?.z].every(Number.isFinite)
       ) {
         errors.push(`Panneau aérodynamique invalide : ${panel.id || "sans identifiant"}.`);
+      } else if (
+        Math.abs(panel.center.x) > halfLength * 1.15
+        || Math.abs(panel.center.y) > halfBeam * 1.15
+        || panel.center.z < 0
+      ) {
+        errors.push(`Centre aérodynamique hors gabarit émergé : ${panel.id}.`);
       }
     }
     if (!Object.keys(rawProfile.provenance?.values || {}).length) {

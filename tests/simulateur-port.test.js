@@ -1195,7 +1195,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
         api.setControls({ throttleTarget: -.4, rudderTarget: 0 });
         let reverseSeconds = 0;
-        while (!state.scenario.challenge.pivotAchieved && reverseSeconds < 25) {
+        while (!state.scenario.challenge.pivotAchieved && reverseSeconds < 26) {
           state = api.advance(.25);
           reverseSeconds += .25;
         }
@@ -1276,7 +1276,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       "release-spring",
       "exit"
     ]);
-    assert.ok(result.reverseSeconds <= 25);
+    assert.ok(result.reverseSeconds <= 26);
     assert.ok(result.openingDeg >= 20 && result.openingDeg <= 35);
     assert.equal(result.challenge.safeRelease, true);
     assert.equal(result.challenge.unsafeReleases, 0);
@@ -1800,7 +1800,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("le moteur scientifique est intégré avec une masse définie positive", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.physicsReport());
-    assert.equal(report.version, "5.2.0");
+    assert.equal(report.version, "5.4.0");
     const matrix = report.mass.matrix;
     assert.equal(matrix.length, 3);
     assert.equal(matrix[1][2], matrix[2][1]);
@@ -1808,8 +1808,35 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(matrix[0][0] * matrix[1][1] > 0);
     assert.ok(matrix[1][1] * matrix[2][2] - matrix[1][2] ** 2 > 0);
     assert.equal(report.profile.id, "sun-odyssey-36i-pedagogical");
-    assert.equal(report.profile.version, "5.3.0");
+    assert.equal(report.profile.version, "5.5.0");
     assert.equal(report.profile.schemaVersion, 3);
+  });
+
+  await t.test("le vent de travers fait abattre l'étrave dans le moteur intégré", async () => {
+    const responses = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      const initialHeading = Math.PI / 2;
+      const run = windFromDeg => {
+        api.reset({ x: 25, y: 48, heading: initialHeading }, {
+          windSpeedKn: 12,
+          windFromDeg,
+          currentSpeedKn: 0,
+          currentFromDeg: 0,
+          propWalk: 0
+        });
+        return api.advance(60).motion.heading;
+      };
+      return {
+        initialHeading,
+        starboard: run(90),
+        port: run(270)
+      };
+    });
+    assert.ok(responses.starboard > responses.initialHeading + 2 * Math.PI / 180);
+    assert.ok(responses.port < responses.initialHeading - 2 * Math.PI / 180);
+    assert.ok(Math.abs(
+      responses.starboard + responses.port - 2 * responses.initialHeading
+    ) < 1e-8);
   });
 
   await t.test("franc-bord lisible et cotes visuelles indépendantes de la physique", async () => {
@@ -2165,8 +2192,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("les trois situations rejouent leur trajectoire étalon exactement", async () => {
     assert.equal(trajectoryFixture.profileId, "sun-odyssey-36i-pedagogical");
-    assert.equal(trajectoryFixture.profileVersion, "5.3.0");
-    assert.equal(trajectoryFixture.physicsVersion, "5.2.0");
+    assert.equal(trajectoryFixture.profileVersion, "5.5.0");
+    assert.equal(trajectoryFixture.physicsVersion, "5.4.0");
     const trajectories = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       const scripts = {

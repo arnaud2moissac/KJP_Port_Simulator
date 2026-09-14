@@ -23,7 +23,7 @@
   // que la prise KJP représente le centre de sa boucle sur le ponton.
   const PENDILLE_PICKUP_REACH_M = 1.8;
   const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
-  const PHYSICS_VERSION = "5.2.0";
+  const PHYSICS_VERSION = "5.4.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -1819,16 +1819,15 @@
         environment.windSpeedKn * KNOT,
         environment.windFromDeg * DEG
       );
-      const groundWorld = bodyToWorld(
-        candidateState.velocity.u,
-        candidateState.velocity.v,
+      const windBody = worldToBody(
+        windWorld.east,
+        windWorld.north,
         candidateState.pose.heading
       );
-      const apparent = worldToBody(
-        windWorld.east - groundWorld.east,
-        windWorld.north - groundWorld.north,
-        candidateState.pose.heading
-      );
+      const apparent = {
+        u: windBody.u - candidateState.velocity.u,
+        v: windBody.v - candidateState.velocity.v
+      };
       const vertical = profile.aerodynamics.verticalProfile;
       const referenceHeight = profile.aerodynamics.referenceWindHeight;
       const panelResults = [];
@@ -1841,9 +1840,17 @@
             vertical.maximumVelocityFactor
           )
           : 1;
+        const trueWind = {
+          u: windBody.u * heightFactor,
+          v: windBody.v * heightFactor
+        };
+        const bodyVelocity = {
+          u: candidateState.velocity.u - candidateState.velocity.r * panel.center.y,
+          v: candidateState.velocity.v + candidateState.velocity.r * panel.center.x
+        };
         const local = {
-          u: apparent.u * heightFactor,
-          v: apparent.v * heightFactor
+          u: trueWind.u - bodyVelocity.u,
+          v: trueWind.v - bodyVelocity.v
         };
         const localSpeed = Math.hypot(local.u, local.v);
         if (localSpeed < 1e-7) continue;
@@ -1895,8 +1902,10 @@
           const normalFactor = (
             common
             * panel.cdNormal
+            // La pression de la face dépend du flux qui la traverse. Employer
+            // la vitesse totale surpondérerait les incidences rasantes.
             * normalVelocity
-            * localSpeed
+            * Math.abs(normalVelocity)
           );
           const tangentFactor = (
             common
@@ -1929,7 +1938,13 @@
           X,
           Y,
           N: panel.center.x * Y - panel.center.y * X,
-          heightFactor
+          heightFactor,
+          trueWind,
+          bodyVelocity,
+          apparent: local,
+          speed: localSpeed,
+          beta: Math.atan2(local.v, local.u),
+          aerodynamicDissipation: X * local.u + Y * local.v
         });
       }
       return {

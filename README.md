@@ -41,11 +41,13 @@ Les fichiers HTML à la racine sont générés. Les modifications se font dans `
 
 - date de publication : 26 août 2026 ;
 - produit : `1.1.0` ;
-- moteur physique : `5.2.0` ;
-- profil pédagogique Sun Odyssey 36i : `5.3.0` ;
+- moteur physique : `5.4.0` ;
+- profil pédagogique Sun Odyssey 36i : `5.5.0` ;
 - générateur et schéma KJP courant : `1.1.0` et schéma `3`.
 
 Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.
+Le [rapport de recalibration aérodynamique](docs/validation/rapport-recalibration-aerodynamique.md)
+documente les lois, les hypothèses et les contrôles de la version physique courante.
 
 ## Licence et prudence
 
