@@ -9,7 +9,6 @@ const { chromium } = require("playwright");
 const simulatorPath = path.resolve(__dirname, "..", "simulateur-port.html");
 const simulatorUrl = new URL(pathToFileURL(simulatorPath));
 simulatorUrl.searchParams.set("test", "1");
-simulatorUrl.searchParams.set("renderer", "legacy");
 const largePortText = fs.readFileSync(path.resolve(__dirname, "..", "examples", "la-trinite-sur-mer.kjp"), "utf8");
 
 const settle = (page, frames = 3) => page.evaluate(count => new Promise(resolve => {
@@ -31,7 +30,7 @@ const persistentGeometry = report => report.resources
       bytes: attribute.bytes
     })) }));
 
-test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFrame", async t => {
+test("renderer natif — persistance, caméra, composition 2D et flux", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const page = await browser.newPage({ viewport: { width: 1180, height: 760 }, deviceScaleFactor: 1 });
@@ -69,7 +68,7 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
       const original = WebGL2RenderingContext.prototype[name];
       WebGL2RenderingContext.prototype[name] = function (...args) {
         const result = original.apply(this, args);
-        if (this.canvas.id === "kjp-native-static-prototype") {
+        if (this.canvas.id === "kjp-native-world") {
           const data = args[name === "bufferData" ? 1 : 2];
           uploads.calls++;
           uploads.bytes += typeof data === "number" ? data : data?.byteLength || 0;
@@ -82,14 +81,14 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
 
   await page.goto(simulatorUrl.href);
   await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+  await page.waitForFunction(() => window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready);
   await settle(page, 4);
   const initial = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
-  assert.equal(initial.active, "legacy");
+  assert.equal(initial.active, "native");
   assert.equal(initial.defaultRenderer, "native");
-  assert.equal(initial.startupRenderer, "legacy");
-  assert.equal(initial.requestedRenderer, "legacy");
-  assert.equal(initial.legacyDefault, false);
-  assert.equal(initial.canvas.nativeConnected, false);
+  assert.equal(initial.startupRenderer, "native");
+  assert.equal(initial.requestedRenderer, null);
+  assert.equal(initial.canvas.nativeConnected, true);
 
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;
@@ -98,10 +97,8 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
     api.selectVisualTheme("dark");
   });
   await settle(page, 3);
-  const legacySnapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-  const legacyMooring = await page.evaluate(() => window.__PORTANCE_TEST__.mooringReport().rendered);
-
-  await page.evaluate(() => window.__PORTANCE_TEST__.selectWorldRenderer("native"));
+  const initialSnapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  const initialMooring = await page.evaluate(() => window.__PORTANCE_TEST__.mooringReport().rendered);
   await settle(page, 6);
   const first = await page.evaluate(() => ({
     report: window.__PORTANCE_TEST__.worldRendererReport({ images: true }),
@@ -114,7 +111,6 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   assert.equal(first.report.attached, true);
   assert.equal(first.report.canvas.nativeConnected, true);
   assert.equal(first.report.canvas.nativeDisplay, "block");
-  assert.equal(first.report.canvas.legacyDisplay, "none");
   assert.equal(first.report.canvas.nativePointerEvents, "none");
   assert.notEqual(first.report.canvas.overlayPointerEvents, "none");
   assert.equal(first.report.routing.lastFrame.backend, "native");
@@ -122,8 +118,8 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   assert.equal(first.report.routing.lastFrame.renderFrame, false);
   assert.equal(first.report.routing.lastFrame.projectedPolygons, 0);
   assert.ok(first.report.routing.lastFrame.overlayLayers.every(layer => layer >= 9));
-  assert.deepEqual(first.snapshot, legacySnapshot, "la sélection du renderer ne modifie pas la simulation");
-  assert.deepEqual(first.mooring, legacyMooring, "les hitTargets restent reconstruits par la couche 2D");
+  assert.deepEqual(first.snapshot, initialSnapshot, "le rendu ne modifie pas la simulation");
+  assert.deepEqual(first.mooring, initialMooring, "les hitTargets restent reconstruits par la couche 2D");
   assert.equal(first.raf.maximumMainPending, 1, "une seule boucle principale reste planifiée");
   assert.equal(first.raf.mainPending, 1);
   assert.ok(first.report.catalog.owners.some(owner => owner.family === "shore-cleat"));
@@ -157,7 +153,6 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
     uploads: { ...window.__n4Uploads }
   }));
   assert.equal(stable.report.routing.projectedWorldBuilds, stableRouting.projectedWorldBuilds);
-  assert.equal(stable.report.routing.renderFrames, stableRouting.renderFrames);
   assert.deepEqual(persistentGeometry(stable.report), stableGeometry);
   assert.deepEqual(stable.uploads, first.uploads,
     "caméra immobile et flux nuls : aucun attribut géométrique retransféré après initialisation");
@@ -312,9 +307,9 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   });
   await settle(page, 4);
   const recovered = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
-  assert.equal(recovered.active, "legacy");
+  assert.equal(recovered.active, "canvas");
   assert.equal(recovered.canvas.nativeConnected, false);
-  assert.equal(recovered.canvas.legacyDisplay, "block");
+  assert.equal(recovered.canvas.fallbackActive, true);
   assert.match(recovered.nativeInfrastructureError, /injecté/);
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;
@@ -324,17 +319,17 @@ test("Three natif N4 — boucle visible, composition 2D et routage sans RenderFr
   await settle(page, 4);
   assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport())).active, "native");
 
-  const beforeRollback = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-  await page.evaluate(() => window.__PORTANCE_TEST__.selectWorldRenderer("legacy"));
+  const beforeFallback = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  await page.evaluate(() => window.__PORTANCE_TEST__.selectWorldRenderer("canvas"));
   await settle(page, 4);
   const rolledBack = await page.evaluate(() => ({
     report: window.__PORTANCE_TEST__.worldRendererReport(),
     snapshot: window.__PORTANCE_TEST__.snapshot()
   }));
-  assert.equal(rolledBack.report.active, "legacy");
+  assert.equal(rolledBack.report.active, "canvas");
   assert.equal(rolledBack.report.canvas.nativeConnected, false);
-  assert.equal(rolledBack.report.canvas.legacyDisplay, "block");
-  assert.deepEqual(rolledBack.snapshot, beforeRollback);
+  assert.equal(rolledBack.report.canvas.fallbackActive, true);
+  assert.deepEqual(rolledBack.snapshot, beforeFallback);
   assert.deepEqual(errors, []);
   assert.deepEqual(remoteRequests, []);
 

@@ -1,17 +1,19 @@
 import { Scene, WebGLRenderer, NoToneMapping, SRGBColorSpace } from "three";
 import { createThreeCamera } from "./three-camera.mjs";
-import { createNativeStaticResources, nativeStaticResourceBuilds } from "./native-static-resources.mjs";
 
-// Banc N1-N3 détaché ou renderer N4 explicitement sélectionné. Aucun RAF,
-// contrôleur, horloge ou RenderFrame n'est créé ici.
-export function createNativeStaticPrototype(definition, {
-  resourceFactory = createNativeStaticResources,
+// Renderer Three natif persistant. Il réutilise la boucle et la caméra KJP ;
+// aucun RAF, contrôleur ou état de simulation n'est créé ici.
+export function createNativeWorldRenderer(definition, {
+  resourceFactory,
   playerDefinition = null,
   playerFactory = null,
   flowDefinition = null,
   flowFactory = null,
   layerFactory = resourceFactory
 } = {}) {
+  if (typeof resourceFactory !== "function") {
+    throw new TypeError("Renderer Three natif : fabrique de ressources absente");
+  }
   let resources = resourceFactory(definition);
   let playerResources = null;
   let flowResources = null;
@@ -31,7 +33,7 @@ export function createNativeStaticPrototype(definition, {
     throw error;
   }
   const canvas = document.createElement("canvas");
-  canvas.id = "kjp-native-static-prototype";
+  canvas.id = "kjp-native-world";
   canvas.setAttribute("aria-hidden", "true");
   let renderer;
   try {
@@ -52,15 +54,22 @@ export function createNativeStaticPrototype(definition, {
   const bridge = createThreeCamera();
   const identities = new WeakMap();
   let nextId = 1, frames = 0, lastCamera = null, disposed = false, compilePending = true;
+  let asynchronousResourceError = null;
+  playerResources?.ready?.catch(error => { asynchronousResourceError = error; });
+  canvas.addEventListener("webglcontextlost", event => {
+    event.preventDefault();
+    asynchronousResourceError = new Error("Renderer Three natif : contexte WebGL perdu");
+  });
   const id = value => {
     if (!identities.has(value)) identities.set(value, nextId++);
     return identities.get(value);
   };
   function ensureActive() {
-    if (disposed) throw new Error("Native static prototype disposed");
+    if (disposed) throw new Error("Renderer Three natif libéré");
   }
   function render(camera, pixelRatio, playerPresentation = null, flowPresentation = null) {
     ensureActive();
+    if (asynchronousResourceError) throw asynchronousResourceError;
     lastCamera = camera;
     if (playerResources) playerResources.update(playerPresentation);
     if (flowResources) flowResources.update(flowPresentation);
@@ -109,7 +118,7 @@ export function createNativeStaticPrototype(definition, {
       ...[...layers.values()].flatMap(layer => layer.group.children)
     ];
     return {
-      frames, resourceBuilds: nativeStaticResourceBuilds(), camera: lastCamera ? structuredClone(lastCamera) : null,
+      frames, camera: lastCamera ? structuredClone(lastCamera) : null,
       resources: objects.map(object => ({ role: object.name, owner: object.userData.owner,
         family: object.userData.family,
         geometry: object.geometry.uuid, attributes: attributes(object.geometry) })),

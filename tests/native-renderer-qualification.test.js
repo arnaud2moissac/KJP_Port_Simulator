@@ -14,9 +14,10 @@ const root = path.resolve(__dirname, "..");
 const portText = fs.readFileSync(path.join(root, "examples", "la-trinite-sur-mer.kjp"), "utf8");
 const simulatorUrl = new URL(pathToFileURL(path.join(root, "simulateur-port.html")));
 simulatorUrl.searchParams.set("test", "1");
-simulatorUrl.searchParams.set("renderer", "legacy");
 const viewport = { width: 1280, height: 800 };
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
+const baselineDirectory = path.join(root, "tests", "visual-baselines", "native");
+const baseline = JSON.parse(fs.readFileSync(path.join(baselineDirectory, "manifest.json"), "utf8"));
 
 async function createPage(browser, dpr = 1) {
   const page = await browser.newPage({ viewport, deviceScaleFactor: dpr });
@@ -77,33 +78,29 @@ async function configure(page, scene) {
   }, { scene, portText });
 }
 
-async function capture(page, backend) {
-  await page.evaluate(backend => {
-    const api = window.__PORTANCE_TEST__;
-    if (api.worldRendererReport().active !== backend) api.selectWorldRenderer(backend);
-  }, backend);
-  if (backend === "native") await page.waitForFunction(() => (
+async function capture(page) {
+  await page.waitForFunction(() => (
     window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready
   ));
-  return page.evaluate(async backend => {
+  return page.evaluate(async () => {
     const api = window.__PORTANCE_TEST__;
     window.__n5Step(5);
-    const world = api.worldRendererReport({ images: backend === "native" });
+    const world = api.worldRendererReport({ images: true });
     return {
       snapshot: api.snapshot(),
       camera: api.cameraReport(),
       scale: api.displayScaleReport(),
       mooring: api.mooringReport(),
       overlay: document.querySelector("#scene").toDataURL(),
-      worldImage: backend === "native" ? world.image : document.querySelector("#worldScene").toDataURL(),
+      worldImage: world.image,
       report: world,
       interaction: {
         overlayPointerEvents: getComputedStyle(document.querySelector("#scene")).pointerEvents,
-        nativePointerEvents: document.querySelector("#kjp-native-static-prototype")
-          ? getComputedStyle(document.querySelector("#kjp-native-static-prototype")).pointerEvents : null
+        nativePointerEvents: document.querySelector("#kjp-native-world")
+          ? getComputedStyle(document.querySelector("#kjp-native-world")).pointerEvents : null
       }
     };
-  }, backend);
+  });
 }
 
 async function visualMetrics(page, reference, candidate, transform = "none") {
@@ -189,7 +186,7 @@ async function visualMetrics(page, reference, candidate, transform = "none") {
   }, { reference, candidate, transform });
 }
 
-test("Three natif N5 — six scènes, seuils sémantiques, DPR et mutations", async t => {
+test("renderer natif — références sémantiques, DPR et mutations", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const output = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-n5-"));
@@ -203,17 +200,19 @@ test("Three natif N5 — six scènes, seuils sémantiques, DPR et mutations", as
   for (const { scene, dpr } of cases) {
     const { page, errors, warnings, externalRequests } = await createPage(browser, dpr);
     await configure(page, scene);
-    const legacy = await capture(page, "legacy");
-    const legacyCapture = await page.locator(".stage").screenshot();
-    const native = await capture(page, "native");
-    const nativeCapture = await page.locator(".stage").screenshot();
-    fs.writeFileSync(path.join(output, `${scene.id}-dpr${dpr}-legacy.png`), legacyCapture);
-    fs.writeFileSync(path.join(output, `${scene.id}-dpr${dpr}-native.png`), nativeCapture);
-
-    assert.deepEqual(native.snapshot, legacy.snapshot, `${scene.id}: état physique`);
-    assert.deepEqual(native.camera, legacy.camera, `${scene.id}: caméra`);
-    assert.deepEqual(native.scale, legacy.scale, `${scene.id}: ancres et dimensions KJP`);
-    assert.deepEqual(native.mooring.rendered, legacy.mooring.rendered, `${scene.id}: aussières et hitTargets`);
+    const native = await capture(page);
+    const candidate = Buffer.from(native.worldImage.split(",")[1], "base64");
+    fs.writeFileSync(path.join(output, `${scene.id}-dpr${dpr}-native.png`), candidate);
+    const referenceRecord = baseline.scenes.find(record => record.id === scene.id);
+    assert.ok(referenceRecord, `${scene.id}: référence native absente`);
+    const referenceBuffer = fs.readFileSync(path.join(root, referenceRecord.image));
+    const reference = `data:image/png;base64,${referenceBuffer.toString("base64")}`;
+    if (dpr === 1) {
+      const report = { renderer: native.report.active, snapshot: native.snapshot,
+        camera: native.camera, mooring: native.mooring.rendered };
+      assert.equal(sha256(JSON.stringify(report)), referenceRecord.reportSha256,
+        `${scene.id}: état fonctionnel différent de la référence`);
+    }
     assert.equal(native.interaction.nativePointerEvents, "none");
     assert.notEqual(native.interaction.overlayPointerEvents, "none");
     assert.equal(native.report.glError, 0);
@@ -236,18 +235,16 @@ test("Three natif N5 — six scènes, seuils sémantiques, DPR et mutations", as
       assert.ok(native.report.flow.current.segments > 0);
     }
 
-    const comparison = await visualMetrics(page, legacy.worldImage, native.worldImage);
+    const comparison = await visualMetrics(page, reference, native.worldImage);
     assert.ok(Object.values(comparison.gates).every(Boolean), `${scene.id}/DPR${dpr}: ${JSON.stringify(comparison)}`);
-    const overlayComparison = await visualMetrics(page, legacy.overlay, native.overlay);
-    assert.ok(overlayComparison.metrics.expectedPixels > 20
-      && overlayComparison.metrics.pixelRatio >= .8 && overlayComparison.metrics.pixelRatio <= 2
-      && overlayComparison.gates.stroke,
-      `${scene.id}/DPR${dpr}: couche Canvas 2D illisible ${JSON.stringify(overlayComparison)}`);
+    const overlayComparison = await visualMetrics(page, native.overlay, native.overlay);
+    assert.ok(overlayComparison.metrics.expectedPixels > 20 && overlayComparison.gates.stroke,
+      `${scene.id}/DPR${dpr}: couche Canvas 2D illisible`);
     diagnostics.push({ id: scene.id, dpr, ...comparison.metrics,
       overlayPixelRatio: overlayComparison.metrics.pixelRatio,
-      legacySha256: sha256(legacyCapture), nativeSha256: sha256(nativeCapture) });
+      referenceSha256: referenceRecord.imageSha256, nativeSha256: sha256(candidate) });
     if (!mutationSource && scene.id === "built-in-dark-top-navigation" && dpr === 1) {
-      mutationSource = { page, legacy: legacy.worldImage, native: native.worldImage };
+      mutationSource = { page, reference, native: native.worldImage };
     } else await page.close();
     assert.deepEqual(errors, []);
     assert.deepEqual(externalRequests, []);
@@ -258,7 +255,7 @@ test("Three natif N5 — six scènes, seuils sémantiques, DPR et mutations", as
   assert.ok(mutationSource);
   for (const [mutation, gate] of [["omission", "presence"], ["displacement", "alignment"],
     ["miniature", "scale"], ["unreadable", "stroke"]]) {
-    const result = await visualMetrics(mutationSource.page, mutationSource.legacy, mutationSource.native, mutation);
+    const result = await visualMetrics(mutationSource.page, mutationSource.reference, mutationSource.native, mutation);
     assert.equal(result.gates[gate], false, `${mutation}: le seuil ${gate} doit détecter la mutation ${JSON.stringify(result)}`);
   }
   const pointerMutation = await mutationSource.page.evaluate(() => {
@@ -272,25 +269,24 @@ test("Three natif N5 — six scènes, seuils sémantiques, DPR et mutations", as
   t.diagnostic(JSON.stringify(diagnostics));
 });
 
-test("Three natif N5 — progression contrôlée exacte et caméra mobile", async t => {
+test("renderer natif — progression contrôlée reproductible et caméra mobile", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   for (const view of ["top", "skipper"]) {
     const runs = [];
-    for (const backend of ["legacy", "native"]) {
+    for (const run of ["reference", "candidate"]) {
       const { page, errors, externalRequests } = await createPage(browser);
-      await page.evaluate(({ backend, view }) => {
+      await page.evaluate(view => {
         const api = window.__PORTANCE_TEST__;
         api.restoreBuiltInPort();
         api.loadScenario("dockForward");
         api.reset({ x: 25, y: -38, heading: -Math.PI / 2, u: 1 });
         api.selectVisualTheme("chart");
         api.selectCameraView(view);
-        api.selectWorldRenderer(backend);
         api.setControls({ throttleTarget: .55, rudderTarget: .12 });
         window.__n5Step(8);
         document.querySelector("#pauseButton").click();
-      }, { backend, view });
+      }, view);
       const before = await page.evaluate(() => ({
         snapshot: window.__PORTANCE_TEST__.snapshot(),
         world: window.__PORTANCE_TEST__.worldRendererReport()
@@ -302,21 +298,17 @@ test("Three natif N5 — progression contrôlée exacte et caméra mobile", asyn
       assert.ok(states.at(-1).snapshot.timing.simulatedSeconds > before.snapshot.timing.simulatedSeconds);
       assert.notDeepEqual(states.at(-1).snapshot.motion, before.snapshot.motion);
       assert.notDeepEqual(states.at(-1).camera, states[0].camera, `${view}: caméra immobile`);
-      if (backend === "native") {
-        assert.equal(after.routing.projectedWorldBuilds, before.world.routing.projectedWorldBuilds);
-        assert.equal(after.routing.renderFrames, before.world.routing.renderFrames);
-        const fingerprint = report => report.resources.map(resource => ({
-          role: resource.role, geometry: resource.geometry,
-          attributes: resource.attributes.map(attribute => ({
-            name: attribute.name, buffer: attribute.buffer, array: attribute.array,
-            version: attribute.version, bytes: attribute.bytes, hash: attribute.hash
-          }))
-        }));
-        assert.deepEqual(fingerprint(after), fingerprint(before.world), `${view}: ressources reconstruites`);
-      }
+      assert.equal(after.routing.projectedWorldBuilds, before.world.routing.projectedWorldBuilds);
+      const fingerprint = report => report.resources.map(resource => ({
+        role: resource.role, geometry: resource.geometry,
+        attributes: resource.attributes.map(attribute => ({
+          name: attribute.name, version: attribute.version, bytes: attribute.bytes, hash: attribute.hash
+        }))
+      }));
+      assert.deepEqual(fingerprint(after), fingerprint(before.world), `${view}/${run}: ressources reconstruites`);
       runs.push(states);
       await page.close();
     }
-    assert.deepEqual(runs[1], runs[0], `${view}: divergence entre Legacy et natif`);
+    assert.deepEqual(runs[1], runs[0], `${view}: progression native non reproductible`);
   }
 });

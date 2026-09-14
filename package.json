@@ -11,12 +11,12 @@
   },
   "scripts": {
     "build:simulator": "node scripts/build-simulateur-port.js",
-    "capture:renderer-baseline": "node scripts/capture-simulator-render-baseline.js",
-    "profile:renderers": "node scripts/profile-simulator-renderers.js",
-    "profile:renderers:active": "node scripts/profile-simulator-active-renderers.js",
-    "profile:renderers:native": "node scripts/profile-simulator-native-renderer.js",
+    "capture:renderer:native-baseline": "node scripts/capture-simulator-native-baseline.js",
+    "profile:renderer:native": "node scripts/profile-simulator-native-renderer.js",
     "qualify:renderer:native": "node scripts/qualify-simulator-native-activation.js",
-    "test:rendering": "node --test tests/render-frame.test.js",
+    "test:rendering": "node --test tests/native-rendering.test.js",
+    "test:renderer:quick": "node --test tests/native-world-renderer.test.js tests/native-player.test.js tests/native-renderer-activation.test.js",
+    "test:renderer:qualification": "node --test --test-concurrency=1 tests/native-rendering.test.js tests/native-world-renderer.test.js tests/native-player.test.js tests/native-renderer-activation.test.js tests/native-renderer-qualification.test.js",
     "build:port-generator": "node scripts/build-port-generator.js",
     "check:build": "node scripts/build-simulateur-port.js --check",
     "check:port-generator": "node scripts/build-port-generator.js --check",
@@ -35,6 +35,6 @@
     "verify:physics": "npm run check:build && npm run test:physics",
     "verify:simulator": "npm run check:build && npm run test:physics && npm run test:e2e",
     "verify:port-generator": "npm run check:port-generator && npm run test:ports && npm run test:port-generator",
-    "verify:release": "npm run check:build && npm run check:port-generator && npm run test:ports && npm run test:physics && npm run test:e2e && npm run test:port-generator"
+    "verify:release": "npm run check:build && npm run check:port-generator && npm run test:ports && npm run test:physics && npm run test:e2e && npm run test:renderer:qualification && npm run test:port-generator"
   }
 }

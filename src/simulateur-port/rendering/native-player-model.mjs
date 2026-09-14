@@ -73,7 +73,7 @@ export function preloadNativePlayerModel() {
     })
     .catch(error => {
       loadError = error;
-      return null;
+      throw error;
     });
   return loadPromise;
 }
@@ -97,11 +97,14 @@ export function createNativePlayerModelResources(configuration) {
   let disposed = false;
   let warmed = false;
   let currentColor = configuration.color;
+  let resourceError = null;
   let fullBounds = null;
   let hullBounds = null;
 
-  const ready = preloadNativePlayerModel().then(template => {
-    if (!template || disposed) return false;
+  const ready = (configuration.failLoad
+    ? Promise.reject(new Error("Modèle joueur natif : échec de chargement injecté"))
+    : preloadNativePlayerModel()).then(template => {
+    if (disposed) return false;
     material = new MeshBasicMaterial({
       color: currentColor,
       vertexColors: true,
@@ -135,6 +138,9 @@ export function createNativePlayerModelResources(configuration) {
       .applyMatrix4(mesh.matrix);
     parent?.add(mesh);
     return true;
+  }).catch(error => {
+    resourceError = error;
+    throw error;
   });
 
   function attach(nextParent) {
@@ -154,7 +160,8 @@ export function createNativePlayerModelResources(configuration) {
     const hull = hullBounds ? boxReport(hullBounds) : null;
     return {
       ready: Boolean(mesh),
-      error: loadError ? String(loadError.message || loadError) : null,
+      error: resourceError || loadError
+        ? String((resourceError || loadError).message || resourceError || loadError) : null,
       loadCount,
       asset: {
         name: ASSET_NAME,
@@ -200,7 +207,8 @@ export function createNativePlayerModelResources(configuration) {
     if (disposed) return;
     disposed = true;
     mesh?.removeFromParent();
-    mesh?.geometry.dispose();
+    // La géométrie appartient au modèle chargé une fois pour toute la page.
+    // Chaque instance possède seulement sa matière et sa transformation.
     material?.dispose();
     parent = null;
   }

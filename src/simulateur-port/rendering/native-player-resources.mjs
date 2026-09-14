@@ -184,6 +184,6 @@ export function createNativePlayerResources(definition, {
     resources.dispose();
   }
 
-  return Object.freeze({ group, update, report, dispose,
+  return Object.freeze({ group, ready: modelResources?.ready || Promise.resolve(true), update, report, dispose,
     afterRender: () => { resources.afterRender?.(); modelResources?.afterRender?.(); } });
 }

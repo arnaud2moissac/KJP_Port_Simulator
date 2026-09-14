@@ -526,8 +526,7 @@
       background: var(--stage-bg);
     }
 
-    #worldScene,
-    #kjp-native-static-prototype,
+    #kjp-native-world,
     #scene {
       position: absolute;
       inset: 0;
@@ -537,8 +536,7 @@
       min-height: 0;
     }
 
-    #worldScene,
-    #kjp-native-static-prototype {
+    #kjp-native-world {
       z-index: 0;
       pointer-events: none;
     }
@@ -1903,7 +1901,6 @@
 
     <div class="workspace" id="workspace">
       <section class="stage" aria-label="Zone de simulation">
-        <canvas id="worldScene" aria-hidden="true"></canvas>
         <canvas
           id="scene"
           tabindex="0"
@@ -3294,27 +3291,24 @@
     let staticWorldGeometryCache = new Map();
     const worldRendererParameters = new URLSearchParams(location.search);
     const DEFAULT_WORLD_RENDERER = "native";
-    const requestedWorldRenderer = ["legacy", "native"].includes(worldRendererParameters.get("renderer"))
+    const requestedWorldRenderer = ["canvas", "native"].includes(worldRendererParameters.get("renderer"))
       ? worldRendererParameters.get("renderer") : null;
     const startupWorldRenderer = requestedWorldRenderer || DEFAULT_WORLD_RENDERER;
-    let nativeStaticPrototype = null;
+    let nativeWorldRenderer = null;
     let nativeInfrastructureEnabled = false;
     let nativePlayerEnabled = false;
     // État de bootstrap sûr, remplacé par activateInitialWorldRenderer() une
     // fois le scénario et l'interface installés.
-    let activeWorldRenderer = "legacy";
-    let nativeStaticBoatsEnabled = true; // Repli N2.2 indépendant, accessible seulement par ?test.
-    let nativeStaticSeamarksEnabled = true; // Repli N2.3 indépendant, accessible seulement par ?test.
+    let activeWorldRenderer = "canvas";
     let nativeInfrastructureTheme = null;
     let nativeChartGridSignature = null;
     let nativeInfrastructureError = null;
     let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
     let visibleHarborFrameCache = null;
     const nativeWorldRouting = {
-      legacyFrames: 0,
+      canvasFrames: 0,
       nativeFrames: 0,
       projectedWorldBuilds: 0,
-      renderFrames: 0,
       nativeGridBuilds: 0,
       lastFrame: null
     };
@@ -3347,8 +3341,8 @@
 
     function installRuntimeTopology(topology) {
       if (!nativeInfrastructureEnabled) {
-        nativeStaticPrototype?.dispose();
-        nativeStaticPrototype = null;
+        nativeWorldRenderer?.dispose();
+        nativeWorldRenderer = null;
         nativePlayerEnabled = false;
       }
       PORT_TOPOLOGY = topology;
@@ -3407,24 +3401,23 @@
             failNextNativeInfrastructureBuild = false;
             throw new Error("Native infrastructure: échec de construction injecté");
           }
-          nativeStaticPrototype.replaceResources(nativeInfrastructureDefinition({
-            includeStaticBoats: nativeStaticBoatsEnabled,
-            includeSeamarks: nativeStaticSeamarksEnabled,
+          nativeWorldRenderer.replaceResources(nativeInfrastructureDefinition({
+            includeStaticBoats: true,
+            includeSeamarks: true,
             includeShoreCleats: activeWorldRenderer === "native"
           }));
           nativeInfrastructureTheme = ui.visualTheme;
           nativeChartGridSignature = null;
         } catch (error) {
-          // Une panne du banc ne doit jamais interrompre l'installation du
+          // Une panne du renderer ne doit jamais interrompre l'installation du
           // port ni empêcher la simulation d'utiliser sa nouvelle topologie.
           nativeInfrastructureError = String(error.message || error);
-          nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
+          console.warn("Reconstruction Three native interrompue, utilisation du secours Canvas 2D", error);
+          nativeWorldRenderer?.dispose(); nativeWorldRenderer = null;
           nativeInfrastructureEnabled = false;
           nativePlayerEnabled = false;
-          activeWorldRenderer = "legacy";
-          if (typeof worldCanvas !== "undefined") {
-            worldCanvas.style.display = depthRenderer ? "block" : "none";
-          }
+          activeWorldRenderer = "canvas";
+          document.body.dataset.worldRenderer = "canvas";
         }
       }
     }
@@ -3629,595 +3622,16 @@
     });
 
     const canvas = $("#scene");
-    const worldCanvas = $("#worldScene");
     const ctx = canvas.getContext("2d", { alpha: true });
     const waterRenderState = {
       themeId: "",
       background: "",
       owner: "stage"
     };
-    const gl = worldCanvas.getContext("webgl2", {
-      alpha: true,
-      antialias: true,
-      premultipliedAlpha: true,
-      preserveDrawingBuffer: false
-    });
     if (!ctx) {
       $("#unsupported").style.display = "grid";
       return;
     }
-
-    function createDepthRenderer(context) {
-      if (!context) return null;
-      const vertexSource = `#version 300 es
-        in vec3 a_position;
-        in vec4 a_color;
-        out vec4 v_color;
-        void main() {
-          gl_Position = vec4(a_position, 1.0);
-          v_color = a_color;
-        }
-      `;
-      const fragmentSource = `#version 300 es
-        precision mediump float;
-        in vec4 v_color;
-        out vec4 outColor;
-        void main() {
-          outColor = vec4(v_color.rgb * v_color.a, v_color.a);
-        }
-      `;
-      const compile = (type, source) => {
-        const shader = context.createShader(type);
-        context.shaderSource(shader, source);
-        context.compileShader(shader);
-        if (!context.getShaderParameter(shader, context.COMPILE_STATUS)) {
-          throw new Error(context.getShaderInfoLog(shader) || "Shader WebGL invalide");
-        }
-        return shader;
-      };
-      const program = context.createProgram();
-      context.attachShader(program, compile(context.VERTEX_SHADER, vertexSource));
-      context.attachShader(program, compile(context.FRAGMENT_SHADER, fragmentSource));
-      context.linkProgram(program);
-      if (!context.getProgramParameter(program, context.LINK_STATUS)) {
-        throw new Error(context.getProgramInfoLog(program) || "Programme WebGL invalide");
-      }
-      const positionLocation = context.getAttribLocation(program, "a_position");
-      const colorLocation = context.getAttribLocation(program, "a_color");
-      const streamRingSize = 3;
-      const streamsPerFrame = 4;
-      const streamBuffers = Array.from(
-        { length: streamRingSize * streamsPerFrame },
-        () => ({
-          buffer: context.createBuffer(),
-          capacity: 0,
-          staging: new Float32Array(0)
-        })
-      );
-      let streamFrame = 0;
-      const parserCanvas = document.createElement("canvas");
-      const parser = parserCanvas.getContext("2d");
-      const colorCache = new Map();
-      const parseColor = color => {
-        if (colorCache.has(color)) return colorCache.get(color);
-        parser.fillStyle = "#000000";
-        parser.fillStyle = color || "#000000";
-        const normalized = parser.fillStyle;
-        let result = [0, 0, 0, 1];
-        if (normalized.startsWith("#")) {
-          const hex = normalized.slice(1);
-          const expanded = hex.length === 3
-            ? hex.split("").map(character => character + character).join("")
-            : hex;
-          result = [
-            parseInt(expanded.slice(0, 2), 16) / 255,
-            parseInt(expanded.slice(2, 4), 16) / 255,
-            parseInt(expanded.slice(4, 6), 16) / 255,
-            expanded.length >= 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1
-          ];
-        } else {
-          const values = normalized.match(/[\d.]+/g)?.map(Number) || [];
-          if (values.length >= 3) {
-            result = [values[0] / 255, values[1] / 255, values[2] / 255, values[3] ?? 1];
-          }
-        }
-        colorCache.set(color, result);
-        return result;
-      };
-      const signedArea = points => points.reduce((sum, point, index) => {
-        const next = points[(index + 1) % points.length];
-        return sum + point.x * next.y - next.x * point.y;
-      }, 0) / 2;
-      const cleanPolygon = rawPoints => {
-        const epsilon = 1e-4;
-        const points = [];
-        for (const point of rawPoints) {
-          if (![point.x, point.y, point.depth].every(Number.isFinite)) continue;
-          const previous = points[points.length - 1];
-          if (previous && Math.hypot(point.x - previous.x, point.y - previous.y) <= epsilon) continue;
-          points.push(point);
-        }
-        if (
-          points.length > 2
-          && Math.hypot(
-            points[0].x - points[points.length - 1].x,
-            points[0].y - points[points.length - 1].y
-          ) <= epsilon
-        ) points.pop();
-
-        let removed = true;
-        while (removed && points.length > 3) {
-          removed = false;
-          for (let index = 0; index < points.length; index += 1) {
-            const previous = points[(index - 1 + points.length) % points.length];
-            const current = points[index];
-            const next = points[(index + 1) % points.length];
-            const firstLength = Math.hypot(current.x - previous.x, current.y - previous.y);
-            const secondLength = Math.hypot(next.x - current.x, next.y - current.y);
-            const cross = Math.abs(
-              (current.x - previous.x) * (next.y - current.y)
-              - (current.y - previous.y) * (next.x - current.x)
-            );
-            if (cross > epsilon * Math.max(1, firstLength + secondLength)) continue;
-            points.splice(index, 1);
-            removed = true;
-            break;
-          }
-        }
-        return points;
-      };
-      const triangulate = rawPoints => {
-        const points = cleanPolygon(rawPoints);
-        if (points.length < 3) return { points, triangles: [], complete: false };
-        if (points.length === 3) {
-          const area = signedArea(points);
-          return {
-            points,
-            triangles: Math.abs(area) > 1e-6 ? [[0, 1, 2]] : [],
-            complete: Math.abs(area) > 1e-6
-          };
-        }
-        const area = signedArea(points);
-        if (Math.abs(area) <= 1e-6) return { points, triangles: [], complete: false };
-        if (points.length === 4) {
-          const orientation = Math.sign(area);
-          const convex = points.every((point, index) => {
-            const next = points[(index + 1) % points.length];
-            const after = points[(index + 2) % points.length];
-            return (
-              (next.x - point.x) * (after.y - next.y)
-              - (next.y - point.y) * (after.x - next.x)
-            ) * orientation > 1e-7;
-          });
-          if (convex) {
-            return {
-              points,
-              triangles: [[0, 1, 2], [0, 2, 3]],
-              complete: true
-            };
-          }
-        }
-        const remaining = points.map((_, index) => index);
-        const triangles = [];
-        const orientation = Math.sign(area);
-        const inside = (point, a, b, c) => {
-          const cross = (first, second, target) => (
-            (second.x - first.x) * (target.y - first.y)
-            - (second.y - first.y) * (target.x - first.x)
-          );
-          const ab = cross(a, b, point) * orientation;
-          const bc = cross(b, c, point) * orientation;
-          const ca = cross(c, a, point) * orientation;
-          return ab > 1e-6 && bc > 1e-6 && ca > 1e-6;
-        };
-        let guard = points.length * points.length;
-        while (remaining.length > 3 && guard-- > 0) {
-          let clipped = false;
-          for (let cursor = 0; cursor < remaining.length; cursor += 1) {
-            const previous = remaining[(cursor - 1 + remaining.length) % remaining.length];
-            const current = remaining[cursor];
-            const next = remaining[(cursor + 1) % remaining.length];
-            const a = points[previous];
-            const b = points[current];
-            const c = points[next];
-            const convex = (
-              ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x))
-              * orientation
-            ) > 1e-7;
-            if (!convex) continue;
-            if (remaining.some(index => (
-              index !== previous && index !== current && index !== next
-              && inside(points[index], a, b, c)
-            ))) continue;
-            triangles.push([previous, current, next]);
-            remaining.splice(cursor, 1);
-            clipped = true;
-            break;
-          }
-          if (!clipped) break;
-        }
-        if (remaining.length === 3) triangles.push([...remaining]);
-        return {
-          points,
-          triangles: remaining.length === 3 ? triangles : [],
-          complete: remaining.length === 3
-        };
-      };
-      const near = PROJECTION_NEAR_CLIP;
-      const far = PROJECTION_FAR_CLIP;
-      const polygonLayerDepthStep = 1e-3;
-      const logarithmicDepthRange = Math.log(far / near);
-      const depthNdc = (depth, offset = 0) => {
-        const safe = clamp(depth, near, far);
-        const value = Math.log(safe / near) / logarithmicDepthRange * 2 - 1;
-        return clamp(value + offset, -1, 1);
-      };
-      const appendVertexCoordinates = (target, x, y, depth, color, offset = 0) => {
-        if (![x, y, depth, ...color].every(Number.isFinite)) return false;
-        target.push(
-          x / Math.max(1, canvasWidth) * 2 - 1,
-          1 - y / Math.max(1, canvasHeight) * 2,
-          depthNdc(depth, offset),
-          color[0],
-          color[1],
-          color[2],
-          color[3]
-        );
-        return true;
-      };
-      const appendVertex = (target, point, color, offset = 0) => {
-        appendVertexCoordinates(target, point.x, point.y, point.depth, color, offset);
-      };
-      const appendTriangle = (target, first, second, third, color, offset = 0) => {
-        appendVertex(target, first, color, offset);
-        appendVertex(target, second, color, offset);
-        appendVertex(target, third, color, offset);
-      };
-      const appendLineCoordinates = (
-        target,
-        firstX,
-        firstY,
-        firstDepth,
-        secondX,
-        secondY,
-        secondDepth,
-        width,
-        color,
-        offset = -2e-6
-      ) => {
-        if (![
-          firstX,
-          firstY,
-          firstDepth,
-          secondX,
-          secondY,
-          secondDepth,
-          width,
-          ...color
-        ].every(Number.isFinite)) return false;
-        const dx = secondX - firstX;
-        const dy = secondY - firstY;
-        const length = Math.hypot(dx, dy);
-        if (length < 0.01) return false;
-        const nx = -dy / length * width / 2;
-        const ny = dx / length * width / 2;
-        const ax = firstX + nx;
-        const ay = firstY + ny;
-        const bx = secondX + nx;
-        const by = secondY + ny;
-        const cx = secondX - nx;
-        const cy = secondY - ny;
-        const dx2 = firstX - nx;
-        const dy2 = firstY - ny;
-        appendVertexCoordinates(target, ax, ay, firstDepth, color, offset);
-        appendVertexCoordinates(target, bx, by, secondDepth, color, offset);
-        appendVertexCoordinates(target, cx, cy, secondDepth, color, offset);
-        appendVertexCoordinates(target, ax, ay, firstDepth, color, offset);
-        appendVertexCoordinates(target, cx, cy, secondDepth, color, offset);
-        appendVertexCoordinates(target, dx2, dy2, firstDepth, color, offset);
-        return true;
-      };
-      const appendLineSegment = (target, first, second, width, color, offset = -2e-6) => {
-        appendLineCoordinates(
-          target,
-          first.x,
-          first.y,
-          first.depth,
-          second.x,
-          second.y,
-          second.depth,
-          width,
-          color,
-          offset
-        );
-      };
-      const MAX_DASH_SEGMENTS_PER_LINE = 4096;
-      const clipProjectedSegmentToViewport = (first, second, margin = 64) => {
-        if (![first?.x, first?.y, first?.depth, second?.x, second?.y, second?.depth]
-          .every(Number.isFinite)) return null;
-        const minimumX = -margin;
-        const maximumX = canvasWidth + margin;
-        const minimumY = -margin;
-        const maximumY = canvasHeight + margin;
-        const dx = second.x - first.x;
-        const dy = second.y - first.y;
-        if (![dx, dy].every(Number.isFinite)) return null;
-        let entry = 0;
-        let exit = 1;
-        const clip = (slope, distance) => {
-          if (Math.abs(slope) < 1e-12) return distance >= 0;
-          const ratio = distance / slope;
-          if (slope < 0) {
-            if (ratio > exit) return false;
-            entry = Math.max(entry, ratio);
-          } else {
-            if (ratio < entry) return false;
-            exit = Math.min(exit, ratio);
-          }
-          return true;
-        };
-        if (
-          !clip(-dx, first.x - minimumX)
-          || !clip(dx, maximumX - first.x)
-          || !clip(-dy, first.y - minimumY)
-          || !clip(dy, maximumY - first.y)
-          || entry > exit
-        ) return null;
-        const interpolate = ratio => ({
-          x: first.x + dx * ratio,
-          y: first.y + dy * ratio,
-          depth: first.depth + (second.depth - first.depth) * ratio
-        });
-        return [interpolate(entry), interpolate(exit)];
-      };
-      const appendDashedLine = (target, item, color) => {
-        const patternValues = item.dash?.length
-          ? item.dash
-            .map(Number)
-            .filter(value => Number.isFinite(value) && value > 0)
-            .map(value => Math.max(0.5, value))
-          : [];
-        const pattern = patternValues.length ? patternValues : null;
-        let patternIndex = 0;
-        let patternRemaining = pattern?.[0] || Infinity;
-        let drawing = true;
-        let emittedSegments = 0;
-        for (let index = 1; index < item.points.length; index += 1) {
-          const clipped = clipProjectedSegmentToViewport(
-            item.points[index - 1],
-            item.points[index],
-            Math.max(64, Number(item.width) * 4 || 0)
-          );
-          if (!clipped) {
-            frameStats.rejectedLineSegments += 1;
-            continue;
-          }
-          const [start, end] = clipped;
-          const length = Math.hypot(end.x - start.x, end.y - start.y);
-          if (length < 0.01) continue;
-          frameStats.acceptedLineSegments += 1;
-          let cursor = 0;
-          while (cursor < length - 1e-6) {
-            const advance = Math.min(length - cursor, patternRemaining);
-            if (!Number.isFinite(advance) || advance <= 1e-6) break;
-            if (drawing) {
-              const ratioA = cursor / length;
-              const ratioB = (cursor + advance) / length;
-              appendLineCoordinates(
-                target,
-                start.x + (end.x - start.x) * ratioA,
-                start.y + (end.y - start.y) * ratioA,
-                start.depth + (end.depth - start.depth) * ratioA,
-                start.x + (end.x - start.x) * ratioB,
-                start.y + (end.y - start.y) * ratioB,
-                start.depth + (end.depth - start.depth) * ratioB,
-                item.width,
-                color
-              );
-              emittedSegments += 1;
-              if (emittedSegments >= MAX_DASH_SEGMENTS_PER_LINE) {
-                frameStats.dashLimitHits += 1;
-                return;
-              }
-            }
-            cursor += advance;
-            patternRemaining -= advance;
-            if (pattern && patternRemaining <= 1e-6) {
-              patternIndex = (patternIndex + 1) % pattern.length;
-              patternRemaining = pattern[patternIndex];
-              drawing = patternIndex % 2 === 0;
-            }
-          }
-        }
-      };
-      const nextPowerOfTwo = value => {
-        let capacity = 256;
-        while (capacity < value) capacity *= 2;
-        return capacity;
-      };
-      const drawVertices = (vertices, streamIndex) => {
-        if (!vertices.length) return;
-        const stream = streamBuffers[streamFrame * streamsPerFrame + streamIndex];
-        if (stream.capacity < vertices.length) {
-          stream.capacity = nextPowerOfTwo(vertices.length);
-          stream.staging = new Float32Array(stream.capacity);
-          context.bindBuffer(context.ARRAY_BUFFER, stream.buffer);
-          context.bufferData(
-            context.ARRAY_BUFFER,
-            stream.capacity * Float32Array.BYTES_PER_ELEMENT,
-            context.DYNAMIC_DRAW
-          );
-          frameStats.bufferReallocations += 1;
-        } else {
-          context.bindBuffer(context.ARRAY_BUFFER, stream.buffer);
-        }
-        for (let index = 0; index < vertices.length; index += 1) {
-          stream.staging[index] = vertices[index];
-        }
-        context.bufferSubData(
-          context.ARRAY_BUFFER,
-          0,
-          stream.staging,
-          0,
-          vertices.length
-        );
-        context.enableVertexAttribArray(positionLocation);
-        context.vertexAttribPointer(positionLocation, 3, context.FLOAT, false, 28, 0);
-        context.enableVertexAttribArray(colorLocation);
-        context.vertexAttribPointer(colorLocation, 4, context.FLOAT, false, 28, 12);
-        context.drawArrays(context.TRIANGLES, 0, vertices.length / 7);
-        frameStats.drawCalls += 1;
-        frameStats.bufferUploads += 1;
-        frameStats.uploadedBytes += vertices.length * Float32Array.BYTES_PER_ELEMENT;
-      };
-      const opaque = [];
-      const translucentRecords = [];
-      const translucent = [];
-      const strokes = [];
-      const worldLines = [];
-      const frameStats = {
-        polygons: 0,
-        triangles: 0,
-        triangulationFailures: 0,
-        drawCalls: 0,
-        bufferUploads: 0,
-        bufferReallocations: 0,
-        uploadedBytes: 0,
-        acceptedLineSegments: 0,
-        rejectedLineSegments: 0,
-        dashLimitHits: 0
-      };
-      return {
-        render(polygons, lines) {
-          streamFrame = (streamFrame + 1) % streamRingSize;
-          context.viewport(0, 0, worldCanvas.width, worldCanvas.height);
-          context.clearColor(0, 0, 0, 0);
-          context.clearDepth(1);
-          context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT);
-          context.useProgram(program);
-          context.enable(context.DEPTH_TEST);
-          context.depthFunc(context.LEQUAL);
-          context.enable(context.BLEND);
-          context.blendFuncSeparate(
-            context.ONE,
-            context.ONE_MINUS_SRC_ALPHA,
-            context.ONE,
-            context.ONE_MINUS_SRC_ALPHA
-          );
-
-          opaque.length = 0;
-          translucentRecords.length = 0;
-          translucent.length = 0;
-          strokes.length = 0;
-          worldLines.length = 0;
-          frameStats.polygons = polygons.length;
-          frameStats.triangles = 0;
-          frameStats.triangulationFailures = 0;
-          frameStats.drawCalls = 0;
-          frameStats.bufferUploads = 0;
-          frameStats.bufferReallocations = 0;
-          frameStats.uploadedBytes = 0;
-          frameStats.acceptedLineSegments = 0;
-          frameStats.rejectedLineSegments = 0;
-          frameStats.dashLimitHits = 0;
-          for (const polygon of polygons) {
-            const fill = parseColor(polygon.fill);
-            const triangulation = triangulate(polygon.points);
-            const target = fill[3] >= 0.995 ? opaque : [];
-            const polygonDepthOffset = (
-              -clamp(Number(polygon.layer) || 0, -.25, .25)
-              * polygonLayerDepthStep
-            );
-            if (!triangulation.complete) frameStats.triangulationFailures += 1;
-            frameStats.triangles += triangulation.triangles.length;
-            for (const [a, b, c] of triangulation.triangles) {
-              appendTriangle(
-                target,
-                triangulation.points[a],
-                triangulation.points[b],
-                triangulation.points[c],
-                fill,
-                polygonDepthOffset
-              );
-            }
-            if (fill[3] < 0.995) {
-              translucentRecords.push({ depth: polygon.depth, vertices: target });
-            }
-            if (polygon.stroke && polygon.lineWidth > 0) {
-              const stroke = parseColor(polygon.stroke);
-              for (let index = 0; index < polygon.points.length; index += 1) {
-                appendLineSegment(
-                  strokes,
-                  polygon.points[index],
-                  polygon.points[(index + 1) % polygon.points.length],
-                  polygon.lineWidth,
-                  stroke
-                );
-              }
-            }
-          }
-          context.depthMask(true);
-          drawVertices(opaque, 0);
-          context.depthMask(false);
-          translucentRecords
-            .sort((a, b) => b.depth - a.depth)
-            .forEach(record => {
-              for (const value of record.vertices) translucent.push(value);
-            });
-          drawVertices(translucent, 1);
-          context.depthMask(true);
-          for (const item of lines) appendDashedLine(worldLines, item, parseColor(item.color));
-          drawVertices(strokes, 2);
-          drawVertices(worldLines, 3);
-        },
-        guardReport: () => {
-          const vertices = [];
-          const previousStats = {
-            acceptedLineSegments: frameStats.acceptedLineSegments,
-            rejectedLineSegments: frameStats.rejectedLineSegments,
-            dashLimitHits: frameStats.dashLimitHits
-          };
-          frameStats.acceptedLineSegments = 0;
-          frameStats.rejectedLineSegments = 0;
-          frameStats.dashLimitHits = 0;
-          appendDashedLine(vertices, {
-            points: [
-              { x: -1e12, y: canvasHeight / 2, depth: 1 },
-              { x: 1e12, y: canvasHeight / 2, depth: 1 }
-            ],
-            width: 2,
-            dash: [3, 3]
-          }, [1, 1, 1, 1]);
-          const report = {
-            finite: vertices.every(Number.isFinite),
-            floats: vertices.length,
-            triangles: vertices.length / 21,
-            acceptedLineSegments: frameStats.acceptedLineSegments,
-            rejectedLineSegments: frameStats.rejectedLineSegments,
-            dashLimitHits: frameStats.dashLimitHits,
-            maximumDashSegments: MAX_DASH_SEGMENTS_PER_LINE
-          };
-          Object.assign(frameStats, previousStats);
-          return report;
-        },
-        report: () => ({
-          ...frameStats,
-          depthEncoding: "logarithmic",
-          polygonLayerDepthStep,
-          nearClipMeters: near,
-          farClipMeters: far
-        }),
-        available: true
-      };
-    }
-
-    let depthRenderer = null;
-    try {
-      depthRenderer = createDepthRenderer(gl);
-    } catch (error) {
-      console.warn("Rendu WebGL2 indisponible, repli Canvas 2D", error);
-    }
-    if (!depthRenderer) worldCanvas.style.display = "none";
 
     let canvasWidth = 0;
     let canvasHeight = 0;
@@ -4259,10 +3673,6 @@
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width;
         canvas.height = height;
-      }
-      if (worldCanvas.width !== width || worldCanvas.height !== height) {
-        worldCanvas.width = width;
-        worldCanvas.height = height;
       }
       canvasWidth = canvasCssWidth;
       canvasHeight = canvasCssHeight;
@@ -5124,11 +4534,6 @@
     const polygons = [];
     const overlayLines = [];
     let worldGeometryCapture = null;
-    let captureSurfaces = false;
-    let surfaceCapture = null;
-    let capturingPlayerBoat = false;
-    let activeFrameProfile = null; // Accessible uniquement via l'API ?test.
-    let activeFrameProfileNotice = null;
 
     function addCachedWorldGeometry(key, builder) {
       let geometry = staticWorldGeometryCache.get(key);
@@ -5146,28 +4551,6 @@
       } else {
         renderPerformance.staticCacheHits += 1;
       }
-      const owner = surfaceCapture ? key.split(":", 1)[0] : null;
-      const capture = surfaceCapture && (captureSurfaces === "world" ? true : ["seamarks", "static-seamarks"].includes(captureSurfaces)
-        ? /^(terrain|land|dock|catway|obstacle|boat|buoy|lights)$/.test(owner)
-        : captureSurfaces === "boats" || captureSurfaces === "static-boats"
-          ? /^(terrain|land|dock|catway|obstacle|boat)$/.test(owner)
-          : captureSurfaces === "infrastructure"
-            ? /^(terrain|land|dock|catway|obstacle)$/.test(owner)
-            : /^(terrain|land)$/.test(owner));
-      const firstPolygon = polygons.length;
-      const firstLine = overlayLines.length;
-      if (capture) {
-        surfaceCapture.owners[owner] = (surfaceCapture.owners[owner] || 0) + 1;
-      }
-      // En mode monde complet, observer le replay normal ci-dessous : ne pas
-      // collecter aussi le cache, ce qui doublerait chaque primitive statique.
-      if (capture && captureSurfaces !== "world") {
-        surfaceCapture.world.push(...geometry.polygons.map(polygon => ({
-          ...polygon,
-          stroke: polygon.stroke === false ? null : polygon.stroke ?? visualPalette().harbor.outline
-        })));
-        surfaceCapture.worldLines.push(...geometry.lines);
-      }
       for (const polygon of geometry.polygons) {
         addPolygon(
           polygon.points,
@@ -5180,10 +4563,6 @@
       for (const line of geometry.lines) {
         addWorldLine(line.points, line.color, line.width, line.dash, line.layer);
       }
-      if (capture && captureSurfaces !== "world") {
-        surfaceCapture.projected.push(...polygons.slice(firstPolygon));
-        surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
-      }
     }
 
     function addPolygon(points, fill, stroke = null, lineWidth = .7, layer = 0) {
@@ -5191,11 +4570,6 @@
         worldGeometryCapture.polygons.push({ points, fill, stroke, lineWidth, layer });
         return;
       }
-      if (capturingPlayerBoat || surfaceCapture && captureSurfaces === "world") surfaceCapture.world.push({
-        points, fill,
-        stroke: stroke === false ? null : stroke ?? visualPalette().harbor.outline,
-        lineWidth, layer
-      });
       const clipped = clipPolygonToNearPlane(points);
       if (clipped.length < 3) return;
       const projected = clipped.map(project);
@@ -5215,9 +4589,6 @@
       if (worldGeometryCapture) {
         worldGeometryCapture.lines.push({ points, color, width, dash, layer });
         return points.length - 1;
-      }
-      if ((capturingPlayerBoat || surfaceCapture && captureSurfaces === "world") && layer < 10) {
-        surfaceCapture.worldLines.push({ points, color, width, dash, layer });
       }
       const basis = frameBasis || cameraBasis();
       if (points.every(point => cameraDepth(point, basis) >= PROJECTION_NEAR_CLIP)) {
@@ -6640,7 +6011,7 @@
     function drawWater(time) {
       const palette = visualPalette();
       const water = palette.water;
-      if (depthRenderer || activeWorldRenderer === "native") {
+      if (activeWorldRenderer === "native") {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         const background = water.mode === "flat-chart"
           ? (camera.anatomy ? water.anatomyTop : water.top)
@@ -6651,10 +6022,8 @@
         if (
           waterRenderState.themeId !== palette.id
           || waterRenderState.background !== background
-          || worldCanvas.style.background !== "transparent"
         ) {
-          worldCanvas.style.background = "transparent";
-          worldCanvas.parentElement.style.background = background;
+          canvas.parentElement.style.background = background;
           waterRenderState.themeId = palette.id;
           waterRenderState.background = background;
         }
@@ -7088,6 +6457,8 @@
             position: [0, 0, BOAT_PROFILE.visual.waterlineZ],
             rotation: [Math.PI / 2, Math.PI / 2, 0],
             scale: 1,
+            failLoad: worldRendererParameters.has("test")
+              && worldRendererParameters.has("failNativePlayerModel"),
             collision: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
           },
           propeller: {
@@ -7180,10 +6551,10 @@
       const next = nativeChartGridDefinition();
       if (next.signature === nativeChartGridSignature) return false;
       if (next.definition) {
-        nativeStaticPrototype.replaceLayer("chart-grid", next.definition);
+        nativeWorldRenderer.replaceLayer("chart-grid", next.definition);
         nativeWorldRouting.nativeGridBuilds++;
       } else {
-        nativeStaticPrototype.removeLayer("chart-grid");
+        nativeWorldRenderer.removeLayer("chart-grid");
       }
       nativeChartGridSignature = next.signature;
       return true;
@@ -7201,7 +6572,7 @@
           }
         }
       }
-      nativeStaticPrototype.updateFamily("shore-cleat", {
+      nativeWorldRenderer.updateFamily("shore-cleat", {
         visibleOwners,
         color: moorings.selected ? semantic.cleatDisabled : semantic.cleat,
         linewidth: moorings.selected ? 1.5 : 2.4
@@ -7210,16 +6581,16 @@
     }
 
     function selectNativeWorldRenderer() {
-      if (activeFrameProfile || captureSurfaces) {
-        throw new Error("Renderer natif visible indisponible pendant un diagnostic projeté");
-      }
       let next;
       try {
+        const probe = document.createElement("canvas");
+        const probeContext = probe.getContext("webgl2");
+        if (!probeContext) throw new Error("Renderer Three natif : WebGL2 indisponible");
         if (failNextNativeInfrastructureBuild) {
           failNextNativeInfrastructureBuild = false;
           throw new Error("Native infrastructure: échec de construction injecté");
         }
-        next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
+        next = KJPThreeNative.createNativeWorldRenderer(nativeInfrastructureDefinition({
           includeStaticBoats: true,
           includeSeamarks: true,
           includeShoreCleats: true
@@ -7233,36 +6604,32 @@
         nativeInfrastructureError = String(error.message || error);
         throw error;
       }
-      nativeStaticPrototype?.dispose();
-      nativeStaticPrototype = next;
+      nativeWorldRenderer?.dispose();
+      nativeWorldRenderer = next;
       nativeInfrastructureEnabled = true;
       nativePlayerEnabled = true;
-      nativeStaticBoatsEnabled = true;
-      nativeStaticSeamarksEnabled = true;
       nativeInfrastructureTheme = ui.visualTheme;
       nativeChartGridSignature = null;
       nativeInfrastructureError = null;
       activeWorldRenderer = "native";
       document.body.dataset.worldRenderer = "native";
-      worldCanvas.style.display = "none";
     }
 
-    function selectLegacyWorldRenderer() {
+    function selectCanvasWorldRenderer() {
       if (activeWorldRenderer === "native") {
-        nativeStaticPrototype?.dispose();
-        nativeStaticPrototype = null;
+        nativeWorldRenderer?.dispose();
+        nativeWorldRenderer = null;
         nativeInfrastructureEnabled = false;
         nativePlayerEnabled = false;
       }
-      activeWorldRenderer = "legacy";
-      document.body.dataset.worldRenderer = "legacy";
+      activeWorldRenderer = "canvas";
+      document.body.dataset.worldRenderer = "canvas";
       nativeChartGridSignature = null;
-      worldCanvas.style.display = depthRenderer ? "block" : "none";
     }
 
     function activateInitialWorldRenderer() {
-      if (startupWorldRenderer === "legacy") {
-        selectLegacyWorldRenderer();
+      if (startupWorldRenderer === "canvas") {
+        selectCanvasWorldRenderer();
         return;
       }
       try {
@@ -7271,8 +6638,8 @@
         }
         selectNativeWorldRenderer();
       } catch (error) {
-        console.warn("Rendu Three natif indisponible au démarrage, utilisation de Legacy", error);
-        selectLegacyWorldRenderer();
+        console.warn("Rendu Three natif indisponible au démarrage, utilisation du secours Canvas 2D", error);
+        selectCanvasWorldRenderer();
       }
     }
 
@@ -8048,7 +7415,6 @@
 
     function render(time) {
       const renderCpuStart = performance.now();
-      const ownerMarks = activeFrameProfile?.owners ? {} : null;
       renderPerformance.visibilityComputations = 0;
       const elapsed = Math.min(.1, Math.max(0, (time - ui.lastFrame) / 1000));
       ui.lastFrame = time;
@@ -8064,23 +7430,13 @@
         }
       }
       ui.wallTime += elapsed;
-      if (ownerMarks) ownerMarks.physicsEnd = performance.now();
       frameMotion = prepareInterpolatedFrameMotion(ui.accumulator / FIXED_DT);
       resizeCanvas();
       frameBasis = cameraBasis();
       visibleHarborFrameCache = computeVisibleHarborIds();
       const nativeWorldActive = activeWorldRenderer === "native"
-        && nativeInfrastructureEnabled && nativePlayerEnabled && nativeStaticPrototype;
+        && nativeInfrastructureEnabled && nativePlayerEnabled && nativeWorldRenderer;
       drawWater(time);
-      surfaceCapture = captureSurfaces && !nativeWorldActive ? {
-        camera: KJPThreeCamera.createCameraSnapshot({
-          basis: frameBasis, width: canvasWidth, height: canvasHeight,
-          focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
-          near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP
-        }),
-        waterBackground: waterRenderState.background,
-        world: [], projected: [], worldLines: [], projectedLines: [], owners: {}
-      } : null;
       polygons.length = 0;
       overlayLines.length = 0;
       if (!nativeWorldActive) {
@@ -8098,58 +7454,23 @@
             addBoatMesh(boat, false);
           });
         }
-        if (surfaceCapture && ["boats", "seamarks", "world"].includes(captureSurfaces)) {
-          const firstPolygon = polygons.length;
-          const firstLine = overlayLines.length;
-          capturingPlayerBoat = true;
-          try {
-            addBoatMesh(frameMotion, true);
-          } finally {
-            capturingPlayerBoat = false;
-          }
-          if (captureSurfaces !== "world") {
-            surfaceCapture.projected.push(...polygons.slice(firstPolygon));
-            surfaceCapture.projectedLines.push(...overlayLines.slice(firstLine));
-          }
-          surfaceCapture.owners.player = 1;
-          surfaceCapture.player = {
-            x: frameMotion.x, y: frameMotion.y, heading: frameMotion.heading,
-            timeScale: ui.timeScale, simTime: ui.simTime,
-            interpolationRatio: controls.paused ? 1 : clamp(ui.accumulator / FIXED_DT, 0, 1),
-            previousPose: { ...previousPhysicsPose },
-            authoritativePose: { x: motion.x, y: motion.y, heading: motion.heading },
-            contactFenders: contacts.current.length,
-            polygons: polygons.length - firstPolygon, lines: overlayLines.length - firstLine
-          };
-        } else {
-          addBoatMesh(frameMotion, true);
-        }
+        addBoatMesh(frameMotion, true);
         addRudderAxis();
-        if (surfaceCapture && captureSurfaces === "world") {
-          surfaceCapture.projected = [...polygons];
-          surfaceCapture.projectedLines = overlayLines.filter(item => item.layer < 10);
-          surfaceCapture.routing = {
-            worldPolygons: polygons.length,
-            worldLines: surfaceCapture.projectedLines.length,
-            canvas2DLineLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
-          };
-        }
       } else {
         // Projections conservées uniquement pour l'objectif pédagogique et
         // l'axe de barre. Le picking et les aussières sont dessinés plus bas.
         addGoalGeometry();
         addRudderAxis();
       }
-      if (ownerMarks) ownerMarks.prepareEnd = performance.now();
       if (nativeWorldActive) {
         try {
           if (nativeInfrastructureTheme !== ui.visualTheme) {
-            nativeStaticPrototype.updatePalette(nativeInfrastructurePalette());
+            nativeWorldRenderer.updatePalette(nativeInfrastructurePalette());
             nativeInfrastructureTheme = ui.visualTheme;
           }
           const gridRebuilt = syncNativeChartGrid();
           const distantShoreCleats = syncNativeDistantShoreCleats();
-          nativeStaticPrototype.render(
+          nativeWorldRenderer.render(
             nativeCameraSnapshot(),
             pixelRatio,
             nativePlayerPresentation(),
@@ -8175,42 +7496,11 @@
             renderFrame: false,
             error: nativeInfrastructureError
           };
-          console.warn("Rendu Three natif interrompu, retour à Legacy", error);
-          selectLegacyWorldRenderer();
-        }
-      } else if (depthRenderer) {
-        try {
-          const projectedFrame = KJPRenderFrames.createRenderFrame({
-            polygons,
-            lines: overlayLines.filter(item => item.layer < 10)
-          });
-          nativeWorldRouting.renderFrames++;
-          if (ownerMarks) ownerMarks.snapshotEnd = performance.now();
-          if (activeFrameProfile) {
-            if (ownerMarks) ownerMarks.three = {};
-            activeFrameProfile.lastRenderer = activeFrameProfile.comparison.renderBackend(
-              activeFrameProfile.backend, projectedFrame,
-              { width: canvasWidth, height: canvasHeight,
-                near: PROJECTION_NEAR_CLIP, far: PROJECTION_FAR_CLIP }, pixelRatio, ownerMarks?.three
-            );
-          } else {
-            KJPRenderFrames.renderLegacyFrame(depthRenderer, projectedFrame);
-          }
-          if (ownerMarks) ownerMarks.backendEnd = performance.now();
-          overlayLines
-            .filter(item => item.layer >= 10)
-            .sort((a, b) => a.layer - b.layer)
-            .forEach(drawLineItem);
-        } catch (error) {
-          // Un échec de diagnostic ne doit ni déclencher le repli du produit,
-          // ni être compté comme une mesure réussie.
-          if (activeFrameProfile) throw error;
-          console.warn("Rendu WebGL interrompu, poursuite en Canvas 2D", error);
-          depthRenderer = null;
-          worldCanvas.style.display = "none";
+          console.warn("Rendu Three natif interrompu, utilisation du secours Canvas 2D", error);
+          selectCanvasWorldRenderer();
         }
       }
-      if (!nativeWorldActive && !depthRenderer) {
+      if (!nativeWorldActive) {
         polygons.sort((a, b) => b.depth - a.depth);
         overlayLines
           .filter(item => item.layer < 0)
@@ -8223,11 +7513,11 @@
           .forEach(drawLineItem);
       }
       if (!nativeWorldActive) {
-        nativeWorldRouting.legacyFrames++;
+        nativeWorldRouting.canvasFrames++;
         nativeWorldRouting.lastFrame = {
-          backend: "legacy",
+          backend: "canvas",
           projectedWorld: true,
-          renderFrame: Boolean(depthRenderer),
+          renderFrame: false,
           projectedPolygons: polygons.length,
           projectedOverlayLines: overlayLines.length,
           overlayLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
@@ -8237,11 +7527,11 @@
       drawUnderstandingOverlay();
       drawAnatomyLabels();
       if (!nativeWorldActive && nativeInfrastructureEnabled && nativeInfrastructureTheme !== ui.visualTheme) {
-        nativeStaticPrototype.updatePalette(nativeInfrastructurePalette());
+        nativeWorldRenderer.updatePalette(nativeInfrastructurePalette());
         nativeInfrastructureTheme = ui.visualTheme;
       }
-      if (!nativeWorldActive && nativeStaticPrototype) {
-        nativeStaticPrototype.render(nativeCameraSnapshot(), pixelRatio,
+      if (!nativeWorldActive && nativeWorldRenderer) {
+        nativeWorldRenderer.render(nativeCameraSnapshot(), pixelRatio,
           nativePlayerEnabled ? nativePlayerPresentation() : null);
       }
       frameMotion = null;
@@ -8255,32 +7545,6 @@
       renderPerformance.lastFrameVisibilityComputations = renderPerformance.visibilityComputations;
       const renderCpuMs = performance.now() - renderCpuStart;
       recordRenderCpuTime(renderCpuMs);
-      if (activeFrameProfile) {
-        activeFrameProfile.frameCount += 1;
-        if (activeFrameProfile.frames.length < 600) activeFrameProfile.frames.push({
-          cpuMs: renderCpuMs, timestamp: time, simTime: ui.simTime,
-          polygons: polygons.length, lines: overlayLines.length,
-          camera: { distance: camera.distance, target: [...camera.target],
-            position: [...frameBasis.position], forward: [...frameBasis.forward],
-            right: [...frameBasis.right], up: [...frameBasis.up] },
-          renderer: activeFrameProfile.lastRenderer,
-          ...(ownerMarks ? { ownerMs: {
-            physics: ownerMarks.physicsEnd - renderCpuStart,
-            prepare: ownerMarks.prepareEnd - ownerMarks.physicsEnd,
-            snapshot: ownerMarks.snapshotEnd - ownerMarks.prepareEnd,
-            backend: ownerMarks.backendEnd - ownerMarks.snapshotEnd,
-            overlaysUi: renderCpuMs - (ownerMarks.backendEnd - renderCpuStart),
-            ...ownerMarks.three
-          } } : {})
-        });
-        if (activeFrameProfile.frameCount === activeFrameProfile.captureAtFrame) {
-          activeFrameProfile.images = activeFrameProfile.comparison.captureBackend(activeFrameProfile.backend, canvas);
-        }
-      } else if (activeFrameProfileNotice) {
-        // Attendre le premier monde Legacy frais avant de réafficher la scène.
-        activeFrameProfileNotice.remove();
-        activeFrameProfileNotice = null;
-      }
       requestAnimationFrame(render);
     }
 
@@ -9639,7 +8903,7 @@
           themeId: waterRenderState.themeId,
           background: waterRenderState.background,
           owner: waterRenderState.owner,
-          canvasBackground: worldCanvas.style.background
+          canvasBackground: "transparent"
         },
         grid: {
           enabled: palette.grid.enabled && camera.view !== "skipper",
@@ -9719,8 +8983,8 @@
         cameraSmoothing: "time-based",
         renderer: activeWorldRenderer === "native"
           ? { backend: "native", frames: nativeWorldRouting.nativeFrames,
-            memory: nativeStaticPrototype?.report().memory || null }
-          : depthRenderer?.report?.() || null
+            memory: nativeWorldRenderer?.report().memory || null }
+          : { backend: "canvas", frames: nativeWorldRouting.canvasFrames }
       };
     }
 
@@ -9899,27 +9163,10 @@
     function installTestApi() {
       if (!new URLSearchParams(location.search).has("test")) return;
       controls.paused = true;
-      const threeCamera = KJPThreeCamera.createThreeCamera();
-      let surfaceComparison = null;
-      const enableNativeInfrastructureBench = ({ staticBoats = true, seamarks = true } = {}, player = false) => {
-        const options = player ? { playerDefinition: nativePlayerDefinition() } : {};
-        const next = KJPThreeNative.createNativeInfrastructurePrototype(nativeInfrastructureDefinition({
-          includeStaticBoats: staticBoats,
-          includeSeamarks: seamarks
-        }), options);
-        nativeStaticPrototype?.dispose(); nativeStaticPrototype = next;
-        activeWorldRenderer = "legacy";
-        worldCanvas.style.display = depthRenderer ? "block" : "none";
-        nativeInfrastructureEnabled = true; nativeInfrastructureTheme = ui.visualTheme;
-        nativeStaticBoatsEnabled = staticBoats;
-        nativeStaticSeamarksEnabled = seamarks;
-        nativePlayerEnabled = player;
-        nativeInfrastructureError = null;
-      };
       window.__PORTANCE_TEST__ = Object.freeze({
         selectWorldRenderer(renderer) {
           if (renderer === "native") selectNativeWorldRenderer();
-          else if (renderer === "legacy") selectLegacyWorldRenderer();
+          else if (renderer === "canvas") selectCanvasWorldRenderer();
           else throw new TypeError("Renderer monde invalide");
           return renderer;
         },
@@ -9929,7 +9176,6 @@
             defaultRenderer: DEFAULT_WORLD_RENDERER,
             startupRenderer: startupWorldRenderer,
             requestedRenderer: requestedWorldRenderer,
-            legacyDefault: DEFAULT_WORLD_RENDERER === "legacy",
             ...(nativeInfrastructureError ? { nativeInfrastructureError } : {}),
             routing: structuredClone(nativeWorldRouting),
             presentation: {
@@ -9938,28 +9184,22 @@
               hitTargets: structuredClone(moorings.hitTargets)
             },
             canvas: {
-              nativeConnected: Boolean(nativeStaticPrototype?.canvas.isConnected),
-              nativeDisplay: nativeStaticPrototype?.canvas.isConnected
-                ? getComputedStyle(nativeStaticPrototype.canvas).display : null,
-              legacyDisplay: getComputedStyle(worldCanvas).display,
+              nativeConnected: Boolean(nativeWorldRenderer?.canvas.isConnected),
+              nativeDisplay: nativeWorldRenderer?.canvas.isConnected
+                ? getComputedStyle(nativeWorldRenderer.canvas).display : null,
+              fallbackActive: activeWorldRenderer === "canvas",
               overlayPointerEvents: getComputedStyle(canvas).pointerEvents,
-              nativePointerEvents: nativeStaticPrototype?.canvas.isConnected
-                ? getComputedStyle(nativeStaticPrototype.canvas).pointerEvents : null
+              nativePointerEvents: nativeWorldRenderer?.canvas.isConnected
+                ? getComputedStyle(nativeWorldRenderer.canvas).pointerEvents : null
             },
-            ...(nativeStaticPrototype?.report(options) || {})
+            ...(nativeWorldRenderer?.report(options) || {})
           };
-        },
-        enableNativeInfrastructurePrototype({ staticBoats = true, seamarks = true } = {}) {
-          enableNativeInfrastructureBench({ staticBoats, seamarks }, false);
-        },
-        enableNativePlayerPrototype({ staticBoats = true, seamarks = true } = {}) {
-          enableNativeInfrastructureBench({ staticBoats, seamarks }, true);
         },
         failNextNativeInfrastructureBuild() { failNextNativeInfrastructureBuild = true; },
         nativeInfrastructureSourceReport({ geometry = false } = {}) {
           const definition = nativeInfrastructureDefinition({
-            includeStaticBoats: nativeStaticBoatsEnabled,
-            includeSeamarks: nativeStaticSeamarksEnabled
+            includeStaticBoats: true,
+            includeSeamarks: true
           });
           if (geometry) return structuredClone(definition);
           return definition.owners.map(o => ({ id: o.id, family: o.family,
@@ -9977,222 +9217,6 @@
             segments: owner.lines.reduce((count, line) => count + line.points.length - 1, 0)
               + owner.polygons.reduce((count, polygon) => count + (polygon.stroke !== false && polygon.stroke != null ? polygon.points.length : 0), 0)
           }));
-        },
-        isolateNativeInfrastructure({ family = null, kind = null } = {}) {
-          if (!nativeInfrastructureEnabled) throw new Error("Catalogue natif inactif");
-          for (const object of nativeStaticPrototype.resources.group.children) {
-            object.visible = (!family || object.userData.family === family) && (!kind || object.userData.kind === kind);
-          }
-        },
-        isolateNativePlayer({ family = null, kind = null } = {}) {
-          if (!nativePlayerEnabled) throw new Error("Joueur natif inactif");
-          for (const object of nativeStaticPrototype.playerResources.group.children) {
-            object.visible = (!family || object.userData.family === family) && (!kind || object.userData.kind === kind);
-          }
-        },
-        enableNativeStaticPrototype(definition) {
-          if (!definition) {
-            const geometry = [...boxRenderGeometryById.values()].find(g => g.top.length && g.edges.length);
-            if (!geometry) throw new Error("Native static: aucune face de quai disponible");
-            definition = {
-              surface: { points: geometry.top[0], color: visualPalette().harbor.quayTop,
-                outlineColor: visualPalette().harbor.outline, outlineWidth: .7 },
-              stroke: { points: geometry.edges[0], color: visualPalette().harbor.outline, width: 3 }
-            };
-          }
-          const next = KJPThreeNative.createNativeStaticPrototype(definition);
-          nativeStaticPrototype?.dispose();
-          nativeStaticPrototype = next;
-          activeWorldRenderer = "legacy";
-          worldCanvas.style.display = depthRenderer ? "block" : "none";
-          nativeInfrastructureEnabled = false;
-          nativePlayerEnabled = false;
-        },
-        nativeStaticPrototypeReport(options = {}) {
-          return {
-            active: Boolean(nativeStaticPrototype),
-            ...(nativeInfrastructureError ? { nativeInfrastructureError } : {}),
-            presentation: {
-              basis: frameBasis ? structuredClone(frameBasis) : null,
-              cameraSettings: { view: camera.view, distance: camera.distance, pan: [...camera.pan],
-                yaw: camera.yaw, pitch: camera.pitch, skipperPan: [...camera.skipperPan],
-                skipperYawOffset: camera.skipperYawOffset, skipperPitch: camera.skipperPitch,
-                skipperFocalScale: camera.skipperFocalScale },
-              pose: { ...interpolatedFrameMotion },
-              hitTargets: structuredClone(moorings.hitTargets)
-            },
-            ...(nativeStaticPrototype?.report(options) || {})
-          };
-        },
-        mutateNativeStaticPrototype(action, role = "stroke") {
-          const object = nativeStaticPrototype?.resources.group.children.find(o => o.name === role);
-          if (!object) throw new Error("Native static: ressource absente");
-          if (action === "upload") {
-            const attribute = object.geometry.attributes.instanceStart || object.geometry.attributes.position;
-            (attribute.data || attribute).needsUpdate = true;
-          } else if (action === "rebuild") {
-            const old = object.geometry;
-            object.geometry = old.clone(); old.dispose();
-          } else if (action === "hide") object.visible = false;
-          else throw new TypeError("Native static: mutation inconnue");
-        },
-        disposeNativeStaticPrototype() {
-          nativeStaticPrototype?.dispose(); nativeStaticPrototype = null;
-          nativeInfrastructureEnabled = false;
-          nativePlayerEnabled = false;
-          activeWorldRenderer = "legacy";
-          nativeChartGridSignature = null;
-          worldCanvas.style.display = depthRenderer ? "block" : "none";
-        },
-        startActiveFrameProfile(backend, { captureAtFrame = null, owners = false } = {}) {
-          if (backend !== "legacy" && backend !== "three") throw new TypeError("Backend invalide");
-          if (captureAtFrame !== null && (!Number.isInteger(captureAtFrame) || captureAtFrame < 1 || captureAtFrame > 600)) {
-            throw new RangeError("Frame de capture invalide");
-          }
-          if (!depthRenderer || activeFrameProfile || captureSurfaces) {
-            throw new Error("Profilage actif indisponible ou diagnostic déjà actif");
-          }
-          const comparison = KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
-          activeFrameProfile = { backend, comparison, frameCount: 0, frames: [], lastRenderer: null, captureAtFrame, images: null, owners: Boolean(owners) };
-          // Le monde visible n'est pas soumis pendant ce banc détaché. Ne pas
-          // présenter sa dernière image avec des taquets/overlays encore animés.
-          if (!activeFrameProfileNotice) {
-            activeFrameProfileNotice = document.createElement("div");
-            activeFrameProfileNotice.id = "activeFrameProfileNotice";
-            activeFrameProfileNotice.setAttribute("role", "status");
-            activeFrameProfileNotice.style.cssText = "position:absolute;inset:0;z-index:20;display:grid;place-content:center;text-align:center;padding:32px;background:var(--panel-solid);color:var(--ink);white-space:pre-line;";
-            activeFrameProfileNotice.textContent = "Mesure de performance en cours\nLe rendu est calculé hors écran.\nLa scène sera réaffichée à la fin.";
-            worldCanvas.parentElement.append(activeFrameProfileNotice);
-          }
-          return comparison.contexts();
-        },
-        activeFrameProfileReport() {
-          if (!activeFrameProfile) throw new Error("Aucun profilage actif");
-          return { backend: activeFrameProfile.backend, frameCount: activeFrameProfile.frameCount,
-            frames: structuredClone(activeFrameProfile.frames),
-            images: activeFrameProfile.images ? { ...activeFrameProfile.images } : null,
-            glErrors: activeFrameProfile.comparison.glErrors() };
-        },
-        stopActiveFrameProfile() {
-          const profile = activeFrameProfile;
-          activeFrameProfile = null;
-          profile?.comparison.dispose();
-        },
-        enableSurfaceComparison({ infrastructures = false, staticBoats = false, boats = false,
-          staticSeamarks = false, seamarks = false, world = false } = {}) {
-          if (activeFrameProfile) throw new Error("Arrêter le profilage actif avant la capture");
-          captureSurfaces = world ? "world" : seamarks ? "seamarks" : boats ? "boats"
-            : staticSeamarks ? "static-seamarks" : staticBoats ? "static-boats"
-              : infrastructures ? "infrastructure" : "terrain";
-          surfaceCapture = null; // Attendre une frame du nouveau périmètre.
-        },
-        disposeSurfaceComparison() {
-          captureSurfaces = false;
-          surfaceCapture = null;
-          surfaceComparison?.dispose();
-          surfaceComparison = null;
-        },
-        surfacePerformanceReport(options = {}) {
-          if (!surfaceCapture || captureSurfaces !== "world" || !depthRenderer) {
-            throw new Error("Activer la capture du monde complet et attendre une frame");
-          }
-          const frame = KJPThreeSurfaces.createSurfaceFrame(
-            surfaceCapture.camera, surfaceCapture.world, surfaceCapture.waterBackground, surfaceCapture.worldLines
-          );
-          const projected = KJPRenderFrames.createRenderFrame({
-            polygons: surfaceCapture.projected, lines: surfaceCapture.projectedLines
-          });
-          surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
-          return surfaceComparison.profile(frame, projected, pixelRatio, options);
-        },
-        surfaceComparisonReport({ polygons: testPolygons, lines: testLines, images = false, geometry = false, composite = false, projectedInput = false } = {}) {
-          if (!surfaceCapture) throw new Error("Activer la capture terrain et attendre une frame");
-          if (!depthRenderer) throw new Error("Comparaison WebGL indisponible en repli Canvas 2D");
-          // Les fixtures synthétiques traversent le vrai clipping/project Legacy.
-          // Elles ne sont jamais injectées dans le port ou le rendu visible.
-          const synthetic = testPolygons !== undefined || testLines !== undefined;
-          if (composite && (synthetic || captureSurfaces !== "world")) {
-            throw new Error("Composition réservée à la capture du monde complet");
-          }
-          const world = synthetic ? testPolygons || [] : surfaceCapture.world;
-          const lines = synthetic ? testLines || [] : surfaceCapture.worldLines;
-          const projected = synthetic ? world.flatMap(polygon => {
-            const clipped = clipPolygonToNearPlane(polygon.points);
-            if (clipped.length < 3) return [];
-            const points = clipped.map(project);
-            if (points.some(point => !point)) return [];
-            return [{ ...polygon, points, depth: points.reduce((sum, point) => sum + point.depth, 0) / points.length }];
-          }) : surfaceCapture.projected;
-          const projectedLines = synthetic ? lines.flatMap(line => {
-            if (line.points.length < 2) return [];
-            // Même chemin rapide que addWorldLine : ne pas casser la phase
-            // des pointillés en scindant une polyline entièrement devant near.
-            if (line.points.every(point => cameraDepth(point, frameBasis) >= PROJECTION_NEAR_CLIP)) {
-              const points = line.points.map(project);
-              return points.every(Boolean) ? [{ ...line, points }] : [];
-            }
-            const result = [];
-            for (let i = 1; i < line.points.length; i += 1) {
-              const clipped = clipSegmentToNearPlane(line.points[i - 1], line.points[i]);
-              if (!clipped) continue;
-              const points = clipped.map(project);
-              if (points.every(Boolean)) result.push({ ...line, points });
-            }
-            return result;
-          }) : surfaceCapture.projectedLines;
-          const frame = KJPThreeSurfaces.createSurfaceFrame(
-            surfaceCapture.camera, world, surfaceCapture.waterBackground, lines
-          );
-          const legacyFrame = KJPRenderFrames.createRenderFrame({ polygons: projected, lines: projectedLines });
-          surfaceComparison ||= KJPThreeSurfaces.createSurfaceComparison(createDepthRenderer);
-          const overlayState = () => JSON.stringify({
-            hitTargets: moorings.hitTargets, activeLineId: moorings.activeLineId,
-            selected: moorings.selected, hover: moorings.hover
-          });
-          const beforeOverlay = composite ? overlayState() : null;
-          const comparison = surfaceComparison.compare(frame, legacyFrame, pixelRatio, images, composite ? canvas : null, projectedInput);
-          return {
-            ...comparison,
-            ...(composite ? {
-              overlayUnchanged: beforeOverlay === overlayState(),
-              overlay: { owner: "canvas2d", mooringLines: moorings.hitTargets.lines.length,
-                cleats: moorings.hitTargets.cleats.length, pendilles: moorings.hitTargets.pendilles.length }
-            } : {}),
-            routing: synthetic || !surfaceCapture.routing ? null : {
-              ...surfaceCapture.routing, canvas2DLineLayers: [...surfaceCapture.routing.canvas2DLineLayers]
-            },
-            owners: synthetic ? {} : { ...surfaceCapture.owners },
-            player: synthetic || !surfaceCapture.player ? null : {
-              ...surfaceCapture.player,
-              previousPose: { ...surfaceCapture.player.previousPose },
-              authoritativePose: { ...surfaceCapture.player.authoritativePose }
-            },
-            ...(geometry ? { frame, legacyFrame } : {})
-          };
-        },
-        projectionComparisonReport(points = []) {
-          // Observer la base disponible sans rappeler cameraBasis() : cette
-          // dernière avance le suivi caméra et ne serait pas un diagnostic pur.
-          if (!frameBasis) throw new Error("Attendre une frame avant la comparaison caméra");
-          const snapshot = KJPThreeCamera.createCameraSnapshot({
-            basis: frameBasis,
-            width: canvasWidth,
-            height: canvasHeight,
-            focalScale: camera.view === "skipper" ? camera.skipperFocalScale : 1.05,
-            near: PROJECTION_NEAR_CLIP,
-            far: PROJECTION_FAR_CLIP
-          });
-          const migrated = threeCamera.update(snapshot);
-          return {
-            snapshot,
-            cameraType: migrated.type,
-            fov: migrated.fov,
-            pixelRatio,
-            buffer: [canvas.width, canvas.height],
-            anchors: points.map(point => ({
-              point: [...point], legacy: project(point), three: threeCamera.project(point)
-            }))
-          };
         },
         geometryReport: () => validateHarborGeometry(),
         topologyReport: () => ({
@@ -10256,16 +9280,13 @@
         visualThemeReport,
         timeScaleReport,
         engineAudioReport,
-        rendererGuardReport: () => depthRenderer?.guardReport?.() || {
+        rendererGuardReport: () => ({
           finite: true,
-          floats: 0,
-          triangles: 0,
-          acceptedLineSegments: 0,
-          rejectedLineSegments: 0,
-          dashLimitHits: 0,
-          maximumDashSegments: 0,
-          fallback: true
-        },
+          backend: activeWorldRenderer,
+          glError: activeWorldRenderer === "native"
+            ? nativeWorldRenderer?.report().glError ?? null : null,
+          fallback: activeWorldRenderer === "canvas"
+        }),
         mooringReport,
         mooringActionAllowed: (action, speedKn) => mooringActionAllowed(action, Number(speedKn)),
         selectCameraView(view) {
@@ -10376,10 +9397,11 @@
             overlappingCockpitSurfaces: false
           },
           renderer: {
-            webgl2: Boolean(depthRenderer),
-            depthBits: gl ? gl.getParameter(gl.DEPTH_BITS) : 0,
-            painterFallback: !depthRenderer,
-            ...(depthRenderer?.report?.() || {})
+            backend: activeWorldRenderer,
+            webgl2: activeWorldRenderer === "native",
+            painterFallback: activeWorldRenderer === "canvas",
+            glError: activeWorldRenderer === "native"
+              ? nativeWorldRenderer?.report().glError ?? null : null
           },
           renderedFreeboard: BOAT_PROFILE.visual.playerDeckZ - BOAT_PROFILE.visual.waterlineZ,
           physicsCanoeDraft: physicsSimulator.getProfile().dimensions.canoeDraft,

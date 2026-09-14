@@ -50,7 +50,7 @@ async function runCase(browser, engine, device) {
     await page.waitForSelector('body[data-world-renderer="native"]');
     await settle(page, 5);
     const first = await page.evaluate(() => {
-      const native = document.querySelector("#kjp-native-static-prototype");
+      const native = document.querySelector("#kjp-native-world");
       const stage = document.querySelector(".stage").getBoundingClientRect();
       const touchControls = document.querySelector(".touch-controls").getBoundingClientRect();
       const controlDock = document.querySelector(".control-dock").getBoundingClientRect();
@@ -69,7 +69,6 @@ async function runCase(browser, engine, device) {
           touch: { left: touchControls.left, right: touchControls.right, width: touchControls.width, height: touchControls.height },
           dock: { left: controlDock.left, right: controlDock.right, width: controlDock.width, height: controlDock.height }
         },
-        legacyDisplay: getComputedStyle(document.querySelector("#worldScene")).display,
         overlayPointerEvents: getComputedStyle(document.querySelector("#scene")).pointerEvents,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
       };
@@ -82,7 +81,6 @@ async function runCase(browser, engine, device) {
     const effectiveDpr = Math.min(device.deviceScaleFactor, 2);
     assert.equal(first.canvas.width, Math.round(first.stage.width * effectiveDpr));
     assert.equal(first.canvas.height, Math.round(first.stage.height * effectiveDpr));
-    assert.equal(first.legacyDisplay, "none");
     assert.notEqual(first.overlayPointerEvents, "none");
     assert.equal(first.overflow, false);
     const controls = device.id === "mobile-dpr3" ? first.controls.touch : first.controls.dock;
