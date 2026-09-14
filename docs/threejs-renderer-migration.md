@@ -1,32 +1,30 @@
 # Migration du renderer du simulateur vers Three.js
 
-## Statut prescriptif et orientation de référence — 11 septembre 2026
+## Statut prescriptif et orientation de référence — 14 septembre 2026
 
-Ce document est la référence du chantier renderer KJP. La présente section et
-la section [Tranches natives planifiées](#tranches-natives-planifiées) fixent le
-cadrage actuel. Les sections entre « Baseline Legacy » et « Tranches natives
-planifiées » constituent le journal historique de la migration de compatibilité,
-y compris celles sans date dans leur titre. Leurs mesures et validations restent
-attachées aux artefacts et environnements indiqués, sans qualification du natif.
-Leurs choix d'architecture ne s'appliquent au nouveau
-backend natif que lorsqu'ils sont repris explicitement ici.
+Ce document reste la référence unique du renderer KJP. La présente section et
+la section [Clôture de la migration](#clôture-de-la-migration--14-septembre-2026)
+fixent le contrat courant. Les sections « Baseline Legacy », « Migration
+progressive », « Tranches natives planifiées » et les livraisons N1 à N6 sont
+un journal historique : leurs mesures et décisions restent reproductibles, mais
+leurs prescriptions de conserver ou d'activer les anciens backends sont
+**remplacées** par la clôture.
 
-**Périmètre de la livraison courante : N6, activation contrôlée
-(`ui-check`).** L'autorisation de code couvre la sélection du renderer, le
-repli, les tests, le suivi, la documentation utilisateur et la régénération du
-HTML nécessaires à cette tranche. Les invariants ci-dessous restent stricts.
-N1 à N5 sont réutilisées sans reprise ; N6 active Three natif par défaut tout en
-conservant Legacy comme repli et référence exacte.
-La revue documentaire précédente n'avait, à elle seule, autorisé aucune
-implémentation. Les résultats de cette livraison sont consignés dans
-[le suivi N1](#livraison-n1--11-septembre-2026) puis
-[le suivi N2.1](#livraison-n21--terrain-et-infrastructures), puis
-[le suivi N2.2](#livraison-n22--bateaux-statiques), puis
-[le suivi N2.3](#livraison-n23--bouées-et-feux), puis
-[le suivi N3](#livraison-n3--joueur-local-et-données-visuelles-variables),
-[le suivi N4](#livraison-n4--intégration-dans-la-boucle-et-composition-interactive),
-[le suivi N5](#livraison-n5--qualification-visuelle-fonctionnelle-et-de-performance)
-et [le suivi N6](#livraison-n6--activation-contrôlée).
+**État du produit après N7 et C1–C4 :** Three natif est le seul backend WebGL
+du produit et le Canvas 2D existant est son secours direct. Legacy WebGL, Three
+de compatibilité, le `RenderFrame` projeté qui leur était exclusif et les
+comparateurs embarqués ont été retirés. Les garanties utiles ont été transférées
+vers des tests natifs et des résultats reproductibles indépendants du renderer.
+L'inventaire, les justifications de conservation et le manifeste historique sont
+dans
+[`docs/validation/threejs-migration-closure.md`](validation/threejs-migration-closure.md).
+
+La clôture a commencé dans
+`/Users/arnaud/Codex_main/KJP_Port_Simulator`, sur la branche
+`codex/threejs-v2`, au commit
+`78fb7d148fe065d6fa2479dc8c1eaae151f755e1`, avec un arbre propre. Le tag annoté
+`threejs-migration-legacy-final` fixe cet état avant retrait. Aucun changement de
+branche, reset ou suppression de travail préexistant n'a été effectué.
 
 **État constaté au début de N6 :** répertoire réel
 `/Users/arnaud/Codex_main/KJP_Port_Simulator`, branche `codex/threejs-v2`, HEAD
@@ -48,20 +46,19 @@ changement Git n'était présent. Le suivi N1 complète ce document ; les trois
 autres fichiers de cadrage préexistants sont préservés. Aucun changement de
 branche, reset ni nettoyage de l'arbre.
 
-La cible reste Three.js `0.186.0` / révision `186` avec `WebGLRenderer`, modules
-ES intégrés par esbuild et HTML autonome hors ligne. Le chantier conserve trois
-chemins clairement nommés dans la documentation, sans renommer le code existant
-à ce stade :
+La cible livrée reste Three.js `0.186.0` / révision `186` avec
+`WebGLRenderer`, modules ES intégrés par esbuild et HTML autonome hors ligne.
+Le produit possède deux chemins :
 
-- **Legacy** : renderer WebGL2 maison, repli explicite ou automatique et
-  référence fonctionnelle et visuelle stricte ;
-- **Three de compatibilité** : backend actuel de banc, implémenté notamment par
-  `createThreeSurfaceRenderer()` et `renderProjected()`, alimenté par le
-  `RenderFrame` projeté ;
-- **Three natif** : backend distinct à géométries monde persistantes, construit
-  de N1 à N3, intégré au canevas visible en N4, qualifié en N5 et activé par
-  défaut en N6. Il ne reçoit pas le `RenderFrame` projeté et ne devient jamais
-  une autorité pour la simulation.
+- **Three natif**, renderer normal à géométries monde persistantes. Il ne reçoit
+  pas de `RenderFrame` projeté et ne devient jamais une autorité pour la
+  simulation ;
+- **Canvas 2D**, secours direct sélectionnable par `?renderer=canvas` et activé
+  automatiquement après une erreur native explicite.
+
+Legacy WebGL et Three de compatibilité n'appartiennent plus au produit. Leurs
+sources, tests, références et mesures restent accessibles via le tag
+`threejs-migration-legacy-final` et le manifeste de clôture.
 
 ### Invariants physiques et fonctionnels stricts
 
@@ -84,19 +81,19 @@ chemins clairement nommés dans la documentation, sans renommer le code existant
   PBR, éclairage, ombre, brouillard, post-traitement ou correction fonctionnelle
   sans rapport avec la migration n'entre dans le périmètre.
 
-### Critères propres à chaque backend
+### Critères des chemins maintenus
 
-| Contrat | Legacy | Three de compatibilité | Three natif |
-| --- | --- | --- | --- |
-| Entrée normale | primitives projetées actuelles | même `RenderFrame` projeté que Legacy | ressources monde persistantes + état de présentation compact |
-| Parité raster | références Legacy exactes | identité pixel, géométrie intermédiaire et compteurs exacts dans les bancs existants | fidélité visuelle et fonctionnelle ; aucune identité pixel, tableau ou compteur de triangles exigée |
-| Physique et fonctions | exactes | exactes | exactes |
-| Activation | repli par `?renderer=legacy` ou échec natif | diagnostic hors écran | défaut actuel après qualification N6 |
+| Contrat | Three natif | Secours Canvas 2D |
+| --- | --- | --- |
+| Entrée | ressources monde persistantes + état de présentation compact | primitives projetées et caches Canvas conservés |
+| Validation visuelle | présence, dimensions, occlusion, lisibilité et stabilité des références natives | monde lisible et interactions utilisables dans les erreurs qualifiées |
+| Physique et fonctions | exactes | exactes |
+| Activation | défaut produit et `?renderer=native` | erreurs natives et `?renderer=canvas` |
 
 Les exigences historiques de `RenderFrame` commun, de projection/clipping
-Legacy, d'identité des tableaux intermédiaires, des compteurs et des pixels
-restent les critères de Legacy et du backend Three de compatibilité. Elles sont
-**remplacées pour Three natif** par les critères ci-dessous :
+Legacy, d'identité des tableaux intermédiaires, des compteurs et des pixels ont
+été retirées avec les backends auxquels elles s'appliquaient. Elles restent
+documentées et reproductibles dans l'archive. Le contrat natif est :
 
 - produire un rendu proche de Legacy et cohérent avec les dimensions et
   positions KJP, les cadrages, silhouettes, couleurs, épaisseurs, thèmes,
@@ -106,8 +103,8 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
   lisibilité ni interaction ;
 - accepter les différences de rasterisation et de tessellation qui ne changent
   pas ces propriétés ;
-- garder les validations exactes de Legacy et de Three de compatibilité sans
-  modifier leurs références pour faire accepter le chemin natif.
+- garder exactes les validations physiques, fonctionnelles et les trajectoires
+  étalons, indépendamment du chemin de rendu.
 
 ### Architecture cible du backend Three natif
 
@@ -124,9 +121,8 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
   variables peuvent modifier des attributs.
 - En fonctionnement natif normal, la boucle évite de construire le monde
   projeté Legacy complet. Les projections nécessaires au Canvas 2D, aux
-  overlays et au picking restent autorisées. Une capture complète Legacy peut
-  être demandée dans un diagnostic explicite, hors du chemin natif normal et
-  hors de sa mesure de performance.
+  overlays et au picking restent autorisées. L'ancien monde WebGL projeté ne
+  peut être chargé qu'en reconstruisant l'archive historique isolée.
 - Le canevas Three reste composé avec le fond d'eau et le Canvas 2D existants.
   Les ressources GPU ont un propriétaire, des invalidations identifiées et un
   `dispose()` lors du changement de port ou de la destruction du backend.
@@ -139,36 +135,37 @@ restent les critères de Legacy et du backend Three de compatibilité. Elles son
 | Emplacement existant | Constat et usage |
 | --- | --- |
 | `src/simulateur-port/template.html` : `render`, `prepareInterpolatedFrameMotion`, `cameraBasis` | Boucle, interpolation et suivi existants ; réutilisation sans changement de leur logique (N1/N3/N4) |
-| Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Cache de primitives monde CPU du chemin Legacy ; le catalogue Three persistant est possédé séparément par le natif |
+| Même source : `installRuntimeTopology`, `addCachedWorldGeometry` | Installation du port et caches de primitives projetées conservés pour le secours Canvas 2D ; le catalogue Three persistant est possédé séparément par le natif |
 | `rendering/three-camera.mjs` sous `src/simulateur-port/` | Adaptateur matriciel validé sur les ancres et réutilisé par le natif ; les occlusions visibles sont qualifiées séparément en N5 |
-| `rendering/native-static-resources.mjs`, `native-static-prototype.mjs` | Ajout N1 : quad monde, contour fin et segment persistants ; renderer détaché piloté par la base caméra existante, hors `RenderFrame` |
 | `rendering/native-infrastructure-resources.mjs`, `nativeInfrastructureDefinition()`, `addBoatMesh()`, `addBuoyGeometry()` et `addHarborLightGeometry()` dans le template | Ajouts N2.1 à N2.3 : catalogue monde par propriétaire, triangulation statique, matériaux partagés, bateaux/bouées/feux figés, remplacement du port et diagnostic de libération |
 | `rendering/native-player-resources.mjs`, `nativePlayerDefinition()`, `nativePlayerPresentation()` | Ajout N3 : coque et appendices locaux persistants, groupe transformé par la pose interpolée, matériaux/visibilités variables et unique buffer dynamique des pales |
-| `rendering/three-surfaces.mjs`, `surface-frame.mjs`, `surface-geometry.mjs`, `render-frame.cjs` | Chemin de compatibilité : projection/compilation CPU, remplissage et marquage des buffers à chaque image. Ce contrat est conservé séparément des modules natifs livrés en N1–N4 |
-| `rendering/surface-comparison.mjs`, `surface-profile.mjs` | Comparaison stricte et banc à entrée projetée conservés pour la compatibilité ; aucun assouplissement pour y faire entrer le natif (N5) |
-| `tests/render-frame.test.js`, tests `native-*.test.js`, `tests/simulateur-port.test.js` | Protections N1 à N6 reliées aux suites existantes ; exactitude Legacy/compatibilité et fidélité fonctionnelle native conservées sans modifier les références |
-| `scripts/profile-simulator-renderers.js`, `scripts/profile-simulator-active-renderers.js`, `scripts/profile-simulator-native-renderer.js` | Bancs projetés conservés pour la compatibilité ; protocole complet natif apparié livré en N5 |
-| `scripts/qualify-simulator-native-activation.js` | Matrice N6 du démarrage natif visible sur trois moteurs et trois formats, sans requête réseau |
-| `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native bundlée localement et intégrée au rendu visible ; script de build inchangé |
+| `rendering/native-player-model.mjs`, `kjp_sun_odyssey_36i.glb` | Modèle joueur chargé une fois, géométrie partagée, calage uniforme et erreurs asynchrones relayées au secours |
+| `rendering/native-world-renderer.mjs` | Renderer de production, scène persistante, adaptation caméra, flux et cycle de vie des ressources |
+| `tests/native-rendering.test.js`, autres tests `native-*.test.js`, `tests/simulateur-port.test.js` | Contrats unitaires rapides, intégration/erreurs, fidélité native, progression reproductible et fonctions usuelles séparées selon leur coût |
+| `scripts/capture-simulator-native-baseline.js`, `profile-simulator-native-renderer.js` | Références natives et profil apparié version native de référence / candidate |
+| `scripts/qualify-simulator-native-activation.js` | Matrice étendue multi-moteurs et formats, sans requête réseau |
+| `rendering/index.js`, `scripts/build-simulateur-port.js` | Façade native minimale bundlée localement et HTML autonome |
 
 Les fonctions sans fichier explicite dans les tranches ci-dessous appartiennent
 à `src/simulateur-port/template.html`. Le cadrage est porté par quatre fichiers :
 ce document (décision, historique, validation et tranches), `AGENTS.md` (routage),
-`.codex/skills/kjp-three-render-migration/SKILL.md` (procédure dédiée) et son
-`agents/openai.yaml` (description). Aucun document d'architecture séparé ni
-référence dédiée supplémentaire n'a été trouvé nécessaire.
+`.codex/skills/kjp-three-render-migration/SKILL.md` (maintenance dédiée) et son
+`agents/openai.yaml` (description). L'inventaire détaillé et les commandes de
+reproduction sont séparés dans `docs/validation/threejs-migration-closure.md`
+afin de ne pas dupliquer les règles.
 
 ### Acquis réutilisables
 
 Il n'est pas nécessaire de recommencer les tranches déjà validées :
 
 - Three r186 est épinglé, bundlé localement et vérifié dans le HTML autonome ;
-- les baselines Legacy, le contrôle réseau, les scènes déterministes, les
-  trajectoires et les hooks `__PORTANCE_TEST__` fournissent les références ;
+- les scènes déterministes, le contrôle réseau, les trajectoires, les hooks
+  `__PORTANCE_TEST__` et les références natives fournissent les protections
+  pérennes ; les baselines Legacy restent intactes dans l'archive ;
 - `three-camera.mjs` documente et vérifie l'adaptation de la base caméra et ses
   ancres, sans devenir propriétaire du suivi ;
-- le backend de compatibilité, son compilateur, ses comparaisons raster et ses
-  profils restent un oracle de diagnostic pour les choix visuels Legacy ;
+- le tag historique conserve le backend de compatibilité, son compilateur, ses
+  comparaisons raster et ses profils pour une investigation reproductible ;
 - `installRuntimeTopology()` possède l'installation du monde et invalide
   `staticWorldGeometryCache`; `addCachedWorldGeometry()` et les géométries de
   boîtes/taquets pré-calculées ont guidé les propriétaires et invalidations des
@@ -178,9 +175,9 @@ Il n'est pas nécessaire de recommencer les tranches déjà validées :
   mesure le chemin natif complet sans lui imposer l'entrée projetée de
   compatibilité.
 - N1 à N4 fournissent le catalogue persistant, le groupe joueur local, la pose
-  compacte et la composition visible sans `RenderFrame` natif. N5 archive la
-  fidélité et le gain de performance apparié ; N6 réutilise ces preuves sans
-  recommencer ces constructions.
+  compacte et la composition visible sans `RenderFrame` natif. N5 et N6 ont
+  fourni les protocoles de fidélité, performance et activation ; N7 et C1–C4
+  les ont adaptés au produit pérenne sans recommencer ces constructions.
 
 ### Instructions externes au dépôt
 
@@ -2429,3 +2426,85 @@ Le HTML autonome final mesure 1 941 960 octets, contre 1 676 064 avant
 l'intégration. Aucun moteur, profil, collision, commande, interpolation,
 trajectoire, autre bateau, eau, ponton, caméra, éclairage global ou référence
 Legacy n'est modifié.
+
+## Clôture de la migration — 14 septembre 2026
+
+Cette section remplace, pour le produit courant, les prescriptions historiques
+qui imposaient de conserver Legacy WebGL, Three de compatibilité, leur
+`RenderFrame` commun ou leurs comparateurs. Elle ne remplace aucune garantie
+physique ou fonctionnelle et ne modifie pas les résultats historiques N1–N6.
+
+### N7 — transfert des garanties vers le natif
+
+La suite fonctionnelle principale démarre désormais sur le renderer natif réel
+et attend le GLB avant ses observations visuelles. Ses assertions de commandes,
+unités, imports, aussières, pare-battages, picking, tactile, physique intégrée et
+trajectoires étalons restent inchangées. Les assertions qui ne décrivaient que
+l'ancien backend ont été retirées de cette suite et sont accessibles dans le tag
+historique.
+
+Le chargement GLB expose une promesse `ready` qui rejette explicitement. Le
+renderer visible relaie cette erreur au cycle produit et active le secours au
+lieu de laisser un joueur invisible. La géométrie chargée reste partagée pendant
+la vie de la page ; une instance libère sa matière, pas cette géométrie commune.
+Les tests ciblent le joueur et ses équipements, le grand port avec vent et
+courant en vues dessus et skipper, les thèmes, DPR, imports et interactions.
+
+### C1 — inventaire et archive
+
+Le tag annoté `threejs-migration-legacy-final` fixe le commit
+`78fb7d148fe065d6fa2479dc8c1eaae151f755e1`. Les empreintes, versions,
+commandes, scènes, consommateurs, classifications et limites figurent dans le
+[manifeste de clôture](validation/threejs-migration-closure.md). Un contrôle
+historique est exécuté depuis une extraction isolée avant de fermer cette phase.
+
+### C2 — secours Canvas 2D direct
+
+`?renderer=canvas` sélectionne le painter Canvas 2D existant. Les échecs de
+WebGL2, de construction initiale, de chargement GLB, de reconstruction du port et
+la perte de contexte basculent vers ce chemin avec un diagnostic explicite. Le
+Canvas natif est libéré ; l'état de simulation n'est ni remplacé ni avancé par le
+routage. Les primitives projetées et caches nécessaires au secours, les overlays,
+`drawMooringLayer()`, le picking et les `hitTargets` sont conservés.
+
+### C3 — retrait des anciens chemins et bancs pérennes
+
+La façade ne bundle plus que Three r186, l'adaptateur caméra et le renderer
+natif. Legacy WebGL, Three de compatibilité, les modules de `RenderFrame`, de
+surfaces projetées, de comparaison et de profil exclusifs ont été retirés avec
+leurs globals, hooks, paramètres et scripts actifs. Le prototype N1 a été adapté
+et renommé `native-world-renderer.mjs` parce qu'il porte le renderer de
+production.
+
+Les six références raster Legacy restent intactes comme archive et ne sont plus
+chargées par un test courant. Les références natives sont capturées par
+`capture-simulator-native-baseline.js`. Le profil compare désormais une version
+native de référence et la candidate, en ordre alterné, après chauffe, sur les
+mêmes scènes, états, caméras, DPR et timestamps. Les uploads statiques sont
+instrumentés séparément et doivent rester nuls durant la fenêtre mesurée.
+
+### C4 — instructions, build et requalification
+
+`AGENTS.md` conserve sa validation hiérarchique et rend les contrôles renderer
+lourds explicitement sélectionnables. Le skill local KJP devient une procédure
+de maintenance du natif et du secours ; aucun skill global n'est modifié. Le
+guide utilisateur décrit le repli Canvas. `package.json` sépare les contrats
+unitaires, l'intégration rapide, la qualification étendue, la matrice et le
+profil. `verify:release` inclut une seule qualification renderer étendue.
+
+Le HTML autonome est régénéré depuis les sources. Le statut détaillé des tests,
+leurs durées, l'inventaire des dépendances conservées et la vérification d'archive
+sont consignés dans le manifeste. Une preuve absente y laisse la clôture ouverte ;
+un échec inexpliqué n'est jamais présenté comme une validation.
+
+**Clôture validée.** La release complète réussit avec les 33 contrôles de ports,
+42 invariants physiques, 47 scénarios fonctionnels natifs, 24 contrôles du
+générateur et la qualification renderer. Celle-ci réussit 12/12 après
+réintégration du soak de 1 200 images. La matrice fait 9/9 et le profil visible
+Apple M1/Metal fait 12 paires, sans upload statique après chauffe et avec un
+ratio p95 médian candidate/référence de `0,8982`. Les résultats bruts sont dans
+[`threejs-native-closure-matrix.json`](validation/threejs-native-closure-matrix.json)
+et
+[`threejs-native-closure-performance.json`](validation/threejs-native-closure-performance.json).
+Les limites matérielles et les tentatives échouées corrigées sont distinguées
+dans le manifeste de clôture.

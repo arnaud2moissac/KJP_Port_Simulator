@@ -17,7 +17,7 @@ Les mêmes commandes sont disponibles sur écran tactile. La barre se règle en 
 
 ## Rendu et solution de repli
 
-Le renderer Three.js natif est utilisé au démarrage. Si son initialisation échoue, le simulateur revient automatiquement au renderer Legacy sans modifier la manœuvre. Pour forcer ce repli lors d'un diagnostic, ajoutez `?renderer=legacy` à l'adresse de `simulateur-port.html`. Retirez ce paramètre, ou utilisez `?renderer=native`, pour revenir au renderer natif.
+Le renderer Three.js natif est utilisé au démarrage. Si WebGL2, le modèle du bateau ou la reconstruction de la scène échoue, le simulateur active automatiquement son secours Canvas 2D sans modifier la manœuvre. Pour diagnostiquer ce mode, ajoutez `?renderer=canvas` à l'adresse de `simulateur-port.html`. Retirez ce paramètre, ou utilisez `?renderer=native`, pour revenir au renderer natif.
 
 ![Commandes et vues du bateau](images/02-commandes-et-vues.jpg)
 

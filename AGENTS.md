@@ -29,22 +29,22 @@ rapport, abstraction ou test si le besoin n'est ni demandé ni durable.
 - Ne charger le skill `validate-nautical-physics` que pour une demande classée
   `physics-check`, pas pour une modification purement visuelle ou éditoriale.
 
-## Migration du renderer Three.js
+## Maintenance du renderer Three.js
 
-Pour tout travail sur les backends Legacy ou Three du simulateur, lire le skill
+Pour tout travail sur le rendu Three du simulateur, lire le skill
 `kjp-three-render-migration` puis suivre le cadrage de référence dans
 [`docs/threejs-renderer-migration.md`](docs/threejs-renderer-migration.md), en
-particulier ses sections « Statut prescriptif et orientation de référence » et
-« Tranches natives planifiées ».
+particulier sa section prescriptive et son suivi de clôture. L'inventaire de
+retrait et le manifeste historique sont dans
+[`docs/validation/threejs-migration-closure.md`](docs/validation/threejs-migration-closure.md).
 
-Le backend Three de compatibilité est alimenté par le `RenderFrame` projeté et
-reste soumis à la parité exacte de ses bancs. Le backend Three natif est un
-chemin distinct à géométries monde persistantes, actif par défaut depuis N6 : il
-reste soumis aux invariants physiques et fonctionnels exacts, mais sa gate
-visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction,
-sans identité pixel par pixel ni identité des intermédiaires projetés. Ne pas
-appliquer au natif une exigence historique remplacée dans le document de
-référence.
+Le produit contient le renderer Three natif à géométries monde persistantes et
+un secours Canvas 2D direct. Les anciens backends WebGL sont disponibles dans la
+référence Git `threejs-migration-legacy-final`, pas dans le produit courant. Le
+natif reste soumis aux invariants physiques et fonctionnels exacts ; sa gate
+visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction.
+Les références raster natives servent à détecter les régressions de ce backend,
+sans rétablir une exigence de parité pixel avec Legacy.
 
 ## Valider proportionnellement au risque
 
@@ -58,6 +58,13 @@ de build : `npm run check:simulator` ou `npm run check:generator`.
 Contrôler le build concerné, ouvrir la page, vérifier l'absence d'erreur console,
 puis tester uniquement l'état et l'interaction modifiés. Une inspection visuelle
 ciblée suffit pour une modification visuelle locale.
+
+Utiliser `npm run test:rendering` pour un changement local de ressources ou de
+caméra et `npm run test:renderer:quick` pour un changement intégré du renderer ou
+du secours. Réserver `npm run test:renderer:qualification`,
+`npm run qualify:renderer:native` et `npm run profile:renderer:native` à une
+qualification explicite : ces contrôles sont lourds et ne font pas partie de
+`test:e2e`.
 
 ### `physics-check`
 
@@ -78,6 +85,8 @@ changements physiques transversaux.
 Lancer `npm run verify:release` une fois. Ne répéter que les tests de
 déterminisme ou trajectoires concernés. Une seconde suite complète n'est utile
 que si la qualification demandée exige explicitement deux exécutions.
+La commande inclut une seule qualification renderer étendue ; ne pas la lancer
+séparément juste avant sans besoin de diagnostic.
 
 ## Critère d'arrêt
 

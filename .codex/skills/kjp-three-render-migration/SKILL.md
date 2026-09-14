@@ -1,60 +1,78 @@
 ---
 name: kjp-three-render-migration
-description: Migrer ou optimiser le renderer du simulateur KJP avec Three.js tout en conservant strictement la physique, les fonctions et le livrable HTML autonome. Utiliser pour les backends Legacy, Three de compatibilité et Three natif, ainsi que leurs validations visuelles ou de performance ; ne pas utiliser pour le générateur de ports ni pour modifier la physique nautique.
+description: Maintenir, qualifier ou optimiser le renderer Three.js natif du simulateur KJP et son secours Canvas 2D tout en conservant strictement la physique, les fonctions et le livrable HTML autonome. Utiliser aussi pour consulter ou reproduire l'archive des anciens backends ; ne pas utiliser pour le générateur de ports ni pour modifier la physique nautique.
 ---
 
-# Migration du renderer KJP vers Three.js
+# Maintenance du renderer Three.js de KJP
 
 ## Référence du chantier
 
 Lire d'abord [le cadrage de référence](../../../docs/threejs-renderer-migration.md).
-Ses sections prescriptives définissent les invariants, les critères par backend,
-la cartographie du code, les acquis et les écarts d'application des références
-externes. La section « Tranches natives planifiées » définit N1 à N6, leurs
-tests, critères de sortie, dépendances et retours arrière. Les anciennes décisions
-du journal sont un historique dont la portée est explicitée dans ce cadrage.
+Le statut prescriptif courant décrit le produit Three natif et son secours
+Canvas 2D. Le retrait des anciens chemins, leurs consommateurs et le manifeste
+de reproduction sont consignés dans
+[l'inventaire de clôture](../../../docs/validation/threejs-migration-closure.md).
+Les décisions N1 à N6 conservées plus bas dans le cadrage sont historiques.
 
-## Choisir le périmètre autorisé
+## Préserver les frontières du simulateur
 
 - Relever le répertoire réel, la branche/HEAD et le diff avant de travailler.
   Préserver les modifications préexistantes, sans changement de branche ni reset.
-- Une demande documentaire relève de `patch-local` : modifier uniquement les
-  documents autorisés et contrôler le diff. Ne pas en déduire une autorisation
-  de toucher au code, aux tests, références, dépendances ou scripts, de régénérer
-  le HTML ou de changer le renderer actif.
-- Une tranche de rendu autorisée relève de `ui-check`. Les modifications du
-  moteur physique, des profils, collisions, commandes, du temps ou de
-  l'interpolation sont hors de ce chantier ; leur diagnostic physique éventuel
-  exige un périmètre distinct selon `AGENTS.md`.
-- Une qualification de release n'est engagée que si elle est demandée.
+- Classer la demande selon `AGENTS.md`. Un changement de rendu ou d'interaction
+  relève de `ui-check`; une qualification complète ne s'exécute que si elle est
+  demandée.
+- Ne modifier ni moteur, profil, collision, pas de temps, interpolation,
+  commande, trajectoire, ancrage fonctionnel ou référence physique pour adapter
+  le rendu. Three consomme la pose et la caméra KJP et ne devient jamais une
+  autorité de simulation.
+- Conserver le Canvas 2D supérieur, les overlays, le picking, les `hitTargets`,
+  les aussières, les pare-battages et le secours Canvas. Ne pas remplacer les
+  interactions par du raycasting dans une tâche de maintenance du renderer.
+- Modifier les sources sous `src/simulateur-port/`, puis régénérer le HTML avec
+  le build. Ne jamais éditer directement le livrable généré.
 
-## Appliquer le contrat du bon backend
+## Appliquer le contrat actuel
 
-Conserver les validations exactes existantes de Legacy et de Three de
-compatibilité, y compris leurs intermédiaires projetés et références raster.
-Le backend Three natif reçoit des ressources monde persistantes et un état de
-présentation compact ; le `RenderFrame` projeté commun et l'identité des pixels,
-tableaux ou compteurs entre backends ne sont pas ses critères d'acceptation.
-Sa fidélité visuelle ne relâche aucune comparaison physique ou fonctionnelle.
+Le renderer de production est `native-world-renderer.mjs`. Ses ressources monde
+statiques restent persistantes ; un mouvement de caméra peut actualiser matrices
+et paramètres, mais ne reconstruit ni ne retransfère leurs attributs. Le bateau
+joueur conserve le GLB chargé une fois, sa géométrie partagée et sa transformation
+locale. Seules les données visuelles réellement variables peuvent être mises à
+jour.
 
-Appliquer l'architecture, les invariants et la stratégie de validation du
-document de référence sans les recopier dans un plan divergent. Réutiliser les
-acquis validés. N1 commence par les protections, puis le prototype isolé ; sa
-preuve porte sur l'absence de reconstruction **et de transfert effectif** des
-attributs statiques après initialisation lors des mouvements de caméra.
+Le secours `?renderer=canvas` utilise le painter Canvas 2D et les projections
+partagées. Un échec d'initialisation WebGL2, de chargement GLB, de reconstruction
+ou une perte de contexte doit produire un diagnostic explicite puis activer ce
+secours sans changer l'état physique. Les anciens renderers WebGL ne doivent pas
+être réintroduits comme dépendances du produit ; utiliser le tag
+`threejs-migration-legacy-final` pour une investigation historique.
 
-## Exécuter seulement la tranche demandée
+La fidélité native porte sur la présence, les dimensions, l'occlusion, la
+lisibilité, l'information et les interactions. Elle n'impose aucune identité de
+pixels avec Legacy. Une référence raster native peut être exacte sur un
+environnement déterministe et des contrôles tolérants doivent vérifier que les
+mutations significatives restent détectées. Les comparaisons physiques,
+fonctionnelles et de trajectoires restent exactes.
 
-Pour une tranche de code autorisée, modifier les sources concernées sous
-`src/simulateur-port/` et les points d'ancrage prévus par N1–N6. Le HTML est
-généré par le build existant, jamais édité directement. Utiliser les suites et
-hooks KJP existants ; préserver les références exactes. Exécuter les contrôles
-proportionnels de la tranche, documenter leurs limites, puis actualiser Graphify
-après une modification de code. Pour une modification documentaire seule,
-aucun build, test d'exécution ni mise à jour du graphe n'est nécessaire.
+## Choisir le niveau de validation
+
+- Ressource, palette ou caméra locale : `npm run test:rendering`, build concerné
+  et inspection ciblée.
+- Intégration native ou secours Canvas : `npm run test:renderer:quick`, page
+  visible et interaction concernée.
+- Qualification renderer explicitement demandée :
+  `npm run test:renderer:qualification`, matrice
+  `npm run qualify:renderer:native` et profil apparié
+  `npm run profile:renderer:native`. La version de référence est le tag de
+  clôture historique ou un HTML fourni par `--reference`.
+- Release : `npm run verify:release` une seule fois selon `AGENTS.md`.
+
+Les matrices multi-navigateurs, mutations visuelles, cycles de ressources, soak
+et profils sont coûteux et couvrent des risques distincts. Ils restent séparés
+de `test:e2e`; ne pas les ajouter à un contrôle local. Après un changement de
+code, exécuter `graphify update .`.
 
 Pour une adaptation d'API Three.js, charger `threejs-game-studio` et vérifier la
-révision installée et ses API. Ses exemples génériques ne remplacent pas les
-propriétaires de boucle, caméra, physique, interactions ou fond d'eau KJP.
-Consulter les écarts signalés dans la section « Instructions externes au dépôt »
-du cadrage ; ne pas modifier un skill générique ou global pour une règle KJP.
+révision installée. Ses exemples génériques de boucle, éclairage ou raycasting ne
+remplacent pas les propriétaires KJP. Ne pas modifier un skill global pour une
+règle propre à ce dépôt.
