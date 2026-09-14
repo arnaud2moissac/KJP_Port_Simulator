@@ -62,6 +62,12 @@ function contrastRatio(first, second) {
   return (values[0] + .05) / (values[1] + .05);
 }
 
+async function screenshotElement(page, selector) {
+  const box = await page.locator(selector).boundingBox();
+  assert.ok(box && box.width > 0 && box.height > 0, `${selector}: zone absente`);
+  return page.screenshot({ clip: box });
+}
+
 
 
 
@@ -548,7 +554,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("le thème carte marine reste lisible dans tous les rendus", async () => {
     const sampleScene = async () => {
-      const image = await page.locator(".stage").screenshot();
+      const image = await screenshotElement(page, ".stage");
       return { encodedBytes: image.length };
     };
 
@@ -2138,10 +2144,13 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       throttleBox.y + throttleBox.height / 2
     );
     await page.mouse.down();
-    await page.waitForTimeout(520);
-    await page.mouse.up();
+    await page.waitForFunction(() => (
+      window.__PORTANCE_TEST__.snapshot().controls.throttleTarget === 0
+    ), null, { timeout: 3000 });
+    await page.waitForTimeout(250);
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, 0, "le maintien a traversé le neutre");
+    await page.mouse.up();
 
     await throttleDown.click();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
@@ -2223,8 +2232,12 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.doesNotMatch(topologySource, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
 
     await page.goto(simulatorUrl.href);
-    await page.waitForTimeout(500);
-    const desktopImage = await page.locator(".stage").screenshot();
+    await page.waitForSelector('body[data-world-renderer="native"]');
+    await page.waitForFunction(() => {
+      const canvas = document.querySelector("#scene");
+      return canvas.width > 700 && canvas.height > 500;
+    });
+    const desktopImage = await screenshotElement(page, ".stage");
     const desktop = await page.evaluate(() => {
       const canvas = document.querySelector("#scene");
       const options = Array.from(document.querySelectorAll("#scenarioSelect option"))
