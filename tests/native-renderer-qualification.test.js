@@ -255,7 +255,6 @@ test("renderer natif — références sémantiques, DPR et mutations", async t =
     const nativeFamilies = [...new Set(native.report.catalog.owners.map(owner => owner.family))].sort();
     assert.ok(sourceFamilies.every(family => nativeFamilies.includes(family)), `${scene.id}: famille source omise`);
     assert.equal(native.report.player.localCoordinates, true);
-    if (scene.view === "anatomy") assert.equal(native.report.player.visibility["player-anatomy"], true);
     if (scene.environment) {
       assert.ok(native.report.flow.wind.segments > 0);
       assert.ok(native.report.flow.current.segments > 0);

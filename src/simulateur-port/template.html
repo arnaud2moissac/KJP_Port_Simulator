@@ -1850,7 +1850,6 @@
         </div>
         <div class="view-tabs" aria-label="Vues">
           <button type="button" id="topViewButton" aria-pressed="true">Dessus</button>
-          <button type="button" id="anatomyButton" aria-pressed="false">Anatomie</button>
           <button type="button" id="skipperViewButton" aria-pressed="false">Skipper</button>
         </div>
       </div>
@@ -2199,8 +2198,7 @@
           <div class="keyboard-help">
             <span><kbd>←</kbd> <kbd>→</kbd></span><span>déplacer la barre</span>
             <span><kbd>↑</kbd>/<kbd>Q</kbd> <kbd>↓</kbd>/<kbd>W</kbd></span><span>avant / arrière avec arrêt au neutre</span>
-            <span><kbd>Espace</kbd></span><span>recentrer la barre</span>
-            <span><kbd>P</kbd></span><span>mettre en pause</span>
+            <span><kbd>Espace</kbd>/<kbd>P</kbd></span><span>mettre en pause</span>
             <span><kbd>R</kbd></span><span>recommencer</span>
             <span><kbd>Maj</kbd> + glisser</span><span>déplacer la carte autour du bateau</span>
           </div>
@@ -2398,9 +2396,15 @@
           top: "#0b4351",
           middle: "#0a3847",
           bottom: "#072b37",
-          anatomyTop: "#0b5261",
-          anatomyMiddle: "#0a4554",
           wave: "rgba(146,221,225,.45)"
+        },
+        sky: {
+          top: "#185968",
+          horizon: "#12515f"
+        },
+        wireframe: {
+          main: "rgba(188,211,215,.72)",
+          muted: "rgba(188,211,215,.3)"
         },
         grid: {
           enabled: false,
@@ -2485,16 +2489,6 @@
           stripe: ["#3e7f8d", "#b85f52", "#bf9a45", "#567d6a"],
           fender: "#e9e2cb",
           fenderOutline: "#18343c"
-        },
-        anatomy: {
-          keelPort: "rgba(43,96,108,.88)",
-          keelStarboard: "rgba(37,82,94,.9)",
-          keelEdge: "rgba(98,219,227,.88)",
-          rudderPort: "rgba(49,105,116,.9)",
-          rudderStarboard: "rgba(36,80,92,.9)",
-          rudderEdge: "rgba(98,219,227,.9)",
-          shaft: "#d7b977",
-          propeller: "#e1bd67"
         }
       }),
       chart: Object.freeze({
@@ -2506,9 +2500,15 @@
           top: "#b5dce7",
           middle: "#b5dce7",
           bottom: "#b5dce7",
-          anatomyTop: "#c4e4eb",
-          anatomyMiddle: "#c4e4eb",
           wave: "transparent"
+        },
+        sky: {
+          top: "#d3ebf0",
+          horizon: "#c7e5eb"
+        },
+        wireframe: {
+          main: "rgba(47,72,78,.7)",
+          muted: "rgba(47,72,78,.26)"
         },
         grid: {
           enabled: true,
@@ -2593,16 +2593,6 @@
           stripe: ["#006b82", "#a23d3f", "#8d6500", "#397152"],
           fender: "#e9f0ed",
           fenderOutline: "#17333d"
-        },
-        anatomy: {
-          keelPort: "rgba(72,118,129,.72)",
-          keelStarboard: "rgba(54,99,111,.76)",
-          keelEdge: "#006b82",
-          rudderPort: "rgba(77,124,134,.74)",
-          rudderStarboard: "rgba(57,103,114,.78)",
-          rudderEdge: "#006b82",
-          shaft: "#7d5e14",
-          propeller: "#8d6500"
         }
       })
     });
@@ -2727,7 +2717,6 @@
       target: [motion.x, motion.y, 0],
       pan: [0, 0, 0],
       follow: true,
-      anatomy: false,
       skipperYawOffset: 0,
       skipperPitch: SKIPPER_EYE.pitch,
       skipperFocalScale: SKIPPER_EYE.focalScale,
@@ -3111,6 +3100,101 @@
       }
     };
 
+    const UNDERSTANDING_FORCE_SCALE = .0022;
+    const UNDERSTANDING_FORCE_THRESHOLD = 35;
+    const UNDERSTANDING_FORCE_EPSILON = 1e-9;
+
+    function aggregateUnderstandingWind(parts, half) {
+      const contributors = parts.filter(part => (
+        part.name === "Vent"
+        && (half === "fore" ? part.x >= 0 : part.x < 0)
+      ));
+      if (contributors.length === 0) return null;
+
+      let fx = 0;
+      let fy = 0;
+      let moment = 0;
+      let power = 0;
+      let weight = 0;
+      let centroidX = 0;
+      let centroidY = 0;
+      for (const part of contributors) {
+        const magnitude = Math.hypot(part.fx, part.fy);
+        fx += part.fx;
+        fy += part.fy;
+        moment += part.moment;
+        power += Number.isFinite(part.power) ? part.power : 0;
+        weight += magnitude;
+        centroidX += part.x * magnitude;
+        centroidY += part.y * magnitude;
+      }
+
+      const magnitudeSquared = fx * fx + fy * fy;
+      if (magnitudeSquared <= UNDERSTANDING_FORCE_EPSILON ** 2) return null;
+      if (weight > UNDERSTANDING_FORCE_EPSILON) {
+        centroidX /= weight;
+        centroidY /= weight;
+      }
+
+      // Parmi les points de la ligne d'action qui reproduisent le moment total,
+      // choisir le plus proche du barycentre des panneaux de cette demi-coque.
+      const correction = (
+        moment - (centroidX * fy - centroidY * fx)
+      ) / magnitudeSquared;
+      const x = centroidX + correction * fy;
+      const y = centroidY - correction * fx;
+      return {
+        name: half === "fore" ? "Vent avant" : "Vent arrière",
+        fx,
+        fy,
+        x,
+        y,
+        moment,
+        power,
+        category: "environment",
+        representation: "wind-resultant",
+        windHalf: half,
+        contributorCount: contributors.length,
+        centroid: { x: centroidX, y: centroidY }
+      };
+    }
+
+    function understandingForceParts(parts = forceAccumulator.parts) {
+      const windResultants = [
+        aggregateUnderstandingWind(parts, "fore"),
+        aggregateUnderstandingWind(parts, "aft")
+      ].filter(Boolean);
+      const represented = [];
+      let insertedWind = false;
+      for (const part of parts) {
+        if (part.name === "Vent") {
+          if (!insertedWind) represented.push(...windResultants);
+          insertedWind = true;
+          continue;
+        }
+        represented.push(part);
+      }
+      return represented;
+    }
+
+    function understandingForceReport() {
+      return {
+        scale: UNDERSTANDING_FORCE_SCALE,
+        threshold: UNDERSTANDING_FORCE_THRESHOLD,
+        parts: understandingForceParts().map(part => {
+          const magnitude = Math.hypot(part.fx, part.fy);
+          return {
+            ...structuredClone(part),
+            magnitude,
+            vectorLength: magnitude * UNDERSTANDING_FORCE_SCALE,
+            visible: part.representation === "wind-resultant"
+              ? magnitude > UNDERSTANDING_FORCE_EPSILON
+              : magnitude >= UNDERSTANDING_FORCE_THRESHOLD
+          };
+        })
+      };
+    }
+
     let physicsSimulator = null;
     let physicsCalibrationKey = "";
     let physicsEnvironmentKey = "";
@@ -3308,7 +3392,7 @@
     // État de bootstrap sûr, remplacé par activateInitialWorldRenderer() une
     // fois le scénario et l'interface installés.
     let activeWorldRenderer = "canvas";
-    let nativeInfrastructureTheme = null;
+    let nativeInfrastructureAppearance = null;
     let nativeChartGridSignature = null;
     let nativeInfrastructureError = null;
     let failNextNativeInfrastructureBuild = false; // Injection accessible seulement par ?test.
@@ -3414,7 +3498,10 @@
             includeSeamarks: true,
             includeShoreCleats: activeWorldRenderer === "native"
           }));
-          nativeInfrastructureTheme = ui.visualTheme;
+          nativeWorldRenderer.updatePalette(nativeInfrastructurePalette(), {
+            wireframe: ui.mode === "understand"
+          });
+          nativeInfrastructureAppearance = `${ui.visualTheme}:${ui.mode}`;
           nativeChartGridSignature = null;
         } catch (error) {
           // Une panne du renderer ne doit jamais interrompre l'installation du
@@ -4440,10 +4527,6 @@
         "aria-pressed",
         String(camera.view === "top")
       );
-      $("#anatomyButton").setAttribute(
-        "aria-pressed",
-        String(camera.view === "anatomy")
-      );
       $("#skipperViewButton").setAttribute(
         "aria-pressed",
         String(camera.view === "skipper")
@@ -4451,20 +4534,15 @@
     }
 
     function setCameraView(view) {
-      camera.view = ["top", "anatomy", "skipper"].includes(view)
+      camera.view = ["top", "skipper"].includes(view)
         ? view
         : "top";
-      camera.anatomy = camera.view === "anatomy";
       camera.pan = [0, 0, 0];
       camera.target = [motion.x, motion.y, 0];
       if (camera.view === "top") {
         camera.yaw = -90 * DEG;
         camera.pitch = 78 * DEG;
         camera.distance = 53;
-      } else if (camera.view === "anatomy") {
-        camera.yaw = -52 * DEG;
-        camera.pitch = 42 * DEG;
-        camera.distance = 42;
       } else {
         camera.skipperYawOffset = 0;
         camera.skipperPitch = SKIPPER_EYE.pitch;
@@ -5741,14 +5819,11 @@
 
     function addBoatMesh(boat, player = false, palette = visualPalette(), options = {}) {
       const boatPalette = palette.boat;
-      const anatomyPalette = palette.anatomy;
       const pointFor = options.pointFor || localPoint;
       const parts = options.parts ? new Set(options.parts) : null;
       const includes = part => !parts || parts.has(part) || part.startsWith("fender:") && parts.has("fenders");
       const accelerated = options.accelerated ?? (player && ui.timeScale === 2);
-      const anatomyVisible = options.anatomy ?? camera.anatomy;
       const contactItems = options.contacts || contacts.current;
-      const propellerAngle = options.propellerAngle ?? (ui.simTime * controls.throttleActual * 12);
       const boatOutline = accelerated
         ? boatPalette.acceleratedOutline
         : boatPalette.outline;
@@ -5793,60 +5868,6 @@
             [],
             4
           );
-        }
-      }
-
-      if (player && anatomyVisible && includes("anatomy")) {
-        const keelPort = [
-          pointFor(boat, 1.05, .2, -.15),
-          pointFor(boat, -.95, .2, -.15),
-          pointFor(boat, -1.15, .14, -1.78),
-          pointFor(boat, .35, .14, -1.92)
-        ];
-        const keelStarboard = [
-          pointFor(boat, 1.05, -.2, -.15),
-          pointFor(boat, -.95, -.2, -.15),
-          pointFor(boat, -1.15, -.14, -1.78),
-          pointFor(boat, .35, -.14, -1.92)
-        ];
-        addPolygon(keelPort, anatomyPalette.keelPort, anatomyPalette.keelEdge, 1.2, .03);
-        addPolygon(keelStarboard, anatomyPalette.keelStarboard, anatomyPalette.keelEdge, 1.1, .03);
-        addPolygon(
-          [keelPort[2], keelStarboard[2], keelStarboard[3], keelPort[3]],
-          anatomyPalette.keelStarboard, anatomyPalette.keelEdge, 1.1, .04
-        );
-        addWorldLine([...keelPort, keelPort[0]], anatomyPalette.keelEdge, 1.5, [], 7);
-
-        const rudderPort = [
-          pointFor(boat, -3.8, .12, -.2),
-          pointFor(boat, -4.72, .12, -.35),
-          pointFor(boat, -4.55, .1, -1.55),
-          pointFor(boat, -3.95, .1, -1.35)
-        ];
-        const rudderStarboard = [
-          pointFor(boat, -3.8, -.12, -.2),
-          pointFor(boat, -4.72, -.12, -.35),
-          pointFor(boat, -4.55, -.1, -1.55),
-          pointFor(boat, -3.95, -.1, -1.35)
-        ];
-        addPolygon(rudderPort, anatomyPalette.rudderPort, anatomyPalette.rudderEdge, 1.2, .04);
-        addPolygon(rudderStarboard, anatomyPalette.rudderStarboard, anatomyPalette.rudderEdge, 1.1, .04);
-        addWorldLine([...rudderPort, rudderPort[0]], anatomyPalette.rudderEdge, 1.5, [], 7);
-        const shaftStart = pointFor(boat, -2.35, 0, -.34);
-        const propCenter = pointFor(boat, BOAT_PROFILE.propellerX, 0, -.55);
-        addWorldLine([shaftStart, propCenter], anatomyPalette.shaft, 2, [], 5);
-      }
-      if (player && anatomyVisible && includes("propeller")) {
-        const propCenter = pointFor(boat, BOAT_PROFILE.propellerX, 0, -.55);
-        for (let blade = 0; blade < 3; blade++) {
-          const angle = blade * Math.PI * 2 / 3 + propellerAngle;
-          const end = pointFor(
-            boat,
-            BOAT_PROFILE.propellerX,
-            Math.cos(angle) * .34,
-            -.55 + Math.sin(angle) * .34
-          );
-          addWorldLine([propCenter, end], anatomyPalette.propeller, 2.2, [], 6);
         }
       }
 
@@ -5913,6 +5934,12 @@
         ctx.lineTo(item.points[index].x, item.points[index].y);
       }
       ctx.closePath();
+      if (ui.mode === "understand") {
+        ctx.strokeStyle = visualPalette().wireframe.main;
+        ctx.lineWidth = Math.max(.7, item.lineWidth || 0);
+        ctx.stroke();
+        return;
+      }
       ctx.fillStyle = item.fill;
       ctx.fill();
       if (item.stroke && item.lineWidth > 0) {
@@ -5930,7 +5957,9 @@
       for (let index = 1; index < item.points.length; index++) {
         ctx.lineTo(item.points[index].x, item.points[index].y);
       }
-      ctx.strokeStyle = item.color;
+      ctx.strokeStyle = ui.mode === "understand" && item.layer < 9
+        ? visualPalette().wireframe.main
+        : item.color;
       ctx.lineWidth = item.width;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -5974,14 +6003,33 @@
       ctx.restore();
     }
 
+    function sceneHorizonY() {
+      const basis = frameBasis || cameraBasis();
+      const horizontalForward = Math.hypot(basis.forward[0], basis.forward[1]);
+      if (horizontalForward < 1e-6) return basis.forward[2] > 0 ? canvasHeight : 0;
+      const focalScale = camera.view === "skipper" ? camera.skipperFocalScale : 1.05;
+      const focal = Math.min(canvasWidth, canvasHeight) * focalScale;
+      const horizon = clamp(
+        canvasHeight / 2 - focal * (-basis.forward[2] / horizontalForward),
+        0,
+        canvasHeight
+      );
+      return Math.round(horizon * 10) / 10;
+    }
+
+    function sceneBackgroundCss(palette, horizonY) {
+      const water = palette.water;
+      const waterMiddleY = horizonY + (canvasHeight - horizonY) * .52;
+      return `linear-gradient(180deg, ${palette.sky.top} 0px, ${palette.sky.horizon} ${horizonY}px, ${water.top} ${horizonY}px, ${water.middle} ${waterMiddleY}px, ${water.bottom} 100%)`;
+    }
+
     function drawWater(time) {
       const palette = visualPalette();
       const water = palette.water;
+      const horizonY = sceneHorizonY();
       if (activeWorldRenderer === "native") {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        const background = water.mode === "flat-chart"
-          ? (camera.anatomy ? water.anatomyTop : water.top)
-          : `linear-gradient(180deg, ${camera.anatomy ? water.anatomyTop : water.top}, ${camera.anatomy ? water.anatomyMiddle : water.middle} 52%, ${water.bottom})`;
+        const background = sceneBackgroundCss(palette, horizonY);
         // Le fond reste hors du canevas WebGL transparent. Sur Chromium, changer
         // le background du canevas après une composition alpha pouvait conserver
         // le fond clair précédent malgré le retour effectif à la palette nuit.
@@ -5995,24 +6043,32 @@
         }
         return;
       }
+      if (horizonY > 0) {
+        const skyGradient = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGradient.addColorStop(0, palette.sky.top);
+        skyGradient.addColorStop(1, palette.sky.horizon);
+        ctx.fillStyle = skyGradient;
+        ctx.fillRect(0, 0, canvasWidth, horizonY);
+      }
+      if (horizonY >= canvasHeight) return;
       if (water.mode === "flat-chart") {
-        ctx.fillStyle = camera.anatomy ? water.anatomyTop : water.top;
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.fillStyle = water.top;
+        ctx.fillRect(0, horizonY, canvasWidth, canvasHeight - horizonY);
         return;
       }
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-      gradient.addColorStop(0, camera.anatomy ? water.anatomyTop : water.top);
-      gradient.addColorStop(.52, camera.anatomy ? water.anatomyMiddle : water.middle);
+      const gradient = ctx.createLinearGradient(0, horizonY, 0, canvasHeight);
+      gradient.addColorStop(0, water.top);
+      gradient.addColorStop(.52, water.middle);
       gradient.addColorStop(1, water.bottom);
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      ctx.fillRect(0, horizonY, canvasWidth, canvasHeight - horizonY);
 
       const phase = reducedMotion ? 0 : time * .00008;
       ctx.save();
-      ctx.globalAlpha = camera.anatomy ? .13 : .18;
+      ctx.globalAlpha = .18;
       ctx.strokeStyle = water.wave;
       ctx.lineWidth = .7;
-      for (let y = 22; y < canvasHeight; y += 34) {
+      for (let y = horizonY + 22; y < canvasHeight; y += 34) {
         ctx.beginPath();
         for (let x = -20; x <= canvasWidth + 20; x += 16) {
           const wave = Math.sin(x * .035 + y * .018 + phase * 9) * 2;
@@ -6186,11 +6242,16 @@
 
     function nativeFlowPresentation(simulationSeconds) {
       const presentation = flowParticlePresentation(simulationSeconds);
+      const palette = visualPalette();
       return {
         fields: presentation.fields.map(field => {
           const segments = flowSegments(field);
           flowRenderStats[`${field.id}Segments`] = segments.length;
-          return { id: field.id, color: field.color, segments };
+          return {
+            id: field.id,
+            color: ui.mode === "understand" ? palette.wireframe.muted : field.color,
+            segments
+          };
         })
       };
     }
@@ -6201,14 +6262,17 @@
         Array.isArray(value)
           ? value.map((color, i) => [`${prefix}${key}.${i}`, color])
           : [[`${prefix}${key}`, value]]);
-      return Object.fromEntries([
+      const entries = [
         ...flatten("", palette.harbor),
         ...flatten("boat.", palette.boat),
         ["semantic.cleat", palette.semantic.cleat],
         ["semantic.cleatDisabled", palette.semantic.cleatDisabled],
         ...["red", "green", "yellow", "black", "white", "orange", "blue"]
           .map(name => [`buoy.${name}`, buoyCanvasColour(name, palette.id === "chart")])
-      ]);
+      ];
+      return Object.fromEntries(ui.mode === "understand"
+        ? entries.map(([role]) => [role, palette.wireframe.main])
+        : entries);
     }
 
     function nativeBoatPaletteRoles() {
@@ -6334,7 +6398,6 @@
       }
       return {
         boat,
-        anatomy: roles("anatomy.", visualPalette().anatomy),
         semantic: { contact: fenderIndex === null ? "semantic.contact" : `player.fender.${fenderIndex}.fill` }
       };
     }
@@ -6364,16 +6427,18 @@
           : [[`${prefix}${key}`, value]]
       ));
       const contactSet = new Set(contactFenders);
-      return Object.fromEntries([
+      const entries = [
         ...flatten("boat.", boat),
-        ...flatten("anatomy.", palette.anatomy),
         ["semantic.contact", palette.semantic.contact],
         ...BOAT_PROFILE.fenders.flatMap((_, index) => {
           const color = contactSet.has(index) ? palette.semantic.contact : palette.boat.fender;
           const outline = contactSet.has(index) ? palette.semantic.contact : palette.boat.fenderOutline;
           return [[`player.fender.${index}.fill`, color], [`player.fender.${index}.outline`, outline]];
         })
-      ]);
+      ];
+      return Object.fromEntries(ui.mode === "understand"
+        ? entries.map(([role]) => [role, palette.wireframe.main])
+        : entries);
     }
 
     function nativePlayerDefinition() {
@@ -6392,9 +6457,7 @@
               parts,
               accelerated: false,
               cameraView: "top",
-              anatomy: true,
-              contacts: [],
-              propellerAngle: 0
+              contacts: []
             }
           );
         } finally {
@@ -6403,8 +6466,6 @@
         owners.push(owner);
         return owner;
       };
-      collect("player-anatomy", "static", nativePlayerPaletteRoles(), ["anatomy"]);
-      collect("player-propeller", "blades", nativePlayerPaletteRoles(), ["propeller"]);
       for (const [index] of BOAT_PROFILE.fenders.entries()) {
         collect("player-fender", String(index), nativePlayerPaletteRoles(index), [`fender:${index}`]);
       }
@@ -6422,14 +6483,6 @@
               && worldRendererParameters.has("failNativePlayerModel"),
             reference: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
           },
-          propeller: {
-            owner: "player-propeller:blades",
-            center: [BOAT_PROFILE.propellerX, 0, -.55],
-            radius: .34,
-            blades: 3,
-            initialAngle: 0
-          },
-          anatomyFamilies: ["player-anatomy", "player-propeller"],
           fenderWidths: [
             { regular: 1.7, contact: 2.8 },
             { regular: 1.3, contact: 2.4 },
@@ -6445,11 +6498,10 @@
       const contactFenders = nativePlayerContactFenders();
       return {
         pose: { x: pose.x, y: pose.y, heading: pose.heading },
-        anatomy: camera.anatomy,
+        wireframe: ui.mode === "understand",
         accelerated: ui.timeScale === 2,
         cameraView: camera.view,
         contactFenders,
-        propellerAngle: ui.simTime * controls.throttleActual * 12,
         palette: nativePlayerPalette(contactFenders)
       };
     }
@@ -6495,10 +6547,12 @@
         add(isMajor(y), [[minX, y, -.05], [maxX, y, -.05]]);
       }
       return {
-        signature: JSON.stringify([palette.id, camera.view, step, minX, maxX, minY, maxY]),
+        signature: JSON.stringify([palette.id, ui.mode, camera.view, step, minX, maxX, minY, maxY]),
         definition: {
           owners,
-          palette: { "grid.minor": palette.grid.color, "grid.major": palette.grid.majorColor }
+          palette: ui.mode === "understand"
+            ? { "grid.minor": palette.wireframe.muted, "grid.major": palette.wireframe.muted }
+            : { "grid.minor": palette.grid.color, "grid.major": palette.grid.majorColor }
         }
       };
     }
@@ -6517,7 +6571,8 @@
     }
 
     function syncNativeDistantShoreCleats() {
-      const semantic = visualPalette().semantic;
+      const palette = visualPalette();
+      const semantic = palette.semantic;
       const visibleOwners = [];
       if (camera.distance <= 220) {
         const visible = visibleHarborIds();
@@ -6530,7 +6585,9 @@
       }
       nativeWorldRenderer.updateFamily("shore-cleat", {
         visibleOwners,
-        color: moorings.selected ? semantic.cleatDisabled : semantic.cleat,
+        color: ui.mode === "understand"
+          ? palette.wireframe.main
+          : moorings.selected ? semantic.cleatDisabled : semantic.cleat,
         linewidth: moorings.selected ? 1.5 : 2.4
       });
       return visibleOwners.length;
@@ -6554,6 +6611,9 @@
           playerDefinition: nativePlayerDefinition(),
           flowDefinition: nativeFlowDefinition()
         });
+        next.updatePalette(nativeInfrastructurePalette(), {
+          wireframe: ui.mode === "understand"
+        });
         next.attach(canvas.parentElement, canvas);
       } catch (error) {
         next?.dispose();
@@ -6564,7 +6624,7 @@
       nativeWorldRenderer = next;
       nativeInfrastructureEnabled = true;
       nativePlayerEnabled = true;
-      nativeInfrastructureTheme = ui.visualTheme;
+      nativeInfrastructureAppearance = `${ui.visualTheme}:${ui.mode}`;
       nativeChartGridSignature = null;
       nativeInfrastructureError = null;
       activeWorldRenderer = "native";
@@ -6603,7 +6663,7 @@
       const palette = visualPalette();
       const harbor = palette.harbor;
       const visible = visibleHarborIds();
-      const cachePrefix = `${palette.id}:${camera.anatomy ? "anatomy" : "surface"}`;
+      const cachePrefix = palette.id;
       for (const [index, polygon] of harborTerrain.polygons.entries()) {
         if (polygon.id && !visible.has(polygon.id)) continue;
         addCachedWorldGeometry(`terrain:${cachePrefix}:${polygon.id || index}`, () => {
@@ -7116,7 +7176,7 @@
         const pickupProjected = project(pickup);
         if (!pickupProjected) continue;
         const selected = pendilleState.selectedId === pendille.id;
-        if (ui.mode === "understand" || camera.view === "anatomy") {
+        if (ui.mode === "understand") {
           const anchorProjected = project(anchor);
           if (anchorProjected) {
             drawScreenPath(
@@ -7235,20 +7295,25 @@
       if (ui.mode !== "understand") return;
       const palette = visualPalette();
       const semantic = palette.semantic;
-      const scale = .0022;
       const labels = new Set();
       const boatMotion = sceneMotion();
       const physicsView = latestPhysicsSnapshot || physicsSimulator.snapshot();
-      for (const part of forceAccumulator.parts) {
+      for (const part of understandingForceParts()) {
         if (part.name === "Coque · résistance latérale" && labels.has("Coque")) continue;
-        if (part.name === "Vent" && labels.has("Vent")) continue;
         const magnitude = Math.hypot(part.fx, part.fy);
-        if (magnitude < 35) continue;
+        if (
+          part.representation !== "wind-resultant"
+          && magnitude < UNDERSTANDING_FORCE_THRESHOLD
+        ) continue;
         const origin = localPoint(boatMotion, part.x, part.y, .75);
-        const vectorWorld = bodyToWorld(part.fx * scale, part.fy * scale, boatMotion.heading);
+        const vectorWorld = bodyToWorld(
+          part.fx * UNDERSTANDING_FORCE_SCALE,
+          part.fy * UNDERSTANDING_FORCE_SCALE,
+          boatMotion.heading
+        );
         let color = semantic.force;
         let label = part.name;
-        if (part.name === "Vent") color = semantic.wind;
+        if (part.representation === "wind-resultant") color = semantic.wind;
         if (part.name === "Effet de pas") color = semantic.propWalk;
         if (part.category === "mooring") {
           color = semantic.mooringTaut;
@@ -7334,41 +7399,6 @@
       }
     }
 
-    function drawAnatomyLabels() {
-      if (!camera.anatomy) return;
-      const palette = visualPalette();
-      const boatMotion = sceneMotion();
-      const items = [
-        { point: localPoint(boatMotion, -.2, -.2, -1.48), label: "Quille", color: palette.semantic.wind, dx: -62, dy: 25 },
-        { point: localPoint(boatMotion, -4.38, -.12, -1.12), label: "Safran", color: palette.semantic.rudder, dx: 24, dy: 24 },
-        { point: localPoint(boatMotion, BOAT_PROFILE.propellerX, 0, -.55), label: "Hélice", color: palette.semantic.current, dx: 22, dy: -29 }
-      ];
-      for (const item of items) {
-        const point = project(item.point);
-        if (!point) continue;
-        const labelX = point.x + item.dx;
-        const labelY = point.y + item.dy;
-        ctx.save();
-        ctx.strokeStyle = item.color;
-        ctx.fillStyle = item.color;
-        ctx.lineWidth = 1.3;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 3.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(point.x + Math.sign(item.dx) * 4, point.y);
-        ctx.lineTo(labelX + (item.dx < 0 ? 45 : 0), labelY - 7);
-        ctx.stroke();
-        ctx.font = "10px ui-sans-serif, system-ui, sans-serif";
-        const width = ctx.measureText(item.label).width;
-        ctx.fillStyle = palette.label.background;
-        ctx.fillRect(labelX, labelY - 18, width + 12, 20);
-        ctx.fillStyle = palette.label.text;
-        ctx.fillText(item.label, labelX + 6, labelY - 4);
-        ctx.restore();
-      }
-    }
-
     function render(time) {
       const renderCpuStart = performance.now();
       renderPerformance.visibilityComputations = 0;
@@ -7403,7 +7433,7 @@
         addDistantShoreCleatGeometry();
         addGoalGeometry();
         const visible = visibleHarborFrameCache;
-        const boatCachePrefix = `${visualPalette().id}:${camera.anatomy ? "anatomy" : "surface"}`;
+        const boatCachePrefix = visualPalette().id;
         for (const boat of staticBoats) {
           if (!visible.has(boat.id)) continue;
           addCachedWorldGeometry(`boat:${boatCachePrefix}:${boat.id}`, () => {
@@ -7420,9 +7450,12 @@
       }
       if (nativeWorldActive) {
         try {
-          if (nativeInfrastructureTheme !== ui.visualTheme) {
-            nativeWorldRenderer.updatePalette(nativeInfrastructurePalette());
-            nativeInfrastructureTheme = ui.visualTheme;
+          const appearance = `${ui.visualTheme}:${ui.mode}`;
+          if (nativeInfrastructureAppearance !== appearance) {
+            nativeWorldRenderer.updatePalette(nativeInfrastructurePalette(), {
+              wireframe: ui.mode === "understand"
+            });
+            nativeInfrastructureAppearance = appearance;
           }
           const gridRebuilt = syncNativeChartGrid();
           const distantShoreCleats = syncNativeDistantShoreCleats();
@@ -7481,10 +7514,12 @@
       }
       drawMooringLayer();
       drawUnderstandingOverlay();
-      drawAnatomyLabels();
-      if (!nativeWorldActive && nativeInfrastructureEnabled && nativeInfrastructureTheme !== ui.visualTheme) {
-        nativeWorldRenderer.updatePalette(nativeInfrastructurePalette());
-        nativeInfrastructureTheme = ui.visualTheme;
+      const appearance = `${ui.visualTheme}:${ui.mode}`;
+      if (!nativeWorldActive && nativeInfrastructureEnabled && nativeInfrastructureAppearance !== appearance) {
+        nativeWorldRenderer.updatePalette(nativeInfrastructurePalette(), {
+          wireframe: ui.mode === "understand"
+        });
+        nativeInfrastructureAppearance = appearance;
       }
       if (!nativeWorldActive && nativeWorldRenderer) {
         nativeWorldRenderer.render(nativeCameraSnapshot(), pixelRatio,
@@ -8078,14 +8113,20 @@
       });
     });
 
-    $$("[data-mode]").forEach(button => button.addEventListener("click", () => {
-      ui.mode = button.dataset.mode;
+    function setDisplayMode(mode) {
+      ui.mode = mode === "understand" ? "understand" : "navigation";
       if (ui.mode === "understand") syncForceAccumulator();
       else forceAccumulator.reset();
       $$("[data-mode]").forEach(candidate => candidate.setAttribute(
         "aria-selected",
         String(candidate.dataset.mode === ui.mode)
       ));
+      nativeInfrastructureAppearance = null;
+      nativeChartGridSignature = null;
+    }
+
+    $$("[data-mode]").forEach(button => button.addEventListener("click", () => {
+      setDisplayMode(button.dataset.mode);
     }));
 
     $("#scenarioSelect").addEventListener("change", event => applyScenario(event.target.value));
@@ -8129,7 +8170,6 @@
       }
     });
     $("#topViewButton").addEventListener("click", () => setCameraView("top"));
-    $("#anatomyButton").addEventListener("click", () => setCameraView("anatomy"));
     $("#skipperViewButton").addEventListener("click", () => setCameraView("skipper"));
     $("#themeToggle").addEventListener("click", () => {
       setVisualTheme(ui.visualTheme === "dark" ? "chart" : "dark");
@@ -8307,8 +8347,7 @@
       );
       if (focusConsumesShortcuts) return;
       if ([" ", "p", "P", "r", "R"].includes(key)) event.preventDefault();
-      if (key === " ") centerRudder();
-      if ((key === "p" || key === "P") && !event.repeat) togglePause();
+      if ((key === " " || key === "p" || key === "P") && !event.repeat) togglePause();
       if ((key === "r" || key === "R") && !event.repeat) applyScenario(ui.scenarioId);
     }, { capture: true });
 
@@ -8797,7 +8836,6 @@
       );
       return {
         view: camera.view,
-        anatomy: camera.anatomy,
         distance: camera.distance,
         minimumDistance: CAMERA_DISTANCE_MIN,
         maximumDistance: CAMERA_DISTANCE_MAX,
@@ -8854,8 +8892,15 @@
         bathymetry: palette.bathymetry,
         water: {
           mode: palette.water.mode,
-          base: camera.anatomy ? palette.water.anatomyTop : palette.water.top,
+          base: palette.water.top,
+          sky: { ...palette.sky },
+          horizonY: sceneHorizonY(),
           depthContours: false
+        },
+        presentation: {
+          mode: ui.mode,
+          wireframe: ui.mode === "understand",
+          wireframePalette: { ...palette.wireframe }
         },
         compositor: {
           themeId: waterRenderState.themeId,
@@ -9236,6 +9281,7 @@
           };
         },
         visualThemeReport,
+        understandingForceReport,
         timeScaleReport,
         engineAudioReport,
         rendererGuardReport: () => ({

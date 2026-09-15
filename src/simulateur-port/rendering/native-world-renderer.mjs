@@ -127,6 +127,7 @@ export function createNativeWorldRenderer(definition, {
         draw: { ...renderer.info.render },
         materials: [...new Set(objects.map(o => o.material))].map(m => ({
           id: m.uuid, role: m.userData.role, color: m.color.getHexString(), opacity: m.opacity,
+          ...(m.isMeshBasicMaterial ? { wireframe: m.wireframe } : {}),
           ...(Number.isFinite(m.linewidth) ? { linewidth: m.linewidth, baseLinewidth: m.userData.baseLinewidth } : {})
         })) } : {}),
       ...(playerResources ? { player: playerResources.report() } : {}),
@@ -184,7 +185,7 @@ export function createNativeWorldRenderer(definition, {
   }
   // Les ressources sont accessibles au hook de mutation du banc, jamais au moteur.
   return Object.freeze({ render, report, dispose, replaceResources, replaceLayer, removeLayer, attach, detach,
-    updatePalette: palette => resources.updatePalette?.(palette),
+    updatePalette: (palette, options) => resources.updatePalette?.(palette, options),
     updateFamily: (family, presentation) => resources.updateFamily?.(family, presentation),
     get resources() { return resources; },
     get playerResources() { return playerResources; },

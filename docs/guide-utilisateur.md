@@ -10,8 +10,9 @@ Le simulateur est conçu pour essayer, observer et recommencer. Il aide à const
 2. Gardez le port pédagogique et choisissez **Ponton · sortie en marche avant**.
 3. Cliquez sur les deux aussières pour les larguer.
 4. Utilisez `↑` ou `Q` pour la marche avant, `↓` ou `W` pour la marche arrière. La commande s'arrête au neutre : relâchez puis appuyez de nouveau pour inverser.
-5. Déplacez la barre avec `←` et `→`. Elle ne revient pas seule au milieu ; `Espace` la recentre.
-6. Recommencez avec un peu de vent, puis avec du courant. Ne changez qu'un paramètre à la fois.
+5. Déplacez la barre avec `←` et `→`. Elle ne revient pas seule au milieu ; utilisez le bouton central pour la recentrer.
+6. Appuyez sur `Espace` ou `P` pour mettre la simulation en pause ou la reprendre.
+7. Recommencez avec un peu de vent, puis avec du courant. Ne changez qu'un paramètre à la fois.
 
 Les mêmes commandes sont disponibles sur écran tactile. La barre se règle en faisant glisser son curseur, comme un volant qui garde sa position.
 
@@ -29,9 +30,9 @@ Le renderer Three.js natif est utilisé au démarrage. Si WebGL2, le modèle du 
 - **Dérive** : angle entre l'axe du bateau et sa vitesse relative à l'eau.
 - **Régime** : vitesse réelle du moteur, qui peut chuter quand l'hélice est fortement chargée.
 
-La vue **Dessus** est la plus précise pour manœuvrer. **Anatomie** révèle quille, safran et hélice. **Skipper** conserve le regard orienté avec le bateau tout en laissant la caméra libre.
+La vue **Dessus** est la plus précise pour manœuvrer. **Skipper** conserve le regard orienté avec le bateau tout en laissant la caméra libre.
 
-Le mode **Comprendre** superpose les efforts, le jet d'hélice, l'axe du safran et le point de pivot calculé. Les flèches indiquent des directions et des rapports de force ; elles ne constituent pas une mesure instrumentale.
+Le mode **Comprendre** passe le port et les bateaux en filaire monochrome, puis superpose les efforts, le jet d'hélice, l'axe du safran et le point de pivot calculé. Le vent est synthétisé par deux résultantes, **Vent avant** et **Vent arrière**, calculées à partir des panneaux aérodynamiques de chaque demi-bateau. Les flèches colorées partagent la même échelle et indiquent des directions et des rapports de force ; elles ne constituent pas une mesure instrumentale.
 
 ![Forces et point de pivot dans le mode Comprendre](images/03-mode-comprendre.jpg)
 

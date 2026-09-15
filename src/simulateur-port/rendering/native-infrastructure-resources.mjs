@@ -132,8 +132,13 @@ export function createNativeInfrastructureResources({ owners, palette }) {
       warmed = true;
       for (const object of group.children) object.frustumCulled = !object.isLineSegments2;
     },
-    updatePalette(next) {
-      for (const material of materials.values()) applyColor(material, next[material.userData.role]);
+    updatePalette(next, { wireframe = false } = {}) {
+      for (const material of materials.values()) {
+        applyColor(material, next[material.userData.role]);
+        if (!material.isMeshBasicMaterial || material.wireframe === Boolean(wireframe)) continue;
+        material.wireframe = Boolean(wireframe);
+        material.needsUpdate = true;
+      }
     },
     updateFamily(family, { visibleOwners = null, color = null, linewidth = null } = {}) {
       const visible = visibleOwners === null ? null : new Set(visibleOwners);
@@ -150,6 +155,8 @@ export function createNativeInfrastructureResources({ owners, palette }) {
       }
     },
     report: () => ({ ...totals, owners: inventory.map(o => ({ ...o })), geometryCount: geometries.length,
-      materialCount: materials.size, warmed })
+      materialCount: materials.size,
+      wireframeMaterials: [...materials.values()].filter(material => material.isMeshBasicMaterial && material.wireframe).length,
+      warmed })
   });
 }

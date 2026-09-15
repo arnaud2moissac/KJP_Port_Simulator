@@ -18,9 +18,9 @@
       "view": "top",
       "mode": "navigation",
       "image": "tests/visual-baselines/native/built-in-dark-top-navigation.png",
-      "imageBytes": 48965,
-      "imageSha256": "eda80da0316e6ef131e5501272431092835cc3f298a33892cfc5d408bac7d652",
-      "reportSha256": "16db87c90d88aa4cbaf3bf63e5e45c6eb27cc71706e0e8da1c2f88a5bee207a7"
+      "imageBytes": 46431,
+      "imageSha256": "75ad0a0f62f1ec34c2c1f3996bd0c010d335d3ea6f4f776ece1568acb460a6d4",
+      "reportSha256": "25f7479fe5641e51276e47a5af15419134b12439f57b9eb8e41becb74259c0d6"
     },
     {
       "id": "built-in-chart-top-understand",
@@ -35,20 +35,9 @@
         "currentFromDeg": 215
       },
       "image": "tests/visual-baselines/native/built-in-chart-top-understand.png",
-      "imageBytes": 87047,
-      "imageSha256": "3d1965c77ff441be709d54618f293dfbb801ccf09cd9edcca0191c10da950835",
-      "reportSha256": "42f041cab8790e399aeed1bb9d3f6e23e447ac5ff2afa03e75e2f605fa422289"
-    },
-    {
-      "id": "built-in-dark-anatomy-understand",
-      "port": "built-in",
-      "theme": "dark",
-      "view": "anatomy",
-      "mode": "understand",
-      "image": "tests/visual-baselines/native/built-in-dark-anatomy-understand.png",
-      "imageBytes": 100866,
-      "imageSha256": "a3996e44ead3f3f6c522705e3f23e429bc3863bb308a73f7e92676c0775c3484",
-      "reportSha256": "c6ece43d4616eabd24c4e5b0d01a207b2910f7b5c06478c066b9a73246f83ae7"
+      "imageBytes": 136469,
+      "imageSha256": "d4bfeb307a23c934e9af42502d0f125a367f5752252c7d4b4d903aa0adf19fa1",
+      "reportSha256": "6ea1b9bc6d632f9cfd3fc1c577f7d3623a0af01f18a75d8c6f52f3e4429ec7ad"
     },
     {
       "id": "built-in-chart-skipper-navigation",
@@ -57,9 +46,9 @@
       "view": "skipper",
       "mode": "navigation",
       "image": "tests/visual-baselines/native/built-in-chart-skipper-navigation.png",
-      "imageBytes": 97559,
-      "imageSha256": "fbf01a319b01428cd68028f5758fbc845d3539bb48869aa081bf03e77fbd296a",
-      "reportSha256": "137897ad07af3a0116415c7f9275d112450fec6e07512836deebb13dd5d861df"
+      "imageBytes": 91875,
+      "imageSha256": "a27c0292307f3451f26622f803f1d945ec6161c1769adf9ef4efff22283f97d4",
+      "reportSha256": "3c3c0b71b13c3a718e4d15ab0386587f6c0ab16829903a29e95c543f1c9c210a"
     },
     {
       "id": "la-trinite-dark-top-navigation",
@@ -68,9 +57,9 @@
       "view": "top",
       "mode": "navigation",
       "image": "tests/visual-baselines/native/la-trinite-dark-top-navigation.png",
-      "imageBytes": 31301,
-      "imageSha256": "b05f3f1bcc15c86b754b9e61cd4e16d118f70371c0c8f5fa44ab55b7939d5ffd",
-      "reportSha256": "575ad14b5e649aa3f0160d88faa5574d7720e8f3c17309108d339f29a7c01984"
+      "imageBytes": 27589,
+      "imageSha256": "5c34296bb27aa479bf000513b109eee62bee6874c21bd922d33a13f52ef58253",
+      "reportSha256": "65aee2e56138ce291edd248fdb6813ac52e1c33def5a41e110347be3c236cc5d"
     },
     {
       "id": "la-trinite-chart-skipper-navigation",
@@ -79,9 +68,9 @@
       "view": "skipper",
       "mode": "navigation",
       "image": "tests/visual-baselines/native/la-trinite-chart-skipper-navigation.png",
-      "imageBytes": 69066,
-      "imageSha256": "1302807a2798b29699583b265748372ae833db410c303001e809d941cf10d24d",
-      "reportSha256": "d70f8dcd9387c9132f0f469ef6bec41e7ab58af25bb772088c16efa5ac52a825"
+      "imageBytes": 63463,
+      "imageSha256": "71708da540a684b04e2f51ee37358a0d825923e37efb8a502ce4402e16580417",
+      "reportSha256": "3d0b84115d94d234367e5ec35b1f0627d8f5279db284843b8407e92d94717b95"
     }
   ]
 }

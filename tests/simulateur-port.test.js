@@ -460,7 +460,6 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
     for (const report of [result.initial, result.afterTurn]) {
       assert.equal(report.view, "skipper");
-      assert.equal(report.anatomy, false);
       assert.ok(Math.abs(report.headingRelativeToBoat) < 1e-12);
       assert.ok(Math.abs(report.eyeLocal[0] + 8.2) < 1e-12);
       assert.ok(Math.abs(report.eyeLocal[1]) < 1e-12);
@@ -588,12 +587,13 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(darkReport.toggle.text, "");
     assert.equal(darkReport.toggle.pressed, "false");
     assert.match(darkReport.toggle.ariaLabel, /carte marine clair/);
-    assert.deepEqual(darkReport.compositor, {
-      themeId: "dark",
-      background: "linear-gradient(180deg, #0b4351, #0a3847 52%, #072b37)",
-      owner: "stage",
-      canvasBackground: "transparent"
-    });
+    assert.equal(darkReport.compositor.themeId, "dark");
+    assert.equal(darkReport.compositor.owner, "stage");
+    assert.equal(darkReport.compositor.canvasBackground, "transparent");
+    assert.match(darkReport.compositor.background, /linear-gradient/);
+    assert.ok(relativeLuminance(darkReport.water.sky.horizon) > relativeLuminance(darkReport.water.base));
+    assert.equal(darkReport.presentation.mode, "understand");
+    assert.equal(darkReport.presentation.wireframe, true);
 
     await page.locator("#themeToggle").click();
     await page.waitForTimeout(100);
@@ -652,7 +652,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.notEqual(chartReport.harbor.catway, chartReport.water.base);
     assert.notEqual(chartReport.semantic.rudder, chartReport.semantic.current);
 
-    for (const view of ["top", "anatomy", "skipper"]) {
+    for (const view of ["top", "skipper"]) {
       const report = await page.evaluate(selected => {
         const api = window.__PORTANCE_TEST__;
         api.selectCameraView(selected);
@@ -662,6 +662,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       const canvas = await sampleScene();
       assert.equal(report.id, "chart");
       assert.equal(report.grid.enabled, view !== "skipper");
+      assert.equal(report.water.horizonY === 0, view === "top");
+      if (view === "skipper") {
+        assert.ok(report.water.horizonY > 0, "l'horizon n'est pas visible en vue Skipper");
+        assert.ok(relativeLuminance(report.water.sky.horizon) > relativeLuminance(report.water.base));
+      }
       assert.ok(canvas.encodedBytes > 20_000, `${view}: rendu cartographique trop uniforme`);
     }
 
@@ -715,6 +720,171 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(report.flow.current.width >= 2);
     assert.ok(report.flow.wind.renderedSegments >= 25);
     assert.ok(report.flow.current.renderedSegments >= 200);
+  });
+
+  await t.test("Comprendre synthétise tout le fardage en résultantes avant et arrière", async () => {
+    const unchangedBefore = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.selectWorldRenderer("native");
+      api.selectCameraView("top");
+      api.reset(
+        { x: 200, y: 200, heading: 0 },
+        {
+          windSpeedKn: 12,
+          windFromDeg: 270,
+          currentSpeedKn: 0,
+          currentFromDeg: 0,
+          propWalk: 0
+        }
+      );
+      const snapshot = api.snapshot();
+      return {
+        motion: snapshot.motion,
+        controls: snapshot.controls,
+        moorings: snapshot.moorings
+      };
+    });
+    await page.locator('[data-mode="understand"]').click();
+    const unchangedAfter = await page.evaluate(() => {
+      const snapshot = window.__PORTANCE_TEST__.snapshot();
+      return {
+        motion: snapshot.motion,
+        controls: snapshot.controls,
+        moorings: snapshot.moorings
+      };
+    });
+    assert.deepEqual(
+      unchangedAfter,
+      unchangedBefore,
+      "changer de mode a modifié l'état physique"
+    );
+
+    const crosswind = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.advance(api.snapshot().timing.fixedDt);
+      return {
+        snapshot: api.snapshot(),
+        report: api.understandingForceReport()
+      };
+    });
+    const rawWind = crosswind.snapshot.forceParts.filter(part => part.name === "Vent");
+    const representedWind = crosswind.report.parts.filter(
+      part => part.representation === "wind-resultant"
+    );
+    const closeTo = (actual, expected, label) => assert.ok(
+      Math.abs(actual - expected) <= 1e-9 * Math.max(1, Math.abs(expected)),
+      `${label}: ${actual} au lieu de ${expected}`
+    );
+    const total = (parts, key) => parts.reduce(
+      (sum, part) => sum + (Number.isFinite(part[key]) ? part[key] : 0),
+      0
+    );
+
+    assert.ok(rawWind.length > 2, "le test doit couvrir plusieurs panneaux aérodynamiques");
+    assert.ok(rawWind.every(part => Number.isFinite(part.power)));
+    assert.deepEqual(
+      representedWind.map(part => part.name),
+      ["Vent avant", "Vent arrière"]
+    );
+    assert.equal(
+      representedWind.reduce((sum, part) => sum + part.contributorCount, 0),
+      rawWind.length,
+      "un panneau a été omis ou affecté deux fois"
+    );
+    assert.equal(
+      crosswind.snapshot.forceParts.some(part => part.name === "Vent avant"),
+      false,
+      "snapshot().forceParts ne doit pas devenir une vue de présentation"
+    );
+    assert.ok(representedWind.every(part => part.visible));
+
+    for (const represented of representedWind) {
+      const rawHalf = rawWind.filter(part => (
+        represented.windHalf === "fore" ? part.x >= 0 : part.x < 0
+      ));
+      assert.equal(represented.contributorCount, rawHalf.length);
+      assert.ok(
+        represented.windHalf === "fore" ? represented.x >= 0 : represented.x < 0,
+        `${represented.name}: centre d'effort placé dans la mauvaise demi-coque`
+      );
+      assert.ok(
+        represented.windHalf === "fore"
+          ? represented.centroid.x >= 0
+          : represented.centroid.x < 0
+      );
+      for (const key of ["fx", "fy", "moment", "power"]) {
+        closeTo(represented[key], total(rawHalf, key), `${represented.name} ${key}`);
+      }
+      closeTo(
+        represented.x * represented.fy - represented.y * represented.fx,
+        represented.moment,
+        `${represented.name} moment sur la ligne d'action`
+      );
+      closeTo(
+        represented.vectorLength,
+        Math.hypot(represented.fx, represented.fy) * crosswind.report.scale,
+        `${represented.name} échelle de la flèche`
+      );
+    }
+    for (const key of ["fx", "fy", "moment", "power"]) {
+      closeTo(total(representedWind, key), total(rawWind, key), `total aérodynamique ${key}`);
+    }
+    assert.ok(
+      Math.hypot(total(representedWind, "fx"), total(representedWind, "fy"))
+        > Math.hypot(rawWind[0].fx, rawWind[0].fy),
+      "la représentation retombe sur le premier panneau"
+    );
+
+    await page.locator('[data-mode="navigation"]').click();
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+    await page.locator("#windSpeed").evaluate(input => {
+      input.value = "12";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await page.locator("#windDirection").evaluate(input => {
+      input.value = "0";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await page.locator('[data-mode="understand"]').click();
+    const dock = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.advance(.5);
+      const before = api.snapshot();
+      const report = api.understandingForceReport();
+      const after = api.snapshot();
+      return { before, report, after };
+    });
+    assert.deepEqual(dock.after, dock.before, "le rapport de présentation modifie la simulation");
+    const rawMoorings = dock.before.forceParts.filter(part => part.category === "mooring");
+    const representedMoorings = dock.report.parts.filter(part => part.category === "mooring");
+    assert.ok(rawMoorings.length > 0, "le scénario doit exercer au moins une aussière");
+    assert.deepEqual(
+      representedMoorings.map(({ mooringId, fx, fy, x, y, moment, tension }) => ({
+        mooringId, fx, fy, x, y, moment, tension
+      })),
+      rawMoorings.map(({ mooringId, fx, fy, x, y, moment, tension }) => ({
+        mooringId, fx, fy, x, y, moment, tension
+      })),
+      "les contributions individuelles des aussières ont été agrégées ou altérées"
+    );
+    const dockWind = dock.report.parts.filter(
+      part => part.representation === "wind-resultant"
+    );
+    const windResultant = Math.hypot(total(dockWind, "fx"), total(dockWind, "fy"));
+    const mooringResultant = Math.hypot(total(rawMoorings, "fx"), total(rawMoorings, "fy"));
+    const mooringIndividualSum = rawMoorings.reduce(
+      (sum, part) => sum + Math.hypot(part.fx, part.fy),
+      0
+    );
+    assert.ok(windResultant > 0 && mooringResultant > 0);
+    assert.ok(
+      mooringIndividualSum + 1e-9 >= mooringResultant,
+      "les tensions individuelles ont été confondues avec leur résultante vectorielle"
+    );
+    assert.equal(dockWind.length, 2);
+    assert.ok(dockWind.every(part => part.visible));
+
+    await page.locator('[data-mode="navigation"]').click();
   });
 
   await t.test("le son moteur suit le régime sans échantillon externe ni niveau agressif", async () => {
@@ -1596,14 +1766,14 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(Number(maximum.gauges.items[0].targetPosition), 0);
   });
 
-  await t.test("les aussières restent lisibles dans les trois vues et les deux thèmes", async () => {
+  await t.test("les aussières restent lisibles dans les deux vues et les deux thèmes", async () => {
     for (const theme of ["dark", "chart"]) {
       await page.evaluate(selectedTheme => {
         const api = window.__PORTANCE_TEST__;
         api.loadScenario("dockForward");
         api.selectVisualTheme(selectedTheme);
       }, theme);
-      for (const view of ["top", "anatomy", "skipper"]) {
+      for (const view of ["top", "skipper"]) {
         await page.evaluate(selectedView => {
           window.__PORTANCE_TEST__.selectCameraView(selectedView);
         }, view);
@@ -2120,7 +2290,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.deepEqual(report.special.colours, ["yellow"]);
   });
 
-  await t.test("les flèches pilotent toujours le bateau après clic sur un paramètre", async () => {
+  await t.test("les flèches pilotent le bateau et Espace met en pause sans recentrer la barre", async () => {
     await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
     const wind = page.locator("#windSpeed");
     await wind.click();
@@ -2130,14 +2300,24 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(snapshot.controls.throttleTarget, .05);
     assert.equal(await wind.inputValue(), windBefore, "la flèche a modifié le curseur de vent");
 
-    await page.locator("#anatomyButton").click();
+    assert.equal(await page.locator("#anatomyButton").count(), 0);
+    await page.locator("#skipperViewButton").click();
     await page.keyboard.press("ArrowRight");
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.ok(snapshot.controls.rudderTarget < 0);
+    const rudderBeforePause = snapshot.controls.rudderTarget;
+    if (snapshot.controls.paused) await page.locator("#pauseButton").click();
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.keyboard.press("Space");
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.paused, true);
+    assert.equal(snapshot.controls.rudderTarget, rudderBeforePause);
     assert.equal(
-      await page.locator("#anatomyButton").getAttribute("aria-pressed"),
+      await page.locator("#pauseButton").getAttribute("aria-pressed"),
       "true"
     );
+    await page.keyboard.press("Space");
+    assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
   });
 
   await t.test("commandes tactiles façon jeu: glissement persistant et cran neutre", async () => {

@@ -22,6 +22,14 @@ test("ressources natives — géométries métriques, palettes et libération", 
   assert.equal(geometry.attributes.position.array, positions);
   assert.equal(geometry.attributes.position.version, 0);
   assert.equal(meshes[0].material.color.getHexString(), "abcdef");
+  resources.updatePalette({ top: "#8899aa", edge: "#8899aa" }, { wireframe: true });
+  assert.ok(meshes.every(mesh => mesh.material.wireframe));
+  assert.equal(meshes[0].geometry, geometry);
+  assert.equal(geometry.attributes.position.array, positions);
+  assert.equal(geometry.attributes.position.version, 0);
+  assert.ok(resources.report().wireframeMaterials > 0);
+  resources.updatePalette({ top: "#abcdef", edge: "rgba(30,40,50,.62)" }, { wireframe: false });
+  assert.ok(meshes.every(mesh => !mesh.material.wireframe));
   const before = resources.report();
   assert.throws(() => createNativeInfrastructureResources({
     ...definition,
@@ -34,21 +42,15 @@ test("ressources natives — géométries métriques, palettes et libération", 
   assert.equal(resources.report().liveMaterials, 0);
 });
 
-test("ressources natives — joueur local et seul buffer d'hélice variable", async () => {
+test("ressources natives — joueur local persistant et bascule wireframe sans géométrie", async () => {
   const { createNativePlayerResources } = await import("../src/simulateur-port/rendering/native-player-resources.mjs");
-  const palette = { hull: "#ffffff", outline: "#111111", propeller: "#888800" };
+  const palette = { hull: "#ffffff", outline: "#111111" };
   const definition = {
     palette,
     owners: [
-      { id: "hull", family: "player", polygons: [{ points: [[-2,-1,0],[2,0,0],[-2,1,0]], fill: "hull", stroke: "outline", lineWidth: 1 }], lines: [] },
-      { id: "blades", family: "player-propeller", polygons: [], lines: [0,1,2].map(index => {
-        const angle = index * Math.PI * 2 / 3;
-        return { points: [[-1,0,-.5],[-1,Math.cos(angle)*.3,-.5+Math.sin(angle)*.3]], color: "propeller", width: 2, dash: [], layer: 6 };
-      }) }
+      { id: "hull", family: "player", polygons: [{ points: [[-2,-1,0],[2,0,0],[-2,1,0]], fill: "hull", stroke: "outline", lineWidth: 1 }], lines: [] }
     ],
     player: {
-      propeller: { owner: "player-propeller:blades", center: [-1,0,-.5], radius: .3, blades: 3, initialAngle: 0 },
-      anatomyFamilies: ["player-propeller"],
       collisionWidths: {},
       acceleratedWidths: [],
       fenderWidths: []
@@ -56,27 +58,26 @@ test("ressources natives — joueur local et seul buffer d'hélice variable", as
   };
   const resources = createNativePlayerResources(definition);
   const hull = resources.group.children.find(object => object.userData.owner === "player:hull");
-  const propeller = resources.group.children.find(object => object.userData.owner === "player-propeller:blades");
   const position = hull.geometry.attributes.position;
-  const propellerBuffer = propeller.geometry.attributes.instanceStart.data;
   const update = overrides => resources.update({
-    pose: { x: 12, y: -8, heading: .7 }, anatomy: false, accelerated: false,
-    cameraView: "top", contactFenders: [], propellerAngle: 0, palette, ...overrides
+    pose: { x: 12, y: -8, heading: .7 }, accelerated: false, wireframe: false,
+    cameraView: "top", contactFenders: [], palette, ...overrides
   });
   update();
   update({ pose: { x: 14, y: -5, heading: -2.9 } });
   assert.equal(hull.geometry.attributes.position, position);
   assert.equal(position.version, 0);
-  assert.equal(propellerBuffer.version, 0);
   assert.equal(resources.group.position.x, 14);
   assert.equal(resources.group.position.y, -5);
   assert.equal(resources.group.rotation.z, -2.9);
-  update({ anatomy: true, propellerAngle: .4 });
-  assert.equal(propeller.geometry.attributes.instanceStart.data, propellerBuffer);
-  assert.equal(propellerBuffer.version, 1);
+  update({ wireframe: true, palette: { hull: "#445566", outline: "#445566" } });
+  assert.equal(hull.material.wireframe, true);
+  assert.equal(hull.geometry.attributes.position, position);
+  assert.equal(position.version, 0);
   assert.equal(resources.group.position.x, 12);
   assert.equal(resources.group.position.y, -8);
   assert.equal(resources.group.rotation.z, .7);
+  assert.equal(resources.report().wireframe, true);
   resources.dispose();
   resources.dispose();
 });

@@ -99,6 +99,7 @@ export function createNativePlayerModelResources(configuration) {
   let disposed = false;
   let warmed = false;
   let currentColor = configuration.color;
+  let currentWireframe = false;
   let resourceError = null;
   let fullBounds = null;
   let hullBounds = null;
@@ -152,10 +153,17 @@ export function createNativePlayerModelResources(configuration) {
     if (mesh) parent.add(mesh);
   }
 
-  function updateColor(value) {
+  function updateStyle(value, wireframe = false) {
     if (typeof value !== "string") throw new TypeError("Modèle joueur natif : couleur absente");
     currentColor = value;
-    material?.color.setStyle(value);
+    currentWireframe = Boolean(wireframe);
+    if (!material) return;
+    material.color.setStyle(value);
+    if (material.wireframe !== currentWireframe || material.vertexColors === currentWireframe) {
+      material.wireframe = currentWireframe;
+      material.vertexColors = !currentWireframe;
+      material.needsUpdate = true;
+    }
   }
 
   function report() {
@@ -176,6 +184,11 @@ export function createNativePlayerModelResources(configuration) {
         excludedFunctionalEquipment: [...(metadata?.excludedFunctionalEquipment || [])]
       },
       transform: { position: [...position], rotation: [...rotation], scale: [scale, scale, scale] },
+      appearance: {
+        color: currentColor,
+        wireframe: currentWireframe,
+        vertexColors: material?.vertexColors ?? !currentWireframe
+      },
       geometry: mesh ? {
         uuid: mesh.geometry.uuid,
         vertices: mesh.geometry.attributes.position.count,
@@ -222,5 +235,5 @@ export function createNativePlayerModelResources(configuration) {
     parent = null;
   }
 
-  return Object.freeze({ ready, attach, updateColor, report, afterRender, dispose });
+  return Object.freeze({ ready, attach, updateStyle, report, afterRender, dispose });
 }

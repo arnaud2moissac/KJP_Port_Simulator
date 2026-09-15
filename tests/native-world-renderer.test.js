@@ -225,9 +225,16 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("skipper"));
   await settle(page, 4);
   assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport())).layers["chart-grid"], undefined);
-  await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("anatomy"));
+  const beforeUnderstand = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+  await page.locator('[data-mode="understand"]').click();
   await settle(page, 4);
-  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport())).player.visibility["player-anatomy"], true);
+  const understand = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+  assert.ok(understand.catalog.wireframeMaterials > 0);
+  assert.equal(understand.player.wireframe, true);
+  assert.equal(understand.player.model.appearance.wireframe, true);
+  assert.equal(understand.player.model.appearance.vertexColors, false);
+  assert.deepEqual(persistentGeometry(understand), persistentGeometry(beforeUnderstand),
+    "le mode Comprendre change les matériaux sans reconstruire les géométries");
 
   await page.evaluate(() => window.__PORTANCE_TEST__.reset({ x: 25, y: -38, heading: 0 }, {
     windSpeedKn: 12, windFromDeg: 300, currentSpeedKn: 1.4, currentFromDeg: 215

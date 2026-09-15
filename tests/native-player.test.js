@@ -157,7 +157,7 @@ test("joueur natif — lisible dans les vues, thèmes et DPR qualifiés", async 
   for (const dpr of [1, 2]) {
     const { page, errors } = await pageFor(browser, dpr);
     for (const theme of ["dark", "chart"]) {
-      for (const view of ["top", "anatomy", "skipper"]) {
+      for (const view of ["top", "skipper"]) {
         await page.evaluate(({ theme, view }) => {
           const api = window.__PORTANCE_TEST__;
           api.restoreBuiltInPort();
