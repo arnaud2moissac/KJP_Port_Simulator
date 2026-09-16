@@ -140,6 +140,30 @@ function createPropeller(position, radius, color) {
   return { group, material, geometries: [hubGeometry, bladeGeometry, shaftGeometry] };
 }
 
+function createMassCenter(color) {
+  const group = new Group();
+  group.name = "player-understanding:center-of-mass";
+  group.position.set(0, 0, .75);
+  group.userData = { owner: "player-understanding:center-of-mass", family: "player-understanding-center", kind: "group" };
+  const material = new MeshBasicMaterial({
+    color, transparent: true, depthTest: false, depthWrite: false,
+    side: DoubleSide, toneMapped: false
+  });
+  material.userData.role = "understand.centerOfMass";
+  const ringGeometry = new RingGeometry(.10, .15, 24);
+  const dotGeometry = new SphereGeometry(.055, 10, 6);
+  for (const [name, geometry] of [["ring", ringGeometry], ["dot", dotGeometry]]) {
+    const mesh = new Mesh(geometry, material);
+    mesh.name = `player-understanding:center-of-mass:${name}`;
+    mesh.renderOrder = 49;
+    mesh.frustumCulled = false;
+    mesh.userData = { owner: group.name, family: "player-understanding-center", kind: "mesh" };
+    group.add(mesh);
+  }
+  group.visible = false;
+  return { group, material, geometries: [ringGeometry, dotGeometry] };
+}
+
 export function createNativeUnderstandingResources(configuration) {
   const propellerPosition = finiteVector(configuration?.propellerPosition, "position d'hélice");
   const propellerRadius = configuration?.propellerRadius;
@@ -202,7 +226,8 @@ export function createNativeUnderstandingResources(configuration) {
   const propeller = createPropeller(propellerPosition, propellerRadius, configuration.propellerColor || "#a9bec4");
   const waterPivot = createTarget("player-understanding:pivot-water", configuration.pivotWaterColor || "#f0b763");
   const groundPivot = createTarget("player-understanding:pivot-ground", configuration.pivotGroundColor || "#62dbe3", true);
-  group.add(propeller.group, waterPivot.group, groundPivot.group);
+  const centerOfMass = createMassCenter(configuration.centerOfMassColor || "#f3f0e6");
+  group.add(propeller.group, waterPivot.group, groundPivot.group, centerOfMass.group);
   group.visible = false;
 
   const matrix = new Matrix4();
@@ -251,12 +276,14 @@ export function createNativeUnderstandingResources(configuration) {
     outlineMaterial.color.setStyle(colorValue(presentation?.palette?.forceOutline, "contour des forces"));
     waterPivot.material.color.setStyle(colorValue(presentation?.palette?.pivotWater, "couleur du pivot eau"));
     groundPivot.material.color.setStyle(colorValue(presentation?.palette?.pivotGround, "couleur du pivot fond"));
+    centerOfMass.material.color.setStyle(colorValue(presentation?.palette?.centerOfMass || "#f3f0e6", "couleur du centre de masse"));
 
     if (!enabled) {
       for (const object of [shafts, heads, markers, shaftOutlines, headOutlines, markerOutlines]) object.count = 0;
       previousForces = [];
       waterPivot.group.visible = false;
       groundPivot.group.visible = false;
+      centerOfMass.group.visible = false;
       current = { enabled: false, forceCount: 0, forceIds: [], pivots: { water: false, ground: false } };
       return;
     }
@@ -268,19 +295,21 @@ export function createNativeUnderstandingResources(configuration) {
       const origin = finiteVector(force.origin, "origine de force");
       const vector = finiteVector(force.vector, "vecteur de force");
       const length = Math.hypot(...vector);
-      if (!(length > 0)) continue;
+      if (!(length > 0) && !force.markerOnly) continue;
       forceColor.setStyle(colorValue(force.color, "couleur de force"));
-      direction.set(...vector).normalize();
+      direction.set(...vector);
+      if (length > 0) direction.divideScalar(length);
+      else direction.copy(Y_AXIS);
       quaternion.setFromUnitVectors(Y_AXIS, direction);
       const headLength = Math.min(.55, length * .32);
       const shaftLength = Math.max(0, length - headLength);
       const shaftRadius = Math.min(.07, length * .07);
       const headRadius = Math.min(.18, length * .16);
-      const markerRadius = Math.min(.12, length * .12);
+      const markerRadius = force.markerOnly ? .095 : Math.min(.12, length * .12);
 
         if (rewriteForces) {
           positionVector.set(...origin).addScaledVector(direction, shaftLength / 2);
-          scaleVector.set(shaftRadius, Math.max(shaftLength, 1e-7), shaftRadius);
+          scaleVector.set(shaftRadius, shaftLength, shaftRadius);
           writeInstance(shafts, count, positionVector, quaternion, scaleVector, forceColor);
           scaleVector.x *= 1.55;
           scaleVector.z *= 1.55;
@@ -316,6 +345,7 @@ export function createNativeUnderstandingResources(configuration) {
     };
     applyPivot(waterPivot, pivots.water);
     applyPivot(groundPivot, pivots.ground);
+    centerOfMass.group.visible = presentation?.view === "rotation";
     current = {
       enabled: true,
       forceCount: count,
@@ -338,6 +368,7 @@ export function createNativeUnderstandingResources(configuration) {
         position: propeller.group.position.toArray(),
         radius: propellerRadius
       },
+      centerOfMass: { visible: centerOfMass.group.visible, position: centerOfMass.group.position.toArray() },
       renderOrder: { model: 20, propeller: 24, forces: 40, pivots: 50 },
       depth: { forcesTest: forceMaterial.depthTest, forcesWrite: forceMaterial.depthWrite },
       outline: { color: `#${outlineMaterial.color.getHexString()}`, depthTest: outlineMaterial.depthTest },
@@ -366,8 +397,10 @@ export function createNativeUnderstandingResources(configuration) {
     group.removeFromParent();
     group.clear();
     for (const geometry of [shaftGeometry, headGeometry, markerGeometry,
-      ...propeller.geometries, ...waterPivot.geometries, ...groundPivot.geometries]) geometry.dispose();
-    for (const material of [forceMaterial, outlineMaterial, propeller.material, waterPivot.material, groundPivot.material]) material.dispose();
+      ...propeller.geometries, ...waterPivot.geometries, ...groundPivot.geometries,
+      ...centerOfMass.geometries]) geometry.dispose();
+    for (const material of [forceMaterial, outlineMaterial, propeller.material,
+      waterPivot.material, groundPivot.material, centerOfMass.material]) material.dispose();
   }
 
   return Object.freeze({ group, update, report, dispose });
