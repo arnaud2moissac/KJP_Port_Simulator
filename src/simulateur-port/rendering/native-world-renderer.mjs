@@ -112,12 +112,17 @@ export function createNativeWorldRenderer(definition, {
         for (const byte of bytes) hash = Math.imul(hash ^ byte, 16777619);
         return { name, attribute: id(attribute), buffer: id(buffer), array: id(buffer.array), version: buffer.version, bytes: bytes.length, hash: hash >>> 0 };
       });
-    const objects = [
-      ...resources.group.children,
-      ...(playerResources ? playerResources.group.children : []),
-      ...(flowResources ? flowResources.group.children : []),
-      ...[...layers.values()].flatMap(layer => layer.group.children)
-    ];
+    const objects = [];
+    const collect = root => root?.traverse(object => {
+      if (object.geometry && object.material) objects.push(object);
+    });
+    collect(resources.group);
+    collect(playerResources?.group);
+    collect(flowResources?.group);
+    for (const layer of layers.values()) collect(layer.group);
+    const materials = [...new Set(objects.flatMap(object => (
+      Array.isArray(object.material) ? object.material : [object.material]
+    )))];
     return {
       frames, camera: lastCamera ? structuredClone(lastCamera) : null,
       resources: objects.map(object => ({ role: object.name, owner: object.userData.owner,
@@ -125,7 +130,7 @@ export function createNativeWorldRenderer(definition, {
         geometry: object.geometry.uuid, attributes: attributes(object.geometry) })),
       ...(resources.report ? { catalog: resources.report(), memory: { ...renderer.info.memory },
         draw: { ...renderer.info.render },
-        materials: [...new Set(objects.map(o => o.material))].map(m => ({
+        materials: materials.map(m => ({
           id: m.uuid, role: m.userData.role, color: m.color.getHexString(), opacity: m.opacity,
           ...(m.isMeshBasicMaterial ? { wireframe: m.wireframe } : {}),
           ...(Number.isFinite(m.linewidth) ? { linewidth: m.linewidth, baseLinewidth: m.userData.baseLinewidth } : {})

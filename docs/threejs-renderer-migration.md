@@ -2569,3 +2569,92 @@ picking, le GLB reste chargé une seule fois et un mouvement de caméra ne
 retransfère aucun attribut statique. Les captures manuelles en vues dessus et
 anatomie confirment les cylindres, les taquets repositionnés, l'absence du
 contour affiché et la séparation visuelle de la coque émergée et des appendices.
+
+## Maintenance post-clôture — vue radiographique « Comprendre »
+
+Le 15 septembre 2026, le filaire monochrome utilisé par le mode Comprendre est
+remplacé par une vue radiographique du joueur. Cette décision remplace les
+prescriptions actives qui associaient `ui.mode === "understand"` au wireframe ;
+les mentions antérieures du filaire et de la vue anatomie restent des traces
+historiques des tranches de migration.
+
+Le GLB reste un mesh et une `BufferGeometry` partagée. La première réalisation
+avait supposé que le catalogue `triangleCountsBySourcePart` donnait aussi
+l'ordre des indices. Cette hypothèse était fausse : elle masquait la vraie
+quille et le safran et exposait des détails du pont. La correction du 16
+septembre classe les plages d'indices réelles de l'asset validé, vérifie son
+empreinte et les comptes de triangles, puis regroupe les rôles en 12 plages de
+rendu : 164 triangles de coque translucide, 234 de silhouette, 104 de
+quille/safran, 66 de roof et 1 380 détails masqués, soit 1 948 au total. Un
+changement de GLB sans nouveau relevé des plages échoue explicitement. La
+partie `hull_underwater` reste cachée ; seule la coupe des groupes quille et
+safran est levée dans Comprendre. Le mode Navigation réutilise sans modification
+la matière à couleurs de sommets et la coupe de flottaison existantes.
+
+Les forces de `understandingForceReport()` alimentent trois `InstancedMesh`
+persistants pour les tiges, pointes et points d'application, ainsi que trois
+instances de contour sombre partageant leurs géométries. Leurs origines,
+vecteurs et longueurs gardent exactement l'échelle de présentation existante ;
+Three n'est jamais une autorité pour la simulation. L'hélice visuelle simple et
+les cibles de pivot appartiennent aux mêmes ressources locales du joueur. Le
+pivot est le centre instantané calculé à partir des vitesses longitudinale,
+latérale et angulaire ; il peut donc être hors de la coque et se déplacer lors
+d'une manœuvre. Il est masqué quand la rotation est trop faible pour le situer
+utilement. Le survol des flèches expose leur nom et leur intensité sans ajouter
+de labels permanents. Une variation de longueur de la flèche du safran suit les
+variations de sa contribution physique brute : elle n'est pas stabilisée
+artificiellement. La courte flèche de pas d'hélice conserve la même échelle que
+les autres et bénéficie du contour et du survol.
+Le Canvas supérieur conserve les aussières, les taquets, le picking, le jet
+d'hélice et le repère du safran. Le secours Canvas reproduit cette hiérarchie
+sans réintroduire un second mode.
+
+### Validation de la tranche
+
+Les contrôles exécutés sur le commit de départ `e361294` avec le présent diff
+réussissent : 4/4 tests de rendu ciblés, 6/6 intégrations renderer rapides et
+49/49 scénarios fonctionnels. Les scénarios couvrent notamment le chargement du
+GLB, la persistance des géométries et des matrices de forces, la restauration du
+mode Navigation, les replis Canvas, le picking, les aussières, la souris, le
+tactile, les trajectoires étalons ainsi que le vent et le courant. Le build et
+le contrôle du HTML autonome réussissent également.
+
+L'inspection visible de cette première réalisation était insuffisante : le
+décalage des groupes GLB signalé ensuite par l'utilisateur n'avait pas été
+détecté par les assertions fondées sur les mêmes métadonnées erronées. Les
+résultats de tests et mesures ci-dessus restent l'historique de cette première
+version ; ils ne valident pas à eux seuls la correction du 16 septembre.
+
+Le profil apparié utilise la même scène Comprendre, les mêmes états, caméra et
+timestamps après chauffe. Sur le renderer visible Apple M1/Metal, les trois
+rapports p95 candidate/référence sont `0,7000`, `0,8706` et `0,9787`, soit une
+médiane de `0,8706`. Le nombre d'appels de rendu passe de 430 à 386 ; les
+triangles passent de 10 962 à 14 120 en raison des flèches meshes persistantes.
+Aucun upload statique ni réallocation de géométrie n'est observé dans la fenêtre
+stable. Le profil headless donne une médiane p95 de `0,6907` ; ces mesures
+locales ne constituent pas une qualification multi-matériel.
+
+`verify:physics` et la qualification renderer lourde ne sont pas exécutés : la
+tranche ne modifie aucune loi physique, et la validation proportionnée demandée
+par `AGENTS.md` est couverte par les contrôles ciblés et l'intégration rapide.
+
+### Correction visuelle du 16 septembre 2026
+
+Le relevé direct des indices du GLB et une inspection oblique montrent désormais
+la quille et le safran à leurs coordonnées réelles, les deux côtés de coque et
+le roof, sans mât, chandeliers, barre, piédestal ni baille à mouillage. L'hélice
+de présentation emploie trois pales courbes et une palette radiographique ; la
+physique, les ancrages et les interactions n'ont pas été modifiés. Le secours
+Canvas conserve des formes simples aux mêmes positions, avec les mêmes cibles
+de survol. La référence visuelle du guide est recapturée après correction.
+
+`npm run test:rendering` (4/4), `npm run test:renderer:quick` (6/6),
+`npm run test:e2e` (49/49), `npm run build:simulator` et
+`npm run check:simulator` réussissent avec la correction. Une inspection
+navigateur sans erreur console couvre vue Dessus et vue oblique, ainsi que le
+secours Canvas ; les tests de survol contrôlent les libellés et le centre
+instantané. `git diff --check` réussit. Aucune performance appariée de cette
+correction n'est disponible : les mesures de la première réalisation ci-dessus
+ne sont pas une mesure avant/après de cette correction. La qualification
+multi-matériel et `verify:physics` ne sont pas exécutés, car aucune loi
+physique n'est modifiée.

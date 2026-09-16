@@ -593,7 +593,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(darkReport.compositor.background, /linear-gradient/);
     assert.ok(relativeLuminance(darkReport.water.sky.horizon) > relativeLuminance(darkReport.water.base));
     assert.equal(darkReport.presentation.mode, "understand");
-    assert.equal(darkReport.presentation.wireframe, true);
+    assert.equal(darkReport.presentation.radiograph, true);
+    assert.equal(darkReport.presentation.wireframe, false);
 
     await page.locator("#themeToggle").click();
     await page.waitForTimeout(100);

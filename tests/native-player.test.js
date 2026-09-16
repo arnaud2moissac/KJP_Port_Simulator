@@ -93,10 +93,32 @@ test("joueur natif — GLB calé, chargé une fois et indépendant de la physiqu
   assert.ok(near(model.bounds.hull.size[1], 3.59));
   assert.deepEqual(model.waterlineClipping, {
     enabled: true,
+    organsClipped: true,
     worldZ: .02,
     sourceY: 0,
     hiddenSide: "below"
   });
+  assert.equal(model.sourceGroups.totalTriangles, 1948);
+  assert.equal(
+    Object.values(model.sourceGroups.trianglesByRole).reduce((sum, count) => sum + count, 0),
+    1948
+  );
+  assert.ok(model.sourceGroups.trianglesByRole.organ > 0);
+  assert.ok(model.sourceGroups.trianglesByRole.silhouette > 0);
+  assert.equal(model.sourceGroups.assetFingerprint, 0x1fb19642);
+  assert.deepEqual(model.sourceGroups.trianglesByRole,
+    { hull: 164, silhouette: 234, organ: 104, roof: 66, hidden: 1380 });
+  const glbPart = name => model.sourceGroups.parts.find(part => part.name === name);
+  assert.equal(glbPart("hull_underwater").role, "hidden");
+  assert.equal(glbPart("keel_fin").start / 3, 1844);
+  assert.equal(glbPart("keel_bulb").start / 3, 1856);
+  assert.equal(glbPart("rudder").start / 3, 1932);
+  assert.ok(glbPart("keel_fin").bounds.max[1] < 0, "la vraie quille GLB est immergée");
+  assert.ok(glbPart("rudder").bounds.max[1] < 0, "le vrai safran GLB est immergé");
+  assert.ok(glbPart("mast_and_rigging").bounds.max[1] > 10);
+  assert.equal(glbPart("mast_and_rigging").role, "hidden");
+  assert.equal(glbPart("wheel_and_cockpit_furniture").role, "hidden");
+  assert.equal(glbPart("deck_fittings").role, "hidden");
   assert.equal(first.report.localClippingEnabled, true);
   const sourceOwners = await page.evaluate(() => (
     window.__PORTANCE_TEST__.nativePlayerSourceReport({ geometry: true }).owners

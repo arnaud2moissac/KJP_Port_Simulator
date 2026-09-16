@@ -5,11 +5,15 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { createHash } = require("node:crypto");
 const { chromium } = require("playwright");
+const KJPCodec = require("../src/ports/kjp-codec.js");
 
 const simulatorPath = path.resolve(__dirname, "..", "simulateur-port.html");
 const simulatorUrl = new URL(pathToFileURL(simulatorPath));
 simulatorUrl.searchParams.set("test", "1");
 const largePortText = fs.readFileSync(path.resolve(__dirname, "..", "examples", "la-trinite-sur-mer.kjp"), "utf8");
+const emptyPort = KJPCodec.createEmpty({ id: "understand-empty", name: "Contrôle Comprendre" });
+emptyPort.navigation.entries.push({ id: "entry", position: { east: 0, north: 0 }, heading: 0 });
+const emptyPortText = KJPCodec.serialize(emptyPort);
 
 const settle = (page, frames = 3) => page.evaluate(count => new Promise(resolve => {
   const next = remaining => requestAnimationFrame(() => (
@@ -226,26 +230,118 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   await settle(page, 4);
   assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport())).layers["chart-grid"], undefined);
   const beforeUnderstand = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+  assert.equal(await page.locator('[data-mode="understand"]').count(), 1,
+    "le produit ne doit exposer qu'un mode Comprendre");
+  const navigationMaterial = beforeUnderstand.materials.find(
+    material => material.role === "boat.playerHull"
+  )?.id;
   await page.locator('[data-mode="understand"]').click();
   await settle(page, 4);
   const understand = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
-  assert.ok(understand.catalog.wireframeMaterials > 0);
-  assert.equal(understand.player.wireframe, true);
-  assert.equal(understand.player.model.appearance.wireframe, true);
+  assert.equal(understand.catalog.wireframeMaterials, 0);
+  assert.equal(understand.player.wireframe, false);
+  assert.equal(understand.player.radiograph, true);
+  assert.equal(understand.player.model.appearance.radiograph, true);
+  assert.equal(understand.player.model.appearance.wireframe, false);
   assert.equal(understand.player.model.appearance.vertexColors, false);
+  assert.equal(understand.player.model.waterlineClipping.organsClipped, false);
+  assert.equal(understand.player.model.sourceGroups.totalTriangles, 1948);
+  assert.equal(understand.player.understanding.enabled, true);
+  assert.equal(understand.player.understanding.capacity, 64);
+  assert.equal(understand.player.understanding.propeller.visible, true);
+  assert.equal(understand.player.understanding.depth.forcesTest, false);
+  assert.equal(understand.player.understanding.depth.forcesWrite, false);
   assert.deepEqual(persistentGeometry(understand), persistentGeometry(beforeUnderstand),
     "le mode Comprendre change les matériaux sans reconstruire les géométries");
+  const understandUploads = await page.evaluate(() => ({ ...window.__n4Uploads }));
+  await settle(page, 5);
+  assert.deepEqual(await page.evaluate(() => ({ ...window.__n4Uploads })), understandUploads,
+    "une vue Comprendre inchangée ne retransfère ni géométrie ni matrices de forces");
+  await page.locator('[data-mode="navigation"]').click();
+  await settle(page, 3);
+  const restored = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+  assert.equal(restored.player.radiograph, false);
+  assert.equal(restored.player.model.appearance.radiograph, false);
+  assert.equal(restored.player.model.appearance.vertexColors, true);
+  assert.equal(restored.player.model.waterlineClipping.organsClipped, true);
+  assert.equal(restored.player.understanding.forceCount, 0);
+  assert.equal(restored.player.understanding.propeller.visible, false);
+  assert.equal(restored.materials.find(material => material.role === "boat.playerHull")?.id,
+    navigationMaterial, "la sortie restaure la matière Navigation d'origine");
+  assert.deepEqual(persistentGeometry(restored), persistentGeometry(beforeUnderstand));
+  await page.locator('[data-mode="understand"]').click();
+  await settle(page, 3);
 
-  await page.evaluate(() => window.__PORTANCE_TEST__.reset({ x: 25, y: -38, heading: 0 }, {
-    windSpeedKn: 12, windFromDeg: 300, currentSpeedKn: 1.4, currentFromDeg: 215
-  }));
+  await page.evaluate(() => {
+    window.__PORTANCE_TEST__.reset({ x: 25, y: -38, heading: 0 }, {
+      windSpeedKn: 12, windFromDeg: 300, currentSpeedKn: 1.4, currentFromDeg: 215
+    });
+    window.__PORTANCE_TEST__.advance(.2);
+  });
   await settle(page, 4);
   const flowing = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
   assert.ok(flowing.flow.wind.segments > 0);
   assert.ok(flowing.flow.current.segments > 0);
+  assert.ok(flowing.player.understanding.forceCount > 0);
   assert.deepEqual(persistentGeometry(flowing), persistentGeometry(afterMotion));
+  const windTargets = await page.evaluate(() => window.__PORTANCE_TEST__.understandingHitReport().targets);
+  assert.ok(windTargets.some(target => target.label === "Fardage proue"));
+  assert.ok(windTargets.some(target => target.label === "Fardage poupe"));
+  const flowSceneRect = await page.locator("#scene").boundingBox();
+  for (const label of ["Fardage proue", "Fardage poupe"]) {
+    const hit = windTargets.find(target => target.label === label);
+    await page.mouse.move(flowSceneRect.x + (hit.a.x + hit.b.x) / 2,
+      flowSceneRect.y + (hit.a.y + hit.b.y) / 2);
+    await settle(page, 2);
+    assert.ok((await page.locator("#forceTooltip").textContent()).startsWith(`${label} · `),
+      `${label} absent au survol`);
+  }
 
-  const beforeResizeGeometry = persistentGeometry(flowing);
+  await page.evaluate(text => {
+    const api = window.__PORTANCE_TEST__;
+    api.importPort(text);
+    api.reset({ x: 0, y: 0, heading: 0 }, { windSpeedKn: 0, currentSpeedKn: 0 });
+    api.setControls({ throttleTarget: -.8, rudderTarget: 35 * Math.PI / 180 });
+    api.advance(5);
+    api.selectCameraView("top");
+  }, emptyPortText);
+  await settle(page, 4);
+  const reverse = await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    return {
+      motion: api.snapshot().motion,
+      pivots: api.understandingPivotTargets(),
+      targets: api.understandingHitReport().targets,
+      forces: api.understandingForceReport().parts
+    };
+  });
+  for (const label of ["Moteur · poussée de l'hélice", "Pas d'hélice", "Safran", "Quille", "Coque · traînée"]) {
+    assert.ok(reverse.targets.some(target => target.label === label), `${label} absent des survols`);
+  }
+  assert.ok(reverse.pivots.water.visible);
+  assert.ok(Math.abs(reverse.pivots.water.position[0] + reverse.motion.v / reverse.motion.r) < 1e-6);
+  assert.ok(Math.abs(reverse.pivots.water.position[1] - reverse.motion.u / reverse.motion.r) < 1e-6,
+    "le pivot affiché doit annuler les deux composantes de la vitesse locale");
+  assert.ok(Math.abs(reverse.pivots.water.position[1]) > 1,
+    "en marche arrière, le centre instantané n'est pas artificiellement ramené sur l'axe du bateau");
+  const sceneRect = await page.locator("#scene").boundingBox();
+  for (const label of ["Moteur · poussée de l'hélice", "Pas d'hélice", "Safran", "Quille", "Coque · traînée"]) {
+    const hit = reverse.targets.find(target => target.label === label);
+    await page.mouse.move(sceneRect.x + (hit.a.x + hit.b.x) / 2,
+      sceneRect.y + (hit.a.y + hit.b.y) / 2);
+    await settle(page, 2);
+    assert.equal(await page.locator("#forceTooltip").isVisible(), true, `${label} non accessible au survol`);
+    assert.ok((await page.locator("#forceTooltip").textContent()).startsWith(`${label} · `),
+      `${label} masqué au survol par une autre force`);
+  }
+  await page.locator('[data-mode="navigation"]').click();
+  assert.equal(await page.locator("#forceTooltip").isVisible(), false);
+  await page.locator('[data-mode="understand"]').click();
+  await settle(page, 2);
+
+  const beforeResizeGeometry = persistentGeometry(await page.evaluate(() => (
+    window.__PORTANCE_TEST__.worldRendererReport()
+  )));
   await page.setViewportSize({ width: 840, height: 620 });
   await settle(page, 5);
   const resized = await page.evaluate(() => ({

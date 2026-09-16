@@ -32,7 +32,7 @@ Le renderer Three.js natif est utilisé au démarrage. Si WebGL2, le modèle du 
 
 La vue **Dessus** est la plus précise pour manœuvrer. **Skipper** conserve le regard orienté avec le bateau tout en laissant la caméra libre.
 
-Le mode **Comprendre** passe le port et les bateaux en filaire monochrome, puis superpose les efforts, le jet d'hélice, l'axe du safran et le point de pivot calculé. Le vent est synthétisé par deux résultantes, **Vent avant** et **Vent arrière**, calculées à partir des panneaux aérodynamiques de chaque demi-bateau. Les flèches colorées partagent la même échelle et indiquent des directions et des rapports de force ; elles ne constituent pas une mesure instrumentale.
+Le mode **Comprendre** transforme le bateau joueur en vue radiographique : la coque translucide conserve sa silhouette, tandis que la quille, le safran, le roof et l'hélice restent visibles à leur position. Les flèches 3D bordées d'un contour partent d'un marqueur qui indique leur point d'application. Survolez une flèche pour connaître sa contribution et son intensité, par exemple **Fardage proue**, **Fardage poupe**, **Moteur**, **Pas d'hélice**, **Safran**, **Quille** ou **Coque**. Le vent est synthétisé par deux résultantes calculées à partir des panneaux aérodynamiques de chaque demi-bateau. Les longueurs gardent l'échelle commune des forces : une flèche courte ou variable, notamment celle du safran ou du pas d'hélice, reflète la contribution calculée et n'est pas amplifiée pour la présentation. La cible compacte indique le centre instantané de rotation ; il peut se trouver hors du bateau et n'est pas affiché quand la rotation est trop faible pour le situer utilement.
 
 ![Forces et point de pivot dans le mode Comprendre](images/03-mode-comprendre.jpg)
 
