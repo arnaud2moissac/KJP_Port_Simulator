@@ -1132,7 +1132,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       catways: 30,
       mooringCleats: 226,
       staticBoats: 18,
-      scenarios: 10
+      scenarios: 11
     });
     assert.equal(report.connections.length, 30);
     assert.ok(report.connections.every(connection => (

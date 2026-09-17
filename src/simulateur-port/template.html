@@ -907,6 +907,17 @@
       line-height: 1.45;
     }
 
+    .lesson-steps {
+      margin: 10px 0 0;
+      padding-left: 22px;
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .lesson-steps[hidden] { display: none; }
+    .lesson-steps li + li { margin-top: 5px; }
+
     .lesson-replay {
       width: 100%;
       margin-top: 10px;
@@ -2135,6 +2146,7 @@
                 <option value="mooring">Défi 4 · Sortir sur garde</option>
                 <option value="medDock">Défi 5 · Accoster sur pendille</option>
                 <option value="medDeparture">Défi 6 · Appareiller sur pendille</option>
+                <option value="halfTurn">Défi 7 · Faire un demi-tour sur place</option>
               </optgroup>
             </select>
           </div>
@@ -2159,6 +2171,7 @@
             <div class="score"><span id="scoreValue">100</span><small>score</small></div>
           </div>
           <p id="lessonCopy"></p>
+          <ol class="lesson-steps" id="lessonSteps" hidden></ol>
           <div class="objective-line" id="objectiveLine">
             <span class="objective-dot"></span>
             <span id="objectiveText"></span>
@@ -4557,7 +4570,15 @@
         : distance <= goal.radius;
       const correctHeading = alignment < (goal.kind === "rect" ? 28 : 14) * DEG;
       const correctSpeed = speedKn <= goal.speedKn;
-      if (inside && correctHeading && correctSpeed) scenarioState.hold += dt;
+      const berthChallenge = scenario.berthChallenge;
+      const guardInPlace = !berthChallenge || moorings.current.some(line => (
+        line.boatCleatId === berthChallenge.guardBoatCleatId
+        && line.shoreCleatId === berthChallenge.guardShoreCleatId
+        && line.taut
+      ));
+      const gentleApproach = !berthChallenge
+        || contacts.maxImpact <= berthChallenge.maximumImpactSpeed;
+      if (inside && correctHeading && correctSpeed && guardInPlace && gentleApproach) scenarioState.hold += dt;
       else scenarioState.hold = Math.max(0, scenarioState.hold - dt * .5);
       scenarioState.score = scoreScenario(distance, alignment, speedKn);
       if (scenarioState.hold >= 1.25) {
@@ -4704,7 +4725,16 @@
       $("#lessonKicker").textContent = scenario.kicker;
       $("#lessonTitle").textContent = scenario.title;
       $("#lessonCopy").textContent = scenario.copy;
+      const lessonSteps = $("#lessonSteps");
+      lessonSteps.replaceChildren(...(scenario.steps || []).map(step => {
+        const item = document.createElement("li");
+        item.textContent = step;
+        return item;
+      }));
+      lessonSteps.hidden = !scenario.steps?.length;
       $("#objectiveText").textContent = scenario.objective;
+      if (scenario.displayMode) setDisplayMode(scenario.displayMode);
+      if (scenario.understandView) setUnderstandView(scenario.understandView);
       if (matchMedia("(max-width: 860px)").matches) {
         $("#sidebar").classList.remove("open");
         $("#sidebarToggle").setAttribute("aria-expanded", "false");
@@ -7206,7 +7236,13 @@
       const isExpectedSpring = challenge
         && pair.boat.id === challenge.springBoatCleatId
         && pair.shore.id === challenge.springShoreCleatId;
-      const initialSlack = isExpectedSpring ? challenge.initialSlack : 0;
+      const berthChallenge = scenarios[ui.scenarioId]?.berthChallenge;
+      const isExpectedGuard = berthChallenge
+        && pair.boat.id === berthChallenge.guardBoatCleatId
+        && pair.shore.id === berthChallenge.guardShoreCleatId;
+      const initialSlack = isExpectedSpring
+        ? challenge.initialSlack
+        : isExpectedGuard ? berthChallenge.initialSlack : 0;
       const result = physicsSimulator.attachMooring({
         id: `user-${moorings.serial}`,
         boatCleatId: pair.boat.id,
@@ -7230,6 +7266,8 @@
       showStageToast(
         isExpectedSpring
           ? `Garde frappée · ${fmt(result.mooring.slack, 1)} m de mou à reprendre.`
+          : isExpectedGuard
+            ? `Garde croisée frappée · ${fmt(result.mooring.slack, 1)} m de mou à reprendre.`
           : `Aussière frappée · ${fmt(result.mooring.length, 1)} m.`,
         "ok"
       );
@@ -8022,6 +8060,25 @@
           level: phase === "neutral" || contacts.maxImpact > .2 ? "warn" : "ok",
           text: mooringChallengeInstruction(activeScenario)
         };
+      }
+      if (activeScenario?.berthChallenge) {
+        const challenge = activeScenario.berthChallenge;
+        if (contacts.maxImpact > challenge.maximumImpactSpeed) {
+          return { level: "warn", text: "L'étrave a touché trop fort. Recommencez et cassez l'erre plus tôt, avant de frapper la garde." };
+        }
+        const guard = moorings.current.find(line => (
+          line.boatCleatId === challenge.guardBoatCleatId
+          && line.shoreCleatId === challenge.guardShoreCleatId
+        ));
+        if (guard && !guard.taut) {
+          return { level: "ok", text: "La garde croisée est frappée : faites glisser sa jauge vers le bas pour reprendre le mou et retenir l'étrave." };
+        }
+        if (!guard && Math.hypot(
+          motion.x - activeScenario.goal.x,
+          motion.y - activeScenario.goal.y
+        ) < 6) {
+          return { level: "ok", text: "Près du poste : reliez le taquet avant bâbord du bateau au taquet de bout du catway, puis reprenez doucement le mou de la garde." };
+        }
       }
       if (contacts.current.length) {
         const impact = Math.max(...contacts.current.map(contact => contact.impactSpeed));

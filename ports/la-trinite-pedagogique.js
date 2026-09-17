@@ -416,14 +416,51 @@
       environment: { ...calm },
       goal: { x: 25, y: 27, radius: 3.4, heading: -Math.PI / 2, speedKn: 0.15, kind: "circle" }
     },
+    halfTurn: {
+      kicker: "Défi 07",
+      title: "Faire un demi-tour sur place",
+      copy: "L'hélice droitière déplace la poupe de côté en marche arrière : c'est le pas d'hélice. En alternant de courtes poussées avant et arrière, vous pouvez faire pivoter le bateau sans prendre beaucoup d'erre. La vue Comprendre · Rotation montre les forces qui le font tourner ; survolez une flèche pour en lire le détail.",
+      steps: [
+        "Mettez la barre toute à tribord et gardez-la ainsi.",
+        "Alternez rapidement marche arrière toute et marche avant toute, sans toucher à la barre. Observez les flèches à chaque inversion."
+      ],
+      objective: "Tournez l'étrave vers le sud et restez dans le cercle de départ, presque à l'arrêt.",
+      initial: { x: 26, y: 0, heading: Math.PI / 2 },
+      environment: { ...calm },
+      goal: { x: 26, y: 0, radius: 4, heading: -Math.PI / 2, speedKn: 0.3, kind: "circle" },
+      displayMode: "understand",
+      understandView: "rotation"
+    },
     dock: {
       kicker: "Défi 02",
-      title: "Accostage bâbord",
-      copy: "Sans vent ni courant, concentrez-vous sur l'erre. Cassez-la tôt et laissez les pare-battages absorber un appui très doux.",
-      objective: "Immobilisez-vous parallèle au ponton, sans contact supérieur à 0,20 m/s.",
-      initial: { x: 25, y: -25, heading: 5 * Math.PI / 4 },
+      title: "Accostage par l'avant à bâbord",
+      copy: "La garde croisée part de l'avant du bateau vers l'extrémité du catway, en arrière de l'étrave. Elle freine son avancée vers le ponton. Approchez lentement : une amarre ne remplace pas le freinage au moteur. Pour simuler la présence d'équipiers, vous pouvez mettre la simulation en pause pour frapper les aussières.",
+      steps: [
+        "Avancez au ralenti vers la silhouette verte, catway à bâbord, puis passez au neutre assez tôt pour casser l'erre.",
+        "Près du poste, cliquez le taquet avant bâbord du bateau, puis le taquet à l'extrémité du catway : la garde croisée est frappée.",
+        "Reprenez le mou avec la jauge de l'amarre pour tendre la garde, puis stabilisez le bateau sans laisser l'étrave toucher le ponton."
+      ],
+      objective: "Placez le bateau dans la silhouette verte, presque à l'arrêt, garde croisée tendue et sans choc supérieur à 0,20 m/s.",
+      initial: { x: 25, y: trainingApproachBerth.y, heading: Math.PI },
       environment: { ...calm },
-      goal: { x: 25, y: -42.7, radius: 3.6, heading: Math.PI, speedKn: 0.16, kind: "dock" }
+      berthChallenge: {
+        guardBoatCleatId: "bow-port",
+        guardShoreCleatId: cleatId(trainingApproachBerth.catwayId, "north", "tip"),
+        initialSlack: 0.5,
+        maximumImpactSpeed: 0.2
+      },
+      goal: {
+        x: trainingApproachBerth.x,
+        y: trainingApproachBerth.y,
+        radius: 1.2,
+        heading: trainingApproachBerth.heading,
+        speedKn: 0.16,
+        kind: "berth",
+        berthId: trainingApproachBerth.id,
+        catwayId: trainingApproachBerth.catwayId,
+        length: 11.6,
+        beam: 4.3
+      }
     },
     reverse: {
       kicker: "Défi 03",
