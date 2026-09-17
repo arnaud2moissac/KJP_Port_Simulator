@@ -227,6 +227,8 @@
       background: var(--ink);
     }
 
+    .understand-view-tabs .rotation-unit { font-size: 10px; opacity: .72; }
+
     .understand-view-tabs[hidden] { display: none; }
 
     .header-tools {
@@ -1893,9 +1895,10 @@
           <button type="button" id="skipperViewButton" aria-pressed="false">Skipper</button>
         </div>
         <div class="understand-view-tabs" id="understandViewTabs" role="group"
+             title="Rotation : direction de la composante perpendiculaire F⊥ ; longueur proportionnelle au moment de lacet en N·m."
           aria-label="Lecture du mode Comprendre" hidden>
           <button type="button" data-understand-view="translation" aria-pressed="true">Translation</button>
-          <button type="button" data-understand-view="rotation" aria-pressed="false">Rotation</button>
+          <button type="button" data-understand-view="rotation" aria-pressed="false">Rotation <span class="rotation-unit">N·m</span></button>
         </div>
       </div>
 
@@ -3178,9 +3181,9 @@
     };
 
     const UNDERSTANDING_FORCE_SCALE = .0022;
-    // Rotation conserve une échelle linéaire commune à toutes les familles,
-    // plus lisible pour les composantes latérales usuelles à basse vitesse.
-    const UNDERSTANDING_ROTATION_FORCE_SCALE = .008;
+    // En Rotation, le sens vient de F⊥ et la longueur compare les moments.
+    // Cette flèche est un glyphe pédagogique, pas un vecteur de force à l'échelle.
+    const UNDERSTANDING_ROTATION_MOMENT_SCALE = .008;
     const UNDERSTANDING_FORCE_THRESHOLD = 35;
     const UNDERSTANDING_FORCE_EPSILON = 1e-9;
     const UNDERSTANDING_ROTATION_MAX_LENGTH = 12;
@@ -3291,19 +3294,24 @@
       const forceMagnitude = Math.hypot(part.fx, part.fy);
       const rotMagnitude = Math.hypot(rotFx, rotFy);
       const geometricMomentScene = part.x * part.fy - part.y * part.fx;
-      const rawVectorLength = rotMagnitude * UNDERSTANDING_ROTATION_FORCE_SCALE;
-      const visualRatio = rawVectorLength > UNDERSTANDING_ROTATION_MAX_LENGTH
-        ? UNDERSTANDING_ROTATION_MAX_LENGTH / rawVectorLength : 1;
+      const momentNm = -part.moment;
+      // Un couple sans composante tangentielle n'a pas de direction de flèche
+      // déductible de F : conserver son marqueur et sa valeur sans l'inventer.
+      const rawVectorLength = rotMagnitude > UNDERSTANDING_FORCE_EPSILON
+        ? Math.abs(momentNm) * UNDERSTANDING_ROTATION_MOMENT_SCALE : 0;
+      const visualLength = Math.min(UNDERSTANDING_ROTATION_MAX_LENGTH, rawVectorLength);
+      const visualScale = rotMagnitude > UNDERSTANDING_FORCE_EPSILON
+        ? visualLength / rotMagnitude : 0;
       return {
         rotFx, rotFy, forceMagnitude, rotMagnitude,
-        momentNm: -part.moment,
+        momentNm,
         residualMomentNm: -(part.moment - geometricMomentScene),
         leverMeters: forceMagnitude > UNDERSTANDING_FORCE_EPSILON
           ? Math.abs(geometricMomentScene) / forceMagnitude : 0,
         rawVectorLength,
-        visualLength: Math.min(UNDERSTANDING_ROTATION_MAX_LENGTH, rawVectorLength),
-        visualFx: rotFx * UNDERSTANDING_ROTATION_FORCE_SCALE * visualRatio,
-        visualFy: rotFy * UNDERSTANDING_ROTATION_FORCE_SCALE * visualRatio
+        visualLength,
+        visualFx: rotFx * visualScale,
+        visualFy: rotFy * visualScale
       };
     }
 
@@ -3341,7 +3349,8 @@
         ...source,
         parts,
         momentNm: -forceAccumulator.n,
-        rotationScale: UNDERSTANDING_ROTATION_FORCE_SCALE,
+        momentScale: UNDERSTANDING_ROTATION_MOMENT_SCALE,
+        rotationLengthUnit: "N·m",
         maximumRotationLength: UNDERSTANDING_ROTATION_MAX_LENGTH
       };
       return understandingCachedReport;

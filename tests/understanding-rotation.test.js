@@ -29,7 +29,9 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
       centerCouple: decompose({ x: 0, y: 0, fx: 0, fy: 0, moment: -50 }),
       port: decompose({ x: 2, y: 0, fx: 0, fy: 100, moment: 200 }),
       oblique: decompose({ x: 3, y: 4, fx: 30, fy: 10, moment: -90 }),
-      capped: decompose({ x: 2, y: 0, fx: 0, fy: -10000, moment: -20000 })
+      capped: decompose({ x: 2, y: 0, fx: 0, fy: -10000, moment: -20000 }),
+      keel: decompose({ x: -.18, y: 0, fx: 0, fy: -272, moment: 48.96 }),
+      rudder: decompose({ x: -4.35, y: 0, fx: 0, fy: -92, moment: 400.2 })
     };
   });
   closeTo(analytic.transverse.rotFx, 0, "transverse x");
@@ -41,13 +43,20 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
   closeTo(analytic.center.rotMagnitude, 0, "r nul");
   closeTo(analytic.centerCouple.rotMagnitude, 0, "couple au centre sans flèche inventée");
   closeTo(analytic.centerCouple.momentNm, 50, "couple au centre conservé");
+  closeTo(analytic.centerCouple.visualLength, 0, "un couple sans direction de force garde un marqueur");
   closeTo(analytic.port.momentNm, -200, "moment négatif vers bâbord");
   closeTo(analytic.oblique.rotFx * 3 + analytic.oblique.rotFy * 4, 0, "Frot perpendiculaire à r");
   closeTo(3 * analytic.oblique.rotFy - 4 * analytic.oblique.rotFx, -90,
     "Frot conserve le moment géométrique scène");
   closeTo(analytic.capped.visualLength, 12, "plafond visuel 12 m");
-  closeTo(analytic.capped.rawVectorLength, 80, "échelle Rotation linéaire avant plafond");
+  closeTo(analytic.capped.rawVectorLength, 160, "échelle des moments avant plafond");
   closeTo(analytic.capped.momentNm, 20000, "moment non plafonné");
+  assert.ok(analytic.keel.rotMagnitude > analytic.rudder.rotMagnitude,
+    "la quille peut exercer une force perpendiculaire plus grande");
+  assert.ok(Math.abs(analytic.keel.momentNm) < Math.abs(analytic.rudder.momentNm),
+    "son petit bras de levier produit pourtant moins de moment");
+  assert.ok(analytic.keel.visualLength < analytic.rudder.visualLength,
+    "la lecture Rotation classe les flèches selon le moment, pas selon la force");
 
   await page.locator('[data-mode="understand"]').click();
   assert.equal(await page.locator('[data-understand-view="translation"]').getAttribute("aria-pressed"), "true");
@@ -74,6 +83,26 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
     reverseRect.y + reverseHit.a.y * .2 + reverseHit.b.y * .8);
   await settle(page);
   assert.match(await page.locator("#forceTooltip").textContent(), /^Pas d'hélice · [+-−]/);
+  const leverageCase = await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    api.reset({ x: 25, y: -38, heading: Math.PI }, {
+      windSpeedKn: 0, currentSpeedKn: 0
+    });
+    api.setControls({ throttleTarget: -1, rudderTarget: 0 });
+    api.advance(10);
+    const parts = api.understandingRotationReport().parts;
+    return {
+      keel: parts.find(part => part.name === "Quille"),
+      rudder: parts.find(part => part.name === "Safran")
+    };
+  });
+  assert.ok(leverageCase.keel.rotation.rotMagnitude > leverageCase.rudder.rotation.rotMagnitude,
+    "la quille exerce ici plus de force tangentielle que le safran");
+  assert.ok(Math.abs(leverageCase.keel.rotation.momentNm)
+    < Math.abs(leverageCase.rudder.rotation.momentNm),
+  "le safran produit pourtant plus de moment grâce à son bras de levier");
+  assert.ok(leverageCase.keel.rotation.visualLength < leverageCase.rudder.rotation.visualLength,
+    "la longueur en Rotation suit l'ordre des moments physiques mesurés");
   await page.evaluate(() => window.__PORTANCE_TEST__.setUnderstandView("translation"));
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;
@@ -110,7 +139,8 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
   assert.deepEqual(after.native.centerOfMass.position, [0, 0, .75]);
   assert.equal(after.report.mode, "understand");
   assert.equal(after.report.view, "rotation");
-  closeTo(after.report.rotationScale, .008, "échelle commune de Rotation");
+  closeTo(after.report.momentScale, .008, "échelle commune des moments de Rotation");
+  assert.equal(after.report.rotationLengthUnit, "N·m");
   closeTo(after.forces.scale, .0022, "échelle de Translation inchangée");
   closeTo(after.report.momentNm,
     -after.snapshot.forceParts.reduce((sum, part) => sum + part.moment, 0),
@@ -118,6 +148,10 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
   for (const part of after.report.parts) {
     closeTo(part.x * part.rotation.rotFy - part.y * part.rotation.rotFx,
       part.x * part.fy - part.y * part.fx, `${part.name}: moment géométrique`);
+    closeTo(part.rotation.visualLength,
+      part.rotation.rotMagnitude > 1e-9
+        ? Math.min(12, Math.abs(part.rotation.momentNm) * .008) : 0,
+      `${part.name}: longueur déterminée par le moment`);
     assert.ok(part.rotation.rawVectorLength <= 12 || part.rotationArrowVisible,
       `${part.name}: le plafond ne change pas la valeur brute`);
   }
