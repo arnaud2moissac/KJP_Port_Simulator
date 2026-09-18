@@ -2497,7 +2497,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(desktopImage.length > 20_000, "la scène 3D paraît vide ou uniforme");
     assert.deepEqual(
       desktop.options.slice(0, 3),
-      ["dockForward", "dockReverse", "approach"]
+      ["dockForward", "dockReverse", "free"]
     );
     assert.ok(desktop.options.includes("mooring"));
     assert.ok(desktop.options.includes("medDock"));

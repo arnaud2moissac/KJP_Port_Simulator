@@ -959,6 +959,8 @@
       font-size: 11px;
     }
 
+    .objective-line[hidden] { display: none; }
+
     .objective-dot {
       width: 7px;
       height: 7px;
@@ -2136,10 +2138,9 @@
               <optgroup label="Situations de départ">
                 <option value="dockForward">Ponton · sortie en marche avant</option>
                 <option value="dockReverse">Ponton · sortie en marche arrière</option>
-                <option value="approach">Approche · rejoindre sa place</option>
+                <option value="free">Bassin extérieur</option>
               </optgroup>
               <optgroup label="Exercices guidés">
-                <option value="free">Atelier libre · bassin extérieur</option>
                 <option value="inertia">Défi 1 · Dompter l'inertie</option>
                 <option value="dock">Défi 2 · Accostage bâbord</option>
                 <option value="reverse">Défi 3 · Sortie en marche arrière</option>
@@ -2147,6 +2148,7 @@
                 <option value="medDock">Défi 5 · Accoster sur pendille</option>
                 <option value="medDeparture">Défi 6 · Appareiller sur pendille</option>
                 <option value="halfTurn">Défi 7 · Faire un demi-tour sur place</option>
+                <option value="approach">Défi 8 · Rejoindre sa place</option>
               </optgroup>
             </select>
           </div>
@@ -2168,7 +2170,7 @@
               <div class="eyebrow" id="lessonKicker">Défi 01</div>
               <h2 id="lessonTitle">Dompter l'inertie</h2>
             </div>
-            <div class="score"><span id="scoreValue">100</span><small>score</small></div>
+            <div class="score" id="lessonScore"><span id="scoreValue">100</span><small>score</small></div>
           </div>
           <p id="lessonCopy"></p>
           <ol class="lesson-steps" id="lessonSteps" hidden></ol>
@@ -3504,7 +3506,7 @@
         if (!Array.isArray(topology.lights?.posts)) errors.push("lights.posts absent");
         if (!topology.flowField) errors.push("flowField absent");
         if (!topology.scenarios?.dockForward || !topology.scenarios?.dockReverse || !topology.scenarios?.approach) {
-          errors.push("situations de départ obligatoires absentes");
+          errors.push("scénarios intégrés obligatoires absents");
         }
         if (topology.staticBoats?.some(boat => !topology.berthLanes?.[boat.berth])) {
           errors.push("un bateau statique référence une berthLane absente");
@@ -4722,6 +4724,8 @@
       );
       const card = $("#lessonCard");
       card.hidden = communityPort || ui.scenarioId === "free";
+      $("#lessonScore").hidden = !scenario.goal;
+      $("#objectiveLine").hidden = !scenario.goal;
       $("#lessonKicker").textContent = scenario.kicker;
       $("#lessonTitle").textContent = scenario.title;
       $("#lessonCopy").textContent = scenario.copy;
@@ -4732,7 +4736,7 @@
         return item;
       }));
       lessonSteps.hidden = !scenario.steps?.length;
-      $("#objectiveText").textContent = scenario.objective;
+      $("#objectiveText").textContent = scenario.objective || "";
       if (scenario.displayMode) setDisplayMode(scenario.displayMode);
       if (scenario.understandView) setUnderstandView(scenario.understandView);
       if (matchMedia("(max-width: 860px)").matches) {

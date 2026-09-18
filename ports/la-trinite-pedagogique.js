@@ -340,7 +340,6 @@
       kicker: "Situation de départ",
       title: "Quitter le ponton en marche avant",
       copy: "Le bateau est amarré cul au ponton entre deux catways, sans vent ni courant. Avancez dans le chenal avant de commencer votre giration.",
-      objective: "Sortez de la place en marche avant et gagnez le chenal vert.",
       initial: { x: trainingExitBerth.x, y: trainingExitBerth.y, heading: 0 },
       initialMoorings: [
         {
@@ -355,13 +354,12 @@
         }
       ],
       environment: { ...calm },
-      goal: { x: 26, y: trainingExitBerth.y, w: 10, h: 7, heading: 0, speedKn: 1.4, kind: "rect" }
+      goal: null
     },
     dockReverse: {
       kicker: "Situation de départ",
       title: "Quitter le ponton en marche arrière",
       copy: "Le bateau est amarré étrave au ponton entre deux catways. Reculez jusqu'au chenal et observez le déplacement de la poupe dû au pas de l'hélice.",
-      objective: "Sortez en marche arrière dans le chenal vert sans choc.",
       initial: { x: trainingExitBerth.x, y: trainingExitBerth.y, heading: Math.PI },
       initialMoorings: [
         {
@@ -376,10 +374,10 @@
         }
       ],
       environment: { ...calm },
-      goal: { x: 26, y: trainingExitBerth.y, w: 10, h: 7, heading: Math.PI, speedKn: 1.4, kind: "rect" }
+      goal: null
     },
     approach: {
-      kicker: "Situation de départ",
+      kicker: "Défi 08",
       title: "Rejoindre sa place",
       copy: "Vous arrivez par le bassin extérieur, sans vent ni courant. Descendez le large chenal puis engagez-vous dans le poste libre, le long du catway sud.",
       objective: "Placez le bateau dans la silhouette verte, contre le catway, presque à l'arrêt et étrave vers le ponton.",
@@ -399,8 +397,8 @@
       }
     },
     free: {
-      kicker: "Atelier libre",
-      title: "Explorez à votre rythme",
+      kicker: "Situation de départ",
+      title: "Bassin extérieur",
       copy: "Commencez par de petites impulsions. Observez combien de temps le bateau continue sur son erre quand la commande revient au neutre.",
       objective: "",
       initial: { x: 25, y: 48, heading: -Math.PI / 2 },
