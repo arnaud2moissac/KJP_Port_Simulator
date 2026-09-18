@@ -1203,7 +1203,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       catways: 30,
       mooringCleats: 226,
       staticBoats: 18,
-      scenarios: 11
+      scenarios: 12
     });
     assert.equal(report.connections.length, 30);
     assert.ok(report.connections.every(connection => (
@@ -1966,7 +1966,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal(navigation.ok, true, navigation.failures.join("\n"));
     assert.equal(navigation.allBerthsAccessible, true);
     assert.equal(navigation.allExitLanesAccessible, true);
-    assert.equal(navigation.berthRoutes.length, 18);
+    assert.equal(navigation.berthRoutes.length, 19);
     assert.equal(navigation.exitLanes.length, 3);
     assert.ok(
       navigation.minimumFairway >= navigation.requiredFairway,
@@ -2034,7 +2034,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     for (const [id, scenario] of Object.entries(report)) {
       assert.equal(
         scenario.environment.windSpeedKn,
-        id === "mooring" ? 8 : ["medDock", "medDeparture"].includes(id) ? 10 : 0,
+        id === "mooring" ? 8 : ["medDock", "medDeparture", "starboardDock"].includes(id) ? 10 : 0,
         `${id}: vent initial inattendu`
       );
       assert.equal(scenario.environment.currentSpeedKn, 0, `${id}: courant initial non nul`);

@@ -272,6 +272,18 @@
     ),
     heading: Math.PI
   };
+  const trainingStarboardBerth = {
+    id: "place-accostage-tribord",
+    lane: "breakwater-west",
+    ...berthPosition(
+      "breakwater-west",
+      14,
+      "south",
+      3.59,
+      layout.playerFenderGap
+    ),
+    heading: 0
+  };
 
   // Atelier méditerranéen compact : trois postes cul au quai, sans catway.
   // La place centrale est réservée aux exercices, les deux voisines sont occupées.
@@ -377,7 +389,7 @@
       goal: null
     },
     approach: {
-      kicker: "Défi 08",
+      kicker: "Défi 09",
       title: "Rejoindre sa place",
       copy: "Vous arrivez par le bassin extérieur, sans vent ni courant. Descendez le large chenal puis engagez-vous dans le poste libre, le long du catway sud.",
       objective: "Placez le bateau dans la silhouette verte, contre le catway, presque à l'arrêt et étrave vers le ponton.",
@@ -415,7 +427,7 @@
       goal: { x: 25, y: 27, radius: 3.4, heading: -Math.PI / 2, speedKn: 0.15, kind: "circle" }
     },
     halfTurn: {
-      kicker: "Défi 07",
+      kicker: "Défi 08",
       title: "Faire un demi-tour sur place",
       copy: "L'hélice droitière déplace la poupe de côté en marche arrière : c'est le pas d'hélice. En alternant de courtes poussées avant et arrière, vous pouvez faire pivoter le bateau sans prendre beaucoup d'erre. La vue Comprendre · Rotation montre les forces qui le font tourner ; survolez une flèche pour en lire le détail.",
       steps: [
@@ -460,8 +472,39 @@
         beam: 4.3
       }
     },
-    reverse: {
+    starboardDock: {
       kicker: "Défi 03",
+      title: "Accostage tribord avec vent de nord",
+      copy: "Partez cap au nord dans le chenal, puis virez à tribord vers la place libre près de la digue. Dès que l'étrave s'oriente vers l'est, le vent de nord arrive sur bâbord : il l'aide à venir vers tribord, du côté du catway. Profitez de cette aide sans laisser le vent décider de votre vitesse ni de votre point de contact.",
+      steps: [
+        "Avancez doucement vers le nord jusqu'à être à la hauteur de l'entrée du poste ; gardez de la place pour tourner sans serrer les bateaux voisins.",
+        "Mettez la barre à tribord avec une courte impulsion en avant. Observez l'étrave : le vent accompagne sa venue vers le catway, mais peut accélérer la dérive latérale.",
+        "Redressez le bateau parallèle au catway, passez au neutre tôt puis cassez la dernière erre par une brève marche arrière. Arrivez côté tribord presque arrêté, sans heurter la digue."
+      ],
+      objective: "Entrez dans la silhouette verte, étrave vers la digue, presque à l'arrêt et sans contact supérieur à 0,20 m/s.",
+      initial: { x: 26, y: -5.5, heading: Math.PI / 2 },
+      environment: { windSpeedKn: 10, windFromDeg: 0, currentSpeedKn: 0, currentFromDeg: 0 },
+      maximumImpactSpeed: 0.2,
+      windLevelTwo: {
+        windSpeedKn: 15,
+        copy: "Niveau 2 · Le vent de nord souffle maintenant à 15 nd. Il aide encore l'étrave à venir sur tribord, mais pousse plus vite vers le catway : déclenchez la giration plus tôt et réduisez l'erre avant l'alignement.",
+        objective: "Avec 15 nd de vent de nord, accostez dans la même silhouette, presque à l'arrêt et sans contact supérieur à 0,20 m/s."
+      },
+      goal: {
+        x: trainingStarboardBerth.x,
+        y: trainingStarboardBerth.y,
+        radius: 1.2,
+        heading: trainingStarboardBerth.heading,
+        speedKn: 0.16,
+        kind: "berth",
+        berthId: trainingStarboardBerth.id,
+        catwayId: trainingStarboardBerth.catwayId,
+        length: 11.6,
+        beam: 4.3
+      }
+    },
+    reverse: {
+      kicker: "Défi 04",
       title: "Sortir en marche arrière",
       copy: "Reculez dans la passe. L'hélice droitière chasse la poupe vers bâbord : compensez quand le safran commence à mordre.",
       objective: "Sortez dans le rectangle vert, en marche arrière, sans toucher les bateaux.",
@@ -482,7 +525,7 @@
       goal: { x: 26, y: trainingExitBerth.y, w: 10, h: 7, heading: Math.PI, speedKn: 1.2, kind: "rect" }
     },
     mooring: {
-      kicker: "Défi 04",
+      kicker: "Défi 05",
       title: "Sortir sur garde",
       copy: "Un vent de travers vous plaque contre le catway bâbord. Installez une garde arrière, utilisez-la comme point de pivot, puis quittez la place en marche avant.",
       objective: "Frappez la garde indiquée, reprenez son mou, écartez l’étrave de 20 à 35°, puis larguez au neutre et gagnez la zone verte.",
@@ -529,7 +572,7 @@
       }
     },
     medDock: {
-      kicker: "Défi 05",
+      kicker: "Défi 06",
       title: "Accoster sur pendille",
       copy: "Approchez cul au quai avec 10 nd de vent traversier. Tenez d’abord la poupe au vent, récupérez la pendille puis équilibrez les trois amarres.",
       objective: "Reculez dans la place centrale, frappez l’arrière au vent, menez la pendille à l’étrave puis terminez avec la seconde aussière arrière.",
@@ -547,7 +590,7 @@
       goal: { x: -90, y: 37.5, radius: 1.2, heading: -Math.PI / 2, speedKn: 0.1, kind: "berth" }
     },
     medDeparture: {
-      kicker: "Défi 06",
+      kicker: "Défi 07",
       title: "Appareiller sur pendille",
       copy: "Le bateau est cul au quai, tenu par deux aussières arrière et sa pendille d’étrave. Libérez les lignes dans l’ordre et gardez l’hélice claire.",
       objective: "Larguez sous le vent, détendez puis larguez la pendille au neutre, contrôlez avec l’arrière au vent puis sortez en marche avant.",
@@ -626,7 +669,8 @@
       ],
       trainingBerths: [
         trainingExitBerth,
-        trainingApproachBerth
+        trainingApproachBerth,
+        trainingStarboardBerth
       ],
       exitLanes: [
         {

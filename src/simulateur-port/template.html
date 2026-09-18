@@ -2091,12 +2091,13 @@
               <optgroup label="Exercices guidés">
                 <option value="inertia">Défi 1 · Dompter l'inertie</option>
                 <option value="dock">Défi 2 · Accostage bâbord</option>
-                <option value="reverse">Défi 3 · Sortie en marche arrière</option>
-                <option value="mooring">Défi 4 · Sortir sur garde</option>
-                <option value="medDock">Défi 5 · Accoster sur pendille</option>
-                <option value="medDeparture">Défi 6 · Appareiller sur pendille</option>
-                <option value="halfTurn">Défi 7 · Faire un demi-tour sur place</option>
-                <option value="approach">Défi 8 · Rejoindre sa place</option>
+                <option value="starboardDock">Défi 3 · Accostage tribord</option>
+                <option value="reverse">Défi 4 · Sortie en marche arrière</option>
+                <option value="mooring">Défi 5 · Sortir sur garde</option>
+                <option value="medDock">Défi 6 · Accoster sur pendille</option>
+                <option value="medDeparture">Défi 7 · Appareiller sur pendille</option>
+                <option value="halfTurn">Défi 8 · Faire un demi-tour sur place</option>
+                <option value="approach">Défi 9 · Rejoindre sa place</option>
               </optgroup>
             </select>
           </div>
@@ -4526,8 +4527,9 @@
         && line.shoreCleatId === berthChallenge.guardShoreCleatId
         && line.taut
       ));
-      const gentleApproach = !berthChallenge
-        || contacts.maxImpact <= berthChallenge.maximumImpactSpeed;
+      const maximumImpactSpeed = berthChallenge?.maximumImpactSpeed ?? scenario.maximumImpactSpeed;
+      const gentleApproach = maximumImpactSpeed === undefined
+        || contacts.maxImpact <= maximumImpactSpeed;
       if (inside && correctHeading && correctSpeed && guardInPlace && gentleApproach) scenarioState.hold += dt;
       else scenarioState.hold = Math.max(0, scenarioState.hold - dt * .5);
       scenarioState.score = scoreScenario(distance, alignment, speedKn);
@@ -4685,6 +4687,9 @@
       }));
       lessonSteps.hidden = !scenario.steps?.length;
       $("#objectiveText").textContent = scenario.objective || "";
+      $("#strongWindReplay").textContent = scenario.windLevelTwo
+        ? `Passer au niveau 2 · ${scenario.windLevelTwo.windSpeedKn} nd de vent`
+        : "Rejouer avec 15 nd de vent";
       if (scenario.displayMode) setDisplayMode(scenario.displayMode);
       if (scenario.understandView) setUnderstandView(scenario.understandView);
       if (matchMedia("(max-width: 860px)").matches) {
@@ -4694,10 +4699,10 @@
       }
     }
 
-    function replayPendilleStrongWind() {
+    function replayStrongWind() {
       const scenario = scenarios[ui.scenarioId];
-      if (!scenario?.pendilleChallenge) return null;
-      environment.windSpeedKn = 15;
+      if (!scenario?.pendilleChallenge && !(scenario?.windLevelTwo && scenarioState.complete)) return null;
+      environment.windSpeedKn = scenario.windLevelTwo?.windSpeedKn || 15;
       environment.windFromDeg = scenario.environment.windFromDeg;
       environment.currentSpeedKn = scenario.environment.currentSpeedKn;
       environment.currentFromDeg = scenario.environment.currentFromDeg;
@@ -4709,6 +4714,11 @@
       );
       scenarioState.strongWindReplay = true;
       $("#strongWindReplay").hidden = true;
+      if (scenario.windLevelTwo) {
+        $("#lessonKicker").textContent = `${scenario.kicker} · Niveau 2`;
+        $("#lessonCopy").textContent = scenario.windLevelTwo.copy;
+        $("#objectiveText").textContent = scenario.windLevelTwo.objective;
+      }
       return testSnapshot();
     }
 
@@ -8012,6 +8022,10 @@
           return { level: "ok", text: "Près du poste : reliez le taquet avant bâbord du bateau au taquet de bout du catway, puis reprenez doucement le mou de la garde." };
         }
       }
+      if (activeScenario?.maximumImpactSpeed !== undefined
+        && contacts.maxImpact > activeScenario.maximumImpactSpeed) {
+        return { level: "warn", text: "Contact trop rapide : recommencez en coupant l'erre plus tôt. Le vent aide à tourner, mais il ne freine pas le bateau." };
+      }
       if (contacts.current.length) {
         const impact = Math.max(...contacts.current.map(contact => contact.impactSpeed));
         return impact > .2
@@ -8289,7 +8303,7 @@
       const activeScenario = scenarios[ui.scenarioId];
       const replayAvailable = Boolean(
         scenarioState.complete
-        && activeScenario?.pendilleChallenge
+        && (activeScenario?.pendilleChallenge || activeScenario?.windLevelTwo)
         && !scenarioState.strongWindReplay
       );
       $("#strongWindReplay").hidden = !replayAvailable;
@@ -8604,7 +8618,7 @@
     }));
 
     $("#scenarioSelect").addEventListener("change", event => applyScenario(event.target.value));
-    $("#strongWindReplay").addEventListener("click", replayPendilleStrongWind);
+    $("#strongWindReplay").addEventListener("click", replayStrongWind);
     $("#loadPortButton").addEventListener("click", () => $("#portFileInput").click());
     $("#portFileInput").addEventListener("change", event => {
       readSelectedPortFile(event.target.files?.[0]);
@@ -9981,7 +9995,7 @@
           pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
           return { result, snapshot: testSnapshot() };
         },
-        replayPendilleStrongWind,
+        replayPendilleStrongWind: replayStrongWind,
         setMooringLength(id, length) {
           return {
             result: setInteractiveMooringLength(id, Number(length)),
