@@ -405,6 +405,29 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
 
   await page.evaluate(() => {
     const api = window.__PORTANCE_TEST__;
+    api.selectCameraView("top");
+    api.selectVisualTheme("chart");
+  });
+  await settle(page, 4);
+  const largeGrid = await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    return {
+      port: api.topologyReport().bounds,
+      grid: api.visualThemeReport().grid,
+      layer: api.worldRendererReport().layers["chart-grid"]
+    };
+  });
+  assert.ok(largeGrid.layer, "la grille native reste visible sur un grand port");
+  for (const axis of ["X", "Y"]) {
+    assert.ok(largeGrid.grid.bounds[`min${axis}`] <= largeGrid.port[`min${axis}`]);
+    assert.ok(largeGrid.grid.bounds[`max${axis}`] >= largeGrid.port[`max${axis}`]);
+    assert.ok((largeGrid.grid.bounds[`max${axis}`] - largeGrid.grid.bounds[`min${axis}`])
+      / largeGrid.grid.adaptiveStepMeters <= 186,
+    "la densité de la grille reste bornée sur un grand port");
+  }
+
+  await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
     api.failNextNativeInfrastructureBuild();
     api.restoreBuiltInPort();
   });

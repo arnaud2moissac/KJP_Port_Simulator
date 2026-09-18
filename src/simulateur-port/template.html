@@ -1029,18 +1029,6 @@
 
     .force-tooltip[hidden] { display: none; }
 
-    .force-tooltip.rotation { pointer-events: auto; }
-    .force-tooltip.rotation .force-choices { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
-    .force-tooltip.rotation .force-choices button {
-      padding: 3px 6px;
-      border-radius: 6px;
-      font-size: 10px;
-    }
-    .force-tooltip.rotation .force-choices button[aria-pressed="true"] {
-      background: var(--ink);
-      color: var(--navy-0);
-    }
-
     .control-dock {
       position: absolute;
       z-index: 4;
@@ -2065,7 +2053,9 @@
               <label for="portSourceSelect">Port actif</label>
               <div class="port-select-row">
                 <select id="portSourceSelect">
-                  <option value="builtIn">La Trinité · pédagogique</option>
+                  <option value="builtIn">Port pédagogique</option>
+                  <option value="loadTrinite">Charger la Trinité</option>
+                  <option value="buildPort">Construire un port</option>
                 </select>
                 <button type="button" class="port-info-button" id="portInfoButton" aria-label="Afficher les informations du port" aria-expanded="false" aria-controls="portInfoPopover" title="Informations du port">?</button>
               </div>
@@ -6348,18 +6338,35 @@
       return 10;
     }
 
-    function addChartGrid() {
-      const palette = visualPalette();
-      if (!palette.grid.enabled || camera.view === "skipper") return;
-      const step = chartGridStep();
+    function chartGridBounds() {
       const extent = Math.max(80, camera.distance * 1.65);
       const boatMotion = sceneMotion();
       const centerX = boatMotion.x + camera.pan[0];
       const centerY = boatMotion.y + camera.pan[1];
-      const minX = Math.floor((centerX - extent) / step) * step;
-      const maxX = Math.ceil((centerX + extent) / step) * step;
-      const minY = Math.floor((centerY - extent) / step) * step;
-      const maxY = Math.ceil((centerY + extent) / step) * step;
+      const bounds = PORT_TOPOLOGY.bounds;
+      const edgeMinX = Math.min(centerX - extent, bounds.minX);
+      const edgeMaxX = Math.max(centerX + extent, bounds.maxX);
+      const edgeMinY = Math.min(centerY - extent, bounds.minY);
+      const edgeMaxY = Math.max(centerY + extent, bounds.maxY);
+      const span = Math.max(edgeMaxX - edgeMinX, edgeMaxY - edgeMinY);
+      let step = chartGridStep();
+      while (span / step > 180) {
+        step = step < 25 ? 25 : step < 50 ? 50 : step < 100 ? 100
+          : step < 250 ? 250 : step * 2;
+      }
+      return {
+        step,
+        minX: Math.floor(edgeMinX / step) * step - step * 2,
+        maxX: Math.ceil(edgeMaxX / step) * step + step * 2,
+        minY: Math.floor(edgeMinY / step) * step - step * 2,
+        maxY: Math.ceil(edgeMaxY / step) * step + step * 2
+      };
+    }
+
+    function addChartGrid() {
+      const palette = visualPalette();
+      if (!palette.grid.enabled || camera.view === "skipper") return;
+      const { step, minX, maxX, minY, maxY } = chartGridBounds();
       const isMajor = value => Math.abs(Math.round(value / step)) % 5 === 0;
       for (let x = minX; x <= maxX + step * .5; x += step) {
         addWorldLine(
@@ -6831,15 +6838,7 @@
       if (!palette.grid.enabled || camera.view === "skipper") {
         return { signature: `off:${palette.id}:${camera.view}`, definition: null };
       }
-      const step = chartGridStep();
-      const extent = Math.max(80, camera.distance * 1.65);
-      const boatMotion = sceneMotion();
-      const centerX = boatMotion.x + camera.pan[0];
-      const centerY = boatMotion.y + camera.pan[1];
-      const minX = Math.floor((centerX - extent) / step) * step;
-      const maxX = Math.ceil((centerX + extent) / step) * step;
-      const minY = Math.floor((centerY - extent) / step) * step;
-      const maxY = Math.ceil((centerY + extent) / step) * step;
+      const { step, minX, maxX, minY, maxY } = chartGridBounds();
       const owners = [
         { family: "chart-grid", id: "minor", polygons: [], lines: [] },
         { family: "chart-grid", id: "major", polygons: [], lines: [] }
@@ -7614,8 +7613,6 @@
     const understandingHitTargets = [];
     let understandingPointer = null;
     let understandingHoveredPart = null;
-    let understandingSelectedForceId = null;
-    let understandingTooltipKey = "";
     let understandingTouchSelection = false;
 
     function formatUnderstandingForce(value) {
@@ -7628,39 +7625,14 @@
         : `${fmtSigned(value, 0)} N·m`;
     }
 
-    function renderUnderstandingTooltip(target, alternatives) {
+    function renderUnderstandingTooltip(target) {
       const tooltip = $("#forceTooltip");
-      if (ui.understandView !== "rotation" || target.kind === "pivot") {
-        tooltip.classList.remove("rotation");
-        const content = target.kind === "pivot"
-          ? target.label : `${target.label} · ${formatUnderstandingForce(target.magnitude)}`;
-        if (tooltip.textContent !== content) tooltip.textContent = content;
-        return;
-      }
-      tooltip.classList.add("rotation");
-      const part = target.part;
-      const rotation = part.rotation;
-      const key = [part.id, rotation.momentNm,
-        ...alternatives.map(option => option.part.id)].join(":");
-      if (key === understandingTooltipKey) return;
-      understandingTooltipKey = key;
-      const summary = document.createElement("span");
-      summary.textContent = `${understandingForceLabel(part)} · ${formatUnderstandingMoment(rotation.momentNm)}`;
-      const children = [summary];
-      if (alternatives.length > 1) {
-        const choices = document.createElement("div");
-        choices.className = "force-choices";
-        for (const option of alternatives) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.dataset.forceId = option.part.id;
-          button.setAttribute("aria-pressed", String(option.part.id === part.id));
-          button.textContent = understandingForceLabel(option.part).split(" · ")[0];
-          choices.append(button);
-        }
-        children.push(choices);
-      }
-      tooltip.replaceChildren(...children);
+      const content = target.kind === "pivot"
+        ? target.label
+        : ui.understandView === "rotation"
+          ? `${target.label} · ${formatUnderstandingMoment(target.part.rotation.momentNm)}`
+          : `${target.label} · ${formatUnderstandingForce(target.magnitude)}`;
+      if (tooltip.textContent !== content) tooltip.textContent = content;
     }
 
     function updateUnderstandingTooltip(point = understandingPointer) {
@@ -7683,18 +7655,11 @@
       if (!nearest) {
         tooltip.hidden = true;
         understandingHoveredPart = null;
-        understandingSelectedForceId = null;
         return;
       }
-      const alternatives = nearest.target.kind === "force"
-        ? understandingHitTargets.filter(target => target.kind === "force"
-          && Math.hypot(target.part.x - nearest.target.part.x,
-            target.part.y - nearest.target.part.y) < .05)
-        : [];
-      const target = alternatives.find(option => option.part.id === understandingSelectedForceId)
-        || nearest.target;
+      const target = nearest.target;
       understandingHoveredPart = target.kind === "force" ? target.part : null;
-      renderUnderstandingTooltip(target, alternatives);
+      renderUnderstandingTooltip(target);
       tooltip.hidden = false;
       tooltip.style.left = `${clamp(point.x + 15, 8, canvasWidth - tooltip.offsetWidth - 8)}px`;
       tooltip.style.top = `${clamp(point.y + 15, 8, canvasHeight - tooltip.offsetHeight - 8)}px`;
@@ -7710,14 +7675,6 @@
           : pointSegmentProjection(point, target.a, target.b).distance
       ) <= 24);
     }
-
-    $("#forceTooltip").addEventListener("click", event => {
-      const choice = event.target.closest("[data-force-id]");
-      if (!choice) return;
-      understandingSelectedForceId = choice.dataset.forceId;
-      understandingTooltipKey = "";
-      updateUnderstandingTooltip();
-    });
 
     function drawUnderstandingInspection(part, boatMotion, palette) {
       if (!part || ui.understandView !== "rotation") return;
@@ -8382,6 +8339,8 @@
     }
 
     const builtInScenarioMarkup = $("#scenarioSelect").innerHTML;
+    const LA_TRINITE_KJP_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp";
+    const PORT_GENERATOR_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html";
 
     function activePortMetadata() {
       if (communityPort) {
@@ -8454,13 +8413,15 @@
     function updatePortChrome() {
       const card = $("#communityPortCard");
       const sourceSelect = $("#portSourceSelect");
-      const loadedName = loadedCommunityDocument?.metadata?.name || "Port communautaire";
+      const loadedName = loadedCommunityDocument?.metadata?.name || "Port chargé";
       sourceSelect.replaceChildren(
-        new Option("La Trinité · pédagogique", "builtIn")
+        new Option("Port pédagogique", "builtIn")
       );
       if (loadedCommunityDocument) {
-        sourceSelect.add(new Option(`${loadedName} · chargé`, "community"));
+        sourceSelect.add(new Option(loadedName, "community"));
       }
+      sourceSelect.add(new Option("Charger la Trinité", "loadTrinite"));
+      sourceSelect.add(new Option("Construire un port", "buildPort"));
       sourceSelect.value = communityPort ? "community" : "builtIn";
       updatePortInformation();
       if (!communityPort) {
@@ -8529,6 +8490,21 @@
     function importCommunityPortText(text) {
       const document = KJPCodec.parse(text);
       return installCommunityDocument(document);
+    }
+
+    async function loadLaTrinitePort() {
+      try {
+        const response = await fetch(LA_TRINITE_KJP_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        showStageToast("Fichier trouvé, en cours de chargement…", "neutral", 10000);
+        const minimumProgress = new Promise(resolve => setTimeout(resolve, 650));
+        const contents = await response.text();
+        await minimumProgress;
+        const loaded = importCommunityPortText(contents);
+        showStageToast(`Fichier chargé · ${loaded.name}`, "ok", 2600);
+      } catch (error) {
+        showStageToast(`Chargement de La Trinité impossible · ${error.message}`, "danger", 4200);
+      }
     }
 
     function restoreBuiltInPort() {
@@ -8618,8 +8594,6 @@
       if (view !== "translation" && view !== "rotation") throw new TypeError("Lecture Comprendre invalide");
       ui.understandView = view;
       $("#forceTooltip").hidden = true;
-      understandingTooltipKey = "";
-      understandingSelectedForceId = null;
       $$("[data-understand-view]").forEach(button => button.setAttribute(
         "aria-pressed", String(button.dataset.understandView === view)
       ));
@@ -8636,7 +8610,12 @@
       readSelectedPortFile(event.target.files?.[0]);
     });
     $("#portSourceSelect").addEventListener("change", event => {
-      if (event.target.value === "community" && loadedCommunityDocument) {
+      const choice = event.target.value;
+      if (choice === "loadTrinite" || choice === "buildPort") {
+        event.target.value = communityPort ? "community" : "builtIn";
+        if (choice === "loadTrinite") void loadLaTrinitePort();
+        else window.open(PORT_GENERATOR_URL, "_blank", "noopener,noreferrer");
+      } else if (choice === "community" && loadedCommunityDocument) {
         installCommunityDocument(loadedCommunityDocument, {
           remember: false,
           reactivated: true
@@ -9357,10 +9336,10 @@
         pendilleState.selectedId = null;
       }
       camera.pointer = null;
-      if (event.pointerType === "touch" && !pointer.dragged
-        && pointer.mode !== "mooring" && ui.mode === "understand") {
+      if (!pointer.dragged && pointer.mode !== "mooring" && ui.mode === "understand"
+        && (event.pointerType === "touch" || event.button === 0)) {
         const rect = canvas.getBoundingClientRect();
-        understandingTouchSelection = true;
+        understandingTouchSelection = event.pointerType === "touch";
         understandingPointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
         moorings.hover = null;
         updateUnderstandingTooltip();
@@ -9380,21 +9359,13 @@
       if (!moorings.gaugePointer) moorings.activeLineId = null;
       canvas.style.cursor = "grab";
     });
-    canvas.addEventListener("pointerleave", event => {
+    canvas.addEventListener("pointerleave", () => {
       if (!camera.pointer && !understandingTouchSelection) {
         moorings.hover = null;
-        if (ui.understandView === "rotation" && $("#forceTooltip").contains(event.relatedTarget)) return;
         understandingPointer = null;
         $("#forceTooltip").hidden = true;
         canvas.style.cursor = "grab";
       }
-    });
-    $("#forceTooltip").addEventListener("pointerleave", event => {
-      if (understandingTouchSelection) return;
-      if (event.relatedTarget === canvas) return;
-      understandingPointer = null;
-      understandingHoveredPart = null;
-      $("#forceTooltip").hidden = true;
     });
     canvas.addEventListener("contextmenu", event => event.preventDefault());
     canvas.addEventListener("dblclick", event => {
@@ -9542,6 +9513,7 @@
     function visualThemeReport() {
       const palette = visualPalette();
       const toggle = $("#themeToggle");
+      const gridBounds = chartGridBounds();
       return {
         id: palette.id,
         displayName: palette.displayName,
@@ -9569,7 +9541,13 @@
         },
         grid: {
           enabled: palette.grid.enabled && camera.view !== "skipper",
-          adaptiveStepMeters: chartGridStep(),
+          adaptiveStepMeters: gridBounds.step,
+          bounds: {
+            minX: gridBounds.minX,
+            maxX: gridBounds.maxX,
+            minY: gridBounds.minY,
+            maxY: gridBounds.maxY
+          },
           minor: palette.grid.color,
           major: palette.grid.majorColor
         },

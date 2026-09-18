@@ -79,7 +79,7 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
   assert.ok(Math.hypot(reverseHit.b.x - reverseHit.a.x, reverseHit.b.y - reverseHit.a.y) > 10,
     "la flèche occupe plus de dix pixels dans la vue de dessus courante");
   const reverseRect = await page.locator("#scene").boundingBox();
-  await page.mouse.move(reverseRect.x + reverseHit.a.x * .2 + reverseHit.b.x * .8,
+  await page.mouse.click(reverseRect.x + reverseHit.a.x * .2 + reverseHit.b.x * .8,
     reverseRect.y + reverseHit.a.y * .2 + reverseHit.b.y * .8);
   await settle(page);
   assert.match(await page.locator("#forceTooltip").textContent(), /^Pas d'hélice · [+-−]/);
@@ -231,13 +231,26 @@ test("Comprendre — décomposition de rotation, invariants et secours Canvas", 
     "le pas d'hélice est entièrement contributif au lacet");
   assert.ok(propWalk.rotation.visualLength > .5 && propWalk.rotationArrowVisible,
     "le pas d'hélice en arrière est une flèche lisible avec l'échelle commune");
-  const motorHit = await page.evaluate(() => window.__PORTANCE_TEST__.understandingHitReport().targets
-    .find(target => target.label.startsWith("Moteur")));
+  const coincidentHits = await page.evaluate(() => {
+    const targets = window.__PORTANCE_TEST__.understandingHitReport().targets;
+    return {
+      motor: targets.find(target => target.label.startsWith("Moteur")),
+      propWalk: targets.find(target => target.label === "Pas d'hélice")
+    };
+  });
+  assert.ok(coincidentHits.motor && coincidentHits.propWalk);
   const canvasRect = await page.locator("#scene").boundingBox();
-  await page.mouse.move(canvasRect.x + motorHit.a.x, canvasRect.y + motorHit.a.y);
+  await page.mouse.click(canvasRect.x + coincidentHits.motor.a.x,
+    canvasRect.y + coincidentHits.motor.a.y);
   await settle(page);
-  assert.ok(await page.locator("#forceTooltip .force-choices button").count() >= 2);
-  await page.locator("#forceTooltip .force-choices button").filter({ hasText: "Pas d'hélice" }).click();
+  assert.match(await page.locator("#forceTooltip").textContent(), /^Moteur/);
+  assert.equal(await page.locator("#forceTooltip button").count(), 0,
+    "l'infobulle ne contient aucun sélecteur de contributions");
+  await page.mouse.click(canvasRect.x + coincidentHits.propWalk.a.x * .2
+    + coincidentHits.propWalk.b.x * .8,
+  canvasRect.y + coincidentHits.propWalk.a.y * .2
+    + coincidentHits.propWalk.b.y * .8);
+  await settle(page);
   assert.match(await page.locator("#forceTooltip").textContent(), /^Pas d'hélice/);
   await page.locator('[data-mode="navigation"]').click();
   assert.equal(await page.locator("#understandViewTabs").isVisible(), false);

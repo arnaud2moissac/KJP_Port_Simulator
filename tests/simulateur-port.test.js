@@ -323,6 +323,51 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     await page.locator("#portInfoButton").click();
   });
 
+  await t.test("Port actif reprend le nom KJP et propose La Trinité et le générateur", async () => {
+    const select = page.locator("#portSourceSelect");
+    const initialOptions = await select.locator("option").allTextContents();
+    assert.equal(initialOptions[0], "Port pédagogique");
+    assert.deepEqual(initialOptions.slice(-2), ["Charger la Trinité", "Construire un port"]);
+    await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text),
+      createPortInformationText());
+    assert.deepEqual(await select.locator("option").allTextContents(), [
+      "Port pédagogique", "Port des informations", "Charger la Trinité", "Construire un port"
+    ]);
+    assert.equal(await select.inputValue(), "community");
+
+    const trinitePath = path.join(projectRoot, "la_Trinite.kjp");
+    const triniteText = fs.readFileSync(trinitePath, "utf8");
+    assert.equal(KJPCodec.parse(triniteText).metadata.name, "La Trinité");
+    const triniteUrl = "https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp";
+    await page.route(triniteUrl, route => route.fulfill({
+      status: 200, contentType: "application/json", body: triniteText,
+      headers: { "access-control-allow-origin": "*" }
+    }));
+    await select.selectOption("loadTrinite");
+    await page.waitForFunction(() => document.querySelector("#impactToast").textContent
+      === "Fichier trouvé, en cours de chargement…");
+    await page.waitForFunction(() => window.__PORTANCE_TEST__.portInformationReport().metadata.name === "La Trinité");
+    assert.equal(await page.locator("#impactToast").textContent(), "Fichier chargé · La Trinité");
+    assert.equal(await select.inputValue(), "community");
+    assert.deepEqual(await select.locator("option").allTextContents(), [
+      "Port pédagogique", "La Trinité", "Charger la Trinité", "Construire un port"
+    ]);
+    await page.unroute(triniteUrl);
+
+    await page.evaluate(() => {
+      window.__originalPortWindowOpen = window.open;
+      window.open = (...args) => { window.__portWindowOpen = args; return null; };
+    });
+    await select.selectOption("buildPort");
+    assert.deepEqual(await page.evaluate(() => window.__portWindowOpen), [
+      "https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html",
+      "_blank", "noopener,noreferrer"
+    ]);
+    assert.equal(await select.inputValue(), "community");
+    await page.evaluate(() => { window.open = window.__originalPortWindowOpen; });
+    await page.evaluate(() => window.__PORTANCE_TEST__.restoreBuiltInPort());
+  });
+
   await t.test("un mètre, un nœud et une seconde ont la même échelle partout", async () => {
     const reports = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
@@ -2565,10 +2610,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       htmlWithoutReadmeLinks,
       /(?:src|href)\s*=\s*["']https?:\/\//i
     );
-    assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
+    assert.doesNotMatch(html, /\b(XMLHttpRequest|WebSocket)\s*\(/);
     assert.doesNotMatch(topologySource, /https?:\/\//);
     assert.doesNotMatch(topologySource, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
 
+    externalRequests.length = 0;
     await page.goto(simulatorUrl.href);
     await page.waitForSelector('body[data-world-renderer="native"]');
     await page.waitForFunction(() => {
