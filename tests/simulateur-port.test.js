@@ -958,6 +958,32 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(loaded.targets.estimatedPeakOutputGain < .04);
   });
 
+  await t.test("un premier toucher démarre le son sur une page tactile", async () => {
+    const touchPage = await browser.newPage({
+      viewport: { width: 1024, height: 768 },
+      isMobile: true,
+      hasTouch: true
+    });
+    try {
+      await touchPage.goto(testUrl.href);
+      await touchPage.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+      const initial = await touchPage.evaluate(() => window.__PORTANCE_TEST__.engineAudioReport());
+      assert.equal(initial.enabled, true);
+      assert.equal(initial.started, false);
+      const canvas = await touchPage.locator("#scene").boundingBox();
+      await touchPage.touchscreen.tap(canvas.x + canvas.width / 2,
+        canvas.y + canvas.height / 2);
+      await touchPage.waitForFunction(() =>
+        window.__PORTANCE_TEST__.engineAudioReport().contextState === "running"
+      );
+      const started = await touchPage.evaluate(() => window.__PORTANCE_TEST__.engineAudioReport());
+      assert.equal(started.started, true);
+      assert.equal(started.error, "");
+    } finally {
+      await touchPage.close();
+    }
+  });
+
   await t.test("×2 double le temps simulé sans changer le pas ni la trajectoire", async () => {
     const result = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
@@ -2321,7 +2347,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
   });
 
-  await t.test("commandes tactiles façon jeu: glissement persistant et cran neutre", async () => {
+  await t.test("commandes tactiles: roue persistante et levier avec arrêt au neutre", async () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(100);
     await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
@@ -2330,32 +2356,36 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       const helm = document.querySelector(".touch-helm").getBoundingClientRect();
       const engine = document.querySelector(".touch-engine").getBoundingClientRect();
       const desktop = document.querySelector(".control-dock").getBoundingClientRect();
-      const slider = document.querySelector("#touchHelmSlider").getBoundingClientRect();
-      const button = document.querySelector("#touchThrottleUp").getBoundingClientRect();
+      const wheel = document.querySelector("#touchHelmWheel").getBoundingClientRect();
+      const handle = document.querySelector("#touchThrottleNeutral").getBoundingClientRect();
       return {
         helm: { left: helm.left, right: helm.right, width: helm.width },
         engine: { left: engine.left, right: engine.right, width: engine.width },
         desktopVisible: desktop.width > 0 && desktop.height > 0,
-        slider: { width: slider.width, height: slider.height },
-        button: { width: button.width, height: button.height },
+        wheel: { width: wheel.width, height: wheel.height },
+        handle: { width: handle.width, height: handle.height },
         middle: innerWidth / 2
       };
     });
     assert.ok(layout.helm.right < layout.middle);
     assert.ok(layout.engine.left > layout.middle);
     assert.equal(layout.desktopVisible, false);
-    assert.ok(layout.slider.width >= 90 && layout.slider.height >= 44);
-    assert.ok(layout.button.width >= 52 && layout.button.height >= 52);
+    assert.ok(layout.wheel.width >= 80 && layout.wheel.height >= 80);
+    assert.ok(layout.handle.width >= 52 && layout.handle.height >= 40);
 
-    const helmSlider = page.locator("#touchHelmSlider");
-    const helmBox = await helmSlider.boundingBox();
+    const helmBox = await page.locator("#touchHelmWheel").boundingBox();
+    const helmX = helmBox.x + helmBox.width / 2;
     const helmY = helmBox.y + helmBox.height / 2;
-    await page.mouse.move(helmBox.x + helmBox.width / 2, helmY);
+    const radius = helmBox.width * .4;
+    await page.mouse.move(helmX + radius, helmY);
     await page.mouse.down();
-    await page.mouse.move(helmBox.x + helmBox.width * .08, helmY, { steps: 8 });
+    for (let angle = -30; angle >= -180; angle -= 15) {
+      await page.mouse.move(helmX + Math.cos(angle * Math.PI / 180) * radius,
+        helmY + Math.sin(angle * Math.PI / 180) * radius);
+    }
     await page.mouse.up();
     let snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.ok(snapshot.controls.rudderTarget >= 20 * Math.PI / 180);
+    assert.ok(Math.abs(snapshot.controls.rudderTarget) >= 15 * Math.PI / 180);
     const heldRudder = snapshot.controls.rudderTarget;
     await page.waitForTimeout(180);
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
@@ -2365,44 +2395,110 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       "la barre s'est recentrée après relâchement"
     );
 
-    await page.mouse.move(helmBox.x + helmBox.width * .08, helmY);
-    await page.mouse.down();
-    await page.mouse.move(helmBox.x + helmBox.width * .92, helmY, { steps: 10 });
-    await page.mouse.up();
-    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.ok(snapshot.controls.rudderTarget <= -20 * Math.PI / 180);
-
     await page.locator("#touchCenterRudder").click();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.rudderTarget, 0);
 
-    await page.evaluate(() => window.__PORTANCE_TEST__.setControls({
-      throttleTarget: .1
-    }));
-    const throttleDown = page.locator("#touchThrottleDown");
-    const throttleBox = await throttleDown.boundingBox();
-    await page.mouse.move(
-      throttleBox.x + throttleBox.width / 2,
-      throttleBox.y + throttleBox.height / 2
-    );
+    const throttleBox = await page.locator("#touchThrottleNeutral").boundingBox();
+    const throttleX = throttleBox.x + throttleBox.width / 2;
+    const throttleY = throttleBox.y + throttleBox.height / 2;
+    await page.mouse.move(throttleX, throttleY);
     await page.mouse.down();
-    await page.waitForFunction(() => (
-      window.__PORTANCE_TEST__.snapshot().controls.throttleTarget === 0
-    ), null, { timeout: 3000 });
-    await page.waitForTimeout(250);
-    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.throttleTarget, 0, "le maintien a traversé le neutre");
+    await page.mouse.move(throttleX, throttleY - 14, { steps: 6 });
     await page.mouse.up();
-
-    await throttleDown.click();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.throttleTarget, -.1);
+    assert.equal(snapshot.controls.throttleTarget, .05,
+      "un déplacement de 14 px doit permettre de choisir 5 %");
+
+    const lowPowerHandle = await page.locator("#touchThrottleNeutral").boundingBox();
+    await page.mouse.move(throttleX, lowPowerHandle.y + lowPowerHandle.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(throttleX, throttleY - 44, { steps: 6 });
+    await page.mouse.up();
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.ok(snapshot.controls.throttleTarget > .5);
+
+    const forwardHandle = await page.locator("#touchThrottleNeutral").boundingBox();
+    await page.mouse.move(throttleX, forwardHandle.y + forwardHandle.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(throttleX, throttleY + 35, { steps: 10 });
+    await page.mouse.up();
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.throttleTarget, 0, "le geste a traversé le neutre");
+
+    const neutralHandle = await page.locator("#touchThrottleNeutral").boundingBox();
+    await page.mouse.move(throttleX, neutralHandle.y + neutralHandle.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(throttleX, throttleY + 30, { steps: 6 });
+    await page.mouse.up();
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.ok(snapshot.controls.throttleTarget < -.2);
     await page.locator("#touchThrottleNeutral").click();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, 0);
 
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.waitForTimeout(100);
+  });
+
+  await t.test("deux doigts zooment et déplacent la carte, un toucher inspecte une force", async () => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("top"));
+    const result = await page.evaluate(() => {
+      const canvas = document.querySelector("#scene");
+      const rect = canvas.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      const report = () => window.__PORTANCE_TEST__.cameraReport();
+      const initial = report();
+      const pointer = (type, id, px, py) => canvas.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, pointerId: id, pointerType: "touch", isPrimary: id === 101,
+        clientX: px, clientY: py, button: 0
+      }));
+      pointer("pointerdown", 101, x - 50, y);
+      pointer("pointerdown", 102, x + 50, y);
+      pointer("pointermove", 101, x - 100 + 40, y + 30);
+      pointer("pointermove", 102, x + 100 + 40, y + 30);
+      const moved = report();
+      pointer("pointerup", 101, x - 60, y + 30);
+      pointer("pointerup", 102, x + 140, y + 30);
+      return { initial, moved };
+    });
+    assert.ok(result.moved.distance < result.initial.distance);
+    assert.ok(Math.hypot(...result.moved.position.map((value, index) =>
+      value - result.initial.position[index])) > 1);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.locator('[data-mode="understand"]').click();
+    await page.locator('[data-understand-view="rotation"]').click();
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.reset({ x: 25, y: -38, heading: Math.PI });
+      api.setControls({ throttleTarget: -1, rudderTarget: 0 });
+      api.advance(7);
+      api.selectCameraView("top");
+    });
+    await page.waitForTimeout(100);
+    const inspection = await page.evaluate(() => {
+      const canvas = document.querySelector("#scene");
+      const rect = canvas.getBoundingClientRect();
+      const targets = window.__PORTANCE_TEST__.understandingHitReport().targets;
+      const target = targets.find(item => item.kind === "force"
+        && Math.hypot(item.b.x - item.a.x, item.b.y - item.a.y) > 12);
+      if (!target) return { found: false };
+      const x = rect.left + (target.a.x + target.b.x) / 2;
+      const y = rect.top + (target.a.y + target.b.y) / 2;
+      for (const type of ["pointerdown", "pointerup"]) {
+        canvas.dispatchEvent(new PointerEvent(type, {
+          bubbles: true, pointerId: 103, pointerType: "touch", isPrimary: true,
+          clientX: x, clientY: y, button: 0
+        }));
+      }
+      return { found: true, tooltip: window.__PORTANCE_TEST__.understandingHitReport().tooltip };
+    });
+    assert.equal(inspection.found, true);
+    assert.equal(inspection.tooltip.visible, true);
+    assert.ok(inspection.tooltip.text.length > 0);
   });
 
   await t.test("les trois situations rejouent leur trajectoire étalon exactement", async () => {

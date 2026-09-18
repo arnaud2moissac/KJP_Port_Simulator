@@ -1173,8 +1173,8 @@
     .touch-gamepad {
       pointer-events: auto;
       position: relative;
-      width: 122px;
-      height: 122px;
+      width: 136px;
+      height: 136px;
       border: 1px solid rgba(147, 170, 181, .32);
       border-radius: 50%;
       background:
@@ -1251,7 +1251,7 @@
 
     .touch-helm-value {
       position: absolute;
-      top: 17px;
+      top: 16px;
       left: 50%;
       color: var(--cyan);
       font-size: 11px;
@@ -1259,96 +1259,66 @@
       transform: translateX(-50%);
     }
 
-    .touch-steer-direction {
+    .touch-wheel {
       position: absolute;
-      top: 54px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1;
+      inset: 29px 22px 16px;
+      border: 10px solid var(--cyan);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2px rgba(2, 20, 26, .8), 0 0 0 2px rgba(98, 219, 227, .3);
+      transform: rotate(var(--wheel-angle, 0deg));
+      pointer-events: none;
     }
-
-    .touch-steer-port { left: 8px; }
-    .touch-steer-starboard { right: 8px; }
-
-    .touch-helm input[type="range"].touch-helm-slider {
+    .touch-wheel::before, .touch-wheel::after {
+      content: "";
       position: absolute;
-      z-index: 1;
-      top: 38px;
-      left: 15px;
-      width: calc(100% - 30px);
-      height: 46px;
-      margin: 0;
-      padding: 0;
-      appearance: none;
-      -webkit-appearance: none;
-      background: transparent;
-      accent-color: var(--cyan);
-      cursor: grab;
-      touch-action: none;
+      top: 50%; left: 50%;
+      width: 36px; height: 5px;
+      border-radius: 5px;
+      background: var(--cyan);
+      transform-origin: 0 50%;
     }
-
-    .touch-helm input[type="range"].touch-helm-slider:active {
-      cursor: grabbing;
-    }
-
-    .touch-helm-slider::-webkit-slider-runnable-track {
-      height: 8px;
-      border: 1px solid rgba(147, 170, 181, .34);
-      border-radius: 999px;
-      background:
-        linear-gradient(90deg, rgba(98, 219, 227, .42), rgba(147, 170, 181, .16) 50%, rgba(98, 219, 227, .42));
-    }
-
-    .touch-helm-slider::-webkit-slider-thumb {
-      width: 44px;
-      height: 44px;
-      margin-top: -19px;
-      border: 2px solid rgba(98, 219, 227, .72);
+    .touch-wheel::before { transform: rotate(30deg); }
+    .touch-wheel::after { transform: rotate(150deg); }
+    .touch-wheel-hub {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 21px; height: 21px;
       border-radius: 50%;
-      appearance: none;
-      -webkit-appearance: none;
-      background:
-        radial-gradient(circle at 40% 35%, rgba(98, 219, 227, .30), rgba(8, 36, 46, .98) 62%);
-      box-shadow:
-        0 5px 14px rgba(0, 0, 0, .34),
-        inset 0 1px 0 rgba(255, 255, 255, .12);
+      background: var(--cyan);
+      transform: translate(-50%, -50%);
     }
-
-    .touch-helm-slider::-moz-range-track {
-      height: 8px;
-      border: 1px solid rgba(147, 170, 181, .34);
-      border-radius: 999px;
-      background:
-        linear-gradient(90deg, rgba(98, 219, 227, .42), rgba(147, 170, 181, .16) 50%, rgba(98, 219, 227, .42));
-    }
-
-    .touch-helm-slider::-moz-range-thumb {
-      width: 44px;
-      height: 44px;
-      border: 2px solid rgba(98, 219, 227, .72);
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 40% 35%, rgba(98, 219, 227, .30), rgba(8, 36, 46, .98) 62%);
-      box-shadow:
-        0 5px 14px rgba(0, 0, 0, .34),
-        inset 0 1px 0 rgba(255, 255, 255, .12);
-    }
-
-    .touch-helm .touch-pad-center {
-      top: auto;
-      bottom: 7px;
-      width: 34px;
-      height: 25px;
-      min-width: 34px;
-      min-height: 25px;
-      border-radius: 999px;
+    .touch-helm { cursor: grab; }
+    .touch-helm:active { cursor: grabbing; }
+    .touch-helm .touch-pad-center { top: auto; bottom: 2px; width: 30px; height: 26px; min-width: 30px; min-height: 26px; transform: translateX(-50%); }
+    .touch-engine { height: 152px; border-radius: 24px; }
+    .touch-engine-track {
+      position: absolute;
+      top: 20px; bottom: 20px; left: 50%;
+      width: 8px;
+      border-radius: 9px;
+      background: linear-gradient(var(--amber), var(--track-bg) 50%, var(--amber));
       transform: translateX(-50%);
+      pointer-events: none;
     }
-
-    .touch-throttle-up { top: 5px; left: 34px; }
-    .touch-throttle-down { bottom: 5px; left: 34px; }
-    .touch-engine .touch-pad-button { color: var(--amber); }
-    .touch-engine .touch-pad-center { color: var(--amber); }
+    .touch-engine-track::after {
+      content: "";
+      position: absolute;
+      top: 50%; left: -16px;
+      width: 40px; height: 2px;
+      background: var(--ink);
+    }
+    .touch-engine .touch-pad-center {
+      top: calc(50% - var(--throttle-shift, 0px));
+      width: 58px; height: 42px;
+      min-width: 58px; min-height: 42px;
+      border-color: var(--amber);
+      color: var(--amber);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .touch-engine-label { position: absolute; left: 14px; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .touch-engine-label.forward { top: 38px; }
+    .touch-engine-label.reverse { bottom: 14px; }
 
     .sidebar {
       min-height: 0;
@@ -1874,8 +1844,6 @@
     @media (max-width: 360px) {
       .touch-controls { right: 8px; left: 8px; }
       .touch-gamepad { width: 112px; height: 112px; }
-      .touch-throttle-up { top: 3px; left: 29px; }
-      .touch-throttle-down { bottom: 3px; left: 29px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -2061,19 +2029,8 @@
         <div class="touch-controls" aria-label="Commandes tactiles du bateau">
           <div class="touch-gamepad touch-helm" aria-label="Commande tactile de barre">
             <span class="touch-pad-title">Barre</span>
-            <output class="touch-helm-value" id="touchRudderValue" for="touchHelmSlider">0°</output>
-            <span class="touch-steer-direction touch-steer-port" aria-hidden="true">←</span>
-            <input
-              class="touch-helm-slider"
-              id="touchHelmSlider"
-              type="range"
-              min="-35"
-              max="35"
-              step="0.5"
-              value="0"
-              aria-label="Angle de barre tactile, vers la gauche pour bâbord et vers la droite pour tribord"
-            >
-            <span class="touch-steer-direction touch-steer-starboard" aria-hidden="true">→</span>
+            <output class="touch-helm-value" id="touchRudderValue">0°</output>
+            <div class="touch-wheel" id="touchHelmWheel" role="slider" tabindex="0" aria-label="Roue de barre, tourner pour régler l'angle" aria-valuemin="-35" aria-valuemax="35" aria-valuenow="0"><span class="touch-wheel-hub"></span></div>
             <button type="button" class="touch-pad-center" id="touchCenterRudder" aria-label="Recentrer la barre">
               <span aria-hidden="true">0</span>
             </button>
@@ -2081,11 +2038,12 @@
 
           <div class="touch-gamepad touch-engine" aria-label="Commande tactile du moteur">
             <span class="touch-pad-title">Moteur</span>
-            <button type="button" class="touch-pad-button touch-throttle-up" id="touchThrottleUp" aria-label="Maintenir pour augmenter la marche avant">↑</button>
-            <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Passer le moteur au neutre">
+            <span class="touch-engine-label forward" aria-hidden="true">AV</span>
+            <div class="touch-engine-track" aria-hidden="true"></div>
+            <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Glisser verticalement pour régler le moteur, toucher pour le neutre" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
               <span id="touchThrottleValue">N</span>
             </button>
-            <button type="button" class="touch-pad-button touch-throttle-down" id="touchThrottleDown" aria-label="Maintenir pour augmenter la marche arrière">↓</button>
+            <span class="touch-engine-label reverse" aria-hidden="true">AR</span>
           </div>
         </div>
 
@@ -14677,10 +14635,10 @@ void main() {
           ? "Couper le son du moteur"
           : "Activer le son du moteur"
       );
-      if (engineAudio.enabled) {
+      if (engineAudio.enabled && resume) {
         const nodes = createEngineAudioGraph();
         if (!nodes) engineAudio.enabled = false;
-        if (resume && engineAudio.context?.state === "suspended") {
+        if (engineAudio.context && engineAudio.context.state !== "running") {
           try {
             await engineAudio.context.resume();
           } catch (error) {
@@ -14703,13 +14661,13 @@ void main() {
     async function unlockEngineAudio() {
       if (!engineAudio.enabled || !engineAudio.supported) return;
       createEngineAudioGraph();
-      const wasSuspended = engineAudio.context?.state === "suspended";
+      const wasSuspended = engineAudio.context?.state !== "running";
       if (wasSuspended && engineAudio.nodes && engineAudio.context) {
         const now = engineAudio.context.currentTime;
         engineAudio.nodes.master.gain.cancelScheduledValues(now);
         engineAudio.nodes.master.gain.setValueAtTime(0, now);
       }
-      if (engineAudio.context?.state === "suspended") {
+      if (engineAudio.context && engineAudio.context.state !== "running") {
         try {
           await engineAudio.context.resume();
         } catch (error) {
@@ -19253,6 +19211,7 @@ void main() {
     let understandingHoveredPart = null;
     let understandingSelectedForceId = null;
     let understandingTooltipKey = "";
+    let understandingTouchSelection = false;
 
     function formatUnderstandingForce(value) {
       return Math.abs(value) >= 1000 ? `${fmt(value / 1000, 2)} kN` : `${fmt(value, 0)} N`;
@@ -19311,7 +19270,8 @@ void main() {
         const distance = target.kind === "pivot"
           ? Math.hypot(point.x - target.a.x, point.y - target.a.y)
           : pointSegmentProjection(point, target.a, target.b).distance;
-        if (distance <= 13 && (!nearest || distance < nearest.distance)) {
+        if (distance <= (understandingTouchSelection ? 24 : 13)
+          && (!nearest || distance < nearest.distance)) {
           nearest = { target, distance };
         }
       }
@@ -19333,6 +19293,17 @@ void main() {
       tooltip.hidden = false;
       tooltip.style.left = `${clamp(point.x + 15, 8, canvasWidth - tooltip.offsetWidth - 8)}px`;
       tooltip.style.top = `${clamp(point.y + 15, 8, canvasHeight - tooltip.offsetHeight - 8)}px`;
+    }
+
+    function touchesUnderstandingTarget(clientX, clientY) {
+      if (ui.mode !== "understand") return false;
+      const rect = canvas.getBoundingClientRect();
+      const point = { x: clientX - rect.left, y: clientY - rect.top };
+      return understandingHitTargets.some(target => (
+        target.kind === "pivot"
+          ? Math.hypot(point.x - target.a.x, point.y - target.a.y)
+          : pointSegmentProjection(point, target.a, target.b).distance
+      ) <= 24);
     }
 
     $("#forceTooltip").addEventListener("click", event => {
@@ -19921,7 +19892,8 @@ void main() {
       const rudderSide = Math.abs(rudderDeg) < .5 ? "" : rudderDeg > 0 ? " Bâb." : " Trib.";
       setText("#rudderValue", `${fmt(Math.abs(rudderDeg), 0)}°${rudderSide}`);
       setStyleProperty("#rudderIndicator", "--position", `${50 - rudderDeg / 35 * 46}%`);
-      setValue("#touchHelmSlider", clamp(-rudderDeg, -35, 35));
+      setStyleProperty("#touchHelmWheel", "--wheel-angle", `${-rudderDeg / .14}deg`);
+      $("#touchHelmWheel").setAttribute("aria-valuenow", String(Math.round(-rudderDeg)));
       setText("#touchRudderValue", Math.abs(rudderDeg) < .5
         ? "0°"
         : `${Math.round(Math.abs(rudderDeg))}° ${rudderSide.trim()}`);
@@ -19936,6 +19908,9 @@ void main() {
         : throttle < 0
           ? `AR ${Math.round(Math.abs(throttle) * 100)}`
           : "N");
+      setStyleProperty("#touchThrottleNeutral", "--throttle-shift",
+        `${Math.sign(throttle) * touchThrottleDistanceFor(Math.abs(throttle))}px`);
+      $("#touchThrottleNeutral").setAttribute("aria-valuenow", String(Math.round(throttle * 100)));
       setStyleProperty("#throttleIndicator", "--position", `${50 + throttle * 46}%`);
       toggleClass("#neutralGate", "locked", controls.neutralGate !== null);
       setText("#neutralGate", controls.neutralGate !== null ? "relâchez pour inverser" : "cran neutre");
@@ -20321,81 +20296,126 @@ void main() {
       controls.neutralGate = null;
     });
 
-    function bindPressAndHold(button, onStep, onRelease = () => {}) {
-      let session = null;
-
-      const stop = event => {
-        if (!session || (event?.pointerId !== undefined && event.pointerId !== session.pointerId)) return;
-        clearTimeout(session.delay);
-        clearInterval(session.interval);
-        button.classList.remove("is-pressed");
-        const completed = session;
-        session = null;
-        onRelease(completed);
-      };
-
-      button.addEventListener("pointerdown", event => {
-        if (session) return;
-        event.preventDefault();
-        session = {
-          pointerId: event.pointerId,
-          neutralGate: false,
-          delay: null,
-          interval: null
-        };
-        button.classList.add("is-pressed");
-        try {
-          button.setPointerCapture(event.pointerId);
-        } catch {
-          // Certains moteurs de test synthétiques ne créent pas de pointeur actif.
-        }
-        onStep(session);
-        session.delay = setTimeout(() => {
-          if (!session) return;
-          session.interval = setInterval(() => onStep(session), 90);
-        }, 260);
-      });
-
-      button.addEventListener("pointerup", stop);
-      button.addEventListener("pointercancel", stop);
-      button.addEventListener("lostpointercapture", stop);
-      button.addEventListener("click", event => {
-        // Activation clavier : les clics pointeur sont déjà traités au pointerdown.
-        if (event.detail !== 0) return;
-        const keyboardSession = { neutralGate: false };
-        onStep(keyboardSession);
-        onRelease(keyboardSession);
-      });
-    }
-
-    const touchThrottleStep = direction => session => {
-      if (session.neutralGate) return;
-      const previous = controls.throttleTarget;
-      adjustThrottle(direction);
-      if (previous * direction < 0 && controls.throttleTarget === 0) {
-        session.neutralGate = true;
-      }
-    };
-
-    $("#touchHelmSlider").addEventListener("input", event => {
-      controls.rudderTarget = clamp(
-        -Number(event.currentTarget.value) * DEG,
-        -BOAT_PROFILE.maxRudder,
-        BOAT_PROFILE.maxRudder
-      );
+    const touchHelm = $(".touch-helm");
+    const touchWheel = $("#touchHelmWheel");
+    let helmGesture = null;
+    touchHelm.addEventListener("pointerdown", event => {
+      if (event.target.closest("button") || helmGesture) return;
+      event.preventDefault();
+      const rect = touchWheel.getBoundingClientRect();
+      const angle = Math.atan2(event.clientY - (rect.top + rect.height / 2),
+        event.clientX - (rect.left + rect.width / 2));
+      helmGesture = { id: event.pointerId, angle };
+      try { touchHelm.setPointerCapture(event.pointerId); } catch {}
     });
-    bindPressAndHold(
-      $("#touchThrottleUp"),
-      touchThrottleStep(1),
-      () => releaseThrottleGate(1)
-    );
-    bindPressAndHold(
-      $("#touchThrottleDown"),
-      touchThrottleStep(-1),
-      () => releaseThrottleGate(-1)
-    );
+    touchHelm.addEventListener("pointermove", event => {
+      if (helmGesture?.id !== event.pointerId) return;
+      const rect = touchWheel.getBoundingClientRect();
+      const angle = Math.atan2(event.clientY - (rect.top + rect.height / 2),
+        event.clientX - (rect.left + rect.width / 2));
+      const delta = Math.atan2(Math.sin(angle - helmGesture.angle),
+        Math.cos(angle - helmGesture.angle));
+      controls.rudderTarget = clamp(controls.rudderTarget - delta * RAD * .14 * DEG,
+        -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
+      helmGesture.angle = angle;
+    });
+    const endHelmGesture = event => {
+      if (helmGesture?.id === event.pointerId) helmGesture = null;
+    };
+    touchHelm.addEventListener("pointerup", endHelmGesture);
+    touchHelm.addEventListener("pointercancel", endHelmGesture);
+    touchWheel.addEventListener("keydown", event => {
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        adjustRudder(event.key === "ArrowLeft" ? 1 : -1);
+      }
+    });
+
+    const touchEngine = $(".touch-engine");
+    const throttleHandle = $("#touchThrottleNeutral");
+    // Une plage stable autour de 5 % facilite les manoeuvres à très faible puissance.
+    const TOUCH_THROTTLE_CURVE = [
+      [0, 0], [11, .05], [17, .05], [29, .2], [39, .5], [52, 1]
+    ];
+    function touchThrottlePowerAt(distance) {
+      const travel = clamp(Math.abs(distance), 0, 52);
+      for (let index = 1; index < TOUCH_THROTTLE_CURVE.length; index++) {
+        const [endDistance, endPower] = TOUCH_THROTTLE_CURVE[index];
+        if (travel > endDistance) continue;
+        const [startDistance, startPower] = TOUCH_THROTTLE_CURVE[index - 1];
+        return startPower + (endPower - startPower)
+          * (travel - startDistance) / (endDistance - startDistance);
+      }
+      return 1;
+    }
+    function touchThrottleDistanceFor(power) {
+      const value = clamp(Math.abs(power), 0, 1);
+      if (value === .05) return 14;
+      for (let index = 1; index < TOUCH_THROTTLE_CURVE.length; index++) {
+        const [endDistance, endPower] = TOUCH_THROTTLE_CURVE[index];
+        if (value > endPower || endPower === TOUCH_THROTTLE_CURVE[index - 1][1]) continue;
+        const [startDistance, startPower] = TOUCH_THROTTLE_CURVE[index - 1];
+        return startDistance + (endDistance - startDistance)
+          * (value - startPower) / (endPower - startPower);
+      }
+      return 52;
+    }
+    let engineGesture = null;
+    touchEngine.addEventListener("pointerdown", event => {
+      if (engineGesture) return;
+      event.preventDefault();
+      engineGesture = {
+        id: event.pointerId,
+        startY: event.clientY,
+        startValue: controls.throttleTarget,
+        startDistance: Math.sign(controls.throttleTarget)
+          * touchThrottleDistanceFor(Math.abs(controls.throttleTarget)),
+        fromHandle: throttleHandle.contains(event.target),
+        blocked: false,
+        moved: false
+      };
+      try { touchEngine.setPointerCapture(event.pointerId); } catch {}
+    });
+    touchEngine.addEventListener("pointermove", event => {
+      const gesture = engineGesture;
+      if (gesture?.id !== event.pointerId) return;
+      const dy = event.clientY - gesture.startY;
+      if (Math.abs(dy) < 5 && !gesture.moved) return;
+      gesture.moved = true;
+      if (gesture.blocked) return;
+      const distance = clamp(gesture.startDistance - dy, -52, 52);
+      let next = Math.sign(distance) * touchThrottlePowerAt(distance);
+      if (gesture.startValue !== 0 && distance * gesture.startValue < 0) {
+        next = 0;
+        gesture.blocked = true;
+      }
+      controls.throttleTarget = Math.round(next * 100) / 100;
+      controls.neutralGate = null;
+    });
+    const endEngineGesture = event => {
+      if (engineGesture?.id !== event.pointerId) return;
+      if (!engineGesture.moved && engineGesture.fromHandle && event.type === "pointerup") {
+        controls.throttleTarget = 0;
+        controls.neutralGate = null;
+      }
+      engineGesture = null;
+    };
+    touchEngine.addEventListener("pointerup", endEngineGesture);
+    touchEngine.addEventListener("pointercancel", endEngineGesture);
+    throttleHandle.addEventListener("keydown", event => {
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        adjustThrottle(event.key === "ArrowUp" ? 1 : -1);
+        controls.neutralGate = null;
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        controls.throttleTarget = 0;
+        controls.neutralGate = null;
+      }
+    });
     $("#touchCenterRudder").addEventListener("click", centerRudder);
-    $("#touchThrottleNeutral").addEventListener("click", () => {
+    throttleHandle.addEventListener("click", event => {
+      if (event.detail !== 0) return;
       controls.throttleTarget = 0;
       controls.neutralGate = null;
     });
@@ -20683,12 +20703,78 @@ void main() {
       }
     });
 
+    const canvasTouches = new Map();
+    let canvasGesture = null;
+    function touchCentroidAndSpan() {
+      const points = [...canvasTouches.values()].slice(0, 2);
+      return {
+        x: (points[0].x + points[1].x) / 2,
+        y: (points[0].y + points[1].y) / 2,
+        span: Math.max(20, Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y))
+      };
+    }
+    function startCanvasGesture() {
+      const touch = touchCentroidAndSpan();
+      canvasGesture = {
+        ...touch,
+        distance: camera.distance,
+        focalScale: camera.skipperFocalScale,
+        pan: camera.pan.slice(),
+        skipperPan: camera.skipperPan.slice()
+      };
+      camera.pointer = null;
+      understandingTouchSelection = false;
+      $("#forceTooltip").hidden = true;
+    }
+    function moveCanvasGesture() {
+      if (!canvasGesture || canvasTouches.size < 2) return;
+      const touch = touchCentroidAndSpan();
+      const ratio = touch.span / canvasGesture.span;
+      const dx = touch.x - canvasGesture.x;
+      const dy = touch.y - canvasGesture.y;
+      if (camera.view === "skipper") {
+        camera.skipperFocalScale = clamp(canvasGesture.focalScale * ratio, .38, 1.8);
+        const basis = frameBasis || cameraBasis();
+        const worldDelta = [
+          -basis.right[0] * dx * .012 + basis.up[0] * dy * .012,
+          -basis.right[1] * dx * .012 + basis.up[1] * dy * .012,
+          -basis.right[2] * dx * .012 + basis.up[2] * dy * .012
+        ];
+        const bodyDelta = worldToBody(worldDelta[0], worldDelta[1], motion.heading);
+        camera.skipperPan = [
+          canvasGesture.skipperPan[0] + bodyDelta[0],
+          canvasGesture.skipperPan[1] + bodyDelta[1],
+          canvasGesture.skipperPan[2] + worldDelta[2]
+        ];
+      } else {
+        camera.distance = clamp(canvasGesture.distance / ratio,
+          CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX);
+        const basis = frameBasis || cameraBasis();
+        const scale = camera.distance * .0019;
+        camera.pan = [
+          canvasGesture.pan[0] - basis.right[0] * dx * scale + basis.up[0] * dy * scale,
+          canvasGesture.pan[1] - basis.right[1] * dx * scale + basis.up[1] * dy * scale,
+          canvasGesture.pan[2]
+        ];
+      }
+    }
+
     canvas.addEventListener("pointerdown", event => {
       event.preventDefault();
       canvas.focus();
+      if (event.pointerType === "touch") {
+        canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        try { canvas.setPointerCapture(event.pointerId); } catch {}
+        if (canvasTouches.size === 2) startCanvasGesture();
+        if (canvasTouches.size > 1 || canvasGesture) return;
+      }
+      understandingTouchSelection = false;
+      const inspectionHit = event.pointerType === "touch"
+        && touchesUnderstandingTarget(event.clientX, event.clientY);
       const mooringHit = (
         event.button === 0
         && !event.shiftKey
+        && !inspectionHit
           ? findMooringHit(event.clientX, event.clientY, event.pointerType)
           : null
       );
@@ -20710,7 +20796,9 @@ void main() {
         skipperYawOffset: camera.skipperYawOffset,
         skipperPitch: camera.skipperPitch,
         skipperPan: camera.skipperPan.slice(),
-        mode: mooringHit
+        mode: inspectionHit
+          ? "inspect"
+          : mooringHit
           ? "mooring"
           : event.shiftKey || event.button === 1 || event.button === 2
             ? "pan"
@@ -20733,6 +20821,13 @@ void main() {
     });
 
     canvas.addEventListener("pointermove", event => {
+      if (event.pointerType === "touch" && canvasTouches.has(event.pointerId)) {
+        canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (canvasGesture) {
+          moveCanvasGesture();
+          return;
+        }
+      }
       const pointer = camera.pointer;
       if (!pointer || pointer.id !== event.pointerId) {
         moorings.hover = findMooringHit(event.clientX, event.clientY, event.pointerType);
@@ -20769,6 +20864,7 @@ void main() {
         }
         return;
       }
+      if (pointer.mode === "inspect") return;
       if (pointer.mode === "orbit") {
         if (pointer.view === "skipper" && camera.view === "skipper") {
           camera.skipperYawOffset = wrapAngle(
@@ -20814,6 +20910,14 @@ void main() {
     });
 
     canvas.addEventListener("pointerup", event => {
+      if (event.pointerType === "touch") {
+        canvasTouches.delete(event.pointerId);
+        if (canvasGesture) {
+          if (canvasTouches.size === 0) canvasGesture = null;
+          camera.pointer = null;
+          return;
+        }
+      }
       const pointer = camera.pointer;
       if (!pointer || pointer.id !== event.pointerId) return;
       if (
@@ -20848,11 +20952,22 @@ void main() {
         pendilleState.selectedId = null;
       }
       camera.pointer = null;
+      if (event.pointerType === "touch" && !pointer.dragged
+        && pointer.mode !== "mooring" && ui.mode === "understand") {
+        const rect = canvas.getBoundingClientRect();
+        understandingTouchSelection = true;
+        understandingPointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        moorings.hover = null;
+        updateUnderstandingTooltip();
+      }
       if (!moorings.gaugePointer) moorings.activeLineId = null;
-      moorings.hover = findMooringHit(event.clientX, event.clientY, event.pointerType);
+      moorings.hover = understandingTouchSelection
+        ? null : findMooringHit(event.clientX, event.clientY, event.pointerType);
       canvas.style.cursor = cursorForMooringHit(moorings.hover);
     });
-    canvas.addEventListener("pointercancel", () => {
+    canvas.addEventListener("pointercancel", event => {
+      canvasTouches.delete(event.pointerId);
+      canvasGesture = null;
       camera.pointer = null;
       moorings.hover = null;
       understandingPointer = null;
@@ -20861,7 +20976,7 @@ void main() {
       canvas.style.cursor = "grab";
     });
     canvas.addEventListener("pointerleave", event => {
-      if (!camera.pointer) {
+      if (!camera.pointer && !understandingTouchSelection) {
         moorings.hover = null;
         if (ui.understandView === "rotation" && $("#forceTooltip").contains(event.relatedTarget)) return;
         understandingPointer = null;
@@ -20870,6 +20985,7 @@ void main() {
       }
     });
     $("#forceTooltip").addEventListener("pointerleave", event => {
+      if (understandingTouchSelection) return;
       if (event.relatedTarget === canvas) return;
       understandingPointer = null;
       understandingHoveredPart = null;
@@ -21624,6 +21740,9 @@ void main() {
     window.addEventListener("pointerdown", () => {
       void unlockEngineAudio();
     }, { capture: true });
+    window.addEventListener("touchstart", () => {
+      void unlockEngineAudio();
+    }, { capture: true, passive: true });
     window.addEventListener("keydown", () => {
       void unlockEngineAudio();
     }, { capture: true });
