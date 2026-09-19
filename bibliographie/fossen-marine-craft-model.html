@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fossen’s Marine Craft Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        .equation-box {
+            border: 2px solid green;
+            padding: 10px;
+            background-color: #f9fff9;
+            max-width: 90%; /* Adjust the width as needed */
+            margin: 20px auto; /* Center the box */
+            text-align: center; /* Center text inside */
+    }
+        .info-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+            max-width: 70%; /* Adjust the width as needed */
+            margin: 5px 0; /* Space above and below, no centering */
+            text-align: left; /* Align content inside the box to the left */
+            display: block; /* Ensure it's a block element */
+        }
+        ul, ol {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fossen’s Marine Craft Model</h1>
+
+    <p>
+        Fossen's marine craft model provides a mathematical framework for expressing the nonlinear equations of motion of marine craft in a compact matrix–vector form. This formulation, first introduced in his 1991 doctoral thesis<sup>[1]</sup>, offers a more efficient alternative to classical hydrodynamic models, which were previously expressed in scalar component form. These earlier models often involved hundreds of individual terms, making it difficult to exploit inherent system properties such as passivity, symmetry, and energy conservation. Fossen's work unified these dynamics into a streamlined representation, enabling more effective analysis and control design. This approach has since become a foundational model in marine hydrodynamics and motion control, widely adopted in academic research and industry applications<sup>[2][3][4]</sup>.
+    </p>
+
+    <p>
+        This matrix-vector representation is particularly valuable for designing guidance, navigation, and control (GNC) systems. It is widely applied to marine craft, including ships, floating offshore structures, submarines, autonomous underwater vehicles (AUVs), and uncrewed surface vehicles (USVs). By leveraging system properties such as symmetry, skew symmetry, and the positive definiteness of matrices, Fossen’s marine craft model simplifies nonlinear stability analysis and provides an intuitive and robust framework for control system design.
+    </p>
+
+    <h2>Mathematical Formulation</h2>
+    <p>
+        The <a href="https://en.wikipedia.org/wiki/Six degrees of freedom" target="_blank">six-degrees-of-freedom</a> (DOFs) marine craft equations of motion are expressed in matrix-vector form using <a href="https://en.wikipedia.org/wiki/Generalized_coordinates" target="_blank">generalized coordinates</a> \(\boldsymbol{\eta} = [x, y, z, \phi, \theta, \psi]^\top\) to represent the position and orientation, and the generalized velocity \(\boldsymbol{\nu} = [u, v, w, p, q, r]^\top\) to describe the linear and angular velocities.  The  <a href="https://en.wikipedia.org/wiki/Generalized_forces" target="_blank">generalized force</a> acting on the craft, arising from propulsion, wind, waves, and ocean currents, are denoted  \(\boldsymbol{\tau} = [X, Y, Z, K, M, N]^\top\). These variables represent the craft’s translational and rotational dynamics, with the vector elements following the standard terminology established by the Society of Naval Architects and Marine Engineers (SNAME)<sup>[5]</sup>.
+    </p>
+
+    <div class="equation-box">
+        \[
+        \begin{aligned}
+        \dot{\boldsymbol{\eta}} & = \boldsymbol{J}(\boldsymbol{\eta}) \boldsymbol{\nu}  \\
+        \boldsymbol{M} \dot{\boldsymbol{\nu}} + \boldsymbol{C}(\boldsymbol{\nu}) \boldsymbol{\nu} + 
+        \boldsymbol{D}(\boldsymbol{\nu}) \boldsymbol{\nu} + \boldsymbol{g}(\boldsymbol{\eta}) & = \boldsymbol{\tau}
+        \end{aligned}
+        \]
+    </div>
+
+    <p>
+        where
+        <ul>
+            <li>
+                \(\boldsymbol{M}\): Inertia matrix, combining rigid-body and added mass effects.
+            </li>
+            <li>
+                \(\boldsymbol{C}(\boldsymbol{\nu})\): Coriolis and centripetal matrix, combining rigid-body and added mass effects.
+            </li>
+            <li>
+                \(\boldsymbol{D}(\boldsymbol{\nu})\): Hydrodynamic damping matrix.
+            </li>
+            <li>
+                \(\boldsymbol{g}(\boldsymbol{\eta})\): Hydrostatic forces and moments.
+            </li>
+            <li>
+                \(\boldsymbol{J}(\boldsymbol{\eta})\): Transformation matrix relating velocities in the BODY and North-East-Down (NED) frames.
+            </li>
+        </ul>
+    </p>
+
+    <h3>Kinematics</h3>
+    <p>
+        The kinematic equation can be represented using <a href="https://en.wikipedia.org/wiki/Euler angles" target="_blank">Euler angles</a> or <a href="https://en.wikipedia.org/wiki/quaternion" target="_blank">unit quaternions</a> to describe the transformation from the BODY frame to the NED frame. The <a href="https://en.wikipedia.org/wiki/Tait–Bryan angles" target="_blank">Tait–Bryan angles</a> is the Euler angle representation typically used for marine craft. This involves sequential rotations in the order of yaw (z-axis), pitch (y-axis), and roll (x-axis). The transformation matrix is:
+    </p>
+
+    <div>
+        \[
+        \begin{aligned}
+        \boldsymbol{J}(\boldsymbol{\eta}) & = \begin{bmatrix}
+        \mathbf{R}_{zyx}(\boldsymbol{\eta}) & \mathbf{0}_{3\times3}\\
+        \mathbf{0}_{3\times3} & \mathbf{T}_{zyx}(\boldsymbol{\eta})
+        \end{bmatrix} 
+        \end{aligned}
+        \]
+    </div>
+    where \(\mathbf{R}_{zyx}(\boldsymbol{\eta})\) is the rotation matrix for translational velocities, and \(\mathbf{T}_{zyx}(\boldsymbol{\eta})\) is the transformation matrix for rotational velocities given by<sup>[4]</sup>:
+
+    <div>
+        \[
+        \begin{aligned}
+        \mathbf{R}_{zyx}(\boldsymbol{\eta}) & = \boldsymbol{R}_z(\psi) \boldsymbol{R}_y(\theta) \boldsymbol{R}_x(\phi) \\
+        & = 
+        \begin{bmatrix}
+        \mathrm{c}\psi\mathrm{c}\theta & -\mathrm{s}\psi\mathrm{c}\phi+\mathrm{c}\psi\mathrm{s}\theta\mathrm{s}\phi & \mathrm{s}\psi\mathrm{s}\phi+\mathrm{c}\psi\mathrm{c}\phi\mathrm{s}\theta \\
+        \mathrm{s}\psi\mathrm{c}\theta & \mathrm{c}\psi\mathrm{c}\phi+\mathrm{s}\phi\mathrm{s}\theta\mathrm{s}\psi & -\mathrm{c}\psi\mathrm{s}\phi+\mathrm{s}\theta\mathrm{s}\psi\mathrm{c}\phi \\
+        -\mathrm{s}\theta & \mathrm{c}\theta\mathrm{s}\phi & \mathrm{c}\theta\mathrm{c}\phi
+        \end{bmatrix}
+        \end{aligned}
+        \]
+    </div>
+    
+    <div>
+        \[
+        \mathbf{T}_{zyx}(\boldsymbol{\eta}) =
+        \begin{bmatrix}
+        1 & \mathrm{s}\phi\mathrm{t}\theta & \mathrm{c}\phi\mathrm{t}\theta \\
+        0 & \mathrm{c}\phi & -\mathrm{s}\phi \\
+        0 & \mathrm{s}\phi/\mathrm{c}\theta & \mathrm{c}\phi/\mathrm{c}\theta
+        \end{bmatrix},\quad \theta \neq \pm (\pi/2 + k\pi), \quad \text{for all } k \in \mathbb{Z}
+        \]
+    </div>
+    
+    <p>
+        where \(\mathrm{s}\cdot = \sin(\cdot)\), \(\mathrm{c}\cdot = \cos(\cdot)\), and \(\mathrm{t}\cdot = \tan(\cdot)\). 
+    </p>
+    
+
+    <h3>Kinetics</h3>
+    <p>
+        <div>
+            <p>
+                The system inertia matrix \(\boldsymbol{M} = \boldsymbol{M}_{RB} + \boldsymbol{M}_A\) and Coriolis and centripetal matrix \(\boldsymbol{C}(\boldsymbol{\nu}) = \boldsymbol{C}_{RB}(\boldsymbol{\nu}) + \boldsymbol{C}_A(\boldsymbol{\nu})\) consist of contributions from both the <a href="https://en.wikipedia.org/wiki/Rigid_body_dynamics" target="_blank">rigid-body dynamics</a> of the vehicle and the hydrodynamic effects due to interaction with the surrounding fluid, also known as the <a href="https://en.wikipedia.org/wiki/Added_mass" target="_blank">added mass</a> effect. The hydrodynamic damping matrix is denoted by \(\boldsymbol{D}(\boldsymbol{\nu})\), while \(\boldsymbol{g}(\boldsymbol{\eta})\) is the vector of gravitational and buoyancy forces. Let \(\boldsymbol{r}_{G} = [x_G, y_G, z_G]^\top\) and \(\boldsymbol{r}_B^b = [x_B, y_B, z_B]^\top\) denote the vectors from the body-fixed coordinate origin (CO) to the center of gravity (CG) and the center of buoyancy (CB), respectively. Let the cross product of two vectors be expressed as a matrix multiplication \(\mathbf{a} \times \mathbf{b} = \boldsymbol{S}(\mathbf{a}) \mathbf{b}\), where \(\boldsymbol{S}(\mathbf{a})\) is a <a href="https://en.wikipedia.org/wiki/Skew-symmetric_matrix" target="_blank">skew-symmetric matrix</a>:
+            </p>
+            
+            <div>
+                \[
+                \boldsymbol{S}(\mathbf{a}) = 
+                \begin{bmatrix}
+                0 & -a_3 & a_2 \\
+                a_3 & 0 & -a_1 \\
+                -a_2 & a_1 & 0
+                \end{bmatrix}
+                \]
+            </div>
+        </div>
+    </p>
+    <div>
+        <p>
+            This matrix encodes the antisymmetric nature of the cross-product operation. The mass matrix, as well as the Coriolis and 
+            centripetal matrix, can be derived from <a href="https://en.wikipedia.org/wiki/Kirchhoff_equations" target="_blank">Kirchhoff’s equations</a>. This approach was formalized in Sagatun and Fossen’s 1991 theorem on the Lagrangian formulation of vehicle dynamics<sup>[6]</sup>.  The specific matrices that govern the dynamics are detailed below, each representing a fundamental aspect of the system’s behavior:
+        </p>
+    </div>
+    
+    <div>
+        \[
+        \begin{aligned}
+        \boldsymbol{M}_{RB} & = 
+        \begin{bmatrix}
+        m\boldsymbol{I}_{3} & -m\boldsymbol{S}(\boldsymbol{r}_{G}^{b}) \\
+        m\boldsymbol{S}(\boldsymbol{r}_{G}^{b}) & \boldsymbol{I}_b^b
+        \end{bmatrix} \\
+        & = 
+        \begin{bmatrix}
+        m & 0 & 0 & 0 & mz_G & -my_G \\
+        0 & m & 0 & -mz_G & 0 & mx_G \\
+        0 & 0 & m & my_G & -mx_G & 0 \\
+        0 & -mz_G & my_G & I_x & -I_{xy} & -I_{xz} \\
+        mz_G & 0 & -mx_G & -I_{yx} & I_y & -I_{yz} \\
+        -my_{G} & mx_G & 0 & -I_{zx} & -I_{zy} & I_z
+        \end{bmatrix}
+        \end{aligned}
+        \]
+    </div>
+    
+    <div>
+        \[
+        \begin{aligned}
+        \boldsymbol{C}_{RB}(\boldsymbol{\nu}) & =
+        \left[
+        \begin{array}{cc}
+        \boldsymbol{0}_{3\times3} & -m\boldsymbol{S}(\boldsymbol{\nu}_{1}) - m\boldsymbol{S}(\boldsymbol{S}(\boldsymbol{\nu}_{2})\boldsymbol{r}_{G}^{b}) \\
+        -m\boldsymbol{S}(\boldsymbol{\nu}_{1}) - m\boldsymbol{S}(\boldsymbol{S}(\boldsymbol{\nu}_{2})\boldsymbol{r}_{G}^{b}) &
+        m\boldsymbol{S}(\boldsymbol{S}(\boldsymbol{\nu}_{1})\boldsymbol{r}_{G}^{b}) - \boldsymbol{S}(\boldsymbol{I}_{b}^b\boldsymbol{\nu}_{2})
+        \end{array}
+        \right] \\
+        & =
+        \left[
+        \begin{array}{ccc}
+        0 & 0 & 0 \\
+        0 & 0 & 0 \\
+        0 & 0 & 0 \\
+        -m(y_G q + z_G r) & m(y_G p + w) & m(z_G p - v) \\
+        m(x_G q - w) & -m(z_G r + x_G p) & m(z_G q + u) \\
+        m(x_G r + v) & m(y_G r - u) & -m(x_G p + y_G q)
+        \end{array}
+        \right. \\ 
+        & \qquad \qquad 
+        \left.
+        \begin{array}{ccc}
+        m(y_G q + z_G r) & -m(x_G q - w) & -m(x_G r + v) \\
+        -m(y_G p + w) & m(z_G r + x_G p) & -m(y_G r - u) \\
+        -m(z_G p - v) & -m(z_G q + u) & m(x_G p + y_G q) \\
+        0 & -I_{yz}q - I_{xz}p + I_{z}r & I_{yz}r + I_{xy}p - I_{y}q \\
+        I_{yz}q + I_{xz}p - I_{z}r & 0 & -I_{xz}r - I_{xy}q + I_{x}p \\
+        -I_{yz}r - I_{xy}p + I_{y}q & I_{xz}r + I_{xy}q - I_{x}p & 0
+        \end{array}
+        \right]
+        \end{aligned}
+        \]
+    </div>
+    
+    <div>
+        <p>
+            Here \(m\) is the rigid-body mass, \(\boldsymbol{I}_b^b\) is the <a href="https://en.wikipedia.org/wiki/Moment_of_inertia" target="_blank">inertia tensor</a> about the CO, which is related to the inertia tensor about the CG, \(\boldsymbol{I}_g^b\), by the <a href="https://en.wikipedia.org/wiki/Parallel_axis_theorem" target="_blank">Huygens–Steiner’s parallel-axis theorem</a> according to \(\boldsymbol{I}_b^b = \boldsymbol{I}_g^b - m \boldsymbol{S}^2(\boldsymbol{r}_G)\). The linear and angular velocity vectors are denoted by \(\boldsymbol{\nu}_1 = [u, v, w]^\top\) and \(\boldsymbol{\nu}_2 = [p, q, r]^\top\), respectively. As discussed in <sup>[3][4]</sup>, there exist several matrix parametrizations of \(\boldsymbol{C}_{RB}(\boldsymbol{\nu})\). As shown later, it is advantageous to choose a parametrization that is independent of the linear velocity \(\boldsymbol{\nu}_1\), especially when including irrotational ocean currents using the relative velocity vector. The linear velocity-independent parametrization was derived by Fossen and Fjellstad in 1995<sup>[7]</sup>:
+        </p>
+    </div>
+
+    <div>
+        \[
+        \boldsymbol{C}^{\,\boldsymbol{\nu}_2}_{RB}(\boldsymbol{\nu}) =
+        \left[
+        \begin{array}{cc}
+        m\boldsymbol{S}(\boldsymbol{\nu}_2) & -m\boldsymbol{S}(\boldsymbol{\nu}_2)\boldsymbol{S}(\boldsymbol{r}_{G}^{b}) \\
+        m\boldsymbol{S}(\boldsymbol{r}_{G}^{b})\boldsymbol{S}(\boldsymbol{\nu}_2) & -\boldsymbol{S}( \boldsymbol{I}_{b}^b \boldsymbol{\nu}_2)
+        \end{array}
+        \right]
+        \]
+    </div>
+
+    <div>
+        <p>
+            The corresponding added mass matrices can be expressed as functions of the hydrodynamic derivatives, derived using a Lagrangian formulation based on <a href="https://en.wikipedia.org/wiki/Kirchhoff_equations" target="_blank">Kirchhoff’s equations</a><sup>[6]</sup>:
+        </p>
+        <div>
+            \[
+            \begin{aligned}
+            \boldsymbol{M}_{A} & =
+            \begin{bmatrix}
+            \boldsymbol{M}_A^{(11)} & \boldsymbol{M}_A^{(12)} \\
+            \boldsymbol{M}_A^{(21)} & \boldsymbol{M}_A^{(22)}
+            \end{bmatrix} \\
+            & = 
+            -\begin{bmatrix}
+            X_{\dot{u}} & X_{\dot{v}} & X_{\dot{w}} & X_{\dot{p}} & X_{\dot{q}} & X_{\dot{r}} \\
+            Y_{\dot{u}} & Y_{\dot{v}} & Y_{\dot{w}} & Y_{\dot{p}} & Y_{\dot{q}} & Y_{\dot{r}} \\
+            Z_{\dot{u}} & Z_{\dot{v}} & Z_{\dot{w}} & Z_{\dot{p}} & Z_{\dot{q}} & Z_{\dot{r}} \\
+            K_{\dot{u}} & K_{\dot{v}} & K_{\dot{w}} & K_{\dot{p}} & K_{\dot{q}} & K_{\dot{r}} \\
+            M_{\dot{u}} & M_{\dot{v}} & M_{\dot{w}} & M_{\dot{p}} & M_{\dot{q}} & M_{\dot{r}} \\
+            N_{\dot{u}} & N_{\dot{v}} & N_{\dot{w}} & N_{\dot{p}} & N_{\dot{q}} & N_{\dot{r}}
+            \end{bmatrix}
+            \end{aligned}
+            \]
+        </div>
+        <p>
+            where \(\boldsymbol{M}_A^{(12)} = \boldsymbol{M}_A^{(21)}\). The Coriolis and centripetal matrix, due to hydrodynamic added mass, is<sup>[6]</sup>:
+        </p>
+    </div>
+    
+    <div>
+        \[
+        \begin{aligned}
+        \boldsymbol{C}_{A}(\boldsymbol{\nu}) & =
+        \left[
+        \begin{array}{cc}
+        \boldsymbol{0}_{3\times3} & -\boldsymbol{S}(\boldsymbol{M}_A^{(11)}\boldsymbol{\nu}_{1}
+        +\boldsymbol{M}_A^{(12)}\boldsymbol{\nu}_{2}) \\
+        -\boldsymbol{S}(\boldsymbol{M}_A^{(11)}\boldsymbol{\nu}_{1}
+        +\boldsymbol{M}_A^{(12)}\boldsymbol{\nu}_{2}) &
+        -\boldsymbol{S}(\boldsymbol{M}_A^{(21)}\boldsymbol{\nu}_{1}
+        +\boldsymbol{M}_A^{(22)}\boldsymbol{\nu}_{2})
+        \end{array}
+        \right] \\
+        & =
+        \left[
+        \begin{array}{cccccc}
+        0 & 0 & 0 & 0 & -a_{3} & a_{2} \\
+        0 & 0 & 0 & a_{3} & 0 & -a_{1} \\
+        0 & 0 & 0 & -a_{2} & a_{1} & 0 \\
+        0 & -a_{3} & a_{2} & 0 & -b_{3} & b_{2} \\
+        a_{3} & 0 & -a_{1} & b_{3} & 0 & -b_{1} \\
+        -a_{2} & a_{1} & 0 & -b_{2} & b_{1} & 0
+        \end{array}
+        \right]
+        \end{aligned}
+        \]
+    </div>
+    
+    where
+    
+    <div>
+        \[
+        \begin{aligned}
+        a_{1} & = X_{\dot{u}}u+X_{\dot{v}}v+X_{\dot{w}}w+X_{\dot{p}}p+X_{\dot{q}}q+X_{\dot{r}}r\\
+        a_{2} & = Y_{\dot{u}}u+Y_{\dot{v}}v+Y_{\dot{w}}w+Y_{\dot{p}}p+Y_{\dot{q}}q+Y_{\dot{r}}r\\
+        a_{3} & = Z_{\dot{u}}u+Z_{\dot{v}}v+Z_{\dot{w}}w+Z_{\dot{p}}p+Z_{\dot{q}}q+Z_{\dot{r}}r\\
+        b_{1} & = K_{\dot{u}}u+K_{\dot{v}}v+K_{\dot{w}}w+K_{\dot{p}}p+K_{\dot{q}}q+K_{\dot{r}}r\\
+        b_{2} & = M_{\dot{u}}u+M_{\dot{v}}v+M_{\dot{w}}w+M_{\dot{p}}p+M_{\dot{q}}q+M_{\dot{r}}r\\
+        b_{3} & = N_{\dot{u}}u+N_{\dot{v}}v+N_{\dot{w}}w+N_{\dot{p}}p+N_{\dot{q}}q+N_{\dot{r}}r
+        \end{aligned}
+        \]
+    </div>
+    
+    The hydrodynamic damping matrix depends on linear and quadratic damping and even higher-order terms. This can be expressed by:
+
+    <div>
+        \[
+        \boldsymbol{D} = -\left[
+        \begin{array}{cccccc}
+        X_{u} & X_{v} & X_{w} & X_{p} & X_{q} & X_{r} \\
+        Y_{u} & Y_{v} & Y_{w} & Y_{p} & Y_{q} & Y_{r} \\
+        Z_{u} & Z_{v} & Z_{w} & Z_{p} & Z_{q} & Z_{r} \\
+        K_{u} & K_{v} & K_{w} & K_{p} & K_{q} & K_{r} \\
+        M_{u} & M_{v} & M_{w} & M_{p} & M_{q} & M_{r} \\
+        N_{u} & N_{v} & N_{w} & N_{p} & N_{q} & N_{r}
+        \end{array}
+        \right] +  \boldsymbol{D}_n(\boldsymbol{\nu})
+        \]
+    </div>
+
+    <div>
+        <p>
+            where \(\boldsymbol{D}_n(\boldsymbol{\nu})\) captures the nonlinear velocity-dependent damping effects. If \(x_G = x_B\) and \(y_G = y_B\) (the CG is aligned with the CB in both longitudinal and lateral directions), and the craft has starboard-port symmetry, the restoring forces and moments, \(\boldsymbol{g}(\boldsymbol{\eta}) = \boldsymbol{G} \boldsymbol{\eta}\), for a surface craft can be expressed using the following restoring matrix:
+        </p>
+        
+        <div>
+            \[
+            \boldsymbol{G} = 
+            \begin{bmatrix}
+            0 & 0 & 0 & 0 & 0 & 0 \\
+            0 & 0 & 0 & 0 & 0 & 0 \\
+            0 & 0 & \rho g A_{wp} & 0 & -\rho g A_{wp} \mathrm{LCF} & 0 \\
+            0 & 0 & 0 & \rho g \nabla \mathrm{GM}_{T} & 0 & 0 \\
+            0 & 0 & -\rho g A_{wp} \mathrm{LCF} & 0 & \rho g \left( A_{wp} \mathrm{LCF}^2 + \nabla \mathrm{GM}_{L} \right) & 0 \\
+            0 & 0 & 0 & 0 & 0 & 0
+            \end{bmatrix}
+            \]
+        </div>
+    </div>
+
+    <div>
+        <p>
+            where \(\rho\) is the density of water, \(g\) is the acceleration of gravity, \(A_{wp}\) is the waterplane area, \(\mathrm{LCF}\) is the x-distance from the CO to the centroid of the waterplane, and \(\nabla\) is the displaced volume. At the same time, \(GM_T\) and \(GM_L\) are the transverse and lateral <a href="https://en.wikipedia.org/wiki/Metacentric_height" target="_blank">metacentric heights</a>, respectively. For underwater vehicles, the waterplane area diminishes, and the restoring forces and moments take the following form:
+        </p>
+        <div>
+            \[
+            \boldsymbol{g}(\boldsymbol{\eta}) = \left[
+            \begin{array}{clcl}
+            & (W-B)\sin(\theta) &  & \\
+            - & (W-B)\cos(\theta)\sin(\phi) &  & \\
+            - & (W-B)\cos(\theta)\cos(\phi) &  & \\
+            - & (y_G W-y_B B)\cos(\theta)\cos(\phi) & + & (z_G W-z_B B)\cos(\theta)\sin(\phi) \\
+            & (z_G W-z_B B)\sin(\theta) & + & (x_G W-x_B B)\cos(\theta)\cos(\phi) \\
+            - & (x_G W-x_B B)\cos(\theta)\sin(\phi) & - & (y_G W-y_B B)\sin(\theta)
+            \end{array}
+            \right]
+            \]
+        </div>
+        <p>
+            where \(W = m g\) is the weight and \(B = \rho g \nabla\) is the buoyancy force.
+        </p>
+    </div>
+
+    <h3>Properties</h3>
+    
+    The matrices in Fossen's marine craft model satisfy the following properties:
+    
+    <div class="info-box">
+        <ul>
+            <li>
+                Positive definite mass matrix:
+                \[
+                    \boldsymbol{M} = \boldsymbol{M}^\top > 0 \quad \text{and} \quad \dot{\boldsymbol{M}} = \boldsymbol{0}
+                \]
+            </li>
+            <li>
+                Skew-symmetric Coriolis and centripetal matrix:
+                \[
+                    \boldsymbol{\nu}^\top \boldsymbol{C}(\boldsymbol{\nu}) \boldsymbol{\nu} \equiv 0
+                \]
+            </li>
+            <li>
+                Strictly positive hydrodynamic damping matrix:
+                \[
+                    \boldsymbol{\nu}^\top \boldsymbol{D}(\boldsymbol{\nu}) \boldsymbol{\nu} > 0, \quad 
+                    \text{for all } \boldsymbol{\nu} \neq \boldsymbol{0}
+                \]
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <p>
+            The dissipative nature of the marine craft model is verified by the time differentiation of the <a href="https://en.wikipedia.org/wiki/Lyapunov_function" target="_blank">Lyapunov function</a>:
+        </p>
+        <div>
+            \[
+            V = \frac{1}{2} \boldsymbol{\nu}^\top \boldsymbol{M} \boldsymbol{\nu} +  
+            \int_{\boldsymbol{0}}^{\boldsymbol{\eta}} 
+            \left( \boldsymbol{J}(\boldsymbol{\xi})^\top \boldsymbol{g}(\boldsymbol{\xi}) \right)^\top d\boldsymbol{\xi}
+            \]
+        </div>
+        <p>
+            Exploiting the properties above, it can be shown that the time derivative satisfies the passivity condition<sup>[8]</sup>:
+        </p>
+        <div>
+            \[
+            \begin{aligned}
+            \dot{V} & = \boldsymbol{\nu}^\top \left( \boldsymbol{M} \dot{\boldsymbol{\nu}} + \boldsymbol{g}(\boldsymbol{\eta}) \right) \\
+            & = \boldsymbol{\nu}^\top \boldsymbol{\tau} - \boldsymbol{\nu}^\top \boldsymbol{D}(\boldsymbol{\nu}) \boldsymbol{\nu}
+            \end{aligned}
+            \]
+        </div>
+        <p>
+            This equation demonstrates the passivity property of the system, as the rate of change of the Lyapunov function, \(\dot{V}\), depends on the input power \(\boldsymbol{\nu}^\top \boldsymbol{\tau}\) and the dissipation term \(-\boldsymbol{\nu}^\top \boldsymbol{D}(\boldsymbol{\nu}) \boldsymbol{\nu}\). Since \(\boldsymbol{D}(\boldsymbol{\nu})\) is strictly positive, the dissipation term is strictly negative, ensuring energy dissipation and contributing to the asymptotic stability of the system.
+        </p>
+    </div>
+    
+    <h2>Equations of Relative Motion</h2>
+    
+    <p>
+        Environmental forces and moments can be included using relative velocity for ocean currents. At the same time, wind, and wave loads 
+        <span class="math">\(\boldsymbol{\tau}_{\textrm{wind}}\)</span> and <span class="math">\(\boldsymbol{\tau}_{\textrm{wave}}\)</span> 
+        can be added by linear superposition. The relative velocity, <span class="math">\(\boldsymbol{\nu}_r = \boldsymbol{\nu} - \boldsymbol{\nu}_c\)</span>, accounts for the influence of an irrotational ocean current with velocity <span class="math">\(\boldsymbol{\nu}_c = [u_c, v_c, w_c, 0, 0, 0]^\top\)</span>. This relative velocity modifies the hydrodynamic forces and moments, as the interaction of the vehicle or vessel with the surrounding fluid depends on the velocity relative to the water. The resulting model is:
+    </p>
+    
+    <div class="equation-box">
+        \[
+        \boldsymbol{M}_{RB} \dot{\boldsymbol{\nu}} + \boldsymbol{C}_{RB}(\boldsymbol{\nu}) \boldsymbol{\nu} 
+        + \boldsymbol{M}_{A} \dot{\boldsymbol{\nu}}_r + \boldsymbol{C}_{A}(\boldsymbol{\nu}_r) \boldsymbol{\nu}_r 
+        + \boldsymbol{D}(\boldsymbol{\nu}_r) \boldsymbol{\nu}_r + \boldsymbol{g}(\boldsymbol{\eta}) 
+        = \boldsymbol{\tau} + \boldsymbol{\tau}_{\textrm{wind}} + \boldsymbol{\tau}_{\textrm{wave}}
+        \]
+    </div>    
+
+where
+
+    <ul>
+        <li>Rigid-body forces: <span class="math">\(\boldsymbol{M}_{RB}\dot{\boldsymbol{\nu}} + \boldsymbol{C}_{RB}(\boldsymbol{\nu})\boldsymbol{\nu}\)</span>
+        </li>
+        <li>Hydrodynamic forces: <span class="math">\(\boldsymbol{M}_{A}\dot{\boldsymbol{\nu}}_{r} + \boldsymbol{C}_{A}(\boldsymbol{\nu}_{r})\boldsymbol{\nu}_{r} + \boldsymbol{D}(\boldsymbol{\nu}_{r})\boldsymbol{\nu}_{r}\)</span>
+        </li>
+        <li>Hydrostatic forces: <span class="math">\(\boldsymbol{g}(\boldsymbol{\eta})\)</span>
+        </li>
+        <li>Propulsion forces: <span class="math">\(\boldsymbol{\tau}\)</span>
+        </li>
+        <li>Wind forces: <span class="math">\(\boldsymbol{\tau}_{\textrm{wind}}\)</span>
+        </li>
+        <li>Wave-induced forces: <span class="math">\(\boldsymbol{\tau}_{\textrm{wave}}\)</span>
+        </li>
+    </ul>
+    
+    <h3>Simplified Relative Equations of Motion</h3>
+    
+    <p>
+        The relative equations of motion can be simplified by adopting the rigid-body Coriolis and centripetal matrix <span class="math">\(\boldsymbol{C}^{\,\boldsymbol{\nu}_2}_{RB}(\boldsymbol \nu)\)</span>, which is independent of the linear velocity component 
+        <span class="math">\(\boldsymbol\nu_1 = [u, v, w]^\top\)</span>. This key property was exploited by Hegrenæs in 2010<sup>[5]</sup><sup>[9]</sup>, who showed that:
+    </p>
+    
+    <div>
+        \[
+        \boldsymbol{M}_{RB} \dot{\boldsymbol{\nu}} 
+        + \boldsymbol{C}^{\,\boldsymbol{\nu}_2}_{RB} (\boldsymbol{\nu}) \boldsymbol{\nu} 
+        \equiv \boldsymbol{M}_{RB} \dot{\boldsymbol{\nu}}_{r} 
+        + \boldsymbol{C}^{\,\boldsymbol{\nu}_2}_{RB}(\boldsymbol{\nu}_{r}) \boldsymbol{\nu}_{r}
+        \]
+    </div>
+    
+    <p>
+        Using this result, the relative equations of motion are simplified to:
+    </p>
+    
+    <div class="equation-box">
+        \[
+        \boldsymbol{M} \dot{\boldsymbol{\nu}}_r + \boldsymbol{C}(\boldsymbol{\nu}_r) \boldsymbol{\nu}_r
+        + \boldsymbol{D}(\boldsymbol{\nu}_r) \boldsymbol{\nu}_r + \boldsymbol{g}(\boldsymbol{\eta}) 
+        = \boldsymbol{\tau} + \boldsymbol{\tau}_{\textrm{wind}}
+        + \boldsymbol{\tau}_{\textrm{wave}}
+        \]
+    </div>
+    
+    <p>
+        where 
+        <span class="math">\(\boldsymbol{M} = \boldsymbol{M}_{RB} + \boldsymbol{M}_A\)</span> and <span class="math">\(\boldsymbol{C}(\boldsymbol{\nu}_r) = \boldsymbol{C}_{RB}(\boldsymbol{\nu}_r) + \boldsymbol{C}_A(\boldsymbol{\nu}_r)\)</span>.
+    </p>
+    
+    <h2>Numerical Integration of the Relative Equations of Motion</h2>
+    
+    <p>
+        An irrotational ocean current implies its velocity field has no curl, leading to a <a href="https://en.wikipedia.org/wiki/Potential_flow" title="Potential flow">potential flow</a> description. In practical terms, this means the ocean current velocity, <span class="math">\(\boldsymbol{\nu}_c = [u_c, v_c, w_c, 0, 0, 0]^\top\)</span>, remains spatially uniform and constant (or nearly constant) in the NED frame, with no rotational components <span class="math">\((p_c = q_c = r_c = 0)\)</span>. Hence, the application of <span class="math">\(\dot{\boldsymbol{R}}_{zyx} = \boldsymbol{R}_{zyx}\boldsymbol{S}(\boldsymbol{\nu}_2)\)</span> implies that the ocean current velocity vector satisfies:
+    </p>
+    
+    <div>
+        \[
+        \dot{\boldsymbol{v}}_{c}^{n} = \dot{\boldsymbol{R}}_{zyx} \boldsymbol{v}_{c}^{b} + \boldsymbol{R}_{zyx} \dot{\boldsymbol{v}}_{c}^{b} \equiv \boldsymbol{0} 
+        \quad \implies \quad 
+        \dot{\boldsymbol{v}}_{c}^{b} = -\boldsymbol{S}(\boldsymbol{\nu}_2) \boldsymbol{v}_{c}^{b}
+        \]
+    </div>
+    
+    <p>
+        where 
+        <span class="math">\(\boldsymbol{v}_{c}^{b} = [u_c, v_c, w_c]^\top\)</span> is the ocean current linear velocity vector expressed in the BODY frame. The numerical solution proceeds by integrating the differential equation for absolute velocity:
+    </p>
+    
+    <div class="equation-box">
+        \[
+        \begin{aligned}
+        \dot{\boldsymbol{\nu}}  & = 
+        \left[
+        \begin{array}{c}
+        -\boldsymbol{S}(\boldsymbol{\nu}_2)\boldsymbol{v}_{c}^{b} \\    
+        \boldsymbol{0}_{3\times1}
+        \end{array}
+        \right] \\
+        & + \boldsymbol{M}^{-1} \left( \boldsymbol{\tau} +
+        \boldsymbol{\tau}_{\textrm{wind}}
+        +\boldsymbol{\tau}_{\textrm{wave}}
+        - \boldsymbol{C}(\boldsymbol{\nu}_{r})\boldsymbol{\nu}_{r}-\boldsymbol{D}(\boldsymbol{\nu}_{r})\boldsymbol{\nu}_{r}
+        -\boldsymbol{g}(\boldsymbol{\eta})\right) 
+        \end{aligned}
+        \]
+    </div>
+    
+    <h2>Applications</h2>
+    
+    <p>
+        Since its introduction in 1991, Fossen’s marine craft model has been referenced in thousands of research papers and technical documents. It is now a widely recognized framework for studying and developing dynamic models of marine craft, including ships, semisubmersibles, USVs, AUVs, submarines, and offshore structures. The model and its associated tools are available for implementation and further exploration through the <a href="https://github.com/cybergalactic/MSS" target="_blank"><strong>Marine Systems Simulator (MSS)</strong></a> GitHub repository, providing a valuable resource for researchers and practitioners.
+    </p>
+    
+    <h3>3-DOF Surface Craft</h3>
+    
+    <p>
+        One of the most common applications of the model is in describing the surge–sway–yaw motions of a starboard-port symmetrical ship. For such vessels, the equations of relative motion can be expressed by <span class="math">\[ \boldsymbol{M} \dot{\boldsymbol{\nu}}_r + \boldsymbol{C}(\boldsymbol{\nu}_r)\boldsymbol{\nu}_r + \boldsymbol{D}(\boldsymbol{\nu}_r)\boldsymbol{\nu}_r = \boldsymbol{\tau} + \boldsymbol{\tau}_{\textrm{wind}} + \boldsymbol{\tau}_{\textrm{wave}}
+        \]</span>
+    </p>
+    
+    <p>
+        where 
+        <span class="math">\(\boldsymbol{\nu}_r = [u_r, v_r, r]^\top\)</span> and <span class="math">\(\boldsymbol{\eta} = [x, y, \psi]^\top\)</span>. The model matrices for 3-DOF surface vessels take the following form:
+    </p>
+        
+    <div>
+        \[
+        \begin{aligned}
+        \boldsymbol{M}_{RB} & = \left[ 
+        \begin{array}{ccc}
+        m & 0 & 0\\
+        0 & m & mx_G \\
+        0 & mx_G & I_{z}
+        \end{array} \right] \\
+        \boldsymbol{M}_A & = \left[ 
+        \begin{array}{ccc}
+        - X_{\dot{u}} & 0 & 0\\
+        0 & -Y_{\dot{v}} & -Y_{\dot{r}} \\
+        0 & -N_{\dot{v}} & -N_{\dot{r}} 
+        \end{array} \right] \\
+        \boldsymbol{C}(\boldsymbol{\nu}_r) & = \left[
+        \begin{array}{ccc}
+        0 & -mr & -mx_G r\\
+        mr & 0 & 0\\
+        mx_G r & 0 & 0
+        \end{array}
+        \right] \\  
+        \boldsymbol{C}_{A}(\boldsymbol{\nu}_{r})  &  = \left[
+        \begin{array}{ccc}
+        0 & 0 & Y_{\dot{v}}v_{r}+Y_{\dot{r}}r\\
+        0 & 0 & -X_{\dot{u}}u_{r}\\
+        -Y_{\dot{v}}v_{r}-Y_{\dot{r}}r & X_{\dot{u}}u_{r} & 0
+        \end{array} \right] \\
+        \boldsymbol{D} & = -\left[
+        \begin{array}{ccc}
+        X_{{u}} & 0 & 0\\
+        0 & Y_{{v}} & Y_{{r}} \\
+        0 & N_{{v}} & N_{{r}} 
+        \end{array}
+        \right]  \\
+        \boldsymbol{D}_n(\boldsymbol{\nu}_r) & = - \left[
+        \begin{array}{ccc}
+        X_{|u|u} |u_r| & 0 & 0 \\
+        0 & { Y}_{|v|v}\left\vert v_{r}\right\vert +{ Y}_{|r|v}\left\vert
+        r\right\vert & { Y}_{|v|r}\left\vert v_{r}\right\vert +{ Y}_{|r|r}\left\vert r\right\vert \\
+        0 & { N}_{|v|v}\left\vert v_{r}\right\vert +{ N}_{|r|v}\left\vert
+        r\right\vert & { N}_{|v|r}\left\vert v_{r}\right\vert + N
+        _{|r|r}\left\vert r\right\vert
+        \end{array} \right]     
+        \end{aligned}
+        \]
+    </div>
+    
+    <h2>References</h2>
+    <ol>
+        <li>
+            Fossen, T. I.(1991). <em>Nonlinear Modelling and Control of Underwater Vehicles</em>. Dr. Ing. Thesis, Norges Tekniske Høgskole (NTH), Department of Engineering Cybernetics, Trondheim, Norway (now part of NTNU).
+        </li>
+        <li>
+            Fossen, T. I. (1994). <em>Guidance and Control of Ocean Vehicles</em>. Wiley, Chichester, UK.
+        </li>
+        <li>
+            Fossen, T. I. (2011). <em>Handbook of Marine Craft Hydrodynamics and Motion Control</em>. Wiley, Chichester, UK.</li>
+        <li>
+            Fossen, T. I. (2021). <em>Handbook of Marine Craft Hydrodynamics and Motion Control</em> (2nd ed.). Wiley, Chichester, UK.
+        </li>
+        <li>
+            SNAME (1950). Nomenclature for Treating the Motion of a Submerged Body Through a Fluid. Technical and Research Bulletin, Vol. 1-5
+        </li>
+        <li>
+            Sagatun, S. I.; Fossen, T. I. (1991). Lagrangian Formulation of Underwater Vehicles’ Dynamics, <em>Proceedings of the IEEE International Conference on Systems, Man and Cybernetics</em>, Charlottesville, VA, pp. 1029–1034.
+        </li>
+        <li>
+            Fossen, T. I.; Fjellstad, O. E. (1995). Nonlinear Modelling of Marine Vehicles in 6 Degrees of Freedom. <em>International Journal of Mathematical Modelling of Systems</em>, 1(1), 17–28.
+        </li>
+        <li>
+            Brogliato, B; Lozano, R.; Maschke, B.; Egeland, O. (2006). <em>Dissipative Systems Analysis and Control: Theory and Applications</em> (2nd ed.), Springer.
+        </li>
+        <li>
+            Hegrenæs, Ø. (2010)<em> Autonomous Navigation for Underwater Vehicles</em>. PhD thesis. Department of Engineering Cybernetics, Norwegian University of Science and Technology, Trondheim, Norway.
+        </li>
+        
+    </ol>
+</body>
+</html>

@@ -1,0 +1,251 @@
+Bibliographie KJP Port Simulator
+================================
+
+Périmètre
+---------
+Inventaire constitué le 19 septembre 2026 après lecture exhaustive des 210 tours
+des huit conversations Codex liées au dépôt KJP : création du simulateur,
+simulation de port, tranches de migration Three, audit du safran, contrôles iPad
+et défis. Les URL de produit KJP, de dépôt et de release ne sont pas des sources
+bibliographiques ; elles sont recensées à la fin pour rendre leur exclusion
+vérifiable.
+
+Chaque fichier ci-dessous est la réponse originale récupérée à l'URL indiquée.
+Les pages HTML restent des captures autonomes du document principal ; leurs
+ressources liées ne sont pas téléchargées. « URL seule » signifie qu'une collecte
+HTTP automatisée a été refusée, a échoué, ou que l'URL ne renvoie plus le document.
+Le lien reste donc la référence de reproduction.
+
+PHYSIQUE, MANOEUVRE ET CALIBRATION
+----------------------------------
+
+[archivé] uscg-boat-crew-handbook.pdf
+URL : https://rdept.cgaux.org/documents/BoatCrewHandbooks/BoatCrewBCH16114.4.pdf
+Usage : référence qualitative de manoeuvre, notamment séparation effet de pas /
+        action du safran et répartition du fardage. Utilisée pour les audits de
+        marche arrière et vent traversier ; pas pour fixer un coefficient KJP.
+
+[archivé] delefortrie-2022-rudder-forces.pdf
+URL : https://www.vliz.be/imisdocs/publications/72/372072.pdf
+Usage : méthode expérimentale pour distinguer force latérale et couple du safran
+        en manoeuvre portuaire, y compris les limites de transposition à un voilier.
+
+[archivé] ittc-75-02-06-03.pdf
+URL : https://ittc.info/media/1894/75-02-06-03.pdf
+Usage : procédure ITTC de validation d'un modèle de manoeuvre ; exigence de
+        documenter géométrie, données, domaine de validité et incertitude.
+
+[archivé] ittc-75-02-06-03-2024.pdf
+URL : https://www.ittc.info/media/11868/75-02-06-03.pdf
+Usage : autre édition de la même procédure, citée dans la documentation KJP et
+        les échanges de calibration. Conservée séparément pour reproductibilité.
+
+[archivé] mmg-standard.html
+URL canonique : https://doi.org/10.1007/s00773-014-0293-y
+URL également citée : https://link.springer.com/article/10.1007/s00773-014-0293-y
+Usage : cadre MMG coque-helice-safran pour le modèle basse vitesse et la
+        séparation des contributions hydrodynamiques.
+
+[archivé] fossen-marine-craft-model.html
+URL : https://www.fossen.biz/html/marineCraftModel.html
+URL également citée : https://fossen.biz/html/marineCraftModel.html#equations-of-relative-motion
+Usage : équations 3-DOF, vitesses relatives à l'eau, masse ajoutée et Coriolis ;
+        référence du contrat de repères et de l'invariance sous courant uniforme.
+
+[archivé] marin-cross-flow-drag.html
+URL : https://www.marin.nl/en/publications/the-cross-flow-drag-on-a-manoeuvring-ship
+Usage : référence de la traînée transversale distribuée pour l'audit des efforts
+        de coque et de la dérive.
+
+[archivé] liros-moorex.html
+URL : https://www.liros.com/catalog/en/moorex-12-14mm-p1385/
+Usage : caractéristiques de cordage envisagées pour paramétrer les aussières.
+
+[archivé] liros-technical-info.html
+URL : https://www.liros.com/catalog/en/support/technical-info/
+Usage : informations techniques complémentaires de cordage pour les aussières.
+
+[archivé] A Diesel Engine Modelling Approach for Ship Propulsion Real-Time Simulators.pdf
+URL : https://www.mdpi.com/2077-1312/7/5/138
+Usage : article de Journal of Marine Science and Engineering cité pendant la
+        conception du modèle de manoeuvre ; référence d'étude, pas calibration.
+
+[archivé] Four-Quadrant Propeller Modeling A Low-Order Harmonic Approximation.pdf
+URL : https://www.sciencedirect.com/science/article/pii/S1474667016461513
+Usage : article IFAC cité pour la modélisation MMG et le domaine basse vitesse.
+
+[URL seule — HTTP 403] marin-rudder-model.html
+URL : https://journals.sagepub.com/doi/10.3233/ISP-240004
+Usage : modèle de safran MARIN utilisé comme référence de conception pour le
+        flux local, l'erre, le lacet et le jet d'helice.
+
+[URL seule — HTTP 403] uscg-national-sar-supplement.pdf
+URL : https://www.dco.uscg.mil/Portals/9/CG-5R/manuals/Natl_SAR_Supp.pdf
+Usage : ordre de grandeur qualitatif de dérive au vent pour l'audit vent/courant.
+
+[archivé] hse-push-pull-assessment.html
+URL : https://www.hse.gov.uk/msd/pushpull/assessment.htm
+Usage : ordre de grandeur de traction manuelle pour borner la reprise d'aussière.
+
+[URL seule — HTTP 403] four-quadrant-propeller-model.html
+URL : https://doi.org/10.1155/2012/543096
+Usage : justification d'une courbe de poussée d'hélice quatre quadrants, en
+        particulier pour l'inversion et le crash-back.
+
+[archivé] ittc-stopping-test.pdf
+URL : https://www.ittc.info/media/9789/75-04-02-01.pdf
+Usage : dissocie l'essai d'arrêt par puissance arrière de la décélération
+        naturelle ; base proposée pour calibrer les distances et temps d'arrêt.
+
+[URL seule — délai HTTP] atsb-maneuvering-report.pdf
+URL : https://www.atsb.gov.au/sites/default/files/media/4012947/MO2010008_FINAL.pdf
+Usage : positions qualitatives de centre de pression et distinction entre pivot
+        à vitesse nulle et virage accéléré.
+
+[archivé] mca-mgn-301-appendix-2.html
+URL : https://www.gov.uk/government/publications/mgn-301-mf-amendment-1-manoeuvring-information-onboard-ships/mgn-301-amendement-1-appendix-2
+Usage : règlementation et essais de manoeuvrabilité, employés pour séparer les
+        régimes de rotation sur place et de virage sous erre.
+
+[archivé] jstage-low-speed-mmg.html
+URL : https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_article/-char/en
+Usage : Ito, Takashina et Yasukawa, modèle simplifié de prédiction à basse
+        vitesse ; référence de structure pour le plan MMG.
+
+[URL seule — HTTP 403] port-four-quadrant-model.html
+URL : https://www.sciencedirect.com/science/article/pii/S0029801825008856
+Usage : modèle portuaire quatre quadrants, cité comme référence de conception
+        pour le fonctionnement avant/arrière.
+
+[URL seule — HTTP 403] yanmar-ym-series-operation-manual.pdf
+URL : https://www.yanmar.com/marine/wp-content/uploads/2024/03/0AYMM-EN002D_YMseries_OPM_20240117.pdf
+Usage : données moteur et transmission du Yanmar 3YM30 envisagées pour le profil
+        du Sun Odyssey ; source de données, non sondée à chaque frame.
+
+[archivé] jeanneau-sun-odyssey-36i-inventory.pdf
+URL : https://app.jeanneau.com/inventory/8009
+Usage : dimensions constructeur du Sun Odyssey 36i : longueur, largeur,
+        déplacement à vide et tirant d'eau du profil de référence.
+
+[archivé] la-trinite-passage-brochure.pdf
+URL : https://port-la-trinite-sur-mer.com/wp-content/uploads/sites/5/2024/02/STM-BROCHURE-PASSAGE-2023.pdf
+Usage : organisation qualitative des pannes et contexte du port de La Trinité.
+
+[archivé] rya-med-mooring.html
+URL : https://www.rya.org.uk/boating-abroad/med-mooring-stern-to/
+Usage : contexte pédagogique de manoeuvre arrière et d'amarrage arrière.
+
+DONNEES PORTUAIRES, CARTOGRAPHIE ET LICENCES
+--------------------------------------------
+
+[archivé] iala-r1001.html
+URL : https://www.iala.int/product/r1001/
+Usage : système de balisage IALA, cité pour le rendu et l'interprétation des
+        balises dans le générateur de ports.
+
+[archivé] osm-seamark-object-usage.html
+URL : https://wiki.openstreetmap.org/wiki/Seamarks/Seamark_Object_Usage
+Usage : interprétation des objets seamark importés depuis OpenStreetMap.
+
+[archivé] osm-seamark-buoys.html
+URL : https://wiki.openstreetmap.org/wiki/Seamarks/Buoys
+Usage : convention des bouées OSM, utilisée pour l'import et le rendu portuaire.
+
+[archivé] osm-seamark-item-q6753.html
+URL : https://wiki.openstreetmap.org/wiki/Item%3AQ6753
+Usage : cartographie OSM des pontons (man_made=pier) utilisée par l'import.
+
+[archivé] overpass-common-queries.html
+URL : https://dev.overpass-api.de/overpass-doc/en/preface/commons.html
+Usage : documentation des instances Overpass et de leur comportement ; employée
+        pour organiser les secours d'import OSM.
+
+[archivé] overpass-api.html
+URL : https://wiki.openstreetmap.org/wiki/Overpass_API
+URL également citée : https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances
+Usage : liste et règles des instances publiques Overpass.
+
+[archivé] overpass-command-line.html
+URL : https://dev.overpass-api.de/command_line.html
+Usage : syntaxe et exécution des requêtes Overpass pour le générateur de ports.
+
+[archivé] openseamap-qgis.html
+URL : https://wiki.openseamap.org/wiki/QGIS
+Usage : faisabilité de l'exploitation des données OpenSeaMap et QGIS.
+
+[archivé] osm-tile-policy.html
+URL : https://operations.osmfoundation.org/policies/tiles/
+Usage : licence et limites d'usage des tuiles OpenStreetMap.
+
+[archivé] ign-bd-ortho-metadata.html
+URL : https://geoservices.ign.fr/sites/default/files/2022-10/IGNF_BDORTHOr_2-0.html
+Usage : résolution, ancienneté et licence de la BD ORTHO pour les choix
+        d'assistance cartographique.
+
+[archivé] google-map-tile-policy.html
+URL : https://developers.google.com/maps/documentation/tile/policies?hl=fr
+Usage : exclusion documentée de l'analyse automatique des tuiles Google.
+
+[archivé] esa-sentinel-2.html
+URL : https://www.esa.int/Applications/Observing_the_Earth/Copernicus/Sentinel-2?app=true
+Usage : évaluation de la résolution Sentinel-2, jugée insuffisante pour repérer
+        les voiliers individuellement dans une marina.
+
+RENDERER THREE.JS ET OUTILLAGE
+------------------------------
+
+[archivé] threejs-migration-r185-r186.html
+URL : https://github.com/mrdoob/three.js/wiki/Migration-Guide#185--186
+Usage : vérification du passage Three.js r185 vers r186 pendant la migration.
+
+[archivé] threejs-webglrenderer.html
+URL : https://threejs.org/docs/pages/WebGLRenderer.html
+Usage : configuration WebGLRenderer, métriques renderer.info et perte de contexte.
+
+[archivé] threejs-instanced-mesh.html
+URL : https://threejs.org/docs/pages/InstancedMesh.html
+Usage : instancing des objets répétés du monde et des ressources persistantes.
+
+[archivé] threejs-batched-mesh.html
+URL : https://threejs.org/docs/pages/BatchedMesh.html
+Usage : regroupement des géométries hétérogènes et réduction des appels de rendu.
+
+[archivé] threejs-line2.html
+URL : https://threejs.org/docs/pages/Line2.html
+Usage : traits épais lorsque LineBasicMaterial ne peut pas porter l'épaisseur
+        demandée par l'interface.
+
+[URL seule — HTTP 404] threejs-disposal.html
+URL : https://threejs.org/manual/en/how-to-dispose-of-objects.html
+Usage : stratégie de libération des géométries et matériaux Three ; URL citée
+        historiquement, désormais non servie sous cette adresse.
+
+[archivé] threejs-game-studio.html
+URL : https://github.com/chrislaupama/threejs-game-studio
+Usage : source du skill évalué lors de la préparation de la migration Three.js.
+
+[archivé] optimize-web-animations-skill.html
+URL : https://github.com/MengTo/Skills/blob/main/agent-skills/codex/optimize-web-animations/SKILL.md
+Usage : skill de profiling WebGL/animations évoqué comme option ultérieure.
+
+[archivé] openai-three-webgl-game-skill.html
+URL : https://github.com/openai/plugins/blob/main/plugins/game-studio/skills/three-webgl-game/SKILL.md
+Usage : skill comparé à l'approche KJP ; non retenu car trop large pour la
+        migration sans changement de physique.
+
+URL EXCLUES COMME NON BIBLIOGRAPHIQUES
+--------------------------------------
+
+Les URL suivantes sont apparues dans les conversations, mais désignent le produit
+KJP, son dépôt, une release ou un fichier de travail. Elles n'ont pas été copiées
+dans cette bibliographie :
+
+- https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp
+- https://arnaud2moissac.github.io/KJP_Port_Simulator/simulateur-port.html
+- https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html
+- https://github.com/arnaud2moissac/KJP_Port_Simulator
+- https://github.com/arnaud2moissac/KJP_Port_Simulator.git
+- https://github.com/arnaud2moissac/KJP_Port_Simulator/releases/tag/v1.1.0
+
+Les variantes Markdown avec des antislashs dans les conversations pointent vers
+les trois premières URL et ont été dédoublonnées.

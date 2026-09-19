@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tile Usage Policy</title>
+
+    <!-- syntax highlighting CSS -->
+    <link rel="stylesheet" href="/css/syntax.css">
+
+    <!-- Bootstrap and overrides -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/overrides.css">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+
+    <!-- link to Atom feed -->
+    <link type="application/atom+xml" rel="alternate" href="https://operations.osmfoundation.org/feed.xml" title="OSMF Operations Working Group" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="navbar navbar-default">
+        <div class="container-fluid">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <div class="navbar-header">
+            <a class="navbar-brand" href="/">OSMF OWG</a>
+          </div>
+          <ul class="nav navbar-nav">
+            <li><a href="/">Home</a></li>
+            <li><a href="/reports/">Reports</a></li>
+            <li><a href="/post-mortems/">Post-mortems</a></li>
+            <li><a href="/policies/">Policies</a></li>
+            <li><a href="/meetings/">Meetings</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <h1 id="tile-usage-policy">Tile Usage Policy</h1>
+
+<p>OpenStreetMap (OSM) data is <strong>free for everyone to use</strong>. Our <strong>tile servers are not</strong>: they are <a href="https://supporting.openstreetmap.org/donate/">funded by donations</a> and <a href="https://hardware.openstreetmap.org/thanks/">sponsorship</a>, and capacity is limited. To protect the service for mappers and the wider community, you <strong>must</strong> follow this policy when using tiles from <code class="language-plaintext highlighter-rouge">tile.openstreetmap.org</code>.</p>
+
+<p>We welcome creative uses and do not require you to use a specific API. However, heavy or inappropriate use harms others’ ability to edit and view the map. We may block access, without notice, if your usage degrades the service. We may try to contact you if possible, but cannot guarantee this.</p>
+
+<p>Availability is <strong>best-effort</strong>: there is <strong>no SLA or guarantee</strong>. All <a href="https://osmfoundation.org/">OSMF</a> services are also covered by the <a href="https://wiki.osmfoundation.org/wiki/Terms_of_Use">OSMF Terms of Use</a>.</p>
+
+<p>If you cannot meet these requirements, please use an <strong>alternative OSM-derived service</strong> (see below), or run your own.</p>
+
+<hr />
+
+<h2 id="quick-summary">Quick summary</h2>
+
+<p><strong>You must:</strong></p>
+
+<ul>
+  <li>Use the correct URL: <code class="language-plaintext highlighter-rouge">https://tile.openstreetmap.org/{z}/{x}/{y}.png</code>.</li>
+  <li>Provide visible <strong>licence attribution</strong>, following the <a href="https://wiki.osmfoundation.org/wiki/Licence/Attribution_Guidelines">Attribution Guidelines</a>.</li>
+  <li>Send a <strong>valid HTTP User-Agent</strong> that clearly identifies your application (or a platform <code class="language-plaintext highlighter-rouge">X-Requested-With</code> app ID where set automatically).</li>
+  <li>From web pages, ensure a valid <strong>HTTP Referer</strong> header is sent.</li>
+  <li><strong>Cache</strong> tiles locally according to HTTP caching headers (or at least <strong>7 days</strong> if your cache cannot read them).</li>
+  <li>Avoid encouraging or enabling copyright infringement.</li>
+</ul>
+
+<p><strong>You must not:</strong></p>
+
+<ul>
+  <li>Bulk download (“scrape”) tiles or offer prefetch features.</li>
+  <li>Send <code class="language-plaintext highlighter-rouge">Cache-Control: no-cache</code>, <code class="language-plaintext highlighter-rouge">Pragma: no-cache</code>, or similar no-cache headers by default.</li>
+  <li>Set a restrictive Referrer-Policy that prevents the <strong>HTTP Referer</strong> header being sent.</li>
+  <li>Use the <strong>HTTP</strong> URL <code class="language-plaintext highlighter-rouge">http://tile.openstreetmap.org/{z}/{x}/{y}.png</code>, use the <strong>HTTPS</strong> URL from above.</li>
+  <li>Masquerade as another app’s User-Agent, or rely on a library’s default User-Agent.</li>
+</ul>
+
+<p><strong>You should (recommended):</strong></p>
+
+<ul>
+  <li>Avoid hard-coding the tile URL; allow switching without needing a software update.</li>
+  <li>Add a “Report a map issue” link to <a href="https://www.openstreetmap.org/fixthemap">https://www.openstreetmap.org/fixthemap</a>.</li>
+  <li>Publish a contact email on your website or app store listing.</li>
+  <li>Support HTTP/2 or HTTP/3 for efficient multiplexed downloads.</li>
+</ul>
+
+<hr />
+
+<h2 id="1-correct-tile-url">1. Correct tile URL</h2>
+
+<p>Use exactly:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>https://tile.openstreetmap.org/{z}/{x}/{y}.png
+</code></pre></div></div>
+
+<p>Other subdomains or hostnames may be slower or withdrawn without notice. We cannot provide integration support for specific map libraries; please consult your library’s documentation.</p>
+
+<h2 id="2-attribution-and-licensing">2. Attribution and licensing</h2>
+
+<ul>
+  <li>Show OpenStreetMap licence attribution clearly on the map (typically bottom-right).<br />
+Typically: <em>© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors</em><br />
+See: <a href="https://wiki.osmfoundation.org/wiki/Licence/Attribution_Guidelines">Attribution Guidelines</a></li>
+  <li>Do not actively or passively encourage copyright infringement.</li>
+  <li>Do not hide attribution beneath UI, behind toggles, or off-screen.</li>
+</ul>
+
+<h2 id="3-technical-requirements">3. Technical requirements</h2>
+
+<h3 id="31-identification">3.1 Identification</h3>
+
+<ul>
+  <li><strong>User-Agent:</strong> Send a clear, unique User-Agent string that names your app and optionally includes a contact URL or email.<br />
+<em>Example (good):</em><br />
+<code class="language-plaintext highlighter-rouge">User-Agent: MyTownMaps/1.4 (+https://example.org; contact: maps@example.org)</code><br />
+Browsers will use the browser’s default <code class="language-plaintext highlighter-rouge">User-Agent</code>.</li>
+  <li>Do <strong>not</strong> use a library default <code class="language-plaintext highlighter-rouge">User-Agent</code>, and never impersonate another app or a browser.</li>
+  <li>If your platform automatically sets an <strong><code class="language-plaintext highlighter-rouge">X-Requested-With</code></strong> header with an app ID, that is acceptable, but a proper <code class="language-plaintext highlighter-rouge">User-Agent</code> is still recommended.</li>
+  <li><strong>Referer (web only):</strong> Browsers are expected to send a valid <code class="language-plaintext highlighter-rouge">Referer</code> header. Native apps usually do not have a referer, this is ok.</li>
+  <li><strong>Referrer-Policy (web only):</strong> Do not set a restrictive Referrer-Policy that prevents the <code class="language-plaintext highlighter-rouge">Referer</code> header being sent on requests to tile.openstreetmap.org.</li>
+</ul>
+
+<h3 id="32-caching">3.2 Caching</h3>
+
+<ul>
+  <li><strong>Do not bypass caches.</strong> Never send <code class="language-plaintext highlighter-rouge">Cache-Control: no-cache</code>, <code class="language-plaintext highlighter-rouge">Pragma: no-cache</code>, or similar no-cache headers by default.</li>
+  <li><strong>Honour server caching headers</strong> (<code class="language-plaintext highlighter-rouge">Cache-Control</code>, <code class="language-plaintext highlighter-rouge">Expires</code>, <code class="language-plaintext highlighter-rouge">Etag</code>). If your cache cannot read them, cache each tile for <strong>at least 7 days</strong>.</li>
+  <li>Keep a sufficient local cache to ensure that repeat views do not unneccessarily re-download tiles.</li>
+  <li>Use <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Conditional_requests">Conditional Requests</a> using <code class="language-plaintext highlighter-rouge">If-None-Match</code> and <code class="language-plaintext highlighter-rouge">If-Modified-Since</code> when requesting tiles that have expired.</li>
+</ul>
+
+<blockquote>
+  <p><strong>Note:</strong> Modern browsers, with default settings, already satisfy these technical requirements.</p>
+</blockquote>
+
+<h3 id="33-protocols">3.3 Protocols</h3>
+
+<ul>
+  <li>Recommended: Use HTTP/2 or HTTP/3 to multiplex requests efficiently.</li>
+</ul>
+
+<h3 id="34-apps-library-defaults--software-development-kits-identification-required">3.4 Apps, Library defaults &amp; Software Development Kits (identification required)</h3>
+
+<p>Many HTTP clients and Software Development Kits (SDK) use a <strong>generic User-Agent header</strong> (e.g. <code class="language-plaintext highlighter-rouge">okhttp/x.y</code>, <code class="language-plaintext highlighter-rouge">Go-http-client/1.1</code>, <code class="language-plaintext highlighter-rouge">python-requests/x.y</code>, <code class="language-plaintext highlighter-rouge">Java/1.8</code>, <code class="language-plaintext highlighter-rouge">curl/x.y</code>). Traffic that uses these defaults <strong>will be blocked</strong> because we cannot identify or contact the actual application.</p>
+
+<p><strong>You must:</strong></p>
+
+<ul>
+  <li>Apps must configure a <strong>distinct, stable <code class="language-plaintext highlighter-rouge">User-Agent</code></strong> naming your app <strong>and</strong> optionally a contact URL or email.</li>
+  <li>For websites, ensure the <strong><code class="language-plaintext highlighter-rouge">Referer</code> header is present and accurate</strong> end-to-end. If you proxy tile requests through your servers or a CDN, do not strip or blank the <code class="language-plaintext highlighter-rouge">Referer</code>.</li>
+  <li>Keep identification <strong>stable</strong> across requests and releases. It’s fine (and helpful) to update the <strong>version number</strong> in your <code class="language-plaintext highlighter-rouge">User-Agent</code> as you publish new builds (e.g. <code class="language-plaintext highlighter-rouge">MyTownMaps/1.4</code> → <code class="language-plaintext highlighter-rouge">MyTownMaps/1.5</code>). Do <strong>not</strong> randomise or rotate the product name or contact details, and do <strong>not</strong> impersonate browsers or other apps.</li>
+  <li>If you publish an SDK, set a <strong>sensible default <code class="language-plaintext highlighter-rouge">User-Agent</code></strong> (naming the SDK and docs URL) and provide a <strong>simple override</strong> to allow developers to easily identify their app.</li>
+</ul>
+
+<p><strong>You must not:</strong></p>
+
+<ul>
+  <li>Use the library’s generic default <code class="language-plaintext highlighter-rouge">User-Agent</code>.</li>
+  <li>Hide behind a generic proxy <code class="language-plaintext highlighter-rouge">User-Agent</code> (e.g. <code class="language-plaintext highlighter-rouge">nginx</code>, <code class="language-plaintext highlighter-rouge">Varnish</code>, <code class="language-plaintext highlighter-rouge">CDN-XYZ</code>).</li>
+  <li>Strip <code class="language-plaintext highlighter-rouge">Referer</code> on web traffic or tunnel all clients behind a single, anonymous identity.</li>
+</ul>
+
+<p><strong>Enforcement:</strong> Traffic using generic defaults, referer-stripping, or spoofed identities may be <strong>blocked without notice</strong>. We prioritise identifiable and contactable operators to keep the service reliable for everyone.</p>
+
+<h2 id="4-prohibited-bulk-downloading-scraping-and-offline-use">4. Prohibited: bulk downloading (“scraping”) and offline use</h2>
+
+<p><strong>Bulk downloading</strong> is any pre-emptive fetching of tiles other than those a user is actively viewing. This includes, but isn’t limited to:</p>
+
+<ul>
+  <li>“Pre-seeding” large areas or multiple zoom levels in advance.</li>
+  <li>Building tile archives (e.g. <code class="language-plaintext highlighter-rouge">.zip</code>, <code class="language-plaintext highlighter-rouge">.mbtiles</code>) for later distribution.</li>
+  <li>Automated scans across wide bounding boxes, especially at high zoom (z≥14).</li>
+  <li>Headless bots that pan/zoom the map to force rendering.</li>
+</ul>
+
+<p><strong>Offline use is not permitted on <code class="language-plaintext highlighter-rouge">tile.openstreetmap.org</code>.</strong> Features such as “Download city/country for offline use” or “Save area for later” <strong>rely on prefetch/bulk downloading</strong> and are therefore prohibited.</p>
+
+<blockquote>
+  <p><strong>Note:</strong> If you require offline maps, use <strong>self-hosted</strong> tiles or a <strong>provider that explicitly allows offline/prefetching</strong>. <a href="https://wiki.openstreetmap.org/wiki/Vector_tiles">Vector tiles</a> are often more suitable for this use-case.</p>
+</blockquote>
+
+<p><strong>Permitted usage (examples):</strong></p>
+
+<ul>
+  <li>Normal interactive viewing by a human where the client requests only the tiles needed for the current viewport (with modest, short-range look-ahead typical of browsers).</li>
+  <li>Re-visits served from your <strong>local cache</strong> honouring server caching headers (or ≥ 7-day TTL if you cannot read them).</li>
+</ul>
+
+<p><strong>Not permitted (examples):</strong></p>
+
+<ul>
+  <li>Any “download for offline” button or background job that fetches tiles a user is not currently viewing.</li>
+  <li>Preloading entire towns/regions or multiple zoom stacks “just in case”.</li>
+</ul>
+
+<p><strong>Enforcement:</strong> Prefetch/offline patterns place disproportionate load on community-funded servers and will be <strong>blocked without notice</strong>. Repeated violations may lead to longer-term or network-level blocks.</p>
+
+<h2 id="5-caching-proxies">5. Caching proxies</h2>
+
+<p>We generally <strong>do not recommend</strong> putting your own caching proxy in front of <code class="language-plaintext highlighter-rouge">tile.openstreetmap.org</code>. If you do, it <strong>must</strong>:</p>
+
+<ul>
+  <li>Set a clear, contactable <strong>User-Agent</strong> identifying the organisation/service.</li>
+  <li>Honour server caching headers or the minimum 7-day TTL rule above.</li>
+</ul>
+
+<h2 id="6-privacy">6. Privacy</h2>
+
+<p>Use of OSMF services is subject to the <a href="http://wiki.osmfoundation.org/wiki/Privacy_Policy">OSMF Privacy Policy</a>. Do not submit personal or confidential data to our services.</p>
+
+<p>We publish <strong>anonymised, aggregated usage data</strong> for research and operations, including <a href="https://planet.openstreetmap.org/tile_logs/">summary data on tiles accessed and websites/apps using the service</a>. Additional aggregated reports may be produced on an ad-hoc basis.</p>
+
+<h2 id="7-changes-and-enforcement">7. Changes and enforcement</h2>
+
+<p>This policy may change at any time to reflect project needs and constraints. Commercial services, or those that seek donations, should be especially aware that access may be withdrawn at any point: you may no longer be able to serve your paying customers if access is withdrawn.</p>
+
+<p>We may try to contact you (for example, via your <code class="language-plaintext highlighter-rouge">User-Agent</code> or public contact details) if there is a problem, but this may not always be possible. Access may be <strong>blocked without prior notice</strong>.</p>
+
+<h2 id="8-alternatives-osm-derived-services-vector-tiles-and-self-hosting">8. Alternatives: OSM-derived services, vector tiles, and self-hosting</h2>
+
+<p><strong>Hosted tile services based on OSM data</strong></p>
+
+<ul>
+  <li>Community list: <a href="https://wiki.openstreetmap.org/wiki/Raster_tile_providers">https://wiki.openstreetmap.org/wiki/Raster_tile_providers</a></li>
+</ul>
+
+<p><strong>Commercial providers</strong></p>
+
+<ul>
+  <li>See: <a href="https://wiki.openstreetmap.org/wiki/Commercial_OSM_Software_and_Services">Commercial OSM Software and Services</a> and <a href="http://switch2osm.org/providers/">https://switch2osm.org/providers/</a></li>
+</ul>
+
+<p><strong>Run your own tiles</strong></p>
+
+<ul>
+  <li>Up-to-date guidance: <a href="http://switch2osm.org/">http://switch2osm.org/</a></li>
+</ul>
+
+<p><strong>Vector tiles</strong></p>
+
+<ul>
+  <li>Vector tiles are an alternative to raster tiles and are typically rendered on the client using a style.</li>
+  <li>They can be hosted by third parties or self-hosted, and <strong>where the provider terms permit</strong> <strong>can be packaged for offline use</strong>.</li>
+  <li>See overview: <a href="https://wiki.openstreetmap.org/wiki/Vector_tiles">https://wiki.openstreetmap.org/wiki/Vector_tiles</a></li>
+</ul>
+
+<h2 id="9-scope">9. Scope</h2>
+
+<p>This policy applies to the <strong>Standard</strong> (“OpenStreetMap Carto”) <strong>raster</strong> tiles served by <strong><code class="language-plaintext highlighter-rouge">tile.openstreetmap.org</code></strong> as part of the OpenStreetMap project.</p>
+
+<p>It <strong>does not</strong> apply to other layers shown on the OpenStreetMap.org homepage (e.g. OpenCycleMap or other third-party tiles). Those layers may have their own usage policies, please contact the relevant projects directly if you wish to use their tiles.</p>
+
+<p>OpenStreetMap’s Vector Tiles served by <strong><code class="language-plaintext highlighter-rouge">vector.openstreetmap.org</code></strong> is a separate service with its own usage policy: <a href="https://operations.osmfoundation.org/policies/vector/">https://operations.osmfoundation.org/policies/vector/</a></p>
+
+
+      <footer class="footer">
+        <div class="container">
+          <p>You can contribute to this website at <a href="https://github.com/openstreetmap/owg-website">github.com/openstreetmap/owg-website</a></p>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

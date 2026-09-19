@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+pre { background-color:#ccffff; padding: 0.5em; counter-reset: line; }
+div[type=sibling] { text-indent:1em; }
+div[type=subsubsection] { text-indent:1em; }
+codeline::before { counter-increment: line; content: counter(line)" "; color: #99cccc; }
+</style>
+  <title>Commons</title>
+</head>
+<body style="font-family:sans-serif; max-width:35em">
+
+<p><a href="../index.html">Overpass API User's Manual</a>  </p>
+
+<nav>
+<div type="parent"><strong><a href="index.html">Preface</a></strong></div>
+
+<div type="sibling"><a href="preface.html">OpenStreetMap and the Overpass API</a></div>
+<div type="sibling"><a href="osm_data_model.html">The Data Model of OpenStreetMap</a></div>
+<div type="sibling"><a href="glossary.html">Glossary</a></div>
+<div type="sibling"><a href="design.html">Run time model</a></div>
+<div type="sibling"><a href="assertions.html">Assertions</a></div>
+<div type="sibling"><strong> Commons</strong></div>
+
+</nav>
+<div type="parent"><a href="../targets/index.html">Downstream Tools</a></div>
+<div type="parent"><a href="../full_data/index.html">Spatial Data Selection</a></div>
+<div type="parent"><a href="../criteria/index.html">Find Objects</a></div>
+<div type="parent"><a href="../counting/index.html">Counting Objects</a></div>
+<div type="parent"><a href="../analysis/index.html">Analysing data</a></div>
+<div type="parent"><a href="../more_info/index.html">More information</a></div>
+
+<hr />
+
+<h1>Commons</h1>
+
+<p>The public instances await your queries.
+They offer as much resources as possible,
+but they also defend themselves against overuse.
+Heavy users easily can set up their own instance.</p>
+
+<nav>
+<h3>Content</h3>
+
+<div type="subsection"><a href="#magnitudes">Magnitudes</a></div>
+<div type="subsection"><a href="#quotas">Quotas</a></div>
+
+</nav>
+
+<p><a name="magnitudes"/></p>
+
+<h2>Magnitudes</h2>
+
+<p>The mission of the public instances
+is to be available to as many users as possible.
+The computational power currently has to be shared between the roundabout 30'000 daily users.</p>
+
+<p>The typical request has a run time of less than 1 second,
+but there are also requests than run for much longer.
+Each of the Overpass API servers can fulfill about 1 million requests per day,
+and two servers listen on the address <a target="_blank" rel="noopener" href="https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances">overpass-api.de</a>.</p>
+
+<p>It is extremely unlikely that you will ever cause problems with manually put requests.
+Unfortunately, you may still run into load shedding - the quota algorithm is not perfect.</p>
+
+<p>Examples of problematic behaviour:</p>
+
+<ol>
+<li>Tens of thousands of times a day sending the same request (from the same address)</li>
+<li>Asking for individual OSM elements one by one millions of times.</li>
+<li>Stiching bounding boxes to scrape the full data of the complete world.</li>
+<li>Setting up an app for more than just OSM mappers
+and relying on the public instances as backend.</li>
+</ol>
+
+<p>In the first case, the querying script needs to be fixed.
+In the cases 2 and 3, one better ought use a <a target="_blank" rel="noopener" href="https://wiki.openstreetmap.org/wiki/Planet.osm">planet dump</a> instead of the Overpass API.
+In the last cast, only running your own instance sustainably serves your mission.
+Setting up your own instance is subject of a <a href="../more_info/setup.html">dedicated section</a>.</p>
+
+<p>Most users send only a few requests.
+For fairness reasons, the first few requests of users are given priority over frequent requests by heavy users.
+Load shedding will therefore start with heavy users first.</p>
+
+<p>As a broad guideline to stay within safety margins,
+users are expected to send a maximum of about 10000 requests per day
+and keep their download volume below about 1 GB per day.</p>
+
+<p>Amongst the expressed goals of the Overpass API project is to make running your own instance really simple.
+If you expect a higher demand than the above sketched usage limits,
+then please read the <a href="../more_info/setup.html">installation instructions</a>.</p>
+
+<p>If you are rather interested in the rules of the automatic load shedding
+then please read the following section.</p>
+
+<p><a name="quotas"/></p>
+
+<h2>Quotas</h2>
+
+<p>The automatic load shedding keeps track which (anonymized) user puts which request
+and assures that moderate users still can access the service
+if the total volume of requests exceeds server capacity.</p>
+
+<p>As the public instance there are currently two distinct servers
+that both can be reached by <a target="_blank" rel="noopener" href="https://overpass-api.de/api/status">overpass-api.de</a>.
+Usually you should not try to connect to one of the two explicitly.
+The only exception is as a workaround if the other instance is broken in a way
+such that DNS round robin would not help.
+The current individual server names are <a target="_blank" rel="noopener" href="https://gall.openstreetmap.de/api/status">gall.openstreetmap.de</a> and <a target="_blank" rel="noopener" href="https://lambert.openstreetmap.de/api/status">lambert.openstreetmap.de</a>.
+These servers both maintain their rate limiting independently from each other.</p>
+
+<p>We start with the explanation of and with the help of the status request.</p>
+
+<h3>Rate Limit</h3>
+
+<p>Requests usually are assigned by taking the IP address as the user.
+If a user key is in the request, then it overrides the IP address.
+For IPv4 addresses, the full address is evaluated.
+For IPv6 addresses, currently the upper 64 bits of the IP address are evaluated.
+Since it is still unclear which customs with address blocks become usual,
+I may decide to take fewer leading bits into account in the future.
+The user number calculated by the server is always in the first line of the <a target="_blank" rel="noopener" href="https://overpass-api.de/api/status">status request</a> behind <code>Connected as:</code>.</p>
+
+<p>Every execution of a request occupies one of the slots available to the user,
+in particular for the full actual execution time plus a cool down time.
+The purpose of the cool down time is
+to give other users a chance to pose a request.
+The cool down time grows with the load of the server and proportionate to the execution time.
+During moments of low load the cool down time is just a fraction of the execution time,
+during moments of high load the cool down time can be a multiple of the execution time.</p>
+
+<p>A slippy map causes many short running requests in a short time.
+To ensure that a user gets served all these requests
+there are two mechanisms of goodwill:</p>
+
+<ul>
+<li>Multiple slots are made available to users.
+The number of available slots is written in line 3 after <code>Rate limit:</code>.</li>
+<li>Requests stay enqueued up to 15 seconds on the server
+if not yet a slot is available to them.</li>
+</ul>
+
+<p>An example: if such a slippy map submits 20 requests of 1 second run time,
+and if the number of slots is 2 and the ratio of run time to cool down time is 1-by-1,
+then</p>
+
+<ul>
+<li>the first two requests are processed immediately</li>
+<li>the next two requests are accepted,
+then processed with a delay of 2 seconds (1 second execution time plus 1 second cool down time)</li>
+<li>further requests are executed respectively later</li>
+<li>the requests 15 and 16 are executed after a delay of 14 seconds</li>
+<li>the requests 17 to 20 are discarded after 15 seconds
+because they have not secured a slot early enough</li>
+</ul>
+
+<p>If the user still needs the content of the requests 17 to 20
+(and not has already panned to a different place)
+then the client framework shall resubmit the requests after the 15 seconds.
+There is a reference implementation in the <a href="../targets/index.html">section about OpenLayers and Leaflet</a>.</p>
+
+<p>The reason for this mechanism is scripts in an inifinite loop:
+many of them submit multiple requests in parallel and are delayed by that mechanism in a meaningful way,
+because they get responses including refusals appropriately delayed.</p>
+
+<p>If runaway or long running requests in the order of many minutes have occupied a slot,
+then the status response indicates from line 6 on
+which slot is going to be available again at which time.</p>
+
+<p>Requests that are denied due to the rate limit are answered with the <a target="_blank" rel="noopener" href="https://tools.ietf.org/html/rfc6585#section-4">HTTP status code 429</a>.</p>
+
+<h3>Timeout and Maxsize</h3>
+
+<p>Independent of the rate limit, there is a second mechanism.
+This mechanism prioritizes small requests over large requests,
+to ensure that many users with small requests can still be served
+if the demand of the largest users would already exceed the capacity of the server.</p>
+
+<p>There are two criteria for this, per run time and per maximum used RAM.
+Each request contains a declaration of its expected maximum run time and expected maximum memory usage.
+The declaration of maximum run time can be made explicit by prepending the request with a <code>[timeout:...]</code>;
+the declaration of maximum memory usage can be made explicit by prepending the request with a <code>[maxsize:...]</code>.
+Both can be combined.</p>
+
+<p>If no maximum run time is declared then a default limit of 180 seconds applies.
+For the maximum memory usage, the default value is 512 MiB.</p>
+
+<p>If a request exceeds during execution its maximum run time or maximum memory limit,
+then it is aborted by the server.
+This <a target="_blank" rel="noopener" href="https://overpass-turbo.eu/?lat=51.4775&amp;lon=0.0&amp;zoom=10&amp;Q=%5Btimeout%3A3%5D%3B%0Anwr%5Bshop%3Dsupermarket%5D%28%7B%7Bbbox%7D%7D%29%3B%0Aout%20center%3B">example</a> stops after 3 seconds:</p>
+
+<pre>
+<codeline>[timeout:3];</codeline>
+<codeline>nwr[shop=supermarket]({{bbox}});</codeline>
+<codeline>out center;</codeline>
+</pre>
+
+<p>The <a target="_blank" rel="noopener" href="https://overpass-turbo.eu/?lat=51.4775&amp;lon=0.0&amp;zoom=10&amp;Q=%5Btimeout%3A90%5D%3B%0Anwr%5Bshop%3Dsupermarket%5D%28%7B%7Bbbox%7D%7D%29%3B%0Aout%20center%3B">same example with more run time</a> passes:</p>
+
+<pre>
+<codeline>[timeout:90];</codeline>
+<codeline>nwr[shop=supermarket]({{bbox}});</codeline>
+<codeline>out center;</codeline>
+</pre>
+
+<p>Back to the quotas:
+The server admits a request if and only if
+it is going to use in both criteria at most half of the remaining available resources.
+For the maximum accepted memory usage the value is currently 12 GiB.
+If at the moment 8 requests with 512 MiB limit each are running,
+then 4 GiB are used.
+A further request is going to be admitted if and only if
+it promises to use at most 4 GiB.
+With this ninth request coming in addition,
+there are still 4 GiB available,
+and then a further request is only up to a promised size of 2 GiB accepted.</p>
+
+<p>For the maximum run time the system behaves accordingly:
+the currently common server limit is 262144 seconds.
+This means that one request with a maximum run time of up to 1 day is accepted almost always,
+but then every further request with such a long run time would be declined.
+The rate limit mechanism with an accordingly long cool down time ensures
+that not always the same user can profit from an extremely long run time.</p>
+
+<p>Like with the rate limit, the server does not immediately deny requests,
+but waits for 15 seconds
+whether in the meantime sufficiently many other requests have been finished.</p>
+
+<p>The load from the server's perspective is made public by Munin,
+<a target="_blank" rel="noopener" href="https://z.overpass-api.de/munin/localdomain/localhost.localdomain/index.html#other">here</a> and <a target="_blank" rel="noopener" href="https://lz4.overpass-api.de/munin/localdomain/localhost.localdomain/index.html#other">here</a>.</p>
+
+<p>Requests that have been denied due to this resource mismatch are answered with an <a target="_blank" rel="noopener" href="https://tools.ietf.org/html/rfc7231#section-6.6.5">HTTP status code 504</a>.</p>
+<hr/>
+<p>next: <a href="../targets/index.html">Downstream Tools</a></p>
+
+</body>
+</html>

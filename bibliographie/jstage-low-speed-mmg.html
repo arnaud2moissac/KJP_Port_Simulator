@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:mml="http://www.w3.org/1998/Math/MathML">
+<head>
+
+
+
+<!-- 2.3.9 -->
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="format-detection" content="telephone=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="description" content="Access full-text academic articles: J-STAGE is an online platform for Japanese academic journals.">
+<meta name="citation_journal_title" content="日本船舶海洋工学会論文集" />
+<meta name="citation_journal_abbrev" content="日本船舶海洋工学会論文集" />
+<meta name="citation_journal_abbrev" content="J.JASNAOE" />
+<meta name="citation_publisher" content="公益社団法人 日本船舶海洋工学会" />
+<meta name="citation_author" content="伊藤 誠" />
+<meta name="citation_author_institution" content="一般財団法人 日本海事協会" />
+<meta name="citation_author" content="髙品 純志" />
+<meta name="citation_author_institution" content="一般財団法人 日本海事協会" />
+<meta name="citation_author" content="安川 宏紀" />
+<meta name="citation_author_institution" content="広島大学大学院先進理工系科学研究科" />
+<meta name="citation_title" content="船の低速操縦運動の簡易数学モデル" />
+<meta name="citation_publication_date" content="2025" />
+<meta name="citation_online_date" content="2026/02/28" />
+<meta name="citation_volume" content="42" />
+<meta name="citation_firstpage" content="17" />
+<meta name="citation_lastpage" content="30" />
+<meta name="citation_doi" content="10.2534/jjasnaoe.42.17" />
+<meta name="citation_fulltext_world_readable" content="" />
+<meta name="citation_pdf_url" content="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_pdf" />
+<meta name="citation_issn" content="1880-3717" />
+<meta name="citation_issn" content="1881-1760" />
+<meta name="citation_language" content="ja" />
+<meta name="citation_reference" content="1) Miyoshi, S. and Ioki, T. Development of Maneuvering System for Realizing Autonomous Ships (Preliminary Report on Approach Maneuvering Control and Automatic Berthing), ClassNK Technical Journal, Vol. 3, pp. 67-79, 2021." />
+<meta name="citation_reference" content="2) Miyauchi, S., Sawada, R., Wada, S., Taniguchi, T., Hamada, S., Koike, H., Wakita, K. and Maki, A.: Perspective on the Simulator for Autonomous Vessel Development, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, Vol. 35, No. 2022A-OS1-6, pp. 37-52, 2022 (in Japanese)." />
+<meta name="citation_reference" content="3) Ito, M., Takashina, J.: Consideration on requirements of manoeuvring, models for evaluating manoeuvring control system, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="citation_reference" content="4) International Electrotechnical Commission: Maritime Navigation and Radiocommunication Equipment and Systems – Track Control Systems – Operational and Performance Requirements, Methods of Testing and Required Test Results, 62065, 2014." />
+<meta name="citation_reference" content="5) Takashina, J.: Ship Maneuvering Motion due to Tugboats and its Mathematical model, Journal of Naval Architects of Japan, Vol. 160, pp. 93-102, 1986 (in Japanese)." />
+<meta name="citation_reference" content="6) Oltman, P. and Sharma, S. D.: Simulation of Combined Engine and Rudder Manoeuvers using an Improved Model of Hull-propeller-rudder Interactions, Proceedings of 15th Symposium of Naval Hydrodynamics, pp. 83-108, 1984." />
+<meta name="citation_reference" content="7) Karasuno, K., Yoneta, K. and Januma, S.: A New mathematical Model of Hydrodynamic Force and Moment Acting on a Hull in Maneuvering Motion at Slow Speed and Oblique Direction, Journal of the Kansai Society of Naval Architects Japan, Vol. 209，pp. 111-122，1988 (in Japanese)." />
+<meta name="citation_reference" content="8) Karasuno, K., Matsuno, J., Ito, T. and Igarashi, K.: A New mathematical Model of Hydrodynamic Force and Moment Acting on a Hull during Maneuvering Motion that Occurs under Conditions of Slow Speed and Large Turns (2nd Report), Journal of the Kansai Society of Naval Architects Japan, Vol. 217，pp. 125-135，1992 (in Japanese)." />
+<meta name="citation_reference" content="9) Yoshimura, Y.: Mathematical Model for the Maneuvering Ship Motion in Shallow Water (2nd Report: Mathematical Model at Slow Forward Speed), Journal of Kansai Society of Naval Architects Japan, Vol. 210, pp. 77-84, 1988 (in Japanese)." />
+<meta name="citation_reference" content="10) Yoshimura, Y., Takase, K., Fukui, H., Suzuki, H. and Hirabayashi, S.: Simulation of Ship Drift Motion with a Simplified Mathematical Model under the Wind, Journal of the Japan Society of Naval Architects and Ocean Engineers, Vol. 31, pp. 47-57, 2020." />
+<meta name="citation_reference" content="11) van Lammeren, W.P.A., van Manen, J.D., Oosterveld, M.W.C.: The Wageningen B-screw series, Transaction of SNAME, Vol. 77, pp. 269-317, 1969." />
+<meta name="citation_reference" content="12) Yoshimura, Y., Nomoto, K.: Modeling of manoeuvring behaviour of ships with a propeller idling, boosting and reversing, Japan Society of Naval Architects. Vol. 144,1978 (in Japanese)." />
+<meta name="citation_reference" content="13) Yasukawa, H., Ishikawa, T., Yoshimura, Y.: Investigation on the rudder force of a ship in large drifting conditions with the MMG model, Journal of Marine Science and Technology, Vol. 26, pp. 1078-1095, 2021." />
+<meta name="citation_reference" content="14) Kitagawa, Y., Tsukada, Y.: An experimental study for constructing a simple prediction method of a ship’s hydrodynamic characteristics in a propeller reverse operation, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 Spring (in Japanese)." />
+<meta name="citation_reference" content="15) Ito, M., Takashina, J. and Yasukawa, H.: Proposal for a simplified mathematical model of hydrodynamic force and moment at the low-speed manoeuvring (1st Report), Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="citation_reference" content="16) Takashina, J., Yasukawa, H. and Ito, M.: Proposal for a simplified mathematical model of hydrodynamic force and moment at the low-speed manoeuvring (2nd Report), Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="citation_reference" content="17) Okuda, R., Yasukawa, H., Yamashita, T., Matsuda, A.: Maneuvering Simulations at Large Drift Angles of a Ship with a Flapped Rudder, Applied Ocean Research, Vol. 135, 103567, 2023." />
+<meta name="citation_reference" content="18) Kijima, K., Katsuno, T., Nakiri, Y. and Furukawa, Y.: On the Manoeuvring Performance of a Ship with the Parameter of Loading Condition, Journal of Naval Architects of Japan, Vol. 168, pp. 141-148, 1986." />
+<meta name="citation_reference" content="19) Yasukawa, H., Yoshimura, Y.: Introduction of MMG standard method for ship maneuvering predictions, Journal of Marine Science and Technology, Vol. 20, No. 1, pp.37-52, 2015." />
+<meta name="citation_reference" content="20) Fujino, M. and Kirita, A.: On the Manoeuvrability of Ships while Stopping by Adverse Rotation of Propeller (1st Report), Journal of Kansai Society of Naval Architects Japan, Vol. 169, pp. 57-70, 1978 (in Japanese)." />
+<meta name="citation_reference" content="21) Takashina, J.: On calculation method of ship maneuvering motion for harbor maneuver, Doctor thesis, 1991 (in Japanese)." />
+<meta name="citation_reference" content="髙品純志：港湾域における船の操縦運動計算法に関する研究，東京大学学位論文，1991" />
+<meta name="dc.identifier" content="10.2534/jjasnaoe.42.17" />
+<meta name="journal_code" content="jjasnaoe" />
+<meta name="journal_title" content="Journal of the Japan Society of Naval Architects and Ocean Engineers" />
+<meta name="journal_abbrev" content="J.JASNAOE" />
+<meta name="publisher" content="The Japan Society of Naval Architects and Ocean Engineers" />
+<meta name="authors" content="Makoto Ito" />
+<meta name="authors" content="Junshi Takashina" />
+<meta name="authors" content="Hironori Yasukawa" />
+<meta name="title" content="A Simplified Mathematical Model for Low-Speed Manoeuvring Predictions of Ships" />
+<meta name="publication_date" content="2025" />
+<meta name="online_date" content="2026/02/28" />
+<meta name="volume" content="42" />
+<meta name="firstpage" content="17" />
+<meta name="lastpage" content="30" />
+<meta name="doi" content="10.2534/jjasnaoe.42.17" />
+<meta name="fulltext_world_readable" content="" />
+<meta name="pdf_url" content="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_pdf" />
+<meta name="print_issn" content="1880-3717" />
+<meta name="online_issn" content="1881-1760" />
+<meta name="issn_l" content="1880-3717" />
+<meta name="language" content="ja" />
+<meta name="abstract" content="The aim of this study is to develop a simplified mathematical model for low-speed manoeuvring motion, which involves significant lateral and rotational motion compared to forward motion, making low-speed manoeuvring critical. To simulate the manoeuvring, it is necessary to model the hydrodynamic forces on a hull, the propeller forces and the rudder forces. Hydrodynamic forces on a hull are highly non-linear and complex, requiring detailed modelling. In addition, various propeller and rudder operations during port manoeuvres require the models to be extended to four quadrants. This study employs the following methods to create a simplified model: a polynomial model using cross-flow drag terms to simplify the non-linear hydrodynamic forces, extending the propeller forces to four quadrants by modifying the thrust coefficient in the first quadrant, and extending the rudder forces based on the slip ratio. Finally, the validity of the model is validated by comparison with free running test results." />
+<meta name="references" content="1) Miyoshi, S. and Ioki, T. Development of Maneuvering System for Realizing Autonomous Ships (Preliminary Report on Approach Maneuvering Control and Automatic Berthing), ClassNK Technical Journal, Vol. 3, pp. 67-79, 2021." />
+<meta name="references" content="2) Miyauchi, S., Sawada, R., Wada, S., Taniguchi, T., Hamada, S., Koike, H., Wakita, K. and Maki, A.: Perspective on the Simulator for Autonomous Vessel Development, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, Vol. 35, No. 2022A-OS1-6, pp. 37-52, 2022 (in Japanese)." />
+<meta name="references" content="3) Ito, M., Takashina, J.: Consideration on requirements of manoeuvring, models for evaluating manoeuvring control system, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="references" content="4) International Electrotechnical Commission: Maritime Navigation and Radiocommunication Equipment and Systems – Track Control Systems – Operational and Performance Requirements, Methods of Testing and Required Test Results, 62065, 2014." />
+<meta name="references" content="5) Takashina, J.: Ship Maneuvering Motion due to Tugboats and its Mathematical model, Journal of Naval Architects of Japan, Vol. 160, pp. 93-102, 1986 (in Japanese)." />
+<meta name="references" content="6) Oltman, P. and Sharma, S. D.: Simulation of Combined Engine and Rudder Manoeuvers using an Improved Model of Hull-propeller-rudder Interactions, Proceedings of 15th Symposium of Naval Hydrodynamics, pp. 83-108, 1984." />
+<meta name="references" content="7) Karasuno, K., Yoneta, K. and Januma, S.: A New mathematical Model of Hydrodynamic Force and Moment Acting on a Hull in Maneuvering Motion at Slow Speed and Oblique Direction, Journal of the Kansai Society of Naval Architects Japan, Vol. 209，pp. 111-122，1988 (in Japanese)." />
+<meta name="references" content="8) Karasuno, K., Matsuno, J., Ito, T. and Igarashi, K.: A New mathematical Model of Hydrodynamic Force and Moment Acting on a Hull during Maneuvering Motion that Occurs under Conditions of Slow Speed and Large Turns (2nd Report), Journal of the Kansai Society of Naval Architects Japan, Vol. 217，pp. 125-135，1992 (in Japanese)." />
+<meta name="references" content="9) Yoshimura, Y.: Mathematical Model for the Maneuvering Ship Motion in Shallow Water (2nd Report: Mathematical Model at Slow Forward Speed), Journal of Kansai Society of Naval Architects Japan, Vol. 210, pp. 77-84, 1988 (in Japanese)." />
+<meta name="references" content="10) Yoshimura, Y., Takase, K., Fukui, H., Suzuki, H. and Hirabayashi, S.: Simulation of Ship Drift Motion with a Simplified Mathematical Model under the Wind, Journal of the Japan Society of Naval Architects and Ocean Engineers, Vol. 31, pp. 47-57, 2020." />
+<meta name="references" content="11) van Lammeren, W.P.A., van Manen, J.D., Oosterveld, M.W.C.: The Wageningen B-screw series, Transaction of SNAME, Vol. 77, pp. 269-317, 1969." />
+<meta name="references" content="12) Yoshimura, Y., Nomoto, K.: Modeling of manoeuvring behaviour of ships with a propeller idling, boosting and reversing, Japan Society of Naval Architects. Vol. 144,1978 (in Japanese)." />
+<meta name="references" content="13) Yasukawa, H., Ishikawa, T., Yoshimura, Y.: Investigation on the rudder force of a ship in large drifting conditions with the MMG model, Journal of Marine Science and Technology, Vol. 26, pp. 1078-1095, 2021." />
+<meta name="references" content="14) Kitagawa, Y., Tsukada, Y.: An experimental study for constructing a simple prediction method of a ship’s hydrodynamic characteristics in a propeller reverse operation, Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 Spring (in Japanese)." />
+<meta name="references" content="15) Ito, M., Takashina, J. and Yasukawa, H.: Proposal for a simplified mathematical model of hydrodynamic force and moment at the low-speed manoeuvring (1st Report), Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="references" content="16) Takashina, J., Yasukawa, H. and Ito, M.: Proposal for a simplified mathematical model of hydrodynamic force and moment at the low-speed manoeuvring (2nd Report), Conference Proceeding of Japan Society of Naval Architects and Ocean Engineering, 2024 (in Japanese)." />
+<meta name="references" content="17) Okuda, R., Yasukawa, H., Yamashita, T., Matsuda, A.: Maneuvering Simulations at Large Drift Angles of a Ship with a Flapped Rudder, Applied Ocean Research, Vol. 135, 103567, 2023." />
+<meta name="references" content="18) Kijima, K., Katsuno, T., Nakiri, Y. and Furukawa, Y.: On the Manoeuvring Performance of a Ship with the Parameter of Loading Condition, Journal of Naval Architects of Japan, Vol. 168, pp. 141-148, 1986." />
+<meta name="references" content="19) Yasukawa, H., Yoshimura, Y.: Introduction of MMG standard method for ship maneuvering predictions, Journal of Marine Science and Technology, Vol. 20, No. 1, pp.37-52, 2015." />
+<meta name="references" content="20) Fujino, M. and Kirita, A.: On the Manoeuvrability of Ships while Stopping by Adverse Rotation of Propeller (1st Report), Journal of Kansai Society of Naval Architects Japan, Vol. 169, pp. 57-70, 1978 (in Japanese)." />
+<meta name="references" content="21) Takashina, J.: On calculation method of ship maneuvering motion for harbor maneuver, Doctor thesis, 1991 (in Japanese)." />
+<meta name="references" content="髙品純志：港湾域における船の操縦運動計算法に関する研究，東京大学学位論文，1991" />
+<meta name="access_control" content="FREE ACCESS" />
+<meta name="copyright" content="2025 The Japan Society of Naval Architects and Ocean Engineers" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:site" content="@jstage_ej" />
+<meta name="og:url" content="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_article/-char/en" />
+<meta name="og:title" content="A Simplified Mathematical Model for Low-Speed Manoeuvring Predictions of Ships" />
+<meta name="og:description" content="The aim of this study is to develop a simplified mathematical model for low-speed manoeuvring motion, which involves significant lateral and rotation &hellip;" />
+<meta name="og:site_name" content="J-STAGE" />
+<meta name="og:image" content="https://www.jstage.jst.go.jp/html/images/common/SNS/J-STAGE_logo_sns.png" />
+
+<link rel="icon" href="/favicon.ico" type="image/x-icon" />
+<title>A Simplified Mathematical Model for Low-Speed Manoeuvring Predictions of Ships</title>
+<link rel="stylesheet" href="/web/css/bootstrap3-wysiwyg5-color.css" />
+<link rel="stylesheet" href="/web/css/bootstrap3-wysiwyg5.css" />
+<link rel="stylesheet" href="/web/css/ranking.css?rn=2.3.9" />
+
+<link rel="stylesheet" href="/web/css/bootstrap.min.css" />
+
+<link rel="stylesheet" href="/web/css/style.css?rn=2.3.9"/>
+<link rel="stylesheet" href="/web/css/common-elements-style.css?rn=2.3.9" />
+<link rel="stylesheet" href="/web/css/jquery.treefilter.css" />
+<link rel="stylesheet" href="/web/css/jplayer.blue.monday.css" />
+<link rel="stylesheet" href="/web/css/main.css?rn=2.3.9" />
+
+<link rel="stylesheet" media="print" href="/web/css/print.css" />
+
+<!--[if lt IE 9]>
+
+<script src="/web/js/html5shiv.min.js"></script>
+<script src="/web/js/respond.min.js"></script>
+<![endif]-->
+<style type="text/css">
+<!--
+b {
+	font-weight: bold;
+}
+i {
+	font-style: italic;
+}
+// -->
+</style>
+</head>
+	<body class="body-offcanvas addition-pages">
+
+	
+
+
+<!-- HEADER :: START -->
+<span class="noprint">
+<header class="clearfix">
+	<!-- NAVIGATION :: START -->
+	<nav class="navbar navbar-default navbar-fixed-top ep-nav-shadow " >
+
+						
+		<div class="container">
+			<button type="button" class="navbar-toggle offcanvas-toggle" data-toggle="offcanvas" data-target="#js-bootstrap-offcanvas" style="float:left;"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar">&nbsp;</span> <span class="icon-bar">&nbsp;</span> <span class="icon-bar">&nbsp;</span> </button>
+			<!-- RIGHT NAV SEARCH :: BEGIN -->
+			<div class="search-nav-block dropdown">
+				<a href="javascript:;" class=""  data-toggle="collapse" data-target="#Search_nav"><i class="search-nav-icon"></i></a>
+			</div>
+			<!-- RIGHT NAV SEARCH :: END -->
+			<!-- LOGO :: START -->
+			<a class="navbar-brand ms-logowrap hm-logo-padding" href="https://www.jstage.jst.go.jp/browse/-char/en">
+				<img src="/web/images/J-STAGE_logo_A3.png" alt=""  style="margin-top:6px;" />
+			</a>
+			<!-- LOGO :: END -->
+			<!-- HAMBURGER LEFT TO RIGHT SLIDE :: START -->
+			<div class="offcanvas-left-wrap register-offcanvas-left-wrap">
+								<div class="navbar-offcanvas navbar-offcanvas-touch navbar-offcanvas-fade" role="navigation" id="js-bootstrap-offcanvas">
+					<div class="offcanvas-left-wrap">
+						<div class="navbar-header">
+							<a class="navbar-brand jst-homelink" href="https://www.jstage.jst.go.jp/browse/-char/en">J-STAGE home</a>
+							<button type="button" class="navbar-toggle offcanvas-toggle pull-right" data-toggle="offcanvas" data-target="#js-bootstrap-offcanvas" style="float:left;"> <img src="/web/images/edit-profile/icon-close-menu.png" alt=""></button>
+						</div>
+						<div class="offcanvas-nav-wrap">
+							<ul class="nav navbar-nav">
+																<li class="dropdown reponsive-menu"> <a href="#" class="dropdown-toggle" data-toggle="dropdown">Browse<b class="caret"></b></a>
+									<ul class="dropdown-menu ep-dropdown-menu">
+										<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+										<li><a href="/journal/list/-char/en">All titles</a></li>
+										<li><a href="/journal/fields/-char/en">All subject areas</a></li>
+										<li><a href="/journal/publisher/-char/en">All publishers</a></li>
+										<li><a href="/search/global/_search/-char/en">Search articles</a></li>
+										<li><a href="https://jstagedata.jst.go.jp/" target="_blank" rel="noopener noreferrer">Search J-STAGE Data <img src="/web/images/information-tab2/bg-arrow-white.png" width="13" height="10" alt=""></a></li>
+									</ul>
+								</li>
+																<li class="dropdown reponsive-menu"><a href="#" class="dropdown-toggle" data-toggle="dropdown">About J-STAGE <b class="caret"></b></a>
+									<ul class="dropdown-menu ep-dropdown-menu">
+										<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageOverview/-char/en">Overview</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageServices/TAB1/-char/en">Services and features</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/PublicDataAboutJstage/-char/en">Public data</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/TermsAndPolicies/ForIndividuals/-char/en">Terms and Policy</a></li>
+									</ul>
+								</li>
+
+																<li class="dropdown reponsive-menu"><a href="#" class="dropdown-toggle" data-toggle="dropdown">News and PR  <b class="caret"></b></a>
+									<ul class="dropdown-menu ep-dropdown-menu">
+										<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB1/Current/Page1/-char/en">News</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB2/Page1/-char/en">Maintenance information</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB6/Page1/-char/en">Special contents </a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB7/Page1/-char/en">Media resources </a></li>
+									</ul>
+								</li>
+																<li class="dropdown reponsive-menu"><a href="#" class="dropdown-toggle" data-toggle="dropdown">Support  <b class="caret"></b></a>
+									<ul class="dropdown-menu ep-dropdown-menu">
+										<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/ForReaders/-char/en">User manuals</a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/RecommendedEnvironment/-char/en">Browser compatibility</a></li>
+ <li><a href="https://www.jstage.jst.go.jp/static/pages/FAQs/TAB3/-char/en">FAQ</a></li> 										<li><a href="https://www.jstage.jst.go.jp/static/pages/Contact/-char/en">Contact </a></li>
+										<li><a href="https://www.jstage.jst.go.jp/static/pages/Sitemap/-char/en">Sitemap </a></li>
+									</ul>
+								</li>
+																													<li class="reponsive-menu">
+												<a href="/mylogin/-char/en?sourceurl=https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen">Sign in</a>
+										</li>
+																		<li class="reponsive-menu">
+											<li class="reponsive-menu"><a href="/cart/list/-char/en?backurl=https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen" class="" >Cart <img src="/web/images/edit-profile/icon-cart.png" alt=""></a>
+									</li>
+								<li class="dropdown reponsive-menu">
+																		<a href="#" class="dropdown-toggle" data-toggle="dropdown"> EN  <img src="/web/images/edit-profile/icon-lang.png" alt=""> <b class="caret"></b></a>
+									<ul class="dropdown-menu ep-dropdown-menu">
+									<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+										<li><a href="javascript:;" onclick="doChangeLang('en')">English</a></li>
+										<li><a href="javascript:;" onclick="doChangeLang('ja')">日本語</a></li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+						<div class="clearfix"></div>
+					</div>
+				</div>
+								<ul class="nav navbar-nav offcanvas-left-display-none">
+										<li class="dropdown"> <a href="#" class="dropdown-toggle" data-toggle="dropdown">Browse<b class="caret"></b></a>
+						<ul class="dropdown-menu ep-dropdown-menu">
+							<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+							<li><a href="/journal/list/-char/en">All titles</a></li>
+							<li><a href="/journal/fields/-char/en">All subject areas</a></li>
+							<li><a href="/journal/publisher/-char/en">All publishers</a></li>
+							<li><a href="/search/global/_search/-char/en">Search articles</a></li>
+							<li><a href="https://jstagedata.jst.go.jp/" target="_blank" rel="noopener noreferrer">Search J-STAGE Data <img src="/web/images/information-tab2/bg-arrow.png" width="13" height="10" alt=""></a></li>
+						</ul>
+					</li>
+										<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown">About J-STAGE <b class="caret"></b></a>
+						<ul class="dropdown-menu ep-dropdown-menu">
+							<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageOverview/-char/en">Overview</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageServices/TAB1/-char/en">Services and features</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/PublicDataAboutJstage/-char/en">Public data</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/TermsAndPolicies/ForIndividuals/-char/en">Terms and Policy</a></li>
+						</ul>
+					</li>
+										<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown">News and PR  <b class="caret"></b></a>
+						<ul class="dropdown-menu ep-dropdown-menu">
+							<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB1/Current/Page1/-char/en">News</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB2/Page1/-char/en">Maintenance information</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB6/Page1/-char/en">Special contents </a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB7/Page1/-char/en">Media resources </a></li>
+						</ul>
+					</li>
+										<li class="dropdown"><a href="#" class="dropdown-toggle" data-toggle="dropdown">Support  <b class="caret"></b></a>
+						<ul class="dropdown-menu ep-dropdown-menu">
+							<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""/></span></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/ForReaders/-char/en">User manuals</a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/RecommendedEnvironment/-char/en">Browser compatibility</a></li>
+ <li><a href="https://www.jstage.jst.go.jp/static/pages/FAQs/TAB3/-char/en">FAQ</a></li> 							<li><a href="https://www.jstage.jst.go.jp/static/pages/Contact/-char/en">Contact </a></li>
+							<li><a href="https://www.jstage.jst.go.jp/static/pages/Sitemap/-char/en">Sitemap </a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+			<!-- HAMBURGER LEFT TO RIGHT SLIDE :: END -->
+			<div class="offcanvas-right-wrap register-offcanvas-right-wrap">
+				<ul class="nav navbar-nav">
+												<li class="">
+								<a href="/mylogin/-char/en?sourceurl=https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen" class="" >Sign in  </a>
+						</li>
+										<li class="">
+							<li class=""><a href="/cart/list/-char/en?backurl=https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen" class="" >Cart </a>
+					</li>
+				<li class="dropdown">
+					<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+ EN 					<b class="caret"></b>
+					</a>
+					<ul class="dropdown-menu ep-dropdown-menu" style="min-width: 80px;">
+						<li style="background:none !important;"><span class="topnav-dropdown-icon"><img src="/web/images/top-nav-dropdown-arrow.png" width="18" height="10" alt=""></span></li>
+						<li><a href="javascript:;" onclick="doChangeLang('en')">English</a></li>
+						<li><a href="javascript:;" onclick="doChangeLang('ja')">日本語</a></li>
+					</ul>
+				</li>
+				</ul>
+			</div>
+			<!-- RIGHT NAV SEARCH DROPDOWN :: BEGIN -->
+			<ul class="dropdown-menu collapse ep-dropdown-menu search-dropdown-menu" id="Search_nav" style="max-width: 300px;">
+				<li style="background:none !important;"><span class="topnav-dropdown-icon"></span></li>
+				<li>
+					<div class="col-md-24 edit-profile-form-control">
+						<form action="/result/journal/-char/en" method="get">
+						<div class="input-group">
+							<input name="globalSearchKey" type="text" class="form-control search-nav-input" placeholder="Search within all titles on J-STAGE">
+							<span class="input-group-btn search-btn">
+							<button class="btn btn-default" type="submit"><i class="search-nav-icon"></i></button>
+							</span>
+						</div><!-- /input-group -->
+						<a href="https://www.jstage.jst.go.jp/search/global/_search/-char/en" class="advanced-search-link">Advanced search </a>
+						</form>
+					</div>
+				</li>
+			</ul>
+			<!-- RIGHT NAV SEARCH DROPDOWN :: END -->
+
+			<div class="clearfix"></div>
+		</div>
+	</nav>
+	<!-- NAVIGATION :: END -->
+</header>
+</span>
+<!-- HEADER :: END -->
+
+
+
+
+
+
+<!-- JOURNAL INTRODUCTION :: START -->
+<div id="page-content">
+	<div id="journal-header-compact" class="secondlevel-tabnavigation-detail colorscheme09-normal">
+		<div class="container">
+			<div class="flt-left" style="width:100%; position:relative;">
+				<div class="journal-name">Journal of the Japan Society of Naval Architects and Ocean Engineers</div>
+
+										<div id="journal-right-infosection" class="col-sm-6" style="padding-top:15px;">
+						<div class="fs-12">
+								Online ISSN : 1881-1760<br>
+								Print ISSN : 1880-3717<br>
+								ISSN-L : 1880-3717
+						</div>
+					</div>
+				<div class="journal-tags-clearfix"></div>
+			</div>
+			<div class="clearfix"></div>
+		</div>
+	</div>
+</div>
+<!-- JOURNAL INTRODUCTION :: END -->
+
+<!-- SECOND LEVEL TAB NAVIGATION :: START -->
+<div class="colorscheme09-normal">
+	<div class="container">
+		<div id="second-level-nav-tabs">
+			<ul class="nav nav-tabs">
+				<li ><a href="https://www.jstage.jst.go.jp/browse/jjasnaoe/-char/en">Journal home</a></li>
+				<li ><a href="https://www.jstage.jst.go.jp/browse/jjasnaoe/list/-char/en">All issues</a></li>
+				<li ><a href="https://www.jstage.jst.go.jp/browse/jjasnaoe/_pubinfo/-char/en">About the journal</a></li>
+			</ul>
+		</div>
+	</div>
+</div>
+<!-- SECOND LEVEL TAB NAVIGATION :: END --><div class="container">
+	<div class="row">
+		<div class="col-md-24">
+					
+	<!-- BREDCRUMBS :: START -->
+		<ul class="global-breadcrumbs">
+			<li><a href="https://www.jstage.jst.go.jp/browse/-char/en">J-STAGE home</a></li>
+			<li>/</li>
+			<li><a href="https://www.jstage.jst.go.jp/browse/jjasnaoe/-char/en" class="customTooltip" title="Journal of the Japan Society of Naval Architects and Ocean Engineers">Journal of the Japan Society o ...</a></li>
+			<li> / </li>
+			<li><a href='https://www.jstage.jst.go.jp/browse/jjasnaoe/42/0/_contents/-char/en'>Volume 42 (2025)</a></li><li> / </li><li>Article overview</li>
+		</ul>
+<div class="clearfix"></div>	<!-- BREDCRUMBS :: END -->		</div>
+	</div>
+	<div class="row">
+		<!-- LEFT SECTION :: START -->
+		<div class="col-md-18">
+			<!-- #163を追加-->
+			<div class="top-margin-2x bottom-margin-2x"></div>
+			<div class="global-article-title">A Simplified Mathematical Model for Low-Speed Manoeuvring Predictions of Ships</div>
+			<div class="global-article-inner-title"></div>
+			<div class="global-authors-name-tags">         	<!--
+						
+						
+						
+					--><a name = "authorNmlist" id="authorNmList"></a><!--
+
+
+
+									--><a href="https://www.jstage.jst.go.jp/search/global/_search/-char/en?item=8&word=Makoto+Ito" class="customTooltip" title="Makoto Ito, [in Japanese]"><span>Makoto Ito</span></a><!--
+
+
+		-->,&nbsp;<!--
+									--><a href="https://www.jstage.jst.go.jp/search/global/_search/-char/en?item=8&word=Junshi+Takashina" class="customTooltip" title="Junshi Takashina, [in Japanese]"><span>Junshi Takashina</span></a><!--
+
+
+		-->,&nbsp;<!--
+									--><a href="https://www.jstage.jst.go.jp/search/global/_search/-char/en?item=8&word=Hironori+Yasukawa" class="customTooltip" title="Hironori Yasukawa, [in Japanese]"><span>Hironori Yasukawa</span></a><!--
+	-->
+
+
+
+			<div class="accordion_container">
+				<div class="accordion_head plus-icn"name="authInfo" id="authInfo">Author information</div>
+				<div class="accordion_body new_accordion_body_style" style="display: none;">
+					<ul class="accodion_body_ul">
+						<li>
+							<span style="font-size:1.1em">Makoto Ito</span>
+														<p class="accordion_affilinfo">
+									[in Japanese]
+							</p>
+						</li>
+
+
+						<li>
+							<span style="font-size:1.1em">Junshi Takashina</span>
+														<p class="accordion_affilinfo">
+									[in Japanese]
+							</p>
+						</li>
+
+
+						<li>
+							<span style="font-size:1.1em">Hironori Yasukawa</span>
+														<p class="accordion_affilinfo">
+									[in Japanese]
+							</p>
+						</li>
+											</ul>
+				</div>
+			</div>
+			<div class="corr-auth-sapopup-wrap" id="saPopup" style="display:none">
+				<div class="corr-auth-sapopup-overlay" id="saWindow"></div>
+				<div class="corr-auth-sapopup-inner">
+					<div class="corr-auth-sapopup-cont">
+						<div class="sapopup-title"><h4>Corresponding author</h4></div>
+
+							<div class="subject-list subject-sapopup-list" >
+								<div class="corr-auth-subject-li">
+									<div class="corr-auth-subject-item" id="corrAuthMailContainer" style="display:none">
+										<span class="fa fa-envelope outlook-share-icn"></span>
+										<a id="corrAuthMail" class="bluelink-style"></a>
+									</div>
+								</div>
+							</div>
+
+							<div class="subject-list subject-sapopup-list" >
+								<div class="corr-auth-subject-li">
+									<div class="corr-auth-subject-item" id="corrAuthOrcidContainer" style="display:none">
+										<img src="/web/images/id-logo.jpg" class="id-logo" alt="ORCID" />
+										<a target="_blank" rel="noopener noreferrer" id="corrAuthOrcid" class="bluelink-style"></a>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+</div>
+			<div class="global-para"></div>
+			<div class="global-tags"><span class="tags-wrap original-tag-style" title="JOURNAL">JOURNAL</span>
+		<span class="tags-wrap freeaccess-tag-style" title="FREE ACCESS">FREE ACCESS</span>
+
+
+
+</div>
+			<p class="global-para">	2025
+ Volume 42
+		Pages 17-30
+</p>
+
+				<div class="articleoverview-doi-wrap" id="fig-doi">	<span class="doi-icn">DOI</span>
+	<a href="https://doi.org/10.2534/jjasnaoe.42.17" class="bluelink-style" style="word-break:break-all">https://doi.org/10.2534/jjasnaoe.42.17</a>
+</div>
+				<div class="articleoverview-doi-wrap"></div>
+			<div class="top-margin-2x bottom-margin-2x"></div>
+<div class="accordion_container">
+	<div class="accordion_head plus-icn">Details</div>
+	<div class="accordion_body new_accordion_body_style" style="display: none;">
+		<ul class="accodion_body_ul accodion_detail">
+			<li>
+					<span class="accodion_lic">Published: 2025 </span>
+				<span class="accodion_lic">Received: -</span>
+				<span class="accodion_lic">Released on J-STAGE: February 28, 2026</span>
+				<span class="accodion_lic">Accepted: February 25, 2025</span>
+				<span class="accodion_lic">
+						Advance online publication: -
+				</span>
+				<span class="accodion_lic">Revised: -</span>
+			</li>
+		</ul>
+	</div>
+</div>
+		</div>
+		<!-- LEFT SECTION :: END -->
+		<!-- RIGHT SECTION :: START -->
+		<div class="col-md-6 print-non-disp">
+
+
+
+
+
+
+
+<div id="third-level-navigation">
+				<a href="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_pdf/-char/en" class="thirdlevel-pdf-btn">
+					Download PDF  <span class="download-file-size">(2645K)</span>
+				</a>
+			<span class="third-level-nav-divider"></span>
+	<div class="third-level-sublinks">
+		<span class="heading">Download citation</span>
+			<span class="fa fa-file-o"></span><a href="https://www.jstage.jst.go.jp/AF06S010ShoshJkuDld?sryCd=jjasnaoe&noVol=42&noIssue=0&kijiCd=42_17&kijiLangKrke=en&kijiToolIdHkwtsh=AT0072&request_locale=EN">RIS</a>
+			<p class="notice_mess">(compatible with EndNote, Reference Manager, ProCite, RefWorks)</p>
+			<div class="clearfix"> </div>
+			<span class="fa fa-file-o"></span><a href="https://www.jstage.jst.go.jp/AF06S010ShoshJkuDld?sryCd=jjasnaoe&noVol=42&noIssue=0&kijiCd=42_17&kijiLangKrke=en&kijiToolIdHkwtsh=AT0073&request_locale=EN">BIB TEX</a>
+			<p class="notice_mess">(compatible with BibDesk, LaTeX)</p>
+			<div class="clearfix"> </div>
+		<span class="fa fa-file-o"></span> <a href="javascript:void(0);" onclick="downloadText('https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_article/-char/en'.replace('&amp;amp;','&'))">Text</a>
+	<div class="clearfix"> </div>
+
+		<a href="https://www.jstage.jst.go.jp/static/pages/HowToDownload/-char/en" class="download-help-link bluelink-style">How to download citation</a>
+	</div>
+
+	<a href="https://www.jstage.jst.go.jp/browse/jjasnaoe/_pubinfo/-char/en#information" class="thirdlevel-links">Contact us</a>
+	<span class="third-level-nav-divider"></span>
+</div>
+		</div>
+		<!-- RIGHT SECTION :: END -->
+		<div class="clearfix"></div>
+	</div>
+</div>
+<!-- ARTICLE OVERVIEW  INTRODUCTION :: END -->
+
+<!-- ARTICLE OVERVIEW :: START -->
+<div class="clearfix container">
+	<!-- LEFT STICKY SIDEBAR :: START -->
+	<div id="sticky-sidebar" class="print-non-disp">
+		<div class="section-title-14">Article overview</div>
+		<!-- ARTICLE OVERVIEW LINKS :: START -->
+		<nav id="article-overiew-section-links">
+<nav id="article-overiew-section-links">
+	<ul id="article-overiew-section-list">
+			<li> <a href="#article-overiew-abstract-wrap" onClick="menueAnime('Abstract')" title="Abstract" class="customTooltip">Abstract</a></li>
+			<li><a href="#article-overiew-references-wrap" onClick="menueAnime('References')" title="References" class="customTooltip">References (22)</a></li>
+		<li id="author-info-navi"><a href="#author-information-wrap" onClick="menueAnime('information')" title="Content from these authors" class="customTooltip ">Content from these authors</a></li>
+	</ul>
+</nav>
+		</nav>
+		<!-- ARTICLE OVERVIEW LINKS :: END -->
+		<!-- SHARING ICONS :: SMALL SET :: START -->
+		<div id="sticky-sidebar-shareicons">
+<div class="section-title-noborder-14">Share</div>
+<ul class="global-share-x-icons-list">
+<li><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17" target="_blank" rel="noopener noreferrer"><span class="fa fa-facebook facebook-share-icn"></span></a></li>
+<li><a href="http://twitter.com/share?url=https%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17&text=J-STAGE+Articles+-+A+Simplified+Mathematical+Model+for+Low-Speed+Manoeuvring+Predictions+of+Ships" target="_blank" rel="noopener noreferrer"><span class="twitter-share-icn" style="background:#000000;display:inline-block;font-size:20px;"><img src="/web/images/logo-white.png" width="16" height="16" alt="X"></img></span></a></li>
+<li><a href="mailto:?body=Journal%20of%20the%20Japan%20Society%20of%20Naval%20Architects%20and%20Ocean%20Engineers%0A%0AA%20Simplified%20Mathematical%20Model%20for%20Low-Speed%20Manoeuvring%20Predictions%20of%20Ships%0A%0Ahttps%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17%0A"> <span class="fa fa-envelope outlook-share-icn"></span></a></li>
+<li><a href="http://www.mendeley.com/import/?doi=10.2534/jjasnaoe.42.17" target="_blank" rel="noopener noreferrer"><span class="mendeley-share-icn"><img src="/web/images/mendeley-share-icon.png" width="32" height="32" alt=""/>&nbsp;</span></a></li>
+</ul>
+		</div>
+		<!-- SHARING ICONS :: SMALL SET :: END -->
+	</div>
+	<!-- LEFT STICKY SIDEBAR :: END -->
+
+	<!-- RIGHT NON-STICKY SIDEBAR :: START -->
+	<div class="non-sticky-content">
+		<div id="non-sticky-content-leftsection">
+			<div id="article-overiew-abstract-wrap">
+			<!-- INNER SECTION :: START -->
+<div class="section-title-18">Abstract</div>
+<div class="global-para-14">
+<p>　The aim of this study is to develop a simplified mathematical model for low-speed manoeuvring motion, which involves significant lateral and rotational motion compared to forward motion, making low-speed manoeuvring critical. To simulate the manoeuvring, it is necessary to model the hydrodynamic forces on a hull, the propeller forces and the rudder forces. Hydrodynamic forces on a hull are highly non-linear and complex, requiring detailed modelling. In addition, various propeller and rudder operations during port manoeuvres require the models to be extended to four quadrants. This study employs the following methods to create a simplified model: a polynomial model using cross-flow drag terms to simplify the non-linear hydrodynamic forces, extending the propeller forces to four quadrants by modifying the thrust coefficient in the first quadrant, and extending the rudder forces based on the slip ratio. Finally, the validity of the model is validated by comparison with free running test results.</p>
+</div>
+<div style="text-align:center;">
+</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+
+			<!-- INNER SECTION :: START -->
+			<div id="datarepo-wrap"></div>
+			<input type="hidden" id="figshareArticleSearchUrl" value="https://api.figshare.com/v2/articles">
+			<!-- INNER SECTION :: END -->
+
+			<!-- INNER SECTION :: START -->
+			<div id="article-overiew-references-wrap">
+				<div class="section-title-18" style="display:none;">References (22)</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="article-overiew-related-wrap">
+				<div class="section-title-18" style="display:none;">Related articles (0)</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="figures-tables-wrap">
+				<div class="section-title-noborder-18" style="display:none;">Figures (0)</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="author-information-wrap" style="">
+				<div id="author_info_main">
+					<div id="author_info_title" class="section-title-18" onClick="getAuthorList(this)">
+					<img src="/web/images/data-services/J-GLOBAL.jpg" alt="" class="jglobal_img">
+					<span id="author_info_label">Content from these authors</span></div>
+					<div class="accordion_container">
+						<div id="author_info_status"></div>
+						<div id="author_info_contents"></div>
+					</div>
+				</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="supplimentary-materials-wrap">
+				<div class="section-title-18" style="display:none;">Supplementary material (0)</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="resultsanddiscussion-wrap">
+				<div class="section-title-18" style="display:none;">Result List ()</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="citedby-wrap">
+				<div class="section-title-18" style="display:none;">Cited by (0)</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="jstage-external-links">
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div class="section-divider">
+<div class="grey-txt-color fontsize12">
+ &copy; 	2025 The Japan Society of Naval Architects and Ocean Engineers
+</div>
+	<div class="grey-txt-color fontsize12 margintop10">
+	
+
+		</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="article-navigation-links" class="print-non-disp">
+<a href="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_1/_article/-char/en" class="next-icon colorscheme09-lighter">Previous article</a>
+<a href="https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_31/_article/-char/en" class="previous-icon colorscheme09-lighter">Next article</a>
+<div class="clearfix"> </div>			</div>
+			<!-- INNER SECTION :: END -->
+		</div>
+		<div id="non-sticky-content-rightsection" class="print-non-disp">
+			<!-- INNER SECTION :: START -->
+<div class="section-divider">
+	<div class="section-title-14">Favorites & Alerts</div>
+	<ul class="star-list-style">
+				<li><a href = "javascript:;" class = "add-favorites-articles" value= "1">Add to favorites</a></li>
+				<li><a href = "javascript:;" class = "add-favorites-articles" value= "4">Additional info alert</a></li>
+				<li><a href =" javascript:;" class = "add-favorites-articles" value= "2">Citation alert</a></li>
+				<li><a href = "javascript:;" class = "add-favorites-articles" value= "3">Authentication alert</a></li>
+	</ul>
+</div>
+<form action = "/fav/articles/_insert/-char/en" method = "get" id = "favorites-articles" name = "favorites-articles"></form>
+<form action = "/fav/title/_insert/-char/en" method = "get" id = "favorites-titles" name = "favorites-titles"></form>
+<input type="hidden" name="sryCd" value="jjasnaoe">
+<input type="hidden" name="noVol" value="42">
+<input type="hidden" name="noIssue" value="0">
+<input type="hidden" name="kijiCd" value="42_17">
+			<!-- INNER SECTION :: END -->
+			<!-- INNER SECTION :: START -->
+			<div id="related_articles_main">
+				<div id="related_articles_title" class="section-title-14">
+					<span onclick="getArticleJGID(this)" style="cursor: pointer;">
+						<img src="/web/images/data-services/J-GLOBAL.jpg" alt="" class="jglobal_img_side">
+						<div id="related_articles_label">
+							<span style="display:inline-block; vertical-align:middle;">Related articles</span>
+							<span id="glyphiconmenu" class="glyphicon glyphicon-menu-right"style="display:inline; vertical-align:middle;"></span>
+						</div>
+					</span>
+				</div>
+				<div class="accordion_container">
+					<div id="related_articles_status"></div>
+					<div id="related_articles_contents"></div>
+				</div>
+			</div>
+			<!-- INNER SECTION :: END -->
+			<div class="clearfix"></div>
+			<br>
+			<!-- ALTMETRIC WRAPPER :: END -->
+			<div class="clearfix"></div>
+			<!-- INNER SECTION :: START -->
+<div class="section-title-14">Recently viewed articles</div>
+<ul class="common-list-style">
+</ul>			<!-- INNER SECTION :: END -->
+			<div class="clearfix"></div>
+			<!-- INNER SECTION :: START -->
+				<!-- INNER SECTION :: START -->
+<div class='section-divider'>
+<div class='section-title-14'>Predecessor</div>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/jjasnaoe1897/-char/en'>Zosen Kiokai Nenpo</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/jjasnaoe1903/-char/en'>Journal of Zosen Kiokai</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/jjasnaoe1952/-char/en'>Journal of Zosen Kiokai</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/jjasnaoe1968/-char/en'>Journal of the Society of Naval Architects of Japan</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/kansaikoron/-char/en'>Proceedings of The Kansai Society of Naval Architects</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/ksnajproc/-char/en'>Proceedings of The Kansai Society of Naval Architects</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/jksna/-char/en'>Journal of the Kansai Society of Naval Architects, Japan</a></p>
+<p class='right-section-para'><a href='https://www.jstage.jst.go.jp/browse/wjsna/-char/en'>TRANSACTIONS OF THE WEST-JAPAN SOCIETY OF NAVAL ARCHITECTS</a></p>
+</div>
+<!-- INNER SECTION :: END -->
+
+			<!-- INNER SECTION :: END -->
+			<div class="clearfix"></div>
+			<!-- SHARING ICONS :: BIG SET :: START -->
+
+<div class="sticky-sidebar-shareicons-rightsection top-margin-2x">
+	<div id="socialmedia-share-plugins" class="colorscheme09-lighter">
+		<div class="sectionheading">Share this page</div>
+		<ul class="share-icons-list">
+		<li><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17" target="_blank" rel="noopener noreferrer"><span class="fa fa-facebook facebook-share-icn"></span></a></li>
+		<li><a href="http://twitter.com/share?url=https%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17&text=J-STAGE+Articles+-+A+Simplified+Mathematical+Model+for+Low-Speed+Manoeuvring+Predictions+of+Ships" target="_blank" rel="noopener noreferrer"><span class="twitter-share-icn" style="background:#000000;display:inline-block;font-size:28px;"><img src="/web/images/logo-white.png" width="20" height="20" alt="X"></img></span></a></li>
+		<li><a href="mailto:?body=Journal%20of%20the%20Japan%20Society%20of%20Naval%20Architects%20and%20Ocean%20Engineers%0A%0AA%20Simplified%20Mathematical%20Model%20for%20Low-Speed%20Manoeuvring%20Predictions%20of%20Ships%0A%0Ahttps%3A%2F%2Fdoi.org%2F10.2534%2Fjjasnaoe.42.17%0A"> <span class="fa fa-envelope outlook-share-icn"></span></a></li>
+		<li><a href="http://www.mendeley.com/import/?doi=10.2534/jjasnaoe.42.17" target="_blank" rel="noopener noreferrer"><span class="mendeley-share-icn"><img src="/web/images/mendeley-share-icon.png" width="32" height="32" alt=""/>&nbsp;</span></a></li>
+		</ul>
+	</div>
+</div>
+			<!-- SHARING ICONS :: BIG SET :: END -->
+		</div>
+		<!-- RIGHT NON-STICKY SIDEBAR :: END -->
+	</div>
+</div>
+<!-- ARTICLE OVERVIEW :: END -->
+<div class="clearfix"></div>
+
+<!-- MODAL POPUP :: START -->
+<!-- MODAL POPUP :: END -->
+
+
+
+<!-- FOOTER :: START -->
+<span class="noprint">
+<footer class="footer-style2">
+<div id="footer-strip" class="colorscheme09-lighter">
+	<div class="container">
+		Edited and published by The Japan Society of Naval Architects and Ocean Engineers
+		<br>
+		Production services Shobi Printing Co., Ltd.
+	</div>
+</div>
+<div class="footer-wrap print-non-disp">
+	<a href="#0" class="take-on-top1">Top</a>
+	<div class="container">
+		<div class="footer-link-section">
+						<div class="footer-link-heading">Browse</div>
+			<ul class="footer-link-list">
+				<li><a href="/journal/list/-char/en">All titles</a></li>
+				<li><a href="/journal/fields/-char/en">All subject areas</a></li>
+				<li><a href="/journal/publisher/-char/en">All publishers</a></li>
+				<li><a href="/search/global/_search/-char/en">Search articles</a></li>
+				<li><a href="https://jstagedata.jst.go.jp/" target="_blank" rel="noopener noreferrer">Search J-STAGE Data <img src="/web/images/information-tab2/bg-arrow-white.png" width="13" height="10" alt=""></a></li>
+			</ul>
+		</div>
+
+		<div class="footer-link-section">
+						<div class="footer-link-heading">About J-STAGE</div>
+			<ul class="footer-link-list">
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageOverview/-char/en">Overview</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/JstageServices/TAB1/-char/en">Services and features</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/PublicDataAboutJstage/-char/en">Public data</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/TermsAndPolicies/ForIndividuals/-char/en">Terms and Policy</a></li>
+			</ul>
+		</div>
+		<div class="footer-link-section">
+						<div class="footer-link-heading">News and PR</div>
+			<ul class="footer-link-list">
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB1/Current/Page1/-char/en">News</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB2/Page1/-char/en">Maintenance information</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB6/Page1/-char/en">Special contents </a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/News/TAB7/Page1/-char/en">Media resources </a></li>
+			</ul>
+		</div>
+		<div class="footer-link-section">
+						<div class="footer-link-heading">Support</div>
+			<ul class="footer-link-list">
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/ForReaders/-char/en">User manuals</a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/RecommendedEnvironment/-char/en">Browser compatibility</a></li>
+ <li><a href="https://www.jstage.jst.go.jp/static/pages/FAQs/TAB3/-char/en">FAQ</a></li> 				<li><a href="https://www.jstage.jst.go.jp/static/pages/Contact/-char/en">Contact </a></li>
+				<li><a href="https://www.jstage.jst.go.jp/static/pages/Sitemap/-char/en">Sitemap </a></li>
+			</ul>
+		</div>
+
+		<div class="clearfix"></div>
+				<div class="clearfix"></div>
+	</div>
+</div>
+</footer>
+</span>
+<!-- FOOTER :: END -->
+<!-- FEEDBACK BUTTON :: START -->
+<span class="noprint print-non-disp">
+<div id="right-feedback-btn"><a href="https://form2.jst.go.jp/s/jstage-feedback" target="_blank" rel="noopener noreferrer">feedback</a></div>
+</span>
+<!-- FEEDBACK BUTTON :: END -->
+<!-- TAKE ME TO TOP :: START -->
+<a href="#0" class="take-on-top" style="z-index:inherit">Top</a>
+<!-- TAKE ME TO TOP :: END -->
+
+<!-- STICKY REGISTER TO J-STAGE HERE :: START -->
+<div id="sticky-register-to-j-stage" class="sticky-register-to-j-stage print-non-disp" style="display:none;">
+<span class="noprint">
+<a href="javascript:;" class="sticky-register-to-j-stage-close" onclick="registerStickyClose();"><i class="fa fa-times-circle-o"></i></a>
+</span>
+<h3 class="register-for-free"><nobr>Register with J-STAGE for free!</nobr></h3>
+<a href="/myregister/-char/en" class="sticky-register-btn">Register</a>
+<p class="register-for-already">Already have an account? Sign in <a href="/mylogin/-char/en?sourceurl=https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen">here</a></p>
+</div>
+<!-- STICKY REGISTER TO J-STAGE HERE :: END -->
+<script src="/web/js/jquery.min.js"></script>
+<!-- Include all compiled plugins (below) -->
+<script src="/web/js/bootstrap.js"></script>
+
+<script src="/web/js/bootstrap.offcanvas.min.js"></script>
+
+<script src="/web/js/bootstrap-tabdrop.min.js"></script>
+
+<script src="/web/js/modernizr.js"></script>
+
+	<script src="/web/js/jquery.hc-sticky.min.js"></script>
+
+<script src="/web/js/jquery.touchSwipe.min.js"></script>
+
+<script src="/web/js/jquery.advancedSlider.min.js"></script>
+
+<script src="/web/js/jquery-navtoselect.min.js?rn=2.3.9"></script>
+
+<script src="/web/js/jquery.treefilter.min.js"></script>
+
+<script src="/web/js/jquery.jplayer.min.js"></script>
+
+<script src="/web/js/jquery.coolfieldset.min.js"></script>
+
+<script src="/web/js/select2.full.min.js"></script>
+
+<script src="/web/js/prettify.min.js"></script>
+
+<script src="/web/js/common.js?rn=2.3.9"></script>
+
+<script src="/web/js/tableHeadFixe.min.js"></script>
+
+<script src="/web/js/validation.js?rn=2.3.9"></script>
+
+
+<script src="/web/js/jquery.hc-sticky.min.js"></script>
+<script src="/web/js/jglobal_related_article_api.js?rn=2.3.9"></script>
+<script src="/web/js/jglobal_author_info_api.js?rn=2.3.9"></script>
+
+<script type="text/javascript" src="https://widgets.figshare.com/static/figshare.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.6/MathJax.js?config=MML_HTMLorMML"></script>
+
+
+<script type="text/javascript" src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script>
+<script src="/web/js/new_plugin/slick/slick.js"></script>
+<script src="/web/js/new_plugin/slick/slick.min.js"></script>
+<script src="/web/js/favoriteAlerts.js"></script>
+<script src="/web/js/downloadText.js"></script>
+<script src="/web/js/articleHome_getArticleMenu.js?rn=2.3.9"></script>
+<link rel="stylesheet" href="/web/css/lity.css" />
+<script src="/web/js/lity.js"></script>
+
+<script>
+$(document).ready(function () {
+if(('localStorage' in window) && (window.localStorage !== null)) {
+	if(localStorage.getItem('C.regsticky') != 'off'){
+	$('#sticky-register-to-j-stage').show();
+	}
+}
+$('.dropdown-toggle').on('click', function(E) {
+	$(this).find('.glyphicon').toggleClass("glyphicon-chevron-up");
+	$(this).find('.glyphicon').toggleClass("glyphicon-chevron-down");
+});
+$('[data-toggle="tooltip"]').tooltip({});
+$('.warningtooltip').tooltip();
+
+
+	var header = 0;
+	if ($('.navbar-fixed-top').length) {
+		header = $('.navbar-fixed-top').eq(0).outerHeight();
+	}
+	$('#sticky-sidebar').hcSticky({
+		responsive: true,
+		followScroll: false,
+		top:header + pheader + 5
+	});
+
+		$('#targetLink').click(function(){
+		var rrkskMlAdrs = $('#targetLink').attr('href');
+		rrkskMlAdrs = rrkskMlAdrs.replace('(at)','@');
+		$('#targetLink').attr('href', rrkskMlAdrs);
+	});
+
+		$('#corrAuthMail').click(function(){
+		var rrkskMlAdrs = $('#corrAuthMail').attr('href');
+		rrkskMlAdrs = rrkskMlAdrs.replace('(at)','@');
+		$('#corrAuthMail').attr('href', rrkskMlAdrs);
+	});
+
+		$('.licensedescription').find('a').each(function() {
+		$(this).attr('target', '_blank');
+		$(this).attr('rel', 'noopener noreferrer');
+	});
+
+		$('#saWindow').click(function(){
+		$('#saPopup').attr('style', 'display:none;');
+	});
+
+	window.setTimeout( related_articles_invoke('','10.2534/jjasnaoe.42.17','true','en'), 100 );
+	window.setTimeout( author_info_invoke('','10.2534/jjasnaoe.42.17','true','true','true','false','en'), 100 );
+
+
+});
+$(".journal-volume-dd").select2( {width: 'resolve'});
+$(".journal-issue-dd").select2();
+$('#facetsearch-header').facetsearch();
+$('.facetsearch-subheader').facetsearch();
+$(window).load(function(){
+	$('.collapseall-icon').hide();
+	$('.vol-link').click(function(e){
+		e.stopPropagation();
+	});
+	$('.expandall-icon').click(function(){
+		$(this).addClass('expand-inactive');
+		$('.collapseall-icon').removeClass('collapse-inactive')
+		$('.inner-content').slideDown();
+		$('.content').each(function(index, element) {
+			$(this).find('.expand').removeClass('collapse1');
+		});
+		$('.collapseall-icon').show();
+		$('.expandall-icon').hide();
+		$('.show_abstract').hide();
+		$('.hide_abstract').show();
+	});
+	$('.collapseall-icon').addClass('collapse-inactive');
+	$('.collapseall-icon').click(function(){
+		$(this).addClass('collapse-inactive');
+		$('.expandall-icon').removeClass('expand-inactive');
+		$('.inner-content').slideUp();
+		$('.content').each(function(index, element) {
+			$(this).find('.expand').addClass('collapse1');
+		});
+		$('.expandall-icon').show();
+		$('.collapseall-icon').hide();
+		$('.show_abstract').show();
+		$('.hide_abstract').hide();
+	});
+	$('.inner-content').hide();
+	$(".expand a").click(function (e) {
+		e.preventDefault();
+		$(this).parent().toggleClass('collapse1');
+		$(this).closest('.content').find('.inner-content').slideToggle().toggleClass('datapanel_opend');
+		if(!$(this).closest('.content').find('.inner-content').hasClass("datapanel_opend")){
+			$('div.collapseall-icon').removeClass('collapse-inactive');
+		} else {
+			$('div.collapseall-icon').addClass('collapse-inactive');
+		}
+
+		$(this).find('.show_abstract').toggle();
+		$(this).find('.hide_abstract').toggle();
+
+	});
+});
+$(".journal-volume-dd").select2();
+$(".journal-issue-dd").select2();
+$(".searchresults-noofpages-dropdown").select2({
+	minimumResultsForSearch: Infinity
+});
+$(".search-browse-volissue-tabs a").click(function(event) {
+	event.preventDefault();
+	$(this).parent().addClass("current");
+	$(this).parent().siblings().removeClass("current");
+	var tab = $(this).attr("href");
+	$(".searchbrowse-volissue-tab-content").not(tab).css("display", "none");
+	$(tab).fadeIn();
+});
+$('.inner-content .abstract').each(function(){
+	if ($(this).height() < 120) {
+		$(this).find('.full-abstract').hide();
+	}
+});
+
+if ( document.getElementById("selectedVol") != null ) {
+	var pos = $("#selectedVol").position();
+	$(".faceted-search-scrollwrap").scrollTop((pos.top - 50));
+}
+var ddd = [
+];
+$("#selectVol").bind("change", function() {
+	var selectVol = $(":selected").val();
+	if (selectVol == "") {
+		$("#selectIssue").attr("disabled", "disabled");
+	} else {
+		var disabledAttr = $("#selectIssue").attr("disabled");
+		if (typeof disabledAttr !== "undefined") {
+			$("#selectIssue").removeAttr("disabled");
+		}
+	}
+	$("#selectIssue").children().remove();
+	$('#selectIssue').append($('<option>').html("").val(""));
+	if (selectVol != "") {
+		for (var idx in ddd) {
+			var noVol = ddd[idx].noVol;
+			if (noVol == selectVol) {
+				var noIssueArry = ddd[idx].noIssue;
+				for (i = 0; i < noIssueArry.length; i++) {
+						$('#selectIssue').append($('<option>').html("" + noIssueArry[i]).val(noIssueArry[i]));
+				}
+				break;
+			}
+		}
+	}
+	$("#selectIssue").select2();
+});
+$("#mobileSelectVol").bind("change", function() {
+	var selectVol = $("#mobileSelectVol option:selected").val();
+	if (selectVol == "") {
+		$("#mobileSelectIssue").attr("disabled", "disabled");
+	} else {
+		var disabledAttr = $("#mobileSelectIssue").attr("disabled");
+		if (typeof disabledAttr !== "undefined") {
+			$("#mobileSelectIssue").removeAttr("disabled");
+		}
+	}
+	$("#mobileSelectIssue").children().remove();
+	$('#mobileSelectIssue').append($('<option>').html("").val(""));
+	if (selectVol != "") {
+		for (var idx in ddd) {
+			var noVol = ddd[idx].noVol;
+			if (noVol == selectVol) {
+				var noIssueArry = ddd[idx].noIssue;
+				for (i = 0; i < noIssueArry.length; i++) {
+						$('#mobileSelectIssue').append($('<option>').html("" + noIssueArry[i]).val(noIssueArry[i]));
+				}
+				break;
+			}
+		}
+	}
+	$("#mobileSelectIssue").select2();
+});
+$("#goBtn").bind("click", function() {
+	var noVol = $("#selectVol").val();
+	var noIssue = $("#selectIssue").val();
+	var pageInput = $('#pageInput').val();
+	if (pageInput === undefined) {
+		pageInput = null;
+	}
+	return clickGoBtn("1", noVol, noIssue, pageInput);
+});
+$("#mobileGoBtn").bind("click", function() {
+	var noVol = $("#mobileSelectVol").val();
+	var noIssue = $("#mobileSelectIssue").val();
+	var pageInput = $('#mobilePageInput').val();
+	if (pageInput === undefined) {
+		pageInput = null;
+	}
+	return clickGoBtn("2", noVol, noIssue, pageInput);
+});
+$(window).load(function(){
+	try {
+		var issueList1 = '';
+		var issueOptions = jQuery('#selectIssue').children();
+		if (issueOptions.length > 1) {
+			for ( var i=1; i<issueOptions.length; i++ ){
+				issueList1 = issueList1 + issueOptions.eq(i).val();
+			}
+		}
+		var selectVol = $("#selectVol").val();
+		var selectIssue = $("#selectIssue").val();
+		if (selectVol != "") {
+			for (var idx in ddd) {
+				var noVol = ddd[idx].noVol;
+				if (noVol == selectVol) {
+					var issueList2 = '';
+					var noIssueArry = ddd[idx].noIssue;
+					for (i = 0; i < noIssueArry.length; i++) {
+						issueList2 = issueList2 + noIssueArry[i];
+					}
+					if (issueList1 != issueList2) {
+						$("#selectVol").trigger("change");
+						$("#mobileSelectVol").trigger("change");
+					}
+				}
+			}
+		}
+	} catch (e) {console.log("Exception : " + e);}
+});
+$(window).unload(function(){});
+function pressEnter4GoBtn() {
+	if (window.event.keyCode == 13) {
+		$('#goBtn').trigger("click");
+	}
+}
+function pressEnter4MobileGoBtn() {
+	if (window.event.keyCode == 13) {
+		$('#mobileGoBtn').trigger("click");
+	}
+}
+function clickGoBtn(mode, noVol, noIssue, pageInput) {
+	if (mode == "1") {
+		$("#pageMessage01").css("display", "none");
+		$("#pageMessage02").css("display", "none");
+		$("#pageMessage03").css("display", "none");
+	} else if (mode == "2") {
+		$("#mobilePageMessage01").css("display", "none");
+		$("#mobilePageMessage02").css("display", "none");
+		$("#mobilePageMessage03").css("display", "none");
+	}
+	try {
+
+		if ((noVol == null || noVol == "") && (noIssue == null || noIssue == "")){
+				noVol = "43";
+				noIssue = "0"
+		}
+
+		if (noIssue == null || noIssue == ""){
+			noIssue = "0"
+		}
+
+		if (pageInput == null || pageInput == "") {
+			var url = getUrl(noVol, noIssue);
+			url = url.replace('repXXX', noVol);
+			url = url.replace('repYYY', noIssue);
+			document.location.href = url;
+			return;
+		}
+		if (noVol == null) {
+			if (mode == "1") {
+				$("#pageMessage01").css("display", "block");
+			} else if (mode == "2") {
+				$("#mobilePageMessage01").css("display", "block");
+			}
+			return;
+		}
+		var jsonUrl = 'https://www.jstage.jst.go.jp/pageSearch/jjasnaoe/repXXX/repYYY/repZZZ';
+		jsonUrl = jsonUrl.replace('repXXX', noVol);
+		jsonUrl = jsonUrl.replace('repYYY', noIssue);
+		jsonUrl = jsonUrl.replace('repZZZ', pageInput);
+		$.ajax({
+			cache: false,
+			type: 'GET',
+			url: jsonUrl,
+			dataType: 'json',
+			contentType:'application/json',
+			success: function(json) {
+				var errorCd = json.errorCd;
+				var redirectSryCd = json.redirectSryCd;
+				var redirectNoVol = json.redirectNoVol;
+				var redirectNoIssue = json.redirectNoIssue;
+				var redirectCdArticle = json.redirectCdArticle;
+				if (
+						"0" == errorCd
+						&& redirectSryCd != null && redirectSryCd != ''
+						&& redirectNoVol != null && redirectNoVol != ''
+						&& redirectNoIssue != null && redirectNoIssue != ''
+						&& redirectCdArticle != null && redirectCdArticle != ''
+				) {
+					var shosiUrl = 'https://www.jstage.jst.go.jp/article/jjasnaoe/repXXX/repYYY/repZZZ/_article/-char/en';
+					var urls = shosiUrl.match('(http.+/article/)([0-9a-z]+)(/repXXX.+)');
+					if(urls.length == 4){
+						shosiUrl = urls[1];
+						shosiUrl += redirectSryCd;
+						shosiUrl += urls[3];
+					}
+					shosiUrl = shosiUrl.replace('repXXX', redirectNoVol);
+					shosiUrl = shosiUrl.replace('repYYY', redirectNoIssue);
+					shosiUrl = shosiUrl.replace('repZZZ', redirectCdArticle);
+					document.location.href = shosiUrl;
+					return true;
+				} else if ("1" == errorCd) {
+					if (mode == "1") {
+						$("#pageMessage02").css("display", "block");
+					} else if (mode == "2") {
+						$("#mobilePageMessage02").css("display", "block");
+					}
+				} else if ("2" == errorCd) {
+					if (mode == "1") {
+						$("#pageMessage03").css("display", "block");
+					} else if (mode == "2") {
+						$("#mobilePageMessage03").css("display", "block");
+					}
+				}
+			}
+		});
+	} catch (e) {
+	}
+	return false;
+}
+function getUrl(noVol, noIssue) {
+	return 'https://www.jstage.jst.go.jp/browse/jjasnaoe/repXXX/repYYY/_contents/-char/en';
+}
+
+var pheader = 0;
+var header = 0;
+if ($('.navbar-fixed-top').length) {
+	header = $('.navbar-fixed-top').eq(0).outerHeight();
+}
+var adjustHeight = header + pheader - 10;
+function menueAnime(title) {
+	var position = '';
+	switch (title){
+		case 'Abstract':
+			position = $('#article-overiew-abstract-wrap').offset().top - adjustHeight;
+			break;
+		case 'Datarepo':
+			position = $('#datarepo-wrap').offset().top - adjustHeight;
+			break;
+		case 'Manuscript':
+			position = $('#manuscript-wrap').offset().top - adjustHeight;
+			break;
+		case 'References':
+			position = $('#article-overiew-references-wrap').offset().top - adjustHeight;
+			break;
+		case 'Relations':
+			position = $('#article-overiew-related-wrap').offset().top - adjustHeight;
+			break;
+		case 'Figures':
+			position = $('#figures-tables-wrap').offset().top - adjustHeight;
+			break;
+		case 'Results':
+			position = $('#resultsanddiscussion-wrap').offset().top - adjustHeight;
+			break;
+		case 'information':
+			position = $('#author-information-wrap').offset().top - adjustHeight;
+			break;
+		case 'Supplementary':
+			position = $('#supplimentary-materials-wrap').offset().top - adjustHeight;
+			break;
+		case 'Cited':
+			position = $('#citedby-wrap').offset().top - adjustHeight;
+			break;
+		case 'External':
+			position = $('#jstage-external-links').offset().top - adjustHeight;
+			break;
+	}
+	$('html, body').animate({scrollTop: position}, 1100);
+	return false;
+}
+
+function authorContributionAnime(anchor) {
+	var position = '';
+	switch (anchor) {
+		case 'authorContribution':
+			$('#authInfo').next('.accordion_body').slideDown(300);
+			$('#authInfo').removeClass('plus-icn');
+			$('#authInfo').addClass('minus-icn');
+			position = $('#authorContribution').offset().top - adjustHeight - 15;
+			break;
+		case 'authorNmList':
+			position = $('#authorNmList').offset().top - adjustHeight - 15;
+			break;
+	}
+	$('html, body').animate({scrollTop: position}, 1100);
+	return false;
+}
+
+function corrAuthPopupClick(mail,orcid){
+
+	if (!mail) {
+		$('#corrAuthMailContainer').attr('style', 'display:none;');
+	} else {
+		$('#corrAuthMailContainer').attr('style', 'block');
+		$('#corrAuthMail').text(mail);
+		var mailAt = mail.replace('@','(at)')
+		$('#corrAuthMail').attr('href','mailto:' + mailAt);
+	}
+
+	if (!orcid) {
+		$('#corrAuthOrcidContainer').attr('style', 'display:none;');
+	} else {
+		$('#corrAuthOrcidContainer').attr('style', 'block');
+		$('#corrAuthOrcid').attr('href',orcid)
+		$('#corrAuthOrcid').text(orcid);
+	}
+
+	$('#saPopup').attr('style', 'block');
+}
+
+function callAjax(tabId, callback, errorCallback, last) {
+	var jsonUrl = 'https://www.jstage.jst.go.jp/article/jjasnaoe/42/0/42_17/_article/_tab/-char/en?cdstat=&amp;amp;nologrec=';
+	var revision = '';
+	jsonUrl += '&tabId=' + tabId;
+	if(revision != null){
+		jsonUrl += '&revision=' + revision;
+	}
+	jsonUrl = jsonUrl.replace('&amp;amp;','&');
+	if (!last) {
+		$.ajax({
+			cache: false,
+			type: 'GET',
+			url: jsonUrl,
+			dataType: 'html',
+			contentType:'text/html',
+			success: callback,
+			error: errorCallback,
+			complete : function() {
+				$('.loading-view').remove();
+			}
+		});
+	} else {
+		$.ajax({
+			cache: false,
+			type: 'GET',
+			url: jsonUrl,
+			dataType: 'html',
+			contentType:'text/html',
+			success: callback,
+			error: errorCallback,
+			complete : function() {
+				$('.loading-view').remove();
+			}
+		});
+	}
+}
+
+function createCallBack(idx) {
+	if (idx >= ajaxCall.length) {
+		return null;
+	}
+	var callback = function(data) {
+		if (ajaxCall[idx].outerDivId === '') {
+			$('#' + ajaxCall[idx].innerDivId).append(data);
+		} else {
+			var spritHtml = data.split('@@@');
+			var str = '#' + ajaxCall[idx].innerDivId
+			$('#' + ajaxCall[idx].innerDivId).append(spritHtml[0]);
+			if (ajaxCall[idx].outerDivId == 'supplimentary-materials-modal') {
+				$.getScript("/web/js/jquery.jplayer.min.js");
+				dnsFlkApply();
+			}
+		}
+
+		if (ajaxCall[idx].doPreparationForJPlayer === true) {
+			dnsFlkApply();
+		}
+
+		replaceLicenseErrorBtn();
+		addReferenceModeTooltipHandler('#' + ajaxCall[idx].innerDivId);
+
+		idx++;
+		if (idx < ajaxCall.length) {
+			if (idx == ajaxCall.length - 1) {
+				callAjax(ajaxCall[idx].tabId, createCallBack(idx), createErrorCallback(idx), true);
+			} else {
+				callAjax(ajaxCall[idx].tabId, createCallBack(idx), createErrorCallback(idx), false);
+			}
+		}
+	}
+	return callback;
+}
+
+function createErrorCallback(idx) {
+	var errorCallback = function(data) {
+		var errorMsg = '<div>Data could not be acquired.</div>';
+		if (ajaxCall[idx].outerDivId === '') {
+			$('#' + ajaxCall[idx].innerDivId).after(errorMsg);
+		} else {
+			$('#' + ajaxCall[idx].innerDivId).after(errorMsg);
+			if (ajaxCall[idx].outerDivId == 'supplimentary-materials-modal') {
+				$.getScript("/web/js/jquery.jplayer.min.js");
+				dnsFlkApply();
+			}
+		}
+
+		if (ajaxCall[idx].doPreparationForJPlayer === true) {
+			dnsFlkApply();
+		}
+
+		idx++;
+		if (idx < ajaxCall.length) {
+			if (idx == ajaxCall.length - 1) {
+				callAjax(ajaxCall[idx].tabId, createCallBack(idx), createErrorCallback(idx), true);
+			} else {
+				callAjax(ajaxCall[idx].tabId, createCallBack(idx), createErrorCallback(idx), false);
+			}
+		}
+	}
+	return errorCallback;
+}
+
+var ajaxFlg = true;
+var zhyoLbl = '0';
+var inYuBnknLbl = '22';
+var knrnkjLbl = '0';
+var hinYuBnknLbl = '0';
+var dnsFrkLbl = '0';
+var seikLstLbl = '';
+var datarepoLbl = '0';
+var searching = '<div class = "loading-view"style="text-align: center;"><img src="/web/images/new_update/ajax-loader.gif" alt=""></div>'
+var ajaxCall = [];
+if (zhyoLbl !== null && zhyoLbl !== '' && zhyoLbl !== '0') {
+	$('#figures-tables-wrap').find('.section-title-noborder-18').css('display', 'block');
+	$('#figures-tables-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'ZHYO',
+		'innerDivId' : 'figures-tables-wrap',
+		'outerDivId' : '',
+		'doPreparationForJPlayer' : true
+	});
+}
+if (inYuBnknLbl !== null && inYuBnknLbl !== '' && inYuBnknLbl !== '0') {
+	$('#article-overiew-references-wrap').find('.section-title-18').css('display', 'block');
+	$('#article-overiew-references-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'INYUBNKN',
+		'innerDivId' : 'article-overiew-references-wrap',
+		'outerDivId' : ''
+	});
+}
+
+if (knrnkjLbl !== null && knrnkjLbl !== '' && knrnkjLbl !== '0') {
+	$('#article-overiew-related-wrap').find('.section-title-18').css('display', 'block');
+	$('#article-overiew-related-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'KNRNKJ',
+		'innerDivId' : 'article-overiew-related-wrap',
+		'outerDivId' : ''
+	});
+}
+
+if (hinYuBnknLbl !== null && hinYuBnknLbl !== '' && hinYuBnknLbl !== '0') {
+	$('#citedby-wrap').find('.section-title-18').css('display', 'block');
+	if(hinYuBnknLbl !== 'n/a'){
+	$('#citedby-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'HINYUBNKN',
+		'innerDivId' : 'citedby-wrap',
+		'outerDivId' : ''
+	});
+	}
+}
+
+if (dnsFrkLbl !== null && dnsFrkLbl !== '' &&  dnsFrkLbl !== '0') {
+	$('#supplimentary-materials-wrap').find('.section-title-18').css('display', 'block');
+	$('#supplimentary-materials-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'DNSFRK',
+		'innerDivId' : 'supplimentary-materials-wrap',
+		'outerDivId' : 'supplimentary-materials-modal'
+	});
+}
+
+if (seikLstLbl !== null && seikLstLbl !== '' && seikLstLbl !== '0') {
+	$('#resultsanddiscussion-wrap').find('.section-title-18').css('display', 'block');
+	$('#resultsanddiscussion-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'SEIKLST',
+		'innerDivId' : 'resultsanddiscussion-wrap',
+		'outerDivId' : ''
+	});
+}
+
+if (datarepoLbl !== null && datarepoLbl !== '' && datarepoLbl != '0') {
+	$('#datarepo-wrap').find('.section-title-18').css('display', 'block');
+	$('#datarepo-wrap').append(searching);
+	ajaxCall.push({
+		'tabId' : 'DATAREPO',
+		'innerDivId' : 'datarepo-wrap',
+		'outerDivId' : ''
+	});
+}
+
+switch (ajaxCall.length) {
+	case 0:
+		break;
+	case 1:
+		callAjax(ajaxCall[0].tabId, createCallBack(0), createErrorCallback(0), true);
+		break;
+	default:
+		callAjax(ajaxCall[0].tabId, createCallBack(0), createErrorCallback(0), false);
+		break;
+}
+
+function dnsFlkApply(){
+	$('[id^=jp_container_]').each(function () {
+		var vid= this.id;
+		var result = vid.split( '_' );
+		var no = result[result.length-1];
+
+		var target_player = '#jquery_jplayer_' + no;
+		var container = '#jp_container_' + no;
+		var source = '#jp_source_' + no;
+		if ($(target_player)) {
+			var sourcename = $(source).val();
+			$(target_player).jPlayer({
+				ready: function () {
+					$(this).jPlayer('setMedia', {
+						m4v: sourcename
+					});
+				},
+				play: function() { // To avoid both jPlayers playing together.
+					$(this).jPlayer('pauseOthers');
+				},
+				errorAlerts: false,
+				cssSelectorAncestor: container,
+				swfPath: '/pub/lib/raspberry/jplayer/swf/',
+				supplied: 'm4a,m4v,mp4'
+			});
+		}
+	});
+}
+
+$(function () {
+    $('div.altmetric-embed').on('altmetric:show', function () {
+        $('#altmetric-widget').find('a').attr({
+        	'target': '_blank',
+        	'rel': 'noopener noreferrer'
+        })
+    });
+});
+
+
+	window.setTimeout( set_jglobalApikey_authorinformation('JDEkcmFzbXVzbGUkYmhyak4xSXJxbGVKbDN1YXNXZkdYMQ=='),100);
+	window.setTimeout( set_jglobalApikey_relatedarticle('JDEkcmFzbXVzbGUkYmhyak4xSXJxbGVKbDN1YXNXZkdYMQ=='),100);
+
+
+function registerStickyClose(){
+	$("#sticky-register-to-j-stage").hide();
+	if(('localStorage' in window) && (window.localStorage !== null)) {
+		localStorage.setItem('C.regsticky', 'off');
+	}
+}
+function doChangeLang(langKind){
+
+	if (typeof changeLang == "function")  {
+				changeLang(langKind);
+		return;
+
+	} else {
+				var encStr = "";
+		if(langKind == "ja") {
+			encStr = "https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fja";
+		} else {
+			encStr = "https%3A%2F%2Fwww.jstage.jst.go.jp%2Farticle%2Fjjasnaoe%2F42%2F0%2F42_17%2F_article%2F-char%2Fen";
+		}
+		location.href = decodeURIComponent(encStr);
+		return;
+	}
+}
+function hBack(){
+		var ans;
+		var ref = document.referrer;
+		re = new RegExp(location.hostname,"i");
+		if(ref.match(re)){
+				ans = false;
+		}else{
+				ans = true
+		}
+		if(!ans){
+			history.back();
+		} else {
+			location.href = "https://www.jstage.jst.go.jp/browse/-char/en";
+		}
+}
+</script>
+</body>
+</html>
