@@ -1321,10 +1321,6 @@
         border-color .2s ease;
     }
 
-    .sidebar-header {
-      margin-bottom: 15px;
-    }
-
     .sidebar h2 {
       margin: 4px 0 0;
       font-size: 18px;
@@ -2041,12 +2037,6 @@
       </section>
 
       <aside class="sidebar" id="sidebar" aria-label="Réglages du simulateur">
-        <div class="sidebar-header">
-          <div class="eyebrow">Conditions du port</div>
-          <h2>Ce qui agit sur le bateau</h2>
-          <p class="sidebar-subtitle">Changez une seule condition à la fois pour sentir son influence sur la trajectoire.</p>
-        </div>
-
         <section class="port-control-panel" aria-label="Port et situation">
           <div class="port-control-grid">
             <div class="field">
@@ -20245,14 +20235,13 @@ void main() {
       card.hidden = false;
       $("#communityPortName").textContent = PORT_TOPOLOGY.metadata?.name || PORT_TOPOLOGY.name;
       const metadata = PORT_TOPOLOGY.metadata || {};
-      const origin = PORT_TOPOLOGY.georeference?.origin;
       const details = [
-        metadata.author ? `par ${metadata.author}` : "auteur non renseigné",
-        origin ? `${origin.latitude.toFixed(5)}, ${origin.longitude.toFixed(5)}` : null,
         metadata.openingHours || null,
         metadata.currentAdvice || null
       ].filter(Boolean);
-      $("#communityPortMeta").textContent = details.join(" · ");
+      const summary = $("#communityPortMeta");
+      summary.textContent = details.join(" · ");
+      summary.hidden = details.length === 0;
       $("#scenarioSelect").innerHTML = `
         <optgroup label="Port communautaire">
           <option value="community">Navigation libre · point d’entrée</option>

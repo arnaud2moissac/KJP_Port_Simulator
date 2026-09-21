@@ -305,6 +305,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(report.rows.join(" "), /jusant/);
     assert.match(report.rows.join(" "), /capitainerie avant l'entrée/);
     assert.equal(report.url, "https://example.com/capitainerie");
+    const portBanner = await page.locator("#communityPortCard").innerText();
+    assert.doesNotMatch(portBanner, /Équipage Test/);
+    assert.doesNotMatch(portBanner, /47\.58626|-3\.02937/);
+    assert.match(portBanner, /08:00–20:00/);
+    assert.match(portBanner, /jusant/);
     assert.match(report.shortcuts, /Maj.*déplacer la carte autour du bateau/);
     assert.ok(report.headerTitles.every(item => item.title.length > 0));
 
