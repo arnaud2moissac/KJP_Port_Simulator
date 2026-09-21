@@ -46,6 +46,29 @@ visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction
 Les références raster natives servent à détecter les régressions de ce backend,
 sans rétablir une exigence de parité pixel avec Legacy.
 
+## Sources et bibliographie
+
+Par défaut, toute source externe effectivement utilisée pour comprendre,
+concevoir, calibrer, valider ou implémenter KJP doit être ajoutée au même
+changement dans [`bibliographie/biblio.txt`](bibliographie/biblio.txt). Indiquer
+l'URL canonique, le rôle précis de la source dans le projet et, si utile, la
+conversation ou le document KJP qui l'a introduite.
+
+- Archiver la réponse originale dans `bibliographie/` au format PDF ou HTML
+  lorsque son téléchargement public est possible ; employer un nom de fichier
+  descriptif et stable.
+- Si la récupération échoue, est refusée, exige une authentification ou ne
+  fournit pas de document archivable, conserver au minimum l'URL et le motif
+  dans `biblio.txt`.
+- Dédupliquer les alias et les URL avec fragment autour d'une référence
+  canonique. Ne pas classer comme bibliographie les URL internes KJP, les dépôts,
+  les releases, les fixtures ou les URL de test ; signaler une exclusion utile
+  dans le manifeste.
+
+Cette mise à jour documentaire fait partie du comportement normal dès qu'une
+source est utilisée ; elle n'autorise pas à remplacer une mesure, une calibration
+ou une validation par une simple citation.
+
 ## Valider proportionnellement au risque
 
 ### `patch-local`

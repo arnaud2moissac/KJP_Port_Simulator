@@ -3374,7 +3374,7 @@ npm run verify:release</code></pre>
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "5.5.0",
+    version: "5.6.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -3522,6 +3522,8 @@ npm run verify:release</code></pre>
       hullStiffness: 98000,
       dampingRatio: 0.82,
       friction: 0.30,
+      hullFriction: 0.30,
+      fenderFriction: 0.03,
       forceLimit: 90000,
       fenders: REFERENCE_FENDERS,
       hullEnvelope: contactEnvelopeFromGunwale(REFERENCE_GUNWALE, 0.22)
@@ -3607,6 +3609,13 @@ npm run verify:release</code></pre>
           unit: "m",
           uncertainty: 0.03,
           domain: "pare-battages de diamètre 0,35 m"
+        },
+        "contacts.fenderFriction": {
+          sourceType: "calibrated",
+          source: "Coefficient tangentiel effectif calé par contact rasant déterministe à 60/120/240 Hz",
+          unit: "dimensionless",
+          uncertainty: 0.5,
+          domain: "roulement et suspension lâche d'un pare-battage cylindrique à basse vitesse"
         },
         "contacts.hullEnvelope": {
           sourceType: "calibrated",
@@ -3834,6 +3843,8 @@ npm run verify:release</code></pre>
         hullStiffness: spec.contact.hullStiffness,
         dampingRatio: 0.82,
         friction: 0.3,
+        hullFriction: 0.3,
+        fenderFriction: 0.03,
         forceLimit: spec.contact.forceLimit,
         fenders,
         hullEnvelope: contactEnvelopeFromGunwale(gunwale, 0.22 * lengthScale)
@@ -4234,6 +4245,12 @@ npm run verify:release</code></pre>
         errors.push(`Pare-battage invalide : ${fender?.id || "sans identifiant"}.`);
       }
     }
+    for (const field of ["friction", "hullFriction", "fenderFriction"]) {
+      const value = rawProfile.contacts?.[field];
+      if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
+        errors.push(`contacts.${field} doit être compris entre 0 et 1.`);
+      }
+    }
     for (const cleat of rawProfile.deckHardware?.cleats || []) {
       if (
         !cleat?.id
@@ -4508,6 +4525,8 @@ npm run verify:release</code></pre>
       aerodynamics: raw.aerodynamics,
       contacts: {
         ...raw.contacts,
+        hullFriction: raw.contacts.hullFriction ?? raw.contacts.friction,
+        fenderFriction: raw.contacts.fenderFriction ?? raw.contacts.friction,
         fenders
       },
       deckHardware: { cleats },
@@ -4638,7 +4657,7 @@ npm run verify:release</code></pre>
   // que la prise KJP représente le centre de sa boucle sur le ponton.
   const PENDILLE_PICKUP_REACH_M = 1.8;
   const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
-  const PHYSICS_VERSION = "5.4.0";
+  const PHYSICS_VERSION = "5.5.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -6629,14 +6648,16 @@ npm run verify:release</code></pre>
         type: "fender",
         x: fender.x,
         y: fender.y,
-        radius: profile.contacts.fenderRadius
+        radius: profile.contacts.fenderRadius,
+        friction: profile.contacts.fenderFriction
       }));
       samples.push(...profile.contacts.hullEnvelope.map(point => ({
         id: point.id,
         type: "hull",
         x: point.position.x,
         y: point.position.y,
-        radius: point.radius
+        radius: point.radius,
+        friction: profile.contacts.hullFriction
       })));
       return samples;
     }
@@ -6693,8 +6714,8 @@ npm run verify:release</code></pre>
           );
           const tangentForce = -clamp(
             tangentSpeed * effectiveMass / Math.max(dt, MAX_STEP),
-            -normalForce * profile.contacts.friction,
-            normalForce * profile.contacts.friction
+            -normalForce * sample.friction,
+            normalForce * sample.friction
           );
           const X = normalBody.u * normalForce + tangentBody.u * tangentForce;
           const Y = normalBody.v * normalForce + tangentBody.v * tangentForce;
@@ -6719,6 +6740,10 @@ npm run verify:release</code></pre>
             normalNorth: hit.normalNorth,
             penetration,
             impactSpeed,
+            material: sample.type,
+            normalForce,
+            tangentForce,
+            frictionCoefficient: sample.friction,
             classification: classifyImpact(impactSpeed)
           });
           const correctionGain = 1 - Math.exp(-dt / 0.08);
@@ -7937,7 +7962,22 @@ npm run verify:release</code></pre>
       height,
       "floating"
     );
-    return { ...object, id, type, center, length, width, heading, height, vertical };
+    const endShape = type === "catway" ? (object.endShape ?? "rounded") : undefined;
+    if (type === "catway" && !["rounded", "square"].includes(endShape)) {
+      addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum");
+    }
+    return {
+      ...object,
+      id,
+      type,
+      center,
+      length,
+      width,
+      heading,
+      height,
+      vertical,
+      ...(type === "catway" ? { endShape } : {})
+    };
   }
 
   function validatePolyline(obstacle, path, errors, ids) {
@@ -8186,6 +8226,68 @@ npm run verify:release</code></pre>
       longitudinal: dx * c + dy * s,
       transverse: -dx * s + dy * c
     };
+  }
+
+  function catwayPlanform(catway, { segments = 12 } = {}) {
+    const center = catway.center || { east: catway.x, north: catway.y };
+    const length = Number(catway.length ?? catway.w);
+    const width = Number(catway.width ?? catway.h);
+    const heading = Number(catway.heading) || 0;
+    if (![center?.east, center?.north, length, width, heading].every(Number.isFinite)) {
+      throw new TypeError("Catway invalide pour le calcul de son contour.");
+    }
+    const count = Math.max(2, Math.floor(Number(segments) || 12));
+    const halfLength = length / 2;
+    const halfWidth = width / 2;
+    const shape = catway.endShape ?? "rounded";
+    const hidden = new Set(catway.hiddenFaces || []);
+    const attached = Boolean(catway.attachment || catway.parentId);
+    const rootFace = hidden.has("x1") ? "x1" : attached ? "x0" : null;
+    const rootOverlap = attached
+      ? Math.max(0, Number(catway.attachment?.rootOverlap) || 0)
+      : 0;
+    const minimum = -halfLength + (rootFace === "x0" ? rootOverlap : 0);
+    const maximum = halfLength - (rootFace === "x1" ? rootOverlap : 0);
+    if (shape === "square") {
+      return [
+        { longitudinal: minimum, transverse: -halfWidth },
+        { longitudinal: maximum, transverse: -halfWidth },
+        { longitudinal: maximum, transverse: halfWidth },
+        { longitudinal: minimum, transverse: halfWidth }
+      ].map(point => localToWorld({ center, heading }, point));
+    }
+
+    const roundLeft = rootFace !== "x0";
+    const roundRight = rootFace !== "x1";
+    const capDepth = Math.min(halfWidth, Math.max(0, maximum - minimum) / 2);
+    const leftTangent = minimum + (roundLeft ? capDepth : 0);
+    const rightTangent = maximum - (roundRight ? capDepth : 0);
+    const local = [
+      { longitudinal: leftTangent, transverse: -halfWidth },
+      { longitudinal: rightTangent, transverse: -halfWidth }
+    ];
+    if (roundRight) {
+      for (let index = 1; index <= count; index += 1) {
+        const angle = -Math.PI / 2 + Math.PI * index / count;
+        local.push({
+          longitudinal: rightTangent + Math.cos(angle) * capDepth,
+          transverse: Math.sin(angle) * halfWidth
+        });
+      }
+    } else {
+      local.push({ longitudinal: maximum, transverse: halfWidth });
+    }
+    local.push({ longitudinal: leftTangent, transverse: halfWidth });
+    if (roundLeft) {
+      for (let index = 1; index <= count; index += 1) {
+        const angle = Math.PI / 2 + Math.PI * index / count;
+        local.push({
+          longitudinal: leftTangent + Math.cos(angle) * capDepth,
+          transverse: Math.sin(angle) * halfWidth
+        });
+      }
+    }
+    return local.map(point => localToWorld({ center, heading }, point));
   }
 
   function polylineLength(points = []) {
@@ -9013,6 +9115,7 @@ npm run verify:release</code></pre>
       attachment: rectangle.attachment ? clone(rectangle.attachment) : null,
       hiddenFaces: rectangle.attachment ? ["x0"] : [],
       kind: rectangle.type === "catway" ? "catway" : "ponton",
+      ...(rectangle.type === "catway" ? { endShape: rectangle.endShape ?? "rounded" } : {}),
       collision: rectangle.collision !== false
     });
     const cleats = kjp.structures.cleats.map(cleat => {
@@ -9208,7 +9311,7 @@ npm run verify:release</code></pre>
     if (!isObject(topology) || topology.schemaVersion !== 2) {
       throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" }]);
     }
-    return clone({
+    const runtime = clone({
       ...topology,
       sourceFormat: "PORT_TOPOLOGY",
       structures: {
@@ -9224,6 +9327,11 @@ npm run verify:release</code></pre>
         entries: topology.navigation?.entries || []
       }
     });
+    runtime.structures.catways = (runtime.structures.catways || []).map(catway => ({
+      ...catway,
+      endShape: catway.endShape ?? "rounded"
+    }));
+    return runtime;
   }
 
   return Object.freeze({
@@ -9253,6 +9361,7 @@ npm run verify:release</code></pre>
     worldToLocal,
     polylineLength,
     pointOnPolyline,
+    catwayPlanform,
     resolvePendilleGeometry,
     hashString,
     toRuntimeTopology,
@@ -15273,7 +15382,10 @@ void main() {
       dockById = new Map(docks.map(dock => [dock.id, dock]));
       harborRenderIndex = buildHarborRenderIndex();
       boxRenderGeometryById = new Map(
-        [...docks, ...catways].map(box => [box.id, buildBoxRenderGeometry(box)])
+        [
+          ...docks.map(box => [box.id, buildBoxRenderGeometry(box)]),
+          ...catways.map(catway => [catway.id, buildCatwayRenderGeometry(catway)])
+        ]
       );
       shoreCleatRenderGeometryById = new Map(shoreCleats.map(cleat => {
         const arm = 0.22;
@@ -15472,8 +15584,9 @@ void main() {
     }
 
     function physicsObstacles() {
+      const roundedCatways = catways.filter(catway => catway.endShape !== "square");
       return {
-        rectangles: [...docks, ...catways]
+        rectangles: [...docks, ...catways.filter(catway => catway.endShape === "square")]
           .filter(dock => dock.collision !== false)
           .map(dock => ({
             id: dock.id,
@@ -15495,14 +15608,23 @@ void main() {
             north: point.north
           }))
         })),
-        polygons: landAreas.map(area => ({
-          id: area.id,
-          collision: area.collision,
-          points: area.points.map(point => ({
-            east: point.east,
-            north: point.north
-          }))
-        })),
+        polygons: [
+          ...landAreas.map(area => ({
+            id: area.id,
+            collision: area.collision,
+            points: area.points.map(point => ({
+              east: point.east,
+              north: point.north
+            }))
+          })),
+          ...roundedCatways
+            .filter(catway => catway.collision !== false)
+            .map(catway => ({
+              id: catway.id,
+              collision: catway.collision,
+              points: KJPCodec.catwayPlanform(catway)
+            }))
+        ],
         boats: staticBoats.map(boat => ({
           id: boat.id,
           east: boat.x,
@@ -16669,12 +16791,50 @@ void main() {
       return { top, sides, edges };
     }
 
+    function buildCatwayRenderGeometry(catway) {
+      if (catway.endShape === "square") return buildBoxRenderGeometry(catway);
+      const outline = KJPCodec.catwayPlanform(catway);
+      const z0 = catway.z - catway.height / 2;
+      const z1 = catway.z + catway.height / 2;
+      const top = [outline.map(point => [point.east, point.north, z1])];
+      const sides = [];
+      const edges = [];
+      const rootAtX1 = (catway.hiddenFaces || []).includes("x1");
+      const rootX = rootAtX1
+        ? catway.w / 2 - (Number(catway.attachment?.rootOverlap) || 0)
+        : -catway.w / 2 + (Number(catway.attachment?.rootOverlap) || 0);
+      const root = catway.attachment ? localPoint(catway, rootX, 0, 0) : null;
+      const forward = bodyToWorld(1, 0, catway.heading || 0);
+      const edgeIsRoot = (first, second) => {
+        if (!root) return false;
+        const firstX = (first.east - root[0]) * forward[0] + (first.north - root[1]) * forward[1];
+        const secondX = (second.east - root[0]) * forward[0] + (second.north - root[1]) * forward[1];
+        return Math.abs(firstX) < 1e-7 && Math.abs(secondX) < 1e-7;
+      };
+      for (let index = 0; index < outline.length; index += 1) {
+        const first = outline[index];
+        const second = outline[(index + 1) % outline.length];
+        if (edgeIsRoot(first, second)) continue;
+        const a0 = [first.east, first.north, z0];
+        const b0 = [second.east, second.north, z0];
+        const a1 = [first.east, first.north, z1];
+        const b1 = [second.east, second.north, z1];
+        sides.push([a0, b0, b1, a1]);
+        edges.push([a0, b0], [a1, b1]);
+      }
+      return { top, sides, edges };
+    }
+
     function addBox(box, colorTop, colorSide, stroke = null) {
       const outline = stroke ?? visualPalette().harbor.outline;
       const geometry = boxRenderGeometryById.get(box.id) || buildBoxRenderGeometry(box);
       for (const points of geometry.top) addPolygon(points, colorTop, false);
       for (const points of geometry.sides) addPolygon(points, colorSide, false);
       for (const points of geometry.edges) addWorldLine(points, outline, .7);
+    }
+
+    function addCatway(catway, colorTop, colorSide, stroke = null) {
+      addBox(catway, colorTop, colorSide, stroke);
     }
 
     function addExtrudedPolyline(obstacle, colorTop, colorSide, stroke = null) {
@@ -18255,7 +18415,7 @@ void main() {
         collect("dock", dock.id, () => addBox(dock, `${role}Top`, `${role}Side`, "outline"));
       }
       for (const catway of catways) collect("catway", catway.id, () => {
-        addBox(catway, "catwayTop", "catwaySide", "outline");
+        addCatway(catway, "catwayTop", "catwaySide", "outline");
         addCatwayConnector(catway, dockById.get(catway.parentId || catway.attachment?.parentId),
           "catwayTop", "catwaySide", "outline");
       });
@@ -18646,7 +18806,7 @@ void main() {
       for (const catway of catways) {
         if (!visible.has(catway.id)) continue;
         addCachedWorldGeometry(`catway:${cachePrefix}:${catway.id}`, () => {
-          addBox(catway, harbor.catwayTop, harbor.catwaySide, harbor.outline);
+          addCatway(catway, harbor.catwayTop, harbor.catwaySide, harbor.outline);
           addCatwayConnector(
             catway,
             dockById.get(catway.parentId || catway.attachment?.parentId),

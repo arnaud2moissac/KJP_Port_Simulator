@@ -23,7 +23,7 @@
   // que la prise KJP représente le centre de sa boucle sur le ponton.
   const PENDILLE_PICKUP_REACH_M = 1.8;
   const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
-  const PHYSICS_VERSION = "5.4.0";
+  const PHYSICS_VERSION = "5.5.0";
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -2014,14 +2014,16 @@
         type: "fender",
         x: fender.x,
         y: fender.y,
-        radius: profile.contacts.fenderRadius
+        radius: profile.contacts.fenderRadius,
+        friction: profile.contacts.fenderFriction
       }));
       samples.push(...profile.contacts.hullEnvelope.map(point => ({
         id: point.id,
         type: "hull",
         x: point.position.x,
         y: point.position.y,
-        radius: point.radius
+        radius: point.radius,
+        friction: profile.contacts.hullFriction
       })));
       return samples;
     }
@@ -2078,8 +2080,8 @@
           );
           const tangentForce = -clamp(
             tangentSpeed * effectiveMass / Math.max(dt, MAX_STEP),
-            -normalForce * profile.contacts.friction,
-            normalForce * profile.contacts.friction
+            -normalForce * sample.friction,
+            normalForce * sample.friction
           );
           const X = normalBody.u * normalForce + tangentBody.u * tangentForce;
           const Y = normalBody.v * normalForce + tangentBody.v * tangentForce;
@@ -2104,6 +2106,10 @@
             normalNorth: hit.normalNorth,
             penetration,
             impactSpeed,
+            material: sample.type,
+            normalForce,
+            tangentForce,
+            frictionCoefficient: sample.friction,
             classification: classifyImpact(impactSpeed)
           });
           const correctionGain = 1 - Math.exp(-dt / 0.08);

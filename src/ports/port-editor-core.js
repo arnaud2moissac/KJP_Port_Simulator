@@ -370,6 +370,7 @@
           length: settings.length,
           width: settings.width,
           heading: wrapAngle(parent.heading + sideSign * Math.PI / 2),
+          endShape: "rounded",
           height: settings.height,
           vertical: verticalWithDeck(parentVertical.deckZ, settings.height),
           attachment: {

@@ -685,7 +685,11 @@ function syncMapSelection() {
 
 function featureForObject(object, collection) {
   let geometry;
-  if (["pontoons", "catways"].includes(collection)) {
+  if (collection === "catways") {
+    const points = KJPCodec.catwayPlanform(object).map(point => localToMap(point));
+    points.push(points[0]);
+    geometry = new Polygon([points]);
+  } else if (collection === "pontoons") {
     geometry = new Polygon([rectangleMapCoordinates(object)]);
   } else if (collection === "cleats") {
     const rectangleParent = [
@@ -2518,6 +2522,7 @@ function applyDecompositionProposal() {
       length: item.length,
       width: item.width,
       heading: item.heading,
+      endShape: "rounded",
       height,
       vertical: item.vertical || EditorCore.verticalWithDeck(height, height),
       source: clone(source),

@@ -1,7 +1,8 @@
 # Recalibration aérodynamique basse vitesse
 
-État courant au 14 septembre 2026 : moteur physique `5.4.0`, profil
-`sun-odyssey-36i-pedagogical` `5.5.0`. Les sections qui suivent conservent les
+État courant au 19 septembre 2026 : moteur physique `5.5.0`, profil
+`sun-odyssey-36i-pedagogical` `5.6.0`. Cette révision ne change pas les lois
+aérodynamiques ; elle sépare les frottements de coque et de pare-battage. Les sections qui suivent conservent les
 mesures intermédiaires `5.3.0/5.4.0`; le complément en fin de document consigne
 leur réexamen après l'essai utilisateur à 30 nd.
 

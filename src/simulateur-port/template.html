@@ -3634,7 +3634,10 @@
       dockById = new Map(docks.map(dock => [dock.id, dock]));
       harborRenderIndex = buildHarborRenderIndex();
       boxRenderGeometryById = new Map(
-        [...docks, ...catways].map(box => [box.id, buildBoxRenderGeometry(box)])
+        [
+          ...docks.map(box => [box.id, buildBoxRenderGeometry(box)]),
+          ...catways.map(catway => [catway.id, buildCatwayRenderGeometry(catway)])
+        ]
       );
       shoreCleatRenderGeometryById = new Map(shoreCleats.map(cleat => {
         const arm = 0.22;
@@ -3833,8 +3836,9 @@
     }
 
     function physicsObstacles() {
+      const roundedCatways = catways.filter(catway => catway.endShape !== "square");
       return {
-        rectangles: [...docks, ...catways]
+        rectangles: [...docks, ...catways.filter(catway => catway.endShape === "square")]
           .filter(dock => dock.collision !== false)
           .map(dock => ({
             id: dock.id,
@@ -3856,14 +3860,23 @@
             north: point.north
           }))
         })),
-        polygons: landAreas.map(area => ({
-          id: area.id,
-          collision: area.collision,
-          points: area.points.map(point => ({
-            east: point.east,
-            north: point.north
-          }))
-        })),
+        polygons: [
+          ...landAreas.map(area => ({
+            id: area.id,
+            collision: area.collision,
+            points: area.points.map(point => ({
+              east: point.east,
+              north: point.north
+            }))
+          })),
+          ...roundedCatways
+            .filter(catway => catway.collision !== false)
+            .map(catway => ({
+              id: catway.id,
+              collision: catway.collision,
+              points: KJPCodec.catwayPlanform(catway)
+            }))
+        ],
         boats: staticBoats.map(boat => ({
           id: boat.id,
           east: boat.x,
@@ -5030,12 +5043,50 @@
       return { top, sides, edges };
     }
 
+    function buildCatwayRenderGeometry(catway) {
+      if (catway.endShape === "square") return buildBoxRenderGeometry(catway);
+      const outline = KJPCodec.catwayPlanform(catway);
+      const z0 = catway.z - catway.height / 2;
+      const z1 = catway.z + catway.height / 2;
+      const top = [outline.map(point => [point.east, point.north, z1])];
+      const sides = [];
+      const edges = [];
+      const rootAtX1 = (catway.hiddenFaces || []).includes("x1");
+      const rootX = rootAtX1
+        ? catway.w / 2 - (Number(catway.attachment?.rootOverlap) || 0)
+        : -catway.w / 2 + (Number(catway.attachment?.rootOverlap) || 0);
+      const root = catway.attachment ? localPoint(catway, rootX, 0, 0) : null;
+      const forward = bodyToWorld(1, 0, catway.heading || 0);
+      const edgeIsRoot = (first, second) => {
+        if (!root) return false;
+        const firstX = (first.east - root[0]) * forward[0] + (first.north - root[1]) * forward[1];
+        const secondX = (second.east - root[0]) * forward[0] + (second.north - root[1]) * forward[1];
+        return Math.abs(firstX) < 1e-7 && Math.abs(secondX) < 1e-7;
+      };
+      for (let index = 0; index < outline.length; index += 1) {
+        const first = outline[index];
+        const second = outline[(index + 1) % outline.length];
+        if (edgeIsRoot(first, second)) continue;
+        const a0 = [first.east, first.north, z0];
+        const b0 = [second.east, second.north, z0];
+        const a1 = [first.east, first.north, z1];
+        const b1 = [second.east, second.north, z1];
+        sides.push([a0, b0, b1, a1]);
+        edges.push([a0, b0], [a1, b1]);
+      }
+      return { top, sides, edges };
+    }
+
     function addBox(box, colorTop, colorSide, stroke = null) {
       const outline = stroke ?? visualPalette().harbor.outline;
       const geometry = boxRenderGeometryById.get(box.id) || buildBoxRenderGeometry(box);
       for (const points of geometry.top) addPolygon(points, colorTop, false);
       for (const points of geometry.sides) addPolygon(points, colorSide, false);
       for (const points of geometry.edges) addWorldLine(points, outline, .7);
+    }
+
+    function addCatway(catway, colorTop, colorSide, stroke = null) {
+      addBox(catway, colorTop, colorSide, stroke);
     }
 
     function addExtrudedPolyline(obstacle, colorTop, colorSide, stroke = null) {
@@ -6616,7 +6667,7 @@
         collect("dock", dock.id, () => addBox(dock, `${role}Top`, `${role}Side`, "outline"));
       }
       for (const catway of catways) collect("catway", catway.id, () => {
-        addBox(catway, "catwayTop", "catwaySide", "outline");
+        addCatway(catway, "catwayTop", "catwaySide", "outline");
         addCatwayConnector(catway, dockById.get(catway.parentId || catway.attachment?.parentId),
           "catwayTop", "catwaySide", "outline");
       });
@@ -7007,7 +7058,7 @@
       for (const catway of catways) {
         if (!visible.has(catway.id)) continue;
         addCachedWorldGeometry(`catway:${cachePrefix}:${catway.id}`, () => {
-          addBox(catway, harbor.catwayTop, harbor.catwaySide, harbor.outline);
+          addCatway(catway, harbor.catwayTop, harbor.catwaySide, harbor.outline);
           addCatwayConnector(
             catway,
             dockById.get(catway.parentId || catway.attachment?.parentId),

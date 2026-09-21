@@ -159,6 +159,42 @@ test("nouveau port: valeurs de quai, places et catways conformes aux défauts m�
   assert.equal(generated.group.parameters.spacing, 10);
   assert.equal(generated.group.parameters.marginEnd, 0);
   assert.equal(generated.group.parameters.width, 0.6);
+  assert.ok(generated.catways.every(catway => catway.endShape === "rounded"));
+});
+
+test("catways arrondis: le contour partagé conserve la racine et l'extrémité déclarée", () => {
+  const document = createValidPort();
+  const source = document.structures.catways[0];
+  delete source.endShape;
+  const parsed = Codec.parse(Codec.serialize(document));
+  const catway = parsed.structures.catways.find(item => item.id === source.id);
+  assert.equal(catway.endShape, "rounded");
+  const points = Codec.catwayPlanform(catway);
+  const local = points.map(point => Codec.worldToLocal(catway, point));
+  const minimum = Math.min(...local.map(point => point.longitudinal));
+  const maximum = Math.max(...local.map(point => point.longitudinal));
+  assert.ok(Math.abs(minimum - (-catway.length / 2 + catway.attachment.rootOverlap)) < 1e-9);
+  assert.ok(Math.abs(maximum - catway.length / 2) < 1e-9);
+  assert.equal(local.filter(point => Math.abs(point.longitudinal - minimum) < 1e-9).length, 2);
+  assert.ok(local.some(point => (
+    Math.abs(point.longitudinal - maximum) < 1e-9
+    && Math.abs(point.transverse) < 1e-9
+  )));
+
+  const square = Codec.catwayPlanform({ ...catway, endShape: "square" });
+  assert.equal(square.length, 4);
+  assert.throws(
+    () => Codec.serialize({
+      ...document,
+      structures: {
+        ...document.structures,
+        catways: document.structures.catways.map(item => (
+          item.id === source.id ? { ...item, endShape: "pointed" } : item
+        ))
+      }
+    }),
+    error => error instanceof Codec.KJPValidationError
+  );
 });
 
 test("pendilles: une série reste liée au quai et traverse KJP → runtime sans discontinuité", () => {

@@ -6,6 +6,7 @@ const { performance } = require("node:perf_hooks");
 const fs = require("node:fs");
 const path = require("node:path");
 const Physics = require("../../src/simulateur-port/physics-core.js");
+const KJPCodec = require("../../src/ports/kjp-codec.js");
 
 function runContactCase(dt, obstacle) {
   const simulator = Physics.createSimulator({
@@ -46,7 +47,18 @@ test("profil joueur: enveloppe, pare-battages et taquets sont calés sur le rail
   const profile = Physics.DEFAULT_PROFILE;
   const gunwale = profile.geometry.gunwale;
   const envelope = profile.contacts.hullEnvelope;
-  assert.equal(profile.version, "5.5.0");
+  assert.equal(profile.version, "5.6.0");
+  assert.equal(profile.contacts.hullFriction, 0.30);
+  assert.equal(profile.contacts.fenderFriction, 0.03);
+  const compatible = JSON.parse(JSON.stringify(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  ));
+  delete compatible.contacts.hullFriction;
+  delete compatible.contacts.fenderFriction;
+  compatible.contacts.friction = 0.24;
+  const compiledCompatible = Physics.compileVesselProfile(compatible);
+  assert.equal(compiledCompatible.contacts.hullFriction, 0.24);
+  assert.equal(compiledCompatible.contacts.fenderFriction, 0.24);
   assert.equal(gunwale.length, 15);
   assert.equal(envelope.length, 30);
   assert.deepEqual(gunwale[0], { x: -4.8, halfBeam: 1.22, z: 1.137 });
@@ -153,6 +165,162 @@ test("contacts analytiques: rectangle orienté, digue courbe et terre polygonale
     { east: buoy.normalEast, north: buoy.normalNorth },
     { east: 1, north: 0 }
   );
+});
+
+function runGlancingFender(dt, inwardSpeed, { atTip = false } = {}) {
+  const raw = JSON.parse(JSON.stringify(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  ));
+  raw.contacts.fenders = raw.contacts.fenders.filter(
+    fender => fender.id === "fender-mid-port"
+  );
+  const catway = {
+    id: "test-catway",
+    center: { east: 0, north: 0 },
+    length: 12.6,
+    width: 0.7,
+    heading: 0,
+    endShape: "rounded"
+  };
+  const simulator = Physics.createSimulator({
+    profile: raw,
+    environment: { windSpeedKn: 0, currentSpeedKn: 0, propWalk: 0 },
+    obstacles: atTip
+      ? { polygons: [{ id: catway.id, points: KJPCodec.catwayPlanform(catway) }] }
+      : { rectangles: [{
+        id: catway.id,
+        east: 0,
+        north: 0,
+        width: catway.length,
+        height: catway.width,
+        heading: Math.PI / 2
+      }] }
+  });
+  simulator.reset({
+    pose: { east: atTip ? 4 : -4, north: -2.425, heading: Math.PI / 2 },
+    velocity: { u: atTip ? 0.8 : 0.5, v: -inwardSpeed, r: 0 }
+  });
+  const duration = atTip ? 6 : 2;
+  let maximumPenetration = 0;
+  let maximumFrictionRatio = 0;
+  let lastContactTime = null;
+  for (let index = 0; index < Math.round(duration / dt); index += 1) {
+    simulator.step({ throttle: 0, rudder: 0 }, dt);
+    for (const contact of simulator.snapshot().contacts.current) {
+      assert.equal(contact.material, "fender");
+      assert.equal(contact.frictionCoefficient, 0.03);
+      maximumPenetration = Math.max(maximumPenetration, contact.penetration);
+      if (contact.normalForce > 0) {
+        maximumFrictionRatio = Math.max(
+          maximumFrictionRatio,
+          Math.abs(contact.tangentForce) / contact.normalForce
+        );
+      }
+      lastContactTime = index * dt;
+    }
+  }
+  return {
+    snapshot: simulator.snapshot(),
+    maximumPenetration,
+    maximumFrictionRatio,
+    lastContactTime
+  };
+}
+
+test("pare-battage cylindrique: roulement tangentiel sans affaiblir le contact normal", () => {
+  for (const inwardSpeed of [0.15, 0.51]) {
+    for (const dt of [1 / 60, 1 / 120, 1 / 240]) {
+      const result = runGlancingFender(dt, inwardSpeed);
+      const headingDelta = Math.abs(result.snapshot.pose.heading - Math.PI / 2);
+      assert.ok(result.maximumFrictionRatio <= 0.03 + 1e-12);
+      assert.ok(result.maximumPenetration < 0.08);
+      if (inwardSpeed === 0.51) {
+        assert.ok(result.snapshot.velocity.u >= 0.42);
+        assert.ok(headingDelta < 0.5 * Math.PI / 180);
+      }
+    }
+  }
+
+  const raw = JSON.parse(JSON.stringify(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  ));
+  raw.contacts.fenders = [];
+  const simulator = Physics.createSimulator({
+    profile: raw,
+    obstacles: { rectangles: [{
+      id: "flat-pontoon",
+      east: 0,
+      north: 0,
+      width: 12.6,
+      height: 0.7,
+      heading: Math.PI / 2
+    }] }
+  });
+  simulator.reset({
+    pose: { east: -4, north: -2.15, heading: Math.PI / 2 },
+    velocity: { u: 0.5, v: -0.15, r: 0 }
+  });
+  let hullContact = null;
+  for (let index = 0; index < 120 && !hullContact; index += 1) {
+    simulator.step({}, 1 / 120);
+    hullContact = simulator.snapshot().contacts.current.find(
+      contact => contact.material === "hull"
+    );
+  }
+  assert.ok(hullContact, "le contact coque de contrôle doit être exercé");
+  assert.equal(hullContact.frictionCoefficient, 0.30);
+  assert.ok(Math.abs(hullContact.tangentForce) <= hullContact.normalForce * 0.30 + 1e-9);
+});
+
+test("embout arrondi: le pare-battage quitte le catway sans accrochage", () => {
+  const results = [1 / 60, 1 / 120, 1 / 240].map(dt => runGlancingFender(dt, 0.1, {
+    atTip: true
+  }));
+  for (const result of results) {
+    assert.ok(result.lastContactTime < 1.5);
+    assert.equal(result.snapshot.contacts.current.length, 0);
+    assert.ok(result.snapshot.pose.east > 8.2);
+    assert.ok(result.snapshot.velocity.u > 0.65);
+    assert.ok(result.maximumPenetration < 0.04);
+  }
+  assert.ok(Math.abs(results[0].snapshot.pose.east - results[1].snapshot.pose.east) < 0.01);
+  assert.ok(Math.abs(results[2].snapshot.pose.east - results[1].snapshot.pose.east) < 0.01);
+});
+
+test("pare-battage avant: la force normale conserve son bras de levier naturel", () => {
+  const raw = JSON.parse(JSON.stringify(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  ));
+  raw.contacts.fenders = raw.contacts.fenders.filter(
+    fender => fender.id === "fender-bow-port"
+  );
+  const simulator = Physics.createSimulator({
+    profile: raw,
+    obstacles: { rectangles: [{
+      id: "catway-side",
+      east: 0,
+      north: 0,
+      width: 12.6,
+      height: 0.7,
+      heading: Math.PI / 2
+    }] }
+  });
+  const initialHeading = 75 * Math.PI / 180;
+  simulator.reset({
+    pose: { east: -3, north: -2.55, heading: initialHeading },
+    velocity: { u: 0.5, v: 0, r: 0 }
+  });
+  const materials = new Set();
+  for (let index = 0; index < 240; index += 1) {
+    simulator.step({}, 1 / 120);
+    for (const contact of simulator.snapshot().contacts.current) {
+      materials.add(contact.material);
+    }
+  }
+  const result = simulator.snapshot();
+  assert.deepEqual([...materials], ["fender"]);
+  assert.ok(result.pose.heading > initialHeading, "l'étrave doit s'écarter du catway");
+  assert.ok(result.velocity.u > 0.4, "le contact avant ne doit pas immobiliser le bateau");
 });
 
 test("contacts portuaires: absence de traversée et convergence 60/120/240 Hz", () => {

@@ -1873,7 +1873,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
   await t.test("chaque intervalle offre deux postes et chaque bateau longe un catway", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.geometryReport());
     assert.equal(report.berthing.ok, true, report.berthing.failures.join("\n"));
-    assert.equal(report.berthing.occupiedSlotCount, 18);
+    assert.equal(report.berthing.occupiedSlotCount, 19);
     assert.ok(report.berthing.doubleOccupiedIntervals >= 3);
     assert.equal(report.berthing.catwayPitch, 9);
     assert.ok(Math.abs(report.berthing.berthOpening - 8.3) < 1e-9);
@@ -2076,7 +2076,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("le moteur scientifique est intégré avec une masse définie positive", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.physicsReport());
-    assert.equal(report.version, "5.4.0");
+    assert.equal(report.version, "5.5.0");
     const matrix = report.mass.matrix;
     assert.equal(matrix.length, 3);
     assert.equal(matrix[1][2], matrix[2][1]);
@@ -2084,7 +2084,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(matrix[0][0] * matrix[1][1] > 0);
     assert.ok(matrix[1][1] * matrix[2][2] - matrix[1][2] ** 2 > 0);
     assert.equal(report.profile.id, "sun-odyssey-36i-pedagogical");
-    assert.equal(report.profile.version, "5.5.0");
+    assert.equal(report.profile.version, "5.6.0");
     assert.equal(report.profile.schemaVersion, 3);
   });
 
@@ -2548,8 +2548,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("les trois situations rejouent leur trajectoire étalon exactement", async () => {
     assert.equal(trajectoryFixture.profileId, "sun-odyssey-36i-pedagogical");
-    assert.equal(trajectoryFixture.profileVersion, "5.5.0");
-    assert.equal(trajectoryFixture.physicsVersion, "5.4.0");
+    assert.equal(trajectoryFixture.profileVersion, "5.6.0");
+    assert.equal(trajectoryFixture.physicsVersion, "5.5.0");
     const trajectories = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       const scripts = {

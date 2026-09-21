@@ -322,7 +322,22 @@
       height,
       "floating"
     );
-    return { ...object, id, type, center, length, width, heading, height, vertical };
+    const endShape = type === "catway" ? (object.endShape ?? "rounded") : undefined;
+    if (type === "catway" && !["rounded", "square"].includes(endShape)) {
+      addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum");
+    }
+    return {
+      ...object,
+      id,
+      type,
+      center,
+      length,
+      width,
+      heading,
+      height,
+      vertical,
+      ...(type === "catway" ? { endShape } : {})
+    };
   }
 
   function validatePolyline(obstacle, path, errors, ids) {
@@ -571,6 +586,68 @@
       longitudinal: dx * c + dy * s,
       transverse: -dx * s + dy * c
     };
+  }
+
+  function catwayPlanform(catway, { segments = 12 } = {}) {
+    const center = catway.center || { east: catway.x, north: catway.y };
+    const length = Number(catway.length ?? catway.w);
+    const width = Number(catway.width ?? catway.h);
+    const heading = Number(catway.heading) || 0;
+    if (![center?.east, center?.north, length, width, heading].every(Number.isFinite)) {
+      throw new TypeError("Catway invalide pour le calcul de son contour.");
+    }
+    const count = Math.max(2, Math.floor(Number(segments) || 12));
+    const halfLength = length / 2;
+    const halfWidth = width / 2;
+    const shape = catway.endShape ?? "rounded";
+    const hidden = new Set(catway.hiddenFaces || []);
+    const attached = Boolean(catway.attachment || catway.parentId);
+    const rootFace = hidden.has("x1") ? "x1" : attached ? "x0" : null;
+    const rootOverlap = attached
+      ? Math.max(0, Number(catway.attachment?.rootOverlap) || 0)
+      : 0;
+    const minimum = -halfLength + (rootFace === "x0" ? rootOverlap : 0);
+    const maximum = halfLength - (rootFace === "x1" ? rootOverlap : 0);
+    if (shape === "square") {
+      return [
+        { longitudinal: minimum, transverse: -halfWidth },
+        { longitudinal: maximum, transverse: -halfWidth },
+        { longitudinal: maximum, transverse: halfWidth },
+        { longitudinal: minimum, transverse: halfWidth }
+      ].map(point => localToWorld({ center, heading }, point));
+    }
+
+    const roundLeft = rootFace !== "x0";
+    const roundRight = rootFace !== "x1";
+    const capDepth = Math.min(halfWidth, Math.max(0, maximum - minimum) / 2);
+    const leftTangent = minimum + (roundLeft ? capDepth : 0);
+    const rightTangent = maximum - (roundRight ? capDepth : 0);
+    const local = [
+      { longitudinal: leftTangent, transverse: -halfWidth },
+      { longitudinal: rightTangent, transverse: -halfWidth }
+    ];
+    if (roundRight) {
+      for (let index = 1; index <= count; index += 1) {
+        const angle = -Math.PI / 2 + Math.PI * index / count;
+        local.push({
+          longitudinal: rightTangent + Math.cos(angle) * capDepth,
+          transverse: Math.sin(angle) * halfWidth
+        });
+      }
+    } else {
+      local.push({ longitudinal: maximum, transverse: halfWidth });
+    }
+    local.push({ longitudinal: leftTangent, transverse: halfWidth });
+    if (roundLeft) {
+      for (let index = 1; index <= count; index += 1) {
+        const angle = Math.PI / 2 + Math.PI * index / count;
+        local.push({
+          longitudinal: leftTangent + Math.cos(angle) * capDepth,
+          transverse: Math.sin(angle) * halfWidth
+        });
+      }
+    }
+    return local.map(point => localToWorld({ center, heading }, point));
   }
 
   function polylineLength(points = []) {
@@ -1398,6 +1475,7 @@
       attachment: rectangle.attachment ? clone(rectangle.attachment) : null,
       hiddenFaces: rectangle.attachment ? ["x0"] : [],
       kind: rectangle.type === "catway" ? "catway" : "ponton",
+      ...(rectangle.type === "catway" ? { endShape: rectangle.endShape ?? "rounded" } : {}),
       collision: rectangle.collision !== false
     });
     const cleats = kjp.structures.cleats.map(cleat => {
@@ -1593,7 +1671,7 @@
     if (!isObject(topology) || topology.schemaVersion !== 2) {
       throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" }]);
     }
-    return clone({
+    const runtime = clone({
       ...topology,
       sourceFormat: "PORT_TOPOLOGY",
       structures: {
@@ -1609,6 +1687,11 @@
         entries: topology.navigation?.entries || []
       }
     });
+    runtime.structures.catways = (runtime.structures.catways || []).map(catway => ({
+      ...catway,
+      endShape: catway.endShape ?? "rounded"
+    }));
+    return runtime;
   }
 
   return Object.freeze({
@@ -1638,6 +1721,7 @@
     worldToLocal,
     polylineLength,
     pointOnPolyline,
+    catwayPlanform,
     resolvePendilleGeometry,
     hashString,
     toRuntimeTopology,

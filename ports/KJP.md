@@ -31,9 +31,12 @@ zone de 4 km.
 
 ## Géométries
 
-- `structures.pontoons` et `structures.catways` sont des rectangles orientés :
-  `center`, `length`, `width`, `heading`, `height` et un bloc vertical explicite
-  `vertical`.
+- `structures.pontoons` sont des rectangles orientés. Les catways partagent les
+  mêmes champs métriques `center`, `length`, `width`, `heading`, `height` et le
+  bloc vertical explicite `vertical`, avec `endShape: "rounded" | "square"`.
+  La valeur par défaut est `rounded` : l'extrémité libre d'un catway raccordé
+  reçoit un demi-cercle, et les deux extrémités d'un catway isolé sont arrondies.
+  La longueur déclarée reste l'emprise totale de la forme.
 - `vertical.datum` vaut `waterline`. Une structure flottante utilise
   `mode: "floating"`, `baseZ`, `topZ` et `deckZ`; une structure fixe utilise
   `mode: "fixed"` avec les mêmes altitudes métriques. `height` reste la

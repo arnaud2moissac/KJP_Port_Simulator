@@ -162,3 +162,11 @@ Chaque cellule donne le cap nautique final et la durée nécessaire avant stabil
 ## Limites
 
 Le test exclut courant, vagues, faible profondeur, interaction hydrodynamique avec le quai, rafales spatiales, rupture et ragage. Il valide la causalité, la stabilité numérique et la plausibilité opérationnelle du couplage actuel ; il ne revendique ni CFD ni jumeau numérique certifié.
+
+## Complément du 19 septembre 2026 — contact rasant pare-battage–catway
+
+Le moteur physique `5.5.0` et le profil `5.6.0` séparent désormais la résistance tangentielle de la coque (`0,30`) de celle du pare-battage cylindrique (`0,03`). Le ressort, l'amortissement, la limite de force, la correction de pénétration et les seuils de choc restent inchangés. Le coefficient réduit représente, dans ce modèle 3-DOF, le roulement du cylindre et le jeu de sa suspension sans créer de corps rigide ou de couple correcteur supplémentaire.
+
+Le cas de contrôle impose une vitesse longitudinale initiale de `0,50 m/s` et une approche normale de `0,51 m/s` sur le pare-battage central. Après deux secondes, le bateau conserve `0,440 m/s`, le lacet parasite reste compris entre `0,260°` et `0,262°` et la pénétration maximale entre `0,0685 m` et `0,0691 m` aux cadences 60/120/240 Hz. Le rapport `|Ft| / Fn` ne dépasse jamais `0,03`. Le contact direct de coque conserve `0,30`.
+
+Les catways utilisent en parallèle un contour arrondi commun au rendu et à la collision. Le test d'extrémité à 60/120/240 Hz quitte le contact avant `1,40 s`, conserve plus de `0,65 m/s`, ne dépasse pas `0,027 m` de pénétration et ne laisse aucun contact actif. La trajectoire `dockForward` est la seule des trois trajectoires étalons modifiée ; `dockReverse` et `approach` restent identiques. La nouvelle référence est enregistrée après deux relectures déterministes bit à bit.

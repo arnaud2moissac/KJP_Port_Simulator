@@ -380,7 +380,7 @@
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "5.5.0",
+    version: "5.6.0",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -528,6 +528,8 @@
       hullStiffness: 98000,
       dampingRatio: 0.82,
       friction: 0.30,
+      hullFriction: 0.30,
+      fenderFriction: 0.03,
       forceLimit: 90000,
       fenders: REFERENCE_FENDERS,
       hullEnvelope: contactEnvelopeFromGunwale(REFERENCE_GUNWALE, 0.22)
@@ -613,6 +615,13 @@
           unit: "m",
           uncertainty: 0.03,
           domain: "pare-battages de diamètre 0,35 m"
+        },
+        "contacts.fenderFriction": {
+          sourceType: "calibrated",
+          source: "Coefficient tangentiel effectif calé par contact rasant déterministe à 60/120/240 Hz",
+          unit: "dimensionless",
+          uncertainty: 0.5,
+          domain: "roulement et suspension lâche d'un pare-battage cylindrique à basse vitesse"
         },
         "contacts.hullEnvelope": {
           sourceType: "calibrated",
@@ -840,6 +849,8 @@
         hullStiffness: spec.contact.hullStiffness,
         dampingRatio: 0.82,
         friction: 0.3,
+        hullFriction: 0.3,
+        fenderFriction: 0.03,
         forceLimit: spec.contact.forceLimit,
         fenders,
         hullEnvelope: contactEnvelopeFromGunwale(gunwale, 0.22 * lengthScale)
@@ -1240,6 +1251,12 @@
         errors.push(`Pare-battage invalide : ${fender?.id || "sans identifiant"}.`);
       }
     }
+    for (const field of ["friction", "hullFriction", "fenderFriction"]) {
+      const value = rawProfile.contacts?.[field];
+      if (value !== undefined && (!Number.isFinite(value) || value < 0 || value > 1)) {
+        errors.push(`contacts.${field} doit être compris entre 0 et 1.`);
+      }
+    }
     for (const cleat of rawProfile.deckHardware?.cleats || []) {
       if (
         !cleat?.id
@@ -1514,6 +1531,8 @@
       aerodynamics: raw.aerodynamics,
       contacts: {
         ...raw.contacts,
+        hullFriction: raw.contacts.hullFriction ?? raw.contacts.friction,
+        fenderFriction: raw.contacts.fenderFriction ?? raw.contacts.friction,
         fenders
       },
       deckHardware: { cleats },

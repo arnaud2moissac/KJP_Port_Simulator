@@ -1582,11 +1582,11 @@ npm run verify:release</code></pre>
 <ul>
 <li>date de publication : 26 août 2026 ;</li>
 <li>produit : <code>1.1.0</code> ;</li>
-<li>moteur physique : <code>5.2.0</code> ;</li>
-<li>profil pédagogique Sun Odyssey 36i : <code>5.2.0</code> ;</li>
+<li>moteur physique : <code>5.4.0</code> ;</li>
+<li>profil pédagogique Sun Odyssey 36i : <code>5.5.0</code> ;</li>
 <li>générateur et schéma KJP courant : <code>1.1.0</code> et schéma <code>3</code>.</li>
 </ul>
-<p>Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.</p>
+<p>Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports. Le <a href="https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/docs/validation/rapport-recalibration-aerodynamique.md" target="_blank" rel="noopener noreferrer">rapport de recalibration aérodynamique</a> documente les lois, les hypothèses et les contrôles de la version physique courante.</p>
 <h3>Licence et prudence</h3>
 <p>Le projet est distribué sous <a href="https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">licence Apache 2.0</a>. Il s&#39;agit d&#39;un outil pédagogique, pas d&#39;un simulateur certifié ni d&#39;un substitut à l&#39;entraînement avec un moniteur et un équipage réel.</p>
 <h3>Contributeurs</h3>
@@ -1905,7 +1905,22 @@ npm run verify:release</code></pre>
             height,
             "floating"
           );
-          return { ...object, id, type, center, length, width, heading, height, vertical };
+          const endShape = type === "catway" ? object.endShape ?? "rounded" : void 0;
+          if (type === "catway" && !["rounded", "square"].includes(endShape)) {
+            addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum");
+          }
+          return {
+            ...object,
+            id,
+            type,
+            center,
+            length,
+            width,
+            heading,
+            height,
+            vertical,
+            ...type === "catway" ? { endShape } : {}
+          };
         }
         function validatePolyline(obstacle, path, errors, ids) {
           const object = requireObject(obstacle, path, errors);
@@ -2133,6 +2148,64 @@ npm run verify:release</code></pre>
             longitudinal: dx * c + dy * s,
             transverse: -dx * s + dy * c
           };
+        }
+        function catwayPlanform(catway, { segments = 12 } = {}) {
+          const center = catway.center || { east: catway.x, north: catway.y };
+          const length = Number(catway.length ?? catway.w);
+          const width = Number(catway.width ?? catway.h);
+          const heading = Number(catway.heading) || 0;
+          if (![center?.east, center?.north, length, width, heading].every(Number.isFinite)) {
+            throw new TypeError("Catway invalide pour le calcul de son contour.");
+          }
+          const count = Math.max(2, Math.floor(Number(segments) || 12));
+          const halfLength = length / 2;
+          const halfWidth = width / 2;
+          const shape = catway.endShape ?? "rounded";
+          const hidden = new Set(catway.hiddenFaces || []);
+          const attached = Boolean(catway.attachment || catway.parentId);
+          const rootFace = hidden.has("x1") ? "x1" : attached ? "x0" : null;
+          const rootOverlap = attached ? Math.max(0, Number(catway.attachment?.rootOverlap) || 0) : 0;
+          const minimum = -halfLength + (rootFace === "x0" ? rootOverlap : 0);
+          const maximum = halfLength - (rootFace === "x1" ? rootOverlap : 0);
+          if (shape === "square") {
+            return [
+              { longitudinal: minimum, transverse: -halfWidth },
+              { longitudinal: maximum, transverse: -halfWidth },
+              { longitudinal: maximum, transverse: halfWidth },
+              { longitudinal: minimum, transverse: halfWidth }
+            ].map((point) => localToWorld({ center, heading }, point));
+          }
+          const roundLeft = rootFace !== "x0";
+          const roundRight = rootFace !== "x1";
+          const capDepth = Math.min(halfWidth, Math.max(0, maximum - minimum) / 2);
+          const leftTangent = minimum + (roundLeft ? capDepth : 0);
+          const rightTangent = maximum - (roundRight ? capDepth : 0);
+          const local = [
+            { longitudinal: leftTangent, transverse: -halfWidth },
+            { longitudinal: rightTangent, transverse: -halfWidth }
+          ];
+          if (roundRight) {
+            for (let index = 1; index <= count; index += 1) {
+              const angle = -Math.PI / 2 + Math.PI * index / count;
+              local.push({
+                longitudinal: rightTangent + Math.cos(angle) * capDepth,
+                transverse: Math.sin(angle) * halfWidth
+              });
+            }
+          } else {
+            local.push({ longitudinal: maximum, transverse: halfWidth });
+          }
+          local.push({ longitudinal: leftTangent, transverse: halfWidth });
+          if (roundLeft) {
+            for (let index = 1; index <= count; index += 1) {
+              const angle = Math.PI / 2 + Math.PI * index / count;
+              local.push({
+                longitudinal: leftTangent + Math.cos(angle) * capDepth,
+                transverse: Math.sin(angle) * halfWidth
+              });
+            }
+          }
+          return local.map((point) => localToWorld({ center, heading }, point));
         }
         function polylineLength(points = []) {
           let length = 0;
@@ -2877,6 +2950,7 @@ npm run verify:release</code></pre>
             attachment: rectangle.attachment ? clone3(rectangle.attachment) : null,
             hiddenFaces: rectangle.attachment ? ["x0"] : [],
             kind: rectangle.type === "catway" ? "catway" : "ponton",
+            ...rectangle.type === "catway" ? { endShape: rectangle.endShape ?? "rounded" } : {},
             collision: rectangle.collision !== false
           });
           const cleats = kjp.structures.cleats.map((cleat) => {
@@ -3049,7 +3123,7 @@ npm run verify:release</code></pre>
           if (!isObject(topology) || topology.schemaVersion !== 2) {
             throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" }]);
           }
-          return clone3({
+          const runtime = clone3({
             ...topology,
             sourceFormat: "PORT_TOPOLOGY",
             structures: {
@@ -3065,6 +3139,11 @@ npm run verify:release</code></pre>
               entries: topology.navigation?.entries || []
             }
           });
+          runtime.structures.catways = (runtime.structures.catways || []).map((catway) => ({
+            ...catway,
+            endShape: catway.endShape ?? "rounded"
+          }));
+          return runtime;
         }
         return Object.freeze({
           FORMAT,
@@ -3093,6 +3172,7 @@ npm run verify:release</code></pre>
           worldToLocal,
           polylineLength,
           pointOnPolyline,
+          catwayPlanform,
           resolvePendilleGeometry,
           hashString,
           toRuntimeTopology,
@@ -3432,6 +3512,7 @@ npm run verify:release</code></pre>
                 length: settings.length,
                 width: settings.width,
                 heading: wrapAngle(parent.heading + sideSign * Math.PI / 2),
+                endShape: "rounded",
                 height: settings.height,
                 vertical: verticalWithDeck(parentVertical.deckZ, settings.height),
                 attachment: {
@@ -42520,7 +42601,11 @@ out tags geom;`;
   }
   function featureForObject(object, collection) {
     let geometry;
-    if (["pontoons", "catways"].includes(collection)) {
+    if (collection === "catways") {
+      const points = KJPCodec.catwayPlanform(object).map((point) => localToMap(point));
+      points.push(points[0]);
+      geometry = new Polygon_default([points]);
+    } else if (collection === "pontoons") {
       geometry = new Polygon_default([rectangleMapCoordinates(object)]);
     } else if (collection === "cleats") {
       const rectangleParent = [
@@ -44136,6 +44221,7 @@ out tags geom;`;
         length: item.length,
         width: item.width,
         heading: item.heading,
+        endShape: "rounded",
         height,
         vertical: item.vertical || EditorCore.verticalWithDeck(height, height),
         source: clone2(source),
