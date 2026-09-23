@@ -37,13 +37,18 @@ npm run verify:release
 
 Les fichiers HTML à la racine sont générés. Les modifications se font dans `src/`, puis sont intégrées par les scripts de build. Consultez [CONTRIBUTING.md](CONTRIBUTING.md) avant de proposer une évolution.
 
-## Versions de la release 1.1
+## Versions de la release 2.0
 
-- date de publication : 26 août 2026 ;
-- produit : `1.1.0` ;
-- moteur physique : `5.4.0` ;
-- profil pédagogique Sun Odyssey 36i : `5.5.0` ;
+- date de publication : 23 septembre 2026 ;
+- produit : `2.0.0` ;
+- moteur physique : `5.5.0` ;
+- profil pédagogique Sun Odyssey 36i : `5.6.0` ;
 - générateur et schéma KJP courant : `1.1.0` et schéma `3`.
+
+La version 2.0 utilise le renderer Three.js natif comme chemin graphique principal,
+avec un secours Canvas 2D direct, et conserve un livrable HTML autonome utilisable
+hors ligne. Elle intègre également le guide utilisateur illustré et le port de
+La Trinité-sur-Mer actualisé.
 
 Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.
 Le [rapport de recalibration aérodynamique](docs/validation/rapport-recalibration-aerodynamique.md)
@@ -55,4 +60,4 @@ Le projet est distribué sous [licence Apache 2.0](LICENSE). Il s'agit d'un outi
 
 ## Contributeurs
 
-- Arnaud de Moissac
+- Arnaud de Moissac : kjp.bzh@gmail.com

@@ -20,7 +20,7 @@
       "image": "tests/visual-baselines/native/built-in-dark-top-navigation.png",
       "imageBytes": 46431,
       "imageSha256": "75ad0a0f62f1ec34c2c1f3996bd0c010d335d3ea6f4f776ece1568acb460a6d4",
-      "reportSha256": "25f7479fe5641e51276e47a5af15419134b12439f57b9eb8e41becb74259c0d6"
+      "reportSha256": "aac59f85acb493c06e80ae12ffc02949624a807676bb1d68dd9e56de2c78e282"
     },
     {
       "id": "built-in-chart-top-understand",
@@ -35,9 +35,9 @@
         "currentFromDeg": 215
       },
       "image": "tests/visual-baselines/native/built-in-chart-top-understand.png",
-      "imageBytes": 136469,
-      "imageSha256": "d4bfeb307a23c934e9af42502d0f125a367f5752252c7d4b4d903aa0adf19fa1",
-      "reportSha256": "6ea1b9bc6d632f9cfd3fc1c577f7d3623a0af01f18a75d8c6f52f3e4429ec7ad"
+      "imageBytes": 83720,
+      "imageSha256": "8953614872de1c4e1f19cbde8d283229226f422d1eec9999385692a8233f331f",
+      "reportSha256": "cab37bb301702d77bbd470057ab3ead7d450ca246e0caaa58df6318a35cb30cd"
     },
     {
       "id": "built-in-chart-skipper-navigation",
@@ -48,7 +48,7 @@
       "image": "tests/visual-baselines/native/built-in-chart-skipper-navigation.png",
       "imageBytes": 91875,
       "imageSha256": "a27c0292307f3451f26622f803f1d945ec6161c1769adf9ef4efff22283f97d4",
-      "reportSha256": "3c3c0b71b13c3a718e4d15ab0386587f6c0ab16829903a29e95c543f1c9c210a"
+      "reportSha256": "46105e133eb95c1204c2ddaf93ad99b5f6c47c531f15dc4067d5999ebe9a450b"
     },
     {
       "id": "la-trinite-dark-top-navigation",
@@ -59,7 +59,7 @@
       "image": "tests/visual-baselines/native/la-trinite-dark-top-navigation.png",
       "imageBytes": 27589,
       "imageSha256": "5c34296bb27aa479bf000513b109eee62bee6874c21bd922d33a13f52ef58253",
-      "reportSha256": "65aee2e56138ce291edd248fdb6813ac52e1c33def5a41e110347be3c236cc5d"
+      "reportSha256": "bd9f38e54ca0ed47a49f697e404bd0cf04b4f9eddcf7f2b9a27568b1f018dc76"
     },
     {
       "id": "la-trinite-chart-skipper-navigation",
@@ -70,7 +70,7 @@
       "image": "tests/visual-baselines/native/la-trinite-chart-skipper-navigation.png",
       "imageBytes": 63463,
       "imageSha256": "71708da540a684b04e2f51ee37358a0d825923e37efb8a502ce4402e16580417",
-      "reportSha256": "3d0b84115d94d234367e5ec35b1f0627d8f5279db284843b8407e92d94717b95"
+      "reportSha256": "22cbe9eb25b5f6bbfb9ed33b76d6d9b392e18de65e373591ac2589174b360097"
     }
   ]
 }

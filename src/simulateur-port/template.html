@@ -1600,12 +1600,12 @@
     .project-help-content img {
       display: block;
       width: 100%;
-      max-height: 360px;
+      height: auto;
+      max-height: none;
       margin: 14px 0;
       border: 1px solid var(--line);
       border-radius: 12px;
-      object-fit: cover;
-      object-position: top;
+      object-fit: contain;
     }
 
     .unsupported {
@@ -1908,8 +1908,8 @@
           type="button"
           class="header-icon-toggle"
           id="readmeHelpButton"
-          aria-label="Ouvrir l’aide et les informations du projet"
-          title="Aide et informations du projet"
+          aria-label="Ouvrir le guide utilisateur"
+          title="Guide utilisateur"
         >?</button>
         <div class="simulation-actions" aria-label="Actions de simulation">
           <button type="button" class="simulation-action" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise">Ⅱ</button>
@@ -2149,15 +2149,6 @@
           </div>
         </section>
 
-        <section class="section">
-          <div class="section-title"><span>Hélice droitière</span><span id="propWalkSummary" class="control-value">60 %</span></div>
-          <div class="control-row">
-            <div class="control-meta"><label for="propWalk">Force de l'effet de pas</label><span class="control-value" data-value-for="propWalk"></span></div>
-            <input id="propWalk" type="range" min="0" max="100" step="1" value="60">
-          </div>
-          <p class="sidebar-subtitle">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
-        </section>
-
         <details class="section" id="expertDetails">
           <summary>Calibration experte</summary>
           <div class="expert-body">
@@ -2176,6 +2167,11 @@
             <div class="control-row">
               <div class="control-meta"><label for="lateralResistance">Résistance latérale</label><span class="control-value" data-value-for="lateralResistance"></span></div>
               <input id="lateralResistance" type="range" min="60" max="140" step="1" value="100">
+            </div>
+            <div class="control-row">
+              <div class="control-meta"><label for="propWalk">Effet de pas · hélice droitière</label><span id="propWalkSummary" class="control-value" data-value-for="propWalk">60 %</span></div>
+              <input id="propWalk" type="range" min="0" max="100" step="1" value="60" aria-describedby="propWalkDetails">
+              <p class="sidebar-subtitle" id="propWalkDetails">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
             </div>
             <div class="control-row">
               <div class="control-meta"><label for="mooringAttachSpeed">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
@@ -2213,7 +2209,7 @@
 
   <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
     <div class="project-help-header">
-      <strong id="readmeDialogTitle">KJP Port Simulator</strong>
+      <strong id="readmeDialogTitle">Guide utilisateur · KJP Port Simulator</strong>
       <button type="button" class="project-help-close" id="closeReadmeHelp" aria-label="Fermer l’aide">×</button>
     </div>
     <article class="project-help-content">

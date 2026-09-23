@@ -115,7 +115,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     });
   });
 
-  await t.test("l’identité KJP, le favicon et le README sont intégrés hors ligne", async () => {
+  await t.test("l’identité KJP, le favicon et le guide utilisateur sont intégrés hors ligne", async () => {
     const initial = await page.evaluate(() => ({
       kicker: document.querySelector(".brand-kicker")?.textContent.trim(),
       title: document.querySelector(".brand-title")?.textContent.trim(),
@@ -133,14 +133,57 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     const help = await page.evaluate(() => ({
       open: document.querySelector("#readmeDialog").open,
       text: document.querySelector("#readmeDialog").textContent,
+      title: document.querySelector("#readmeDialogTitle").textContent,
       embeddedImages: Array.from(document.querySelectorAll("#readmeDialog img"))
-        .every(image => image.src.startsWith("data:image/"))
+        .map(image => ({
+          source: image.src,
+          width: image.clientWidth,
+          height: image.clientHeight,
+          naturalWidth: image.naturalWidth,
+          naturalHeight: image.naturalHeight
+        }))
     }));
     assert.equal(help.open, true);
-    assert.match(help.text, /Versions de la release 1\.1/);
-    assert.match(help.text, /26 août 2026/);
-    assert.match(help.text, /Arnaud de Moissac/);
-    assert.equal(help.embeddedImages, true);
+    assert.equal(help.title, "Guide utilisateur · KJP Port Simulator");
+    assert.match(help.text, /Manœuvrer au port avec KJP Port Simulator/);
+    assert.match(help.text, /Sur ordinateur/);
+    assert.match(help.text, /Sur tablette ou téléphone/);
+    assert.doesNotMatch(help.text, /Profondeur du port|petit fond|garde sous quille/);
+    assert.equal(help.embeddedImages.length, 4);
+    assert.equal(
+      help.embeddedImages.every(image => image.source.startsWith("data:image/")),
+      true
+    );
+    for (const image of help.embeddedImages) {
+      assert.ok(image.naturalWidth > 0 && image.naturalHeight > 0);
+      assert.ok(Math.abs(
+        image.width / image.height - image.naturalWidth / image.naturalHeight
+      ) < 0.01, "le guide doit afficher chaque capture sans la rogner");
+    }
+
+    await page.setViewportSize({ width: 768, height: 1024 });
+    const tabletHelp = await page.evaluate(() => ({
+      dialogWidth: document.querySelector("#readmeDialog").getBoundingClientRect().width,
+      viewportWidth: window.innerWidth,
+      contentOverflow: (
+        document.querySelector(".project-help-content").scrollWidth
+        - document.querySelector(".project-help-content").clientWidth
+      ),
+      images: Array.from(document.querySelectorAll("#readmeDialog img")).map(image => ({
+        width: image.clientWidth,
+        height: image.clientHeight,
+        naturalWidth: image.naturalWidth,
+        naturalHeight: image.naturalHeight
+      }))
+    }));
+    assert.ok(tabletHelp.dialogWidth <= tabletHelp.viewportWidth);
+    assert.ok(tabletHelp.contentOverflow <= 1);
+    for (const image of tabletHelp.images) {
+      assert.ok(Math.abs(
+        image.width / image.height - image.naturalWidth / image.naturalHeight
+      ) < 0.01, "la tablette doit afficher chaque capture sans la rogner");
+    }
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.click("#closeReadmeHelp");
   });
 
@@ -342,7 +385,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
     const trinitePath = path.join(projectRoot, "la_Trinite.kjp");
     const triniteText = fs.readFileSync(trinitePath, "utf8");
-    assert.equal(KJPCodec.parse(triniteText).metadata.name, "La Trinité");
+    assert.equal(KJPCodec.parse(triniteText).metadata.name, "La Trinité sur mer");
     const triniteUrl = "https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp";
     await page.route(triniteUrl, route => route.fulfill({
       status: 200, contentType: "application/json", body: triniteText,
@@ -351,11 +394,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     await select.selectOption("loadTrinite");
     await page.waitForFunction(() => document.querySelector("#impactToast").textContent
       === "Fichier trouvé, en cours de chargement…");
-    await page.waitForFunction(() => window.__PORTANCE_TEST__.portInformationReport().metadata.name === "La Trinité");
-    assert.equal(await page.locator("#impactToast").textContent(), "Fichier chargé · La Trinité");
+    await page.waitForFunction(() => window.__PORTANCE_TEST__.portInformationReport().metadata.name === "La Trinité sur mer");
+    assert.equal(await page.locator("#impactToast").textContent(), "Fichier chargé · La Trinité sur mer");
     assert.equal(await select.inputValue(), "community");
     assert.deepEqual(await select.locator("option").allTextContents(), [
-      "Port pédagogique", "La Trinité", "Charger la Trinité", "Construire un port"
+      "Port pédagogique", "La Trinité sur mer", "Charger la Trinité", "Construire un port"
     ]);
     await page.unroute(triniteUrl);
 
@@ -1360,6 +1403,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     await expert.evaluate(element => {
       element.open = true;
     });
+    assert.equal(await expert.locator("#propWalk").count(), 1);
+    assert.equal(
+      await page.locator('label[for="propWalk"]').textContent(),
+      "Effet de pas · hélice droitière"
+    );
     const input = page.locator("#mooringAttachSpeed");
     assert.equal(await input.inputValue(), "0.6");
     assert.equal(

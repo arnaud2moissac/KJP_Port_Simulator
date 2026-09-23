@@ -120,7 +120,7 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       text: document.querySelector("#readmeDialog").textContent
     }));
     assert.equal(help.open, true);
-    assert.match(help.text, /Versions de la release 1\.1/);
+    assert.match(help.text, /Versions de la release 2\.0/);
     assert.match(help.text, /Arnaud de Moissac/);
     await page.click("#closeReadmeHelp");
   });

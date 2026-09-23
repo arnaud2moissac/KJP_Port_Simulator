@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
-const { projectAssets } = require("./embed-project-readme.js");
+const { projectAssets, renderReadme } = require("./embed-project-readme.js");
 
 const root = path.resolve(__dirname, "..");
 const templatePath = path.join(root, "src", "simulateur-port", "template.html");
@@ -18,6 +18,7 @@ const threeEntryPath = path.join(
   "index.js"
 );
 const outputPath = path.join(root, "simulateur-port.html");
+const guidePath = path.join(root, "docs", "guide-utilisateur.md");
 const marker = "/*__PORT_PHYSICS_CORE__*/";
 const codecMarker = "/*__KJP_CODEC__*/";
 const threeMarker = "/*__THREE_RENDERING_BUNDLE__*/";
@@ -214,7 +215,11 @@ function build() {
   const physics = fs.readFileSync(physicsPath, "utf8");
   const codec = fs.readFileSync(codecPath, "utf8");
   const threeRendering = bundleThreeRendering();
-  const { logoDataUri, readmeHtml } = projectAssets(root);
+  const { logoDataUri } = projectAssets(root);
+  const guideHtml = renderReadme(
+    fs.readFileSync(guidePath, "utf8"),
+    path.dirname(guidePath)
+  );
   const topologyMatch = template.match(topologyPattern);
   if (!topologyMatch) {
     throw new Error("Balise <script data-port-topology> absente du modèle HTML.");
@@ -249,7 +254,7 @@ function build() {
     )
     .replace(codecMarker, () => codec.trim())
     .replace(threeMarker, () => threeRendering.trim())
-    .replace(readmeMarker, () => readmeHtml)
+    .replace(readmeMarker, () => guideHtml)
     .replaceAll(logoMarker, logoDataUri);
   if (
     output.includes(marker)
