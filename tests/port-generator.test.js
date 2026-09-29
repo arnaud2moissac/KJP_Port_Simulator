@@ -129,7 +129,9 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     const html = fs.readFileSync(generatorPath, "utf8");
     const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"));
     assert.equal(packageJson.devDependencies.ol, "10.10.0");
-    assert.doesNotMatch(html, /<script[^>]+src=/i);
+    const analyticsTag = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-D901YPY4SY"></script>';
+    assert.equal(html.split(analyticsTag).length - 1, 1);
+    assert.doesNotMatch(html.replace(analyticsTag, ""), /<script[^>]+src=/i);
     assert.doesNotMatch(html, /<link[^>]+rel=["']stylesheet/i);
     assert.match(html, /OpenLayers/);
     assert.match(html, /tiles\.openseamap\.org/);
@@ -143,7 +145,8 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
   });
 
   await t.test("aucune requête cartographique ou géographique n'est émise avant une action", async () => {
-    assert.deepEqual(externalRequests, []);
+    const mapRequests = externalRequests.filter(url => !/https:\/\/(?:www\.googletagmanager\.com|(?:www|region\d+)\.google-analytics\.com)\//i.test(url));
+    assert.deepEqual(mapRequests, []);
     const report = await page.evaluate(() => ({
       layers: window.__KJP_GENERATOR_TEST__.layers(),
       requests: window.__KJP_GENERATOR_TEST__.networkRequests()

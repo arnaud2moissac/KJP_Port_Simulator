@@ -13,6 +13,7 @@ const cssMarker = "/*__PORT_GENERATOR_CSS__*/";
 const jsMarker = "/*__PORT_GENERATOR_JS__*/";
 const readmeMarker = "<!--__README_HTML__-->";
 const logoMarker = "__KJP_LOGO_DATA_URI__";
+const analyticsTag = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-D901YPY4SY"></script>';
 
 async function bundle() {
   const result = await esbuild.build({
@@ -61,7 +62,7 @@ async function build() {
   ) {
     throw new Error("Un marqueur subsiste dans le générateur.");
   }
-  if (/<script[^>]+src=|<link[^>]+rel=["']stylesheet["'][^>]+href=/i.test(output)) {
+  if (/<script[^>]+src=|<link[^>]+rel=["']stylesheet["'][^>]+href=/i.test(output.replace(analyticsTag, ""))) {
     throw new Error("Le générateur contient une ressource JavaScript/CSS externe.");
   }
   return output;
