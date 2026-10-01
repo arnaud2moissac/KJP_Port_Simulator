@@ -616,8 +616,8 @@
 
   return deepFreeze({
     schemaVersion: 2,
-    id: "la-trinite-pedagogique",
-    name: "La Trinité-sur-Mer — bassin pédagogique",
+    id: "port-pedagogique",
+    name: "Port - bassin pédagogique",
     units: {
       distance: "m",
       speed: "m/s",

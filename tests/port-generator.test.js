@@ -935,7 +935,7 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.ok(large.renderIndex.visible < large.renderIndex.records);
 
     const restored = await simulator.evaluate(() => window.__PORTANCE_TEST__.restoreBuiltInPort());
-    assert.equal(restored.topology, "la-trinite-pedagogique");
+    assert.equal(restored.topology, "port-pedagogique");
     assert.equal(restored.scenario, "dockForward");
     assert.equal(restored.communityPort, false);
 
@@ -949,7 +949,7 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     );
     await simulator.locator("#portSourceSelect").selectOption("builtIn");
     await simulator.waitForFunction(() => (
-      window.__PORTANCE_TEST__.topologyReport().id === "la-trinite-pedagogique"
+      window.__PORTANCE_TEST__.topologyReport().id === "port-pedagogique"
     ));
     assert.equal(
       await simulator.locator("#portSourceSelect").inputValue(),

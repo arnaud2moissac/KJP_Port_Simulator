@@ -194,9 +194,9 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       /<script data-port-topology="embedded">/
     );
     assert.doesNotMatch(html, /<script[^>]+data-port-topology[^>]+src=/);
-    assert.match(html, /id:\s*"la-trinite-pedagogique"/);
+    assert.match(html, /id:\s*"port-pedagogique"/);
     assert.equal(portTopology.schemaVersion, 2);
-    assert.equal(portTopology.id, "la-trinite-pedagogique");
+    assert.equal(portTopology.id, "port-pedagogique");
     assert.deepEqual(portTopology.units, {
       distance: "m",
       speed: "m/s",
@@ -366,8 +366,12 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     const pedagogicalPort = await page.evaluate(
       () => window.__PORTANCE_TEST__.portInformationReport()
     );
-    assert.equal(pedagogicalPort.metadata.author, "Arnaud de Moissac");
-    assert.match(pedagogicalPort.rows.join(" "), /Arnaud de Moissac/);
+    assert.equal(pedagogicalPort.metadata.name, "Port - bassin pédagogique");
+    assert.equal(pedagogicalPort.metadata.author, "KJP");
+    assert.equal(pedagogicalPort.metadata.id, "port-pedagogique");
+    assert.equal(pedagogicalPort.metadata.comment, undefined);
+    assert.equal(pedagogicalPort.url, "https://github.com/arnaud2moissac/KJP_Port_Simulator");
+    assert.match(pedagogicalPort.rows.join(" "), /KJP/);
     await page.locator("#portInfoButton").click();
   });
 
@@ -2657,6 +2661,9 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     const htmlWithoutReadmeLinks = html.replace(
       /<dialog class="project-help-dialog"[\s\S]*?<\/dialog>/,
       ""
+    ).replace(
+      /<script async src="https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-DQMS2JRBQ3"><\/script>/,
+      ""
     );
     const topologySource = fs.readFileSync(topologyPath, "utf8");
     assert.doesNotMatch(
@@ -2701,7 +2708,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(desktop.current, /^0(?:,0)? nd$/);
     assert.match(desktop.rpm, /^\d+$/);
     assert.equal(desktop.overflow, false);
-    assert.deepEqual(externalRequests, []);
+    const unexpectedRequests = externalRequests.filter(url => (
+      !/^https:\/\/www\.googletagmanager\.com\/gtag\/js\?id=G-DQMS2JRBQ3$/i.test(url)
+      && !/^https:\/\/(?:www|region\d+)\.google-analytics\.com\//i.test(url)
+    ));
+    assert.deepEqual(unexpectedRequests, []);
 
     await page.screenshot({ path: "/tmp/simulateur-port-non-regression-desktop.png" });
     await page.setViewportSize({ width: 390, height: 844 });
