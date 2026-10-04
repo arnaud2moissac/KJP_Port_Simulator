@@ -23,7 +23,21 @@
   // que la prise KJP représente le centre de sa boucle sur le ponton.
   const PENDILLE_PICKUP_REACH_M = 1.8;
   const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
-  const PHYSICS_VERSION = "5.5.0";
+  const PHYSICS_VERSION = "6.0.0";
+  // Quadrature de Gauss-Legendre à huit points. Elle permet d'intégrer la
+  // surface réellement traversée par le jet le long de la corde du safran,
+  // sans rendre le résultat dépendant du nombre de bandes verticales choisi
+  // pour le diagnostic.
+  const RUDDER_CHORD_QUADRATURE = Object.freeze([
+    [-0.9602898564975363, 0.1012285362903763],
+    [-0.7966664774136267, 0.2223810344533745],
+    [-0.5255324099163290, 0.3137066458778873],
+    [-0.1834346424956498, 0.3626837833783620],
+    [0.1834346424956498, 0.3626837833783620],
+    [0.5255324099163290, 0.3137066458778873],
+    [0.7966664774136267, 0.2223810344533745],
+    [0.9602898564975363, 0.1012285362903763]
+  ]);
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const smoothstep = (a, b, value) => {
@@ -1622,27 +1636,80 @@
       return { ...units[0], units };
     }
 
-    function slipstreamCoverage(propulsor, rudder, stripZ) {
-      const longitudinalDistance = Math.abs(rudder.x - propulsor.x);
+    function rudderSurfaceGeometry(rudder, delta) {
+      const chordX = Math.cos(delta);
+      const chordY = Math.sin(delta);
+      const stockOffset = (0.5 - rudder.stockChordFraction) * rudder.meanChord;
+      return {
+        chordDirection: { x: chordX, y: chordY },
+        stockOffset,
+        stock: { x: rudder.stock.x, y: rudder.stock.y },
+        center: {
+          x: rudder.stock.x - stockOffset * chordX,
+          y: rudder.stock.y - stockOffset * chordY
+        }
+      };
+    }
+
+    function wakeRadiusAt(propulsor, rudder, x) {
+      const longitudinalDistance = Math.abs(x - propulsor.x);
       const contractionProgress = smoothstep(
         0,
         Math.max(EPSILON, 4 * propulsor.diameter),
         longitudinalDistance
       );
-      const wakeRadius = 0.5 * propulsor.diameter * (
+      return 0.5 * propulsor.diameter * (
         1 - (1 - rudder.slipstream.contractionRatio) * contractionProgress
       );
+    }
+
+    function slipstreamCoverage(propulsor, rudder, stripZ, surface) {
       const stripHalfHeight = rudder.span / rudder.slipstream.stripCount / 2;
+      const stripBottom = stripZ - stripHalfHeight;
+      const stripTop = stripZ + stripHalfHeight;
+      let fraction = 0;
+      let verticalRatioMoment = 0;
+      for (const [node, weight] of RUDDER_CHORD_QUADRATURE) {
+        const chordCoordinate = node * rudder.meanChord / 2;
+        const axisOffset = chordCoordinate - surface.stockOffset;
+        const pointX = surface.stock.x + axisOffset * surface.chordDirection.x;
+        const pointY = surface.stock.y + axisOffset * surface.chordDirection.y;
+        const wakeRadius = wakeRadiusAt(propulsor, rudder, pointX);
+        const lateralOffset = pointY - propulsor.y;
+        const verticalHalfWidth = Math.sqrt(Math.max(
+          0,
+          wakeRadius * wakeRadius - lateralOffset * lateralOffset
+        ));
+        if (verticalHalfWidth <= EPSILON) continue;
+        const overlapBottom = Math.max(
+          stripBottom,
+          propulsor.z - verticalHalfWidth
+        );
+        const overlapTop = Math.min(
+          stripTop,
+          propulsor.z + verticalHalfWidth
+        );
+        const overlapHeight = Math.max(0, overlapTop - overlapBottom);
+        if (overlapHeight <= EPSILON) continue;
+        const verticalFraction = overlapHeight / (2 * stripHalfHeight);
+        const normalizedWeight = weight / 2;
+        const weightedFraction = normalizedWeight * verticalFraction;
+        const overlapCenter = (overlapBottom + overlapTop) / 2;
+        fraction += weightedFraction;
+        verticalRatioMoment += weightedFraction * clamp(
+          (overlapCenter - propulsor.z) / Math.max(EPSILON, wakeRadius),
+          -1,
+          1
+        );
+      }
+      const wakeRadius = wakeRadiusAt(propulsor, rudder, surface.center.x);
       const radialDistance = Math.hypot(
-        rudder.y - propulsor.y,
+        surface.center.y - propulsor.y,
         stripZ - propulsor.z
       );
       return {
-        fraction: 1 - smoothstep(
-          Math.max(0, wakeRadius - stripHalfHeight),
-          wakeRadius + stripHalfHeight,
-          radialDistance
-        ),
+        fraction: clamp(fraction, 0, 1),
+        verticalRatio: fraction > EPSILON ? verticalRatioMoment / fraction : 0,
         wakeRadius,
         radialDistance
       };
@@ -1656,9 +1723,10 @@
         (candidateState.propulsion.slipstreams || []).map(link => [link.id, link])
       );
       for (const rudder of profile.rudders) {
-        const localU = relative.u - relative.r * rudder.y;
-        const localV = relative.v + relative.r * rudder.x;
         const delta = candidateState.controls.rudderActual;
+        const surface = rudderSurfaceGeometry(rudder, delta);
+        const localU = relative.u - relative.r * surface.center.y;
+        const localV = relative.v + relative.r * surface.center.x;
         const stripCount = rudder.slipstream.stripCount;
         const stripArea = rudder.area / stripCount;
         const strips = [];
@@ -1681,16 +1749,11 @@
             const propulsor = profilePropellerById.get(propulsorId);
             const wake = wakeById.get(`${propulsorId}->${rudder.id}`);
             if (!propulsor || !wake) continue;
-            const geometry = slipstreamCoverage(propulsor, rudder, stripZ);
+            const geometry = slipstreamCoverage(propulsor, rudder, stripZ, surface);
             const coverage = geometry.fraction;
-            const verticalRatio = clamp(
-              (stripZ - propulsor.z) / Math.max(EPSILON, geometry.wakeRadius),
-              -1,
-              1
-            );
             axialVelocity += wake.axialVelocity * coverage;
             tangentialVelocity += (
-              wake.tangentialVelocity * verticalRatio * coverage
+              wake.tangentialVelocity * geometry.verticalRatio * coverage
             );
             stripCoverage = Math.max(stripCoverage, coverage);
             sources.push({
@@ -1782,8 +1845,8 @@
           profile.rudders.length === 1 ? "Safran" : `Safran · ${rudder.id}`,
           X * calibration.rudder,
           Y * calibration.rudder,
-          rudder.x,
-          rudder.y,
+          surface.center.x,
+          surface.center.y,
           0,
           "passive"
         );
@@ -1793,6 +1856,10 @@
           id: rudder.id,
           wash,
           overlap,
+          applicationPoint: { ...surface.center },
+          stockPosition: { ...surface.stock },
+          meanChord: rudder.meanChord,
+          stockChordFraction: rudder.stockChordFraction,
           localFreeFlow: { u: localU, v: localV },
           inducedFlow: {
             axial: wash,

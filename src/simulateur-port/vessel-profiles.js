@@ -8,9 +8,13 @@
   const DEG = Math.PI / 180;
   const KNOT = 0.514444;
   const GRAVITY = 9.80665;
-  const SCHEMA_VERSION = 3;
+  const SCHEMA_VERSION = 4;
   const LEGACY_SCHEMA_VERSION = 1;
-  const PREVIOUS_SCHEMA_VERSION = 2;
+  const PREVIOUS_SCHEMA_VERSIONS = Object.freeze([2, 3]);
+  const ADAPTABLE_SCHEMA_VERSIONS = Object.freeze([
+    LEGACY_SCHEMA_VERSION,
+    ...PREVIOUS_SCHEMA_VERSIONS
+  ]);
   const MODEL_CLASS = "displacement-sailing-monohull";
   const FOUR_QUADRANT_SAMPLES = 32;
 
@@ -380,7 +384,7 @@
   const SUN_ODYSSEY_36I = {
     schemaVersion: SCHEMA_VERSION,
     id: "sun-odyssey-36i-pedagogical",
-    version: "5.6.0",
+    version: "6.0.1",
     name: "Sun Odyssey 36i",
     modelClass: MODEL_CLASS,
     validity: {
@@ -449,7 +453,7 @@
     propulsors: [{
       id: "shaft-propeller",
       type: "fixed-pitch-propeller",
-      position: { x: -3.45, y: 0, z: -0.55 },
+      position: { x: -3.45, y: 0, z: -0.70 },
       axis: { x: 1, y: 0 },
       rotation: "right",
       engine: {
@@ -487,6 +491,7 @@
       id: "spade-rudder",
       position: { x: -4.35, y: 0, z: -1.12 },
       axis: { x: 0, y: 0, z: 1 },
+      stock: { chordFraction: 0.20 },
       area: 0.82,
       span: 1.18,
       aspectRatio: 1.38,
@@ -581,6 +586,20 @@
           source: "Yanmar 3YM30 / KM2P-1 documentation",
           unit: "mixed",
           uncertainty: 0
+        },
+        "propulsors.0.position.z": {
+          sourceType: "estimated",
+          source: "Photographies de carénage du Sun Odyssey 36i fournies dans la conversation KJP du 4 octobre 2026",
+          unit: "m",
+          uncertainty: 0.10,
+          domain: "position verticale de l'axe d'hélice relativement au sommet du safran"
+        },
+        "rudders.0.stock.chordFraction": {
+          sourceType: "estimated",
+          source: "Photographies de carénage du Sun Odyssey 36i fournies dans la conversation KJP du 4 octobre 2026 ; position fixée à 20 % de corde par décision de profil KJP",
+          unit: "fraction de corde depuis le bord d'attaque",
+          uncertainty: 0.08,
+          domain: "safran compensé ; géométrie équivalente à corde moyenne constante"
         },
         "aerodynamics.panels.geometry": {
           sourceType: "estimated",
@@ -707,7 +726,7 @@
     return {
       schemaVersion: SCHEMA_VERSION,
       id: spec.id,
-      version: "3.4.0",
+      version: "4.0.0",
       name: spec.name,
       modelClass: MODEL_CLASS,
       validity: {
@@ -803,6 +822,7 @@
         id: "spade-rudder",
         position: { x: spec.rudder.x, y: 0, z: -spec.canoeDraft },
         axis: { x: 0, y: 0, z: 1 },
+        stock: { chordFraction: spec.rudder.stockChordFraction },
         area: spec.rudder.area,
         span: spec.rudder.span,
         aspectRatio: spec.rudder.aspectRatio,
@@ -931,7 +951,13 @@
       thrustCapAhead: 1450,
       thrustCapAstern: 920
     },
-    rudder: { x: -2.85, area: 0.42, span: 0.80, aspectRatio: 1.52 },
+    rudder: {
+      x: -2.85,
+      area: 0.42,
+      span: 0.80,
+      aspectRatio: 1.52,
+      stockChordFraction: 0.30
+    },
     contact: { fenderStiffness: 26000, hullStiffness: 54000, forceLimit: 42000 },
     mooringWorkingLoadN: 6000,
     provenance: "Geometric and Froude-scaled lower-bound validation profile"
@@ -973,7 +999,13 @@
       thrustCapAhead: 7200,
       thrustCapAstern: 4700
     },
-    rudder: { x: -6.15, area: 1.72, span: 1.72, aspectRatio: 1.72 },
+    rudder: {
+      x: -6.15,
+      area: 1.72,
+      span: 1.72,
+      aspectRatio: 1.72,
+      stockChordFraction: 0.30
+    },
     contact: { fenderStiffness: 105000, hullStiffness: 210000, forceLimit: 185000 },
     mooringWorkingLoadN: 24000,
     provenance: "Geometric and Froude-scaled upper-bound validation profile"
@@ -1020,7 +1052,7 @@
   function upgradeLegacyProfile(rawProfile) {
     if (
       !rawProfile
-      || ![LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION].includes(rawProfile.schemaVersion)
+      || !ADAPTABLE_SCHEMA_VERSIONS.includes(rawProfile.schemaVersion)
     ) {
       return deepClone(rawProfile);
     }
@@ -1116,6 +1148,12 @@
         legacyAreaFraction: legacy.areaFraction || 0.36
       };
     }
+    for (const rudder of upgraded.rudders || []) {
+      // Les anciens schémas décrivaient uniquement le centre surfacique du
+      // safran. Une mèche à mi-corde conserve ce centre comme point de rotation
+      // et constitue donc l'adaptation déterministe la moins intrusive.
+      rudder.stock ||= { chordFraction: 0.5 };
+    }
     upgraded.provenance ||= { values: {} };
     upgraded.provenance.values ||= {};
     upgraded.mooring ||= {};
@@ -1131,10 +1169,10 @@
     };
     upgraded.provenance.values["schema.adapter"] = {
       sourceType: "estimated",
-      source: `deterministic schema ${sourceVersion} to schema 3 compatibility adapter`,
+      source: `deterministic schema ${sourceVersion} to schema ${SCHEMA_VERSION} compatibility adapter`,
       unit: "none",
       uncertainty: 0.35,
-      domain: "temporary compatibility; replace with an explicit profile"
+      domain: "temporary compatibility; rudder stock placed at mid-chord until explicitly profiled"
     };
     return upgraded;
   }
@@ -1145,14 +1183,13 @@
     if (!profileInput || typeof profileInput !== "object") {
       return { ok: false, errors: ["Le profil doit être un objet."], warnings };
     }
-    const legacyInput = [LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION]
-      .includes(profileInput.schemaVersion);
+    const legacyInput = ADAPTABLE_SCHEMA_VERSIONS.includes(profileInput.schemaVersion);
     const rawProfile = legacyInput
       ? upgradeLegacyProfile(profileInput)
       : profileInput;
     if (legacyInput) {
       warnings.push(
-        `Profil schemaVersion ${profileInput.schemaVersion} adapté vers la version 3 : vérifier les paramètres d'élasticité des aussières.`
+        `Profil schemaVersion ${profileInput.schemaVersion} adapté vers la version ${SCHEMA_VERSION} : vérifier l'élasticité des aussières et renseigner explicitement la position de mèche du safran.`
       );
     }
     for (const path of REQUIRED_PATHS) {
@@ -1348,6 +1385,31 @@
       }
     }
     for (const rudder of rawProfile.rudders || []) {
+      const positiveValues = [
+        rudder.area,
+        rudder.span,
+        rudder.aspectRatio,
+        rudder.maxAngleDeg,
+        rudder.rateDegS
+      ];
+      if (!positiveValues.every(value => Number.isFinite(value) && value > 0)) {
+        errors.push(`Géométrie ou cinématique de safran invalide : ${rudder.id}.`);
+      }
+      if (
+        ![rudder.axis?.x, rudder.axis?.y, rudder.axis?.z].every(Number.isFinite)
+        || Math.hypot(rudder.axis.x, rudder.axis.y) > 1e-6
+        || Math.abs(rudder.axis.z) < 1e-6
+      ) {
+        errors.push(`La mèche du safran ${rudder.id} doit définir un axe vertical fini.`);
+      }
+      const chordFraction = rudder.stock?.chordFraction;
+      if (
+        !Number.isFinite(chordFraction)
+        || chordFraction < 0
+        || chordFraction > 1
+      ) {
+        errors.push(`rudders.${rudder.id}.stock.chordFraction doit être compris entre 0 et 1.`);
+      }
       for (const sourceId of rudder.slipstreamSources || []) {
         if (!propulsorIds.has(sourceId)) {
           errors.push(`Le safran ${rudder.id} référence une hélice inconnue : ${sourceId}.`);
@@ -1375,7 +1437,7 @@
       ...(rawProfile.rudders || [])
     ]) {
       const position = component.position || {};
-      if (![position.x, position.y].every(Number.isFinite)) {
+      if (![position.x, position.y, position.z].every(Number.isFinite)) {
         errors.push(`Position invalide pour ${component.id || "composant inconnu"}.`);
       } else if (
         Math.abs(position.x) > halfLength * 1.15
@@ -1442,11 +1504,22 @@
   }
 
   function flattenRudder(rudder) {
+    const meanChord = rudder.area / rudder.span;
+    const stockChordFraction = rudder.stock.chordFraction;
+    const stockOffset = (0.5 - stockChordFraction) * meanChord;
     return {
       id: rudder.id,
       x: rudder.position.x,
       y: rudder.position.y,
       z: rudder.position.z,
+      axis: deepClone(rudder.axis),
+      meanChord,
+      stockChordFraction,
+      stock: {
+        x: rudder.position.x + stockOffset,
+        y: rudder.position.y,
+        chordFraction: stockChordFraction
+      },
       area: rudder.area,
       aspectRatio: rudder.aspectRatio,
       efficiency: rudder.coefficients.efficiency,
@@ -1490,7 +1563,7 @@
     if (!report.ok) {
       throw new Error(`Profil bateau invalide : ${report.errors.join(" ; ")}`);
     }
-    const raw = [LEGACY_SCHEMA_VERSION, PREVIOUS_SCHEMA_VERSION].includes(rawProfile.schemaVersion)
+    const raw = ADAPTABLE_SCHEMA_VERSIONS.includes(rawProfile.schemaVersion)
       ? upgradeLegacyProfile(rawProfile)
       : deepClone(rawProfile);
     const appendages = raw.appendages.map(flattenAppendage);

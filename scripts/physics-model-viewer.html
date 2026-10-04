@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fardage et parties immergées - modèles physiques KJP</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:#f4f7fa;color:#193148}
+    header{padding:20px 28px;border-bottom:1px solid #d7e0e8;background:#fff}h1{font-size:23px;margin:0 0 4px}p{margin:6px 0}header p{color:#526a7f}
+    main{display:grid;grid-template-columns:minmax(0,1fr) 365px;height:calc(100dvh - 110px);min-height:640px}#viewport{min-height:0;position:relative;background:#eef3f7}canvas{display:block;width:100%;height:100%;touch-action:none}
+    aside{padding:22px;background:#fff;border-left:1px solid #d7e0e8;overflow-y:auto;min-height:0}h2{font-size:18px;margin:20px 0 10px}button,select{font:inherit;border:1px solid #c4d1dc;border-radius:5px;padding:8px 12px;color:inherit;background:white}button{cursor:pointer}button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #277eaf;outline-offset:3px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}label{display:block;margin:8px 0}.legend{display:grid;gap:8px}.legend span:before{content:'';display:inline-block;width:14px;height:14px;background:var(--swatch);margin-right:8px;vertical-align:middle}
+    #detail{font-size:14px;padding:14px;background:#f3f6f8;border-radius:6px;min-height:140px}#detail h3{font-size:16px;margin:0 0 10px}#detail dl{margin:0}#detail dt{font-weight:600;margin-top:7px}#detail dd{margin:0}#detail small{font-size:12px;display:block;margin-top:10px;color:#526a7f}a{color:#175e8b}.muted{color:#596f82;font-size:13px}
+    .badge{position:absolute;bottom:16px;left:18px;padding:8px 12px;background:#ffffffed;color:#344f65;font-size:13px;border-radius:4px;pointer-events:none}#loading{position:absolute;inset:0;display:grid;place-items:center}#loading[hidden]{display:none}
+    #wind-height-card{margin:18px 0;padding:12px;border:1px solid #c7d8e4;border-radius:6px;background:#f6f9fc;font-size:13px}#wind-height-card[hidden]{display:none}summary{cursor:pointer;font-weight:650}#wind-height-card>summary{font-size:15px}#wind-height-card p{margin:9px 0}#wind-selected-panel{font-weight:600}#wind-height-chart{display:block;width:100%;height:auto}#wind-height-card input{width:100%;accent-color:#da772e}#wind-height-reset{font-size:12px;padding:5px 8px}#wind-height-mode{color:#735121}
+    .height-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.height-metrics>div{padding:8px;background:#fff;border:1px solid #dce5ec;border-radius:4px}.height-metrics span,.height-metrics strong,.height-metrics small{display:block}.height-metrics strong{font-size:19px}.height-metrics small{font-size:11px;color:#596f82}.force-bar{position:relative;height:13px;background:#e4ebf0;border-radius:2px;margin:5px 0}.force-bar>i{display:block;height:100%;background:#da772e;border-radius:2px}.force-bar.reference>i{background:#8398a9}#wind-height-formula{display:block;white-space:normal;font-size:12px;overflow-wrap:anywhere;margin-top:8px}.height-note{padding-top:8px;border-top:1px solid #d3e0e9}.height-note strong{font-weight:650}
+    @media(max-width:850px){main{grid-template-columns:1fr;height:auto;min-height:0}#viewport{height:65vh;min-height:380px}aside{border-left:0;border-top:1px solid #d7e0e8;overflow-y:visible}header{padding:15px 18px}}
+  </style>
+</head>
+<body>
+  <header><h1>Le modèle physique, vu de l’intérieur</h1><p>Tournez le bateau et cliquez sur un élément coloré pour lire ses données exactes.</p></header>
+  <main>
+    <div id="viewport" role="img" aria-label="Modèle 3D interactif du fardage ou des parties immergées"><div id="loading">Chargement du modèle…</div><div class="badge">Glisser : tourner · molette : zoomer · bouton droit : déplacer</div></div>
+    <aside>
+      <label for="model">Modèle</label><select id="model"><option value="fardage">Fardage - 36 panneaux</option><option value="parties-immergees">Eau - coque et appendices</option></select>
+      <div class="row"><button data-view="iso">Perspective</button><button data-view="side">Profil</button><button data-view="top">Plan</button><button data-view="front">Coupe</button></div>
+      <label><input id="context" type="checkbox" checked> Silhouette visuelle en gris</label>
+      <label><input id="normals" type="checkbox" checked> Normales / axes / sens d’écoulement</label>
+      <label><input id="annotations" type="checkbox"> Codes de tous les éléments</label>
+      <label><input id="waterline" type="checkbox" checked> Flottaison et repère</label>
+      <details id="wind-height-card" open>
+        <summary>Effet de z sur le vent et la force</summary>
+        <p>z est la hauteur fixe du panneau au-dessus de la flottaison, pas un mouvement du bateau.</p>
+        <p id="wind-selected-panel"></p>
+        <p id="wind-reference" class="muted"></p>
+        <svg id="wind-height-chart" viewBox="0 0 320 190" role="img" aria-label="Profil vertical du vent, avec la hauteur du panneau et la hauteur d’essai"></svg>
+        <label for="wind-height">Tester une hauteur : <output id="wind-height-value" for="wind-height"></output></label>
+        <input id="wind-height" type="range" min="0" max="20" step="0.01" value="5.1">
+        <button id="wind-height-reset" type="button">Revenir à la hauteur du panneau</button>
+        <p id="wind-height-mode" class="muted" aria-live="polite"></p>
+        <div class="height-metrics" aria-live="polite">
+          <div><span>Vent reçu</span><strong id="wind-local-speed"></strong><small id="wind-speed-ratio"></small></div>
+          <div><span>Force du panneau</span><strong id="wind-force-ratio"></strong><small>de la force de référence</small></div>
+        </div>
+        <div class="muted">Force relative · échelle commune 0–120 %</div>
+        <div class="muted">Référence à <span data-reference-height></span> m : 100 %</div><div class="force-bar reference"><i style="width:83.3333%"></i></div>
+        <div class="muted">Force à la hauteur testée</div><div class="force-bar"><i id="wind-force-fill"></i></div>
+        <p class="muted">Même panneau, même incidence, bateau immobile : F(z) / F(réf.) = [V(z) / V(réf.)]². Ce n’est pas la force totale du bateau. En mouvement, le moteur utilise le vent apparent local.</p>
+        <details><summary>Loi de hauteur utilisée</summary><code id="wind-height-formula"></code></details>
+        <p class="height-note"><strong>Le modèle reste 3-DOF.</strong> Seules les forces horizontales X, Y et le lacet N = x·Y − y·X sont calculés. z ne produit ni gîte, ni tangage, ni pilonnement.</p>
+      </details>
+      <h2>Couleurs du modèle</h2><div id="legend" class="legend"></div>
+      <h2>Élément sélectionné</h2><div id="detail" aria-live="polite">Cliquez sur une surface colorée. Les points noirs sont les centres. Les flèches indiquent une orientation ; leur longueur n’est pas une intensité de force.</div>
+      <p id="geometry-note" class="muted"></p>
+      <div class="row"><a id="glb-link" href="fardage.glb" download>GLB</a><a id="drawing-link" href="fardage.svg">Dessin vectoriel</a></div>
+      <p class="muted">Repère : +x avant, +y tribord, +z haut. Profil Sun Odyssey 36i 6.0.1 ; moteur 6.0.0.</p>
+    </aside>
+  </main>
+  <script>/*__MODELS_AND_VIEWER__*/</script>
+</body>
+</html>

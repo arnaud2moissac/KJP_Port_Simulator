@@ -47,7 +47,7 @@ test("profil joueur: enveloppe, pare-battages et taquets sont calés sur le rail
   const profile = Physics.DEFAULT_PROFILE;
   const gunwale = profile.geometry.gunwale;
   const envelope = profile.contacts.hullEnvelope;
-  assert.equal(profile.version, "5.6.0");
+  assert.equal(profile.version, "6.0.1");
   assert.equal(profile.contacts.hullFriction, 0.30);
   assert.equal(profile.contacts.fenderFriction, 0.03);
   const compatible = JSON.parse(JSON.stringify(

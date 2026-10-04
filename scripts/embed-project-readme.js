@@ -32,6 +32,7 @@ function localImageDataUri(root, relativePath) {
 function safeLinkTarget(target) {
   if (/^https?:\/\//i.test(target)) return target;
   if (target.startsWith("#")) return target;
+  if (target.startsWith("../output/")) return target.slice(3);
   return `${REPOSITORY_BLOB_URL}${target.replace(/^\.\//, "")}`;
 }
 
@@ -60,7 +61,8 @@ function renderInline(text, root) {
     } else if (match[3] !== undefined) {
       const target = safeLinkTarget(match[4]);
       const external = /^https?:\/\//i.test(target);
-      output += `<a href="${escapeHtml(target)}"${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${escapeHtml(match[3])}</a>`;
+      const separatePage = external || target.startsWith("output/");
+      output += `<a href="${escapeHtml(target)}"${separatePage ? ' target="_blank" rel="noopener noreferrer"' : ""}>${escapeHtml(match[3])}</a>`;
     } else if (match[5] !== undefined) {
       output += `<code>${escapeHtml(match[5])}</code>`;
     } else {

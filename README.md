@@ -41,8 +41,8 @@ Les fichiers HTML à la racine sont générés. Les modifications se font dans `
 
 - date de publication : 23 septembre 2026 ;
 - produit : `2.0.0` ;
-- moteur physique : `5.5.0` ;
-- profil pédagogique Sun Odyssey 36i : `5.6.0` ;
+- moteur physique : `6.0.0` ;
+- profil pédagogique Sun Odyssey 36i : `6.0.1` ;
 - générateur et schéma KJP courant : `1.1.0` et schéma `3`.
 
 La version 2.0 utilise le renderer Three.js natif comme chemin graphique principal,

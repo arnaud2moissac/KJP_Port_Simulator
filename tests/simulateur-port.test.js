@@ -134,6 +134,18 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
       open: document.querySelector("#readmeDialog").open,
       text: document.querySelector("#readmeDialog").textContent,
       title: document.querySelector("#readmeDialogTitle").textContent,
+      headings: Array.from(document.querySelectorAll("#readmeDialog h2, #readmeDialog h3"))
+        .map(heading => heading.textContent.trim()),
+      modelExplorerLink: (() => {
+        const link = document.querySelector(
+          '#readmeDialog a[href="output/modeles-physiques/explorer-les-modeles.html"]'
+        );
+        return link ? {
+          href: link.getAttribute("href"),
+          target: link.getAttribute("target"),
+          rel: link.getAttribute("rel")
+        } : null;
+      })(),
       embeddedImages: Array.from(document.querySelectorAll("#readmeDialog img"))
         .map(image => ({
           source: image.src,
@@ -148,7 +160,46 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.match(help.text, /Manœuvrer au port avec KJP Port Simulator/);
     assert.match(help.text, /Sur ordinateur/);
     assert.match(help.text, /Sur tablette ou téléphone/);
+    assert.match(help.text, /Comprendre la « Calibration experte »/);
+    assert.match(help.text, /modèle utilisé pour le Sun Odyssey 36i/);
     assert.doesNotMatch(help.text, /Profondeur du port|petit fond|garde sous quille/);
+    for (const heading of [
+      "Manœuvrer au port avec KJP Port Simulator",
+      "Repérer l'interface",
+      "Choisir les commandes adaptées à votre écran",
+      "Réaliser une première manœuvre en cinq minutes",
+      "Progresser avec les situations et les défis",
+      "Lire ce que fait le bateau",
+      "Comprendre pourquoi le bateau tourne ou dérive",
+      "Utiliser les pare-battages, les aussières et les pendilles",
+      "Régler le vent, le courant et le bateau",
+      "Comprendre la « Calibration experte »",
+      "Charger ou retrouver un port",
+      "Pourquoi le comportement est crédible"
+    ]) {
+      assert.ok(help.headings.includes(heading), `rubrique du guide absente : ${heading}`);
+    }
+    assert.deepEqual(help.modelExplorerLink, {
+      href: "output/modeles-physiques/explorer-les-modeles.html",
+      target: "_blank",
+      rel: "noopener noreferrer"
+    });
+    const [modelExplorerPage] = await Promise.all([
+      page.waitForEvent("popup"),
+      page.click(
+        '#readmeDialog a[href="output/modeles-physiques/explorer-les-modeles.html"]'
+      )
+    ]);
+    await modelExplorerPage.waitForLoadState("domcontentloaded");
+    assert.equal(
+      await modelExplorerPage.title(),
+      "Fardage et parties immergées - modèles physiques KJP"
+    );
+    assert.equal(
+      new URL(modelExplorerPage.url()).pathname,
+      path.join(projectRoot, "output", "modeles-physiques", "explorer-les-modeles.html")
+    );
+    await modelExplorerPage.close();
     assert.equal(help.embeddedImages.length, 4);
     assert.equal(
       help.embeddedImages.every(image => image.source.startsWith("data:image/")),
@@ -2133,7 +2184,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("le moteur scientifique est intégré avec une masse définie positive", async () => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.physicsReport());
-    assert.equal(report.version, "5.5.0");
+    assert.equal(report.version, "6.0.0");
     const matrix = report.mass.matrix;
     assert.equal(matrix.length, 3);
     assert.equal(matrix[1][2], matrix[2][1]);
@@ -2141,8 +2192,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     assert.ok(matrix[0][0] * matrix[1][1] > 0);
     assert.ok(matrix[1][1] * matrix[2][2] - matrix[1][2] ** 2 > 0);
     assert.equal(report.profile.id, "sun-odyssey-36i-pedagogical");
-    assert.equal(report.profile.version, "5.6.0");
-    assert.equal(report.profile.schemaVersion, 3);
+    assert.equal(report.profile.version, "6.0.1");
+    assert.equal(report.profile.schemaVersion, 4);
   });
 
   await t.test("le vent de travers fait abattre l'étrave dans le moteur intégré", async () => {
@@ -2205,7 +2256,11 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     }
     assert.ok(Math.abs(responses[15].motion.r) > Math.abs(responses[5].motion.r));
     assert.ok(Math.abs(responses[25].motion.r) > Math.abs(responses[15].motion.r));
-    assert.ok(Math.abs(responses[35].motion.r) > Math.abs(responses[25].motion.r));
+    assert.ok(Math.abs(responses[35].motion.r) > Math.abs(responses[15].motion.r));
+    assert.ok(
+      Math.abs(responses[35].motion.r) < Math.abs(responses[25].motion.r),
+      "le décrochage à la barre maximale doit réduire le taux de giration"
+    );
     assert.ok(
       Math.abs(responses[35].motion.r) - Math.abs(responses[25].motion.r)
       < Math.abs(responses[15].motion.r) - Math.abs(responses[5].motion.r)
@@ -2605,8 +2660,8 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("les trois situations rejouent leur trajectoire étalon exactement", async () => {
     assert.equal(trajectoryFixture.profileId, "sun-odyssey-36i-pedagogical");
-    assert.equal(trajectoryFixture.profileVersion, "5.6.0");
-    assert.equal(trajectoryFixture.physicsVersion, "5.5.0");
+    assert.equal(trajectoryFixture.profileVersion, "6.0.1");
+    assert.equal(trajectoryFixture.physicsVersion, "6.0.0");
     const trajectories = await page.evaluate(() => {
       const api = window.__PORTANCE_TEST__;
       const scripts = {

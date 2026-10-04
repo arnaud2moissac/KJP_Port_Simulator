@@ -491,7 +491,11 @@ test("safran avant progressif, saturation et point de pivot avant", () => {
   assert.ok(Math.abs(responses.get(5).velocity.r) > 0);
   assert.ok(Math.abs(responses.get(15).velocity.r) > Math.abs(responses.get(5).velocity.r));
   assert.ok(Math.abs(responses.get(25).velocity.r) > Math.abs(responses.get(15).velocity.r));
-  assert.ok(Math.abs(responses.get(35).velocity.r) > Math.abs(responses.get(25).velocity.r));
+  assert.ok(Math.abs(responses.get(35).velocity.r) > Math.abs(responses.get(15).velocity.r));
+  assert.ok(
+    Math.abs(responses.get(35).velocity.r) < Math.abs(responses.get(25).velocity.r),
+    "la perte de portance après décrochage doit réduire le taux de giration à la barre maximale"
+  );
   const gains = [
     Math.abs(responses.get(15).velocity.r) - Math.abs(responses.get(5).velocity.r),
     Math.abs(responses.get(25).velocity.r) - Math.abs(responses.get(15).velocity.r),
@@ -527,7 +531,7 @@ test("safran par bandes: jet géométrique, marche arrière et désalignement", 
   });
   const aheadRudder = ahead.simulator.inspectForces().rudder;
   assert.equal(aheadRudder.strips.length, 5);
-  assert.ok(aheadRudder.overlap > 0.15 && aheadRudder.overlap < 0.25);
+  assert.ok(aheadRudder.overlap > 0.25 && aheadRudder.overlap < 0.35);
   assert.ok(aheadRudder.wash > 0);
   assert.ok(Math.abs(aheadRudder.force.Y) > 100);
   assert.equal(aheadRudder.momentumProtectionActive, false);
@@ -565,6 +569,67 @@ test("safran par bandes: jet géométrique, marche arrière et désalignement", 
   assert.equal(misalignedRudder.overlap, 0);
   assert.equal(misalignedRudder.wash, 0);
   assert.deepEqual(misalignedRudder.propellerIncrement, { X: 0, Y: 0 });
+});
+
+test("safran compensé: mèche générique fixe, géométrie tournée et symétrie", () => {
+  assert.equal(Physics.DEFAULT_PROFILE.rudder.stockChordFraction, 0.20);
+  function response(stockChordFraction, rudderDeg, propellerZ = -0.70) {
+    const raw = structuredClone(
+      Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+    );
+    raw.id = `rudder-stock-${stockChordFraction}-${rudderDeg}-${propellerZ}`;
+    raw.rudders[0].stock.chordFraction = stockChordFraction;
+    raw.propulsors[0].position.z = propellerZ;
+    const result = run({
+      seconds: 5,
+      throttle: 1,
+      rudderDeg,
+      environment: { propWalk: 0 },
+      profile: raw
+    });
+    return {
+      rudder: result.simulator.inspectForces().rudder,
+      snapshot: result.snapshot
+    };
+  }
+
+  const balancedPort = response(0.30, 35);
+  const balancedStarboard = response(0.30, -35);
+  const leadingEdge = response(0, 35);
+  const midChord = response(0.50, 35);
+  const raisedPropeller = response(0.30, 35, -0.56);
+
+  assert.deepEqual(
+    balancedPort.rudder.stockPosition,
+    balancedStarboard.rudder.stockPosition,
+    "la mèche ne doit pas se déplacer avec l'angle de barre"
+  );
+  assert.ok(Math.abs(
+    balancedPort.rudder.applicationPoint.x
+    - balancedStarboard.rudder.applicationPoint.x
+  ) < 1e-12);
+  assert.ok(Math.abs(
+    balancedPort.rudder.applicationPoint.y
+    + balancedStarboard.rudder.applicationPoint.y
+  ) < 1e-12);
+  assert.ok(Math.abs(
+    balancedPort.rudder.force.Y + balancedStarboard.rudder.force.Y
+  ) < 1e-9);
+  assert.ok(Math.abs(
+    balancedPort.snapshot.velocity.r + balancedStarboard.snapshot.velocity.r
+  ) < 1e-10);
+
+  assert.ok(
+    leadingEdge.rudder.overlap < balancedPort.rudder.overlap
+    && balancedPort.rudder.overlap < midChord.rudder.overlap,
+    "le recouvrement doit suivre la position générique de la mèche lorsque le safran braque"
+  );
+  assert.ok(
+    raisedPropeller.rudder.overlap < balancedPort.rudder.overlap,
+    "une hélice remontée doit moins recouvrir ce safran"
+  );
+  assert.equal(balancedPort.rudder.stockChordFraction, 0.30);
+  assert.ok(balancedPort.rudder.meanChord > 0);
 });
 
 test("safran: convection continue du jet pendant un crash-stop", () => {
@@ -823,7 +888,7 @@ test("énergie au neutre, déterminisme et convergence du pas", () => {
 
 test("aussières: profil de taquets, longueur maximale et capacité", () => {
   const cleats = Physics.DEFAULT_PROFILE.mooring.cleats;
-  assert.equal(Physics.DEFAULT_PROFILE.schemaVersion, 3);
+  assert.equal(Physics.DEFAULT_PROFILE.schemaVersion, 4);
   assert.equal(Physics.DEFAULT_PROFILE.mooring.maxLength, 20);
   assert.equal(Physics.DEFAULT_PROFILE.mooring.maximumLinesPerBoatCleat, 2);
   assert.equal(cleats.length, 6);

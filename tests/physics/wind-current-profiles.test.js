@@ -108,6 +108,12 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
     assert.ok(profile.appendages.length >= 1);
     assert.ok(profile.propulsors.length >= 1);
     assert.ok(profile.rudders.length >= 1);
+    for (const rudder of profile.rudders) {
+      assert.ok(rudder.meanChord > 0);
+      assert.ok(rudder.stockChordFraction >= 0 && rudder.stockChordFraction <= 1);
+      assert.ok(Number.isFinite(rudder.stock.x));
+      assert.ok(Number.isFinite(rudder.stock.y));
+    }
     assert.equal(
       Physics.massMatrixIsPositiveDefinite(
         Physics.computeMassMatrix(profile).matrix
@@ -178,9 +184,11 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   );
   legacy.id = "legacy-profile-adapter-regression";
   legacy.schemaVersion = 1;
+  delete legacy.rudders[0].stock;
   const adapted = Physics.compileVesselProfile(legacy);
-  assert.equal(adapted.schemaVersion, 3);
-  assert.ok(adapted.warnings.some(message => /adapté vers la version 3/.test(message)));
+  assert.equal(adapted.schemaVersion, 4);
+  assert.equal(adapted.rudders[0].stockChordFraction, 0.5);
+  assert.ok(adapted.warnings.some(message => /adapté vers la version 4/.test(message)));
   assert.ok(adapted.mooring.elasticity.workingLoadN > 0);
 
   const previous = structuredClone(
@@ -189,10 +197,32 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   previous.id = "schema-2-profile-adapter-regression";
   previous.schemaVersion = 2;
   delete previous.mooring.elasticity;
+  delete previous.rudders[0].stock;
   const upgradedPrevious = Physics.compileVesselProfile(previous);
-  assert.equal(upgradedPrevious.schemaVersion, 3);
+  assert.equal(upgradedPrevious.schemaVersion, 4);
+  assert.equal(upgradedPrevious.rudders[0].stockChordFraction, 0.5);
   assert.ok(upgradedPrevious.warnings.some(message => /schemaVersion 2/.test(message)));
   assert.ok(upgradedPrevious.mooring.elasticity.workingLoadN > 0);
+
+  const previousRudderSchema = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  previousRudderSchema.id = "schema-3-rudder-stock-adapter-regression";
+  previousRudderSchema.schemaVersion = 3;
+  delete previousRudderSchema.rudders[0].stock;
+  const upgradedRudderSchema = Physics.compileVesselProfile(previousRudderSchema);
+  assert.equal(upgradedRudderSchema.schemaVersion, 4);
+  assert.equal(upgradedRudderSchema.rudders[0].stockChordFraction, 0.5);
+  assert.ok(upgradedRudderSchema.warnings.some(message => /position de mèche/.test(message)));
+
+  const missingStock = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  missingStock.id = "schema-4-missing-rudder-stock";
+  delete missingStock.rudders[0].stock;
+  const invalidStock = Physics.validateVesselProfile(missingStock);
+  assert.equal(invalidStock.ok, false);
+  assert.ok(invalidStock.errors.some(message => /stock\.chordFraction/.test(message)));
 });
 
 test("invariants universels sur petit, référence et grand croiseur", () => {

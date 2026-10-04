@@ -111,6 +111,19 @@ Le vent et le courant sont définis par leur force et par la direction **d'où i
 
 Le réglage **Hélice droitière** dose l'effet de pas : en marche arrière, il tend à chasser la poupe vers bâbord. La section **Calibration experte** permet d'adapter la masse en charge, le fardage, l'efficacité du safran, la résistance latérale et la vitesse maximale autorisée pour frapper une aussière. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
 
+## Comprendre la « Calibration experte »
+
+La **Calibration experte** sert à étudier la sensibilité du bateau à quelques grandeurs importantes. Elle ne change pas le profil enregistré et ne remplace pas une mesure à bord : les réglages s'appliquent à la simulation en cours. Pour comparer proprement deux valeurs, ne déplacez qu'un curseur à la fois, recommencez la même situation et conservez le même vent, le même courant, la même barre et la même commande moteur.
+
+- **Masse en charge** — de **5 700 à 7 800 kg**, avec **6 500 kg** comme valeur proposée. Une masse plus élevée réduit l'accélération produite par une même force et augmente l'inertie en translation comme en rotation.
+- **Fardage** — de **60 à 140 %**, avec **100 %** comme référence. Ce coefficient multiplie les forces et les moments produits par le vent sur les panneaux exposés ; il n'a donc pas d'effet lorsqu'il n'y a pas de vent.
+- **Efficacité du safran** — de **60 à 140 %**, avec **100 %** comme référence. Elle multiplie l'action hydrodynamique du safran. Le safran doit toujours recevoir un écoulement dû à l'erre ou au jet d'hélice pour agir.
+- **Résistance latérale** — de **60 à 140 %**, avec **100 %** comme référence. Une valeur élevée renforce l'opposition de la coque et de la quille à la dérive ; elle ne modifie pas directement la vitesse du courant.
+- **Effet de pas · hélice droitière** — de **0 à 100 %**, avec **60 %** comme valeur proposée. Il dose la composante réglable qui chasse surtout la poupe vers bâbord en marche arrière. La valeur 0 % réduit cet effet sans supprimer la composante transversale minimale du modèle d'hélice.
+- **Frapper une aussière sous** — de **0,1 à 1,0 nd**, avec **0,6 nd** comme valeur proposée. C'est un seuil d'interaction fondé sur la vitesse fond : il autorise ou refuse la prise d'une aussière, mais ne ralentit pas physiquement le bateau.
+
+Les extrêmes servent surtout à comprendre une tendance ou à encadrer une incertitude. Ils ne signifient pas qu'un bateau réel correspond nécessairement à cette combinaison de valeurs. Pour voir précisément ce que ces coefficients modulent, ouvrez [Explorer le modèle physique du Sun Odyssey 36i](../output/modeles-physiques/explorer-les-modeles.html). Cette page détaille le modèle utilisé pour le **Sun Odyssey 36i** : panneaux de fardage, coque et appendices immergés, hélice, jet sur le safran, axes, positions et conventions de forces.
+
 ## Charger ou retrouver un port
 
 Le sélecteur **Port actif** permet de revenir au port pédagogique, de charger La Trinité-sur-Mer ou d'ouvrir le générateur de ports. Le bouton de chargement accepte aussi un fichier `.kjp` préparé avec le générateur.
