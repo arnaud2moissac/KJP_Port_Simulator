@@ -2345,22 +2345,17 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     await page.locator("#scene").focus();
     await page.keyboard.press("ArrowUp");
     await page.keyboard.press("ArrowUp");
-    await page.evaluate(() => {
-      for (let index = 0; index < 8; index++) {
-        window.dispatchEvent(new KeyboardEvent("keydown", {
-          key: "ArrowDown",
-          repeat: index > 0,
-          cancelable: true
-        }));
-      }
-    });
-    await page.waitForTimeout(50);
-    assert.equal(await page.locator("#throttleLabel").textContent(), "Neutre");
-    assert.match(await page.locator("#neutralGate").textContent(), /relâchez/);
-
-    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keyup", {
-      key: "ArrowDown"
-    })));
+    await page.keyboard.down("ArrowDown");
+    try {
+      await page.waitForFunction(() => (
+        window.__PORTANCE_TEST__.snapshot().controls.throttleTarget === 0
+        && document.querySelector("#neutralGate")?.textContent.includes("relâchez")
+      ));
+      assert.equal(await page.locator("#throttleLabel").textContent(), "Neutre");
+      assert.match(await page.locator("#neutralGate").textContent(), /relâchez/);
+    } finally {
+      await page.keyboard.up("ArrowDown");
+    }
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(50);
     assert.match(await page.locator("#throttleLabel").textContent(), /Arrière/);
@@ -2380,24 +2375,18 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, .1);
 
-    await page.evaluate(() => {
-      for (let index = 0; index < 5; index += 1) {
-        window.dispatchEvent(new KeyboardEvent("keydown", {
-          key: "w",
-          repeat: index > 0,
-          cancelable: true
-        }));
-      }
-    });
-    await page.waitForTimeout(60);
-    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.throttleTarget, 0);
-    assert.match(await page.locator("#neutralGate").textContent(), /relâchez/);
-
-    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent("keyup", {
-      key: "w",
-      cancelable: true
-    })));
+    await page.keyboard.down("w");
+    try {
+      await page.waitForFunction(() => (
+        window.__PORTANCE_TEST__.snapshot().controls.throttleTarget === 0
+        && document.querySelector("#neutralGate")?.textContent.includes("relâchez")
+      ));
+      snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+      assert.equal(snapshot.controls.throttleTarget, 0);
+      assert.match(await page.locator("#neutralGate").textContent(), /relâchez/);
+    } finally {
+      await page.keyboard.up("w");
+    }
     await page.keyboard.press("W");
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, -.1);
@@ -2502,6 +2491,58 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
     );
     await page.keyboard.press("Space");
     assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
+  });
+
+  await t.test("gaz et barre répondent simultanément aux touches maintenues", async () => {
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+    await page.locator("#scene").focus();
+
+    await page.keyboard.down("ArrowUp");
+    await page.keyboard.down("ArrowRight");
+    let arrowUpHeld = true;
+    let arrowRightHeld = true;
+    try {
+      await page.waitForFunction(() => {
+        const controls = window.__PORTANCE_TEST__.snapshot().controls;
+        return controls.throttleTarget >= .2
+          && controls.rudderTarget <= -5 * Math.PI / 180;
+      });
+      const simultaneous = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+      assert.ok(
+        simultaneous.controls.throttleTarget >= .2,
+        "la poussée n'a pas continué à augmenter avec la barre maintenue"
+      );
+      assert.ok(
+        simultaneous.controls.rudderTarget <= -5 * Math.PI / 180,
+        "la barre n'a pas continué à tourner avec les gaz maintenus"
+      );
+
+      await page.keyboard.up("ArrowRight");
+      arrowRightHeld = false;
+      const afterRudderRelease = await page.evaluate(
+        () => window.__PORTANCE_TEST__.snapshot()
+      );
+      const rudderAtRelease = afterRudderRelease.controls.rudderTarget;
+      const throttleBeforeSingleHold = afterRudderRelease.controls.throttleTarget;
+      await page.waitForTimeout(320);
+      const throttleOnly = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+      assert.equal(throttleOnly.controls.rudderTarget, rudderAtRelease);
+      assert.ok(throttleOnly.controls.throttleTarget > throttleBeforeSingleHold);
+
+      await page.keyboard.up("ArrowUp");
+      arrowUpHeld = false;
+      const afterThrottleRelease = await page.evaluate(
+        () => window.__PORTANCE_TEST__.snapshot()
+      );
+      const throttleAtRelease = afterThrottleRelease.controls.throttleTarget;
+      await page.waitForTimeout(240);
+      const released = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+      assert.equal(released.controls.rudderTarget, rudderAtRelease);
+      assert.equal(released.controls.throttleTarget, throttleAtRelease);
+    } finally {
+      if (arrowRightHeld) await page.keyboard.up("ArrowRight");
+      if (arrowUpHeld) await page.keyboard.up("ArrowUp");
+    }
   });
 
   await t.test("commandes tactiles: roue persistante et levier avec arrêt au neutre", async () => {

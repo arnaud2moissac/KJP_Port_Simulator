@@ -16779,6 +16779,93 @@ void main() {
       if (controls.neutralGate === direction) controls.neutralGate = null;
     }
 
+    const KEYBOARD_INITIAL_REPEAT_MS = 240;
+    const KEYBOARD_REPEAT_MS = 80;
+    const KEYBOARD_MAX_CATCH_UP_STEPS = 4;
+    const keyboardControlBindings = Object.freeze({
+      ArrowLeft: Object.freeze({ axis: "rudder", direction: 1 }),
+      ArrowRight: Object.freeze({ axis: "rudder", direction: -1 }),
+      ArrowUp: Object.freeze({ axis: "throttle", direction: 1 }),
+      ArrowDown: Object.freeze({ axis: "throttle", direction: -1 }),
+      q: Object.freeze({ axis: "throttle", direction: 1 }),
+      w: Object.freeze({ axis: "throttle", direction: -1 })
+    });
+    const heldKeyboardControls = new Set();
+    const keyboardRepeatAt = { rudder: Infinity, throttle: Infinity };
+
+    function keyboardControlKey(key) {
+      if (keyboardControlBindings[key]) return key;
+      const lowerKey = String(key || "").toLowerCase();
+      return keyboardControlBindings[lowerKey] ? lowerKey : null;
+    }
+
+    function heldKeyboardDirection(axis) {
+      let direction = 0;
+      for (const key of heldKeyboardControls) {
+        const binding = keyboardControlBindings[key];
+        if (binding.axis === axis) direction += binding.direction;
+      }
+      return Math.sign(direction);
+    }
+
+    function applyHeldKeyboardControl(axis, direction) {
+      if (axis === "rudder") adjustRudder(direction);
+      else adjustThrottle(direction);
+    }
+
+    function setKeyboardControlHeld(key, held, now = performance.now()) {
+      const controlKey = keyboardControlKey(key);
+      if (!controlKey) return false;
+      const { axis } = keyboardControlBindings[controlKey];
+      const previousDirection = heldKeyboardDirection(axis);
+      if (held) heldKeyboardControls.add(controlKey);
+      else heldKeyboardControls.delete(controlKey);
+      const nextDirection = heldKeyboardDirection(axis);
+      if (previousDirection === nextDirection) return true;
+      if (axis === "throttle" && previousDirection) {
+        releaseThrottleGate(previousDirection);
+      }
+      if (nextDirection) {
+        applyHeldKeyboardControl(axis, nextDirection);
+        keyboardRepeatAt[axis] = now + KEYBOARD_INITIAL_REPEAT_MS;
+      } else {
+        keyboardRepeatAt[axis] = Infinity;
+      }
+      return true;
+    }
+
+    function updateHeldKeyboardControls(now) {
+      for (const axis of ["rudder", "throttle"]) {
+        const direction = heldKeyboardDirection(axis);
+        if (!direction || now < keyboardRepeatAt[axis]) continue;
+        let steps = 0;
+        while (
+          now >= keyboardRepeatAt[axis]
+          && steps < KEYBOARD_MAX_CATCH_UP_STEPS
+        ) {
+          applyHeldKeyboardControl(axis, direction);
+          keyboardRepeatAt[axis] += KEYBOARD_REPEAT_MS;
+          steps += 1;
+        }
+        if (now >= keyboardRepeatAt[axis]) {
+          keyboardRepeatAt[axis] = now + KEYBOARD_REPEAT_MS;
+        }
+      }
+    }
+
+    function clearHeldKeyboardControls() {
+      const throttleDirection = heldKeyboardDirection("throttle");
+      heldKeyboardControls.clear();
+      keyboardRepeatAt.rudder = Infinity;
+      keyboardRepeatAt.throttle = Infinity;
+      if (throttleDirection) releaseThrottleGate(throttleDirection);
+    }
+
+    window.setInterval(
+      () => updateHeldKeyboardControls(performance.now()),
+      KEYBOARD_REPEAT_MS / 2
+    );
+
     function togglePause() {
       controls.paused = !controls.paused;
       const button = $("#pauseButton");
@@ -20869,14 +20956,9 @@ void main() {
     window.addEventListener("keydown", event => {
       if (readmeDialog.open) return;
       const key = event.key;
-      const throttleShortcut = key.toLowerCase() === "w" || key.toLowerCase() === "q";
-      const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key);
-      if (arrow || throttleShortcut) {
+      if (keyboardControlKey(key)) {
         event.preventDefault();
-        if (key === "ArrowLeft") adjustRudder(1);
-        if (key === "ArrowRight") adjustRudder(-1);
-        if (key === "ArrowUp" || key.toLowerCase() === "q") adjustThrottle(1);
-        if (key === "ArrowDown" || key.toLowerCase() === "w") adjustThrottle(-1);
+        setKeyboardControlHeld(key, true);
         return;
       }
       if (key === "Escape" && (moorings.selected || pendilleState.selectedId)) {
@@ -20899,18 +20981,15 @@ void main() {
     }, { capture: true });
 
     window.addEventListener("keyup", event => {
-      const key = event.key;
-      const lowerKey = key.toLowerCase();
-      if (
-        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)
-        || lowerKey === "w"
-        || lowerKey === "q"
-      ) {
+      if (keyboardControlKey(event.key)) {
         event.preventDefault();
+        setKeyboardControlHeld(event.key, false);
       }
-      if (key === "ArrowUp" || lowerKey === "q") releaseThrottleGate(1);
-      if (key === "ArrowDown" || lowerKey === "w") releaseThrottleGate(-1);
     }, { capture: true });
+    window.addEventListener("blur", clearHeldKeyboardControls);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) clearHeldKeyboardControls();
+    });
 
     function pointSegmentProjection(point, first, second) {
       const dx = second.x - first.x;
