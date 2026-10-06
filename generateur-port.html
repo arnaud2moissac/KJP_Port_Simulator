@@ -1584,9 +1584,10 @@ input[type=range] {
 <p>Prérequis : Node.js 20 ou plus récent.</p>
 <pre><code class="language-bash">npm ci
 npm run build:simulator
-npm run build:port-generator
-npm run verify:release</code></pre>
+npm run build:port-generator</code></pre>
 <p>Les fichiers HTML à la racine sont générés. Les modifications se font dans <code>src/</code>, puis sont intégrées par les scripts de build. Consultez <a href="https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> avant de proposer une évolution.</p>
+<p>Validez selon le risque : <code>npm run validate:patch -- --product simulator</code> pour un texte ou style local, <code>npm run validate:ui -- --product simulator --group controls</code> pour les commandes, ou <code>npm run validate:physics -- --component rudder</code> pour la gouverne. Les groupes et les quatre niveaux sont décrits dans <a href="https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/docs/validation-levels.md" target="_blank" rel="noopener noreferrer">la politique de validation</a>.</p>
+<p><code>npm run verify:release</code> est une qualification complète explicite, à lancer <strong>une fois</strong> pour une release, pas après chaque modification. Les budgets CPU sont réservés à <code>npm run qualify:performance</code>.</p>
 <h3>Versions de la release 2.0</h3>
 <ul>
 <li>date de publication : 23 septembre 2026 ;</li>
@@ -1727,32 +1728,32 @@ npm run verify:release</code></pre>
           if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(text).byteLength;
           return Buffer.byteLength(text, "utf8");
         }
-        function addError(errors, path, message, code = "invalid") {
-          errors.push({ path, message, code });
+        function addError(errors, path, message, code = "invalid", messageKey, messageParams = {}) {
+          errors.push({ path, message, code, messageKey, messageParams });
         }
         function inspectUnsafeValues(value, path, errors, seen = /* @__PURE__ */ new Set()) {
           if (value && typeof value === "object") {
             if (seen.has(value)) {
-              addError(errors, path, "r\xE9f\xE9rence circulaire interdite", "circular");
+              addError(errors, path, "r\xE9f\xE9rence circulaire interdite", "circular", "validation.reference.circulaire.interdite", {});
               return;
             }
             seen.add(value);
           }
           if (typeof value === "number" && !Number.isFinite(value)) {
-            addError(errors, path, "nombre non fini", "non-finite");
+            addError(errors, path, "nombre non fini", "non-finite", "validation.nombre.non.fini", {});
           } else if (typeof value === "string") {
-            if (value.length > 2e4) addError(errors, path, "texte trop long", "limit");
+            if (value.length > 2e4) addError(errors, path, "texte trop long", "limit", "validation.texte.trop.long", {});
             if (DANGEROUS_TEXT.test(value)) {
-              addError(errors, path, "contenu HTML ou script interdit", "unsafe-text");
+              addError(errors, path, "contenu HTML ou script interdit", "unsafe-text", "validation.contenu.html.ou.script.interdit", {});
             }
           } else if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") {
-            addError(errors, path, "type non JSON interdit", "non-json");
+            addError(errors, path, "type non JSON interdit", "non-json", "validation.type.non.json.interdit", {});
           } else if (Array.isArray(value)) {
             value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen));
           } else if (isObject(value)) {
             for (const [key, item] of Object.entries(value)) {
               if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor"].includes(key)) {
-                addError(errors, `${path}.${key}`, "cl\xE9 dangereuse interdite", "unsafe-key");
+                addError(errors, `${path}.${key}`, "cl\xE9 dangereuse interdite", "unsafe-key", "validation.cle.dangereuse.interdite", {});
               } else {
                 inspectUnsafeValues(item, `${path}.${key}`, errors, seen);
               }
@@ -1762,30 +1763,30 @@ npm run verify:release</code></pre>
         }
         function requireObject(value, path, errors) {
           if (!isObject(value)) {
-            addError(errors, path, "objet attendu", "type");
+            addError(errors, path, "objet attendu", "type", "validation.objet.attendu", {});
             return {};
           }
           return value;
         }
         function requireArray(value, path, errors) {
           if (!Array.isArray(value)) {
-            addError(errors, path, "tableau attendu", "type");
+            addError(errors, path, "tableau attendu", "type", "validation.tableau.attendu", {});
             return [];
           }
           return value;
         }
         function requireString2(value, path, errors, { required = true, max = 5e3 } = {}) {
           if (value === void 0 || value === null || value === "") {
-            if (required) addError(errors, path, "texte obligatoire", "required");
+            if (required) addError(errors, path, "texte obligatoire", "required", "validation.texte.obligatoire", {});
             return "";
           }
           if (typeof value !== "string") {
-            addError(errors, path, "texte attendu", "type");
+            addError(errors, path, "texte attendu", "type", "validation.texte.attendu", {});
             return "";
           }
           const result = value.trim();
-          if (required && !result) addError(errors, path, "texte obligatoire", "required");
-          if (result.length > max) addError(errors, path, `maximum ${max} caract\xE8res`, "limit");
+          if (required && !result) addError(errors, path, "texte obligatoire", "required", "validation.texte.obligatoire", {});
+          if (result.length > max) addError(errors, path, `maximum ${max} caract\xE8res`, "limit", "validation.maximum.caracteres", { value1: max });
           return result;
         }
         function requireNumber2(value, path, errors, {
@@ -1794,37 +1795,37 @@ npm run verify:release</code></pre>
           required = true
         } = {}) {
           if (value === void 0 || value === null || value === "") {
-            if (required) addError(errors, path, "nombre obligatoire", "required");
+            if (required) addError(errors, path, "nombre obligatoire", "required", "validation.nombre.obligatoire", {});
             return 0;
           }
           if (!finite(value)) {
-            addError(errors, path, "nombre fini attendu", "type");
+            addError(errors, path, "nombre fini attendu", "type", "validation.nombre.fini.attendu", {});
             return 0;
           }
           if (value < minimum || value > maximum) {
-            addError(errors, path, `valeur hors limites [${minimum}, ${maximum}]`, "range");
+            addError(errors, path, `valeur hors limites [${minimum}, ${maximum}]`, "range", "validation.valeur.hors.limites", { value1: minimum, value2: maximum });
           }
           return value;
         }
         function validateUrl(value, path, errors) {
           if (value === void 0 || value === null || value === "") return;
           if (typeof value !== "string" || !SAFE_URL.test(value)) {
-            addError(errors, path, "seules les URL HTTP/HTTPS sont autoris\xE9es", "url");
+            addError(errors, path, "seules les URL HTTP/HTTPS sont autoris\xE9es", "url", "validation.seules.les.url.http.https.sont.autorisees", {});
             return;
           }
           try {
             const url = new URL(value);
             if (!["http:", "https:"].includes(url.protocol)) throw new Error("protocol");
           } catch {
-            addError(errors, path, "URL HTTP/HTTPS invalide", "url");
+            addError(errors, path, "URL HTTP/HTTPS invalide", "url", "validation.url.http.https.invalide", {});
           }
         }
         function validateId(value, path, errors, ids) {
           const id = requireString2(value, path, errors, { max: 160 });
           if (id && !/^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(id)) {
-            addError(errors, path, "identifiant invalide", "id");
+            addError(errors, path, "identifiant invalide", "id", "validation.identifiant.invalide", {});
           }
-          if (id && ids.has(id)) addError(errors, path, "identifiant dupliqu\xE9", "duplicate");
+          if (id && ids.has(id)) addError(errors, path, "identifiant dupliqu\xE9", "duplicate", "validation.identifiant.duplique", {});
           if (id) ids.add(id);
           return id;
         }
@@ -1839,7 +1840,7 @@ npm run verify:release</code></pre>
             maximum: MAX_EXTENT_METERS
           });
           if (Math.hypot(east, north) > MAX_EXTENT_METERS + 1e-9) {
-            addError(errors, path, `point situ\xE9 \xE0 plus de ${MAX_EXTENT_METERS} m de l\u2019origine`, "range");
+            addError(errors, path, `point situ\xE9 \xE0 plus de ${MAX_EXTENT_METERS} m de l\u2019origine`, "range", "validation.point.situe.a.plus.de.m.de.l", { value1: MAX_EXTENT_METERS });
           }
           return { east, north };
         }
@@ -1860,11 +1861,11 @@ npm run verify:release</code></pre>
           const object = requireObject(value, path, errors);
           const datum = object.datum === "waterline" ? object.datum : "waterline";
           if (object.datum !== "waterline") {
-            addError(errors, `${path}.datum`, "doit valoir waterline", "enum");
+            addError(errors, `${path}.datum`, "doit valoir waterline", "enum", "validation.doit.valoir.waterline", {});
           }
           const mode = ["floating", "fixed"].includes(object.mode) ? object.mode : expectedMode;
           if (!["floating", "fixed"].includes(object.mode)) {
-            addError(errors, `${path}.mode`, "mode vertical inconnu", "enum");
+            addError(errors, `${path}.mode`, "mode vertical inconnu", "enum", "validation.mode.vertical.inconnu", {});
           }
           const baseZ = requireNumber2(object.baseZ, `${path}.baseZ`, errors, {
             minimum: -50,
@@ -1878,12 +1879,12 @@ npm run verify:release</code></pre>
             minimum: -50,
             maximum: 200
           });
-          if (topZ < baseZ) addError(errors, path, "topZ doit \xEAtre sup\xE9rieur ou \xE9gal \xE0 baseZ", "geometry");
+          if (topZ < baseZ) addError(errors, path, "topZ doit \xEAtre sup\xE9rieur ou \xE9gal \xE0 baseZ", "geometry", "validation.topz.doit.etre.superieur.ou.egal.a.basez", {});
           if (deckZ < baseZ - 1e-9 || deckZ > topZ + 1e-9) {
-            addError(errors, `${path}.deckZ`, "deckZ doit \xEAtre compris entre baseZ et topZ", "geometry");
+            addError(errors, `${path}.deckZ`, "deckZ doit \xEAtre compris entre baseZ et topZ", "geometry", "validation.deckz.doit.etre.compris.entre.basez.et.topz", {});
           }
           if (finite(fallbackHeight) && Math.abs(topZ - baseZ - fallbackHeight) > 1e-6) {
-            addError(errors, path, "height doit correspondre \xE0 topZ - baseZ", "geometry");
+            addError(errors, path, "height doit correspondre \xE0 topZ - baseZ", "geometry", "validation.height.doit.correspondre.a.topz.basez", {});
           }
           return { datum, mode, baseZ, topZ, deckZ };
         }
@@ -1917,7 +1918,7 @@ npm run verify:release</code></pre>
           );
           const endShape = type === "catway" ? object.endShape ?? "rounded" : void 0;
           if (type === "catway" && !["rounded", "square"].includes(endShape)) {
-            addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum");
+            addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum", "validation.rounded.ou.square.attendu", {});
           }
           return {
             ...object,
@@ -1936,9 +1937,9 @@ npm run verify:release</code></pre>
           const object = requireObject(obstacle, path, errors);
           const id = validateId(object.id, `${path}.id`, errors, ids);
           const type = ["breakwater", "groyne", "quay", "obstacle"].includes(object.type) ? object.type : "obstacle";
-          if (type !== object.type) addError(errors, `${path}.type`, "type d'obstacle inconnu", "enum");
+          if (type !== object.type) addError(errors, `${path}.type`, "type d'obstacle inconnu", "enum", "validation.type.d.obstacle.inconnu", {});
           const points = requireArray(object.points, `${path}.points`, errors).map((point, index) => validatePoint(point, `${path}.points[${index}]`, errors));
-          if (points.length < 2) addError(errors, `${path}.points`, "au moins deux points requis", "geometry");
+          if (points.length < 2) addError(errors, `${path}.points`, "au moins deux points requis", "geometry", "validation.au.moins.deux.points.requis", {});
           const width = requireNumber2(object.width, `${path}.width`, errors, {
             minimum: 0.1,
             maximum: 1e3
@@ -1960,7 +1961,7 @@ npm run verify:release</code></pre>
           const object = requireObject(area, path, errors);
           const id = validateId(object.id, `${path}.id`, errors, ids);
           const points = requireArray(object.points, `${path}.points`, errors).map((point, index) => validatePoint(point, `${path}.points[${index}]`, errors));
-          if (points.length < 3) addError(errors, `${path}.points`, "au moins trois points requis", "geometry");
+          if (points.length < 3) addError(errors, `${path}.points`, "au moins trois points requis", "geometry", "validation.au.moins.trois.points.requis", {});
           return { ...object, id, type: "land", points };
         }
         function validateBuoy(buoy, path, errors, ids) {
@@ -1982,7 +1983,7 @@ npm run verify:release</code></pre>
             { max: 80 }
           );
           if (!BUOY_TYPES.includes(seamarkType)) {
-            addError(errors, `${path}.seamarkType`, "type de bou\xE9e ou d'amarrage inconnu", "enum");
+            addError(errors, `${path}.seamarkType`, "type de bou\xE9e ou d'amarrage inconnu", "enum", "validation.type.de.bouee.ou.d.amarrage.inconnu", {});
           }
           const shape = requireString2(
             object.shape ?? "unknown",
@@ -1991,7 +1992,7 @@ npm run verify:release</code></pre>
             { max: 80 }
           );
           if (!BUOY_SHAPES.includes(shape)) {
-            addError(errors, `${path}.shape`, "forme de bou\xE9e inconnue", "enum");
+            addError(errors, `${path}.shape`, "forme de bou\xE9e inconnue", "enum", "validation.forme.de.bouee.inconnue", {});
           }
           const category = requireString2(
             object.category,
@@ -2012,7 +2013,7 @@ npm run verify:release</code></pre>
             { max: 40 }
           ));
           if (colours.length > 8) {
-            addError(errors, `${path}.colours`, "maximum 8 couleurs", "limit");
+            addError(errors, `${path}.colours`, "maximum 8 couleurs", "limit", "validation.maximum.8.couleurs", {});
           }
           return {
             ...object,
@@ -2038,18 +2039,18 @@ npm run verify:release</code></pre>
           });
           const connectionEnd = ["bow", "stern"].includes(object.connectionEnd) ? object.connectionEnd : "bow";
           if (!["bow", "stern"].includes(object.connectionEnd)) {
-            addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum");
+            addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum", "validation.bow.ou.stern.attendu", {});
           }
           const parentId = requireString2(object.parentId, `${path}.parentId`, errors, { max: 160 });
           const parent = parents.get(parentId);
           if (!parent || !["pontoon", "quay"].includes(parent.type)) {
-            addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+            addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {});
           }
           const rawAttachment = requireObject(object.attachment, `${path}.attachment`, errors);
           const expectedKind = parent?.type === "quay" ? "polyline-station" : "rectangle-edge";
           const kind = ["rectangle-edge", "polyline-station"].includes(rawAttachment.kind) ? rawAttachment.kind : expectedKind;
           if (rawAttachment.kind !== expectedKind) {
-            addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry");
+            addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry", "validation.doit.valoir", { value1: expectedKind });
           }
           const maximumStation = parent?.type === "quay" ? polylineLength(parent.points) : parent?.length / 2 || 0;
           const minimumStation = parent?.type === "quay" ? 0 : -maximumStation;
@@ -2059,11 +2060,11 @@ npm run verify:release</code></pre>
           });
           const edge = rawAttachment.edge || (rawAttachment.waterSide === "right" ? "starboard" : "port");
           if (kind === "rectangle-edge" && !["port", "starboard"].includes(edge)) {
-            addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum");
+            addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum", "validation.port.ou.starboard.attendu", {});
           }
           const waterSide = rawAttachment.waterSide || (edge === "starboard" ? "right" : "left");
           if (!["left", "right"].includes(waterSide)) {
-            addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+            addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum", "validation.left.ou.right.attendu", {});
           }
           const z = requireNumber2(rawAttachment.z, `${path}.attachment.z`, errors, {
             minimum: -10,
@@ -2124,7 +2125,7 @@ npm run verify:release</code></pre>
               geometry.anchor.z - geometry.pickup.z
             );
             if (line.maximumLength + 1e-9 < storedSpan) {
-              addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry");
+              addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry", "validation.longueur.insuffisante.pour.relier.la.prise.au.corps", {});
             }
           }
           return {
@@ -2425,14 +2426,14 @@ npm run verify:release</code></pre>
           );
           const parent = pontoons.find((item) => item.id === parentId);
           if (!parent) {
-            addError(errors, `${path}.attachment.parentId`, "ponton parent absent", "reference");
+            addError(errors, `${path}.attachment.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {});
             return;
           }
           if (catway.parentId !== void 0 && catway.parentId !== parentId) {
-            addError(errors, `${path}.parentId`, "parentId incoh\xE9rent avec attachment.parentId", "reference");
+            addError(errors, `${path}.parentId`, "parentId incoh\xE9rent avec attachment.parentId", "reference", "validation.parentid.incoherent.avec.attachment.parentid", {});
           }
           const parentEdge = ["port", "starboard"].includes(attachment.parentEdge) ? attachment.parentEdge : "";
-          if (!parentEdge) addError(errors, `${path}.attachment.parentEdge`, "rive port ou starboard attendue", "enum");
+          if (!parentEdge) addError(errors, `${path}.attachment.parentEdge`, "rive port ou starboard attendue", "enum", "validation.rive.port.ou.starboard.attendue", {});
           const station = requireNumber2(attachment.station, `${path}.attachment.station`, errors, {
             minimum: -parent.length / 2,
             maximum: parent.length / 2
@@ -2444,7 +2445,7 @@ npm run verify:release</code></pre>
             { minimum: 0.1, maximum: 0.25 }
           );
           const connector = ["flush", "hinge", "ramp"].includes(attachment.connector) ? attachment.connector : "";
-          if (!connector) addError(errors, `${path}.attachment.connector`, "raccord inconnu", "enum");
+          if (!connector) addError(errors, `${path}.attachment.connector`, "raccord inconnu", "enum", "validation.raccord.inconnu", {});
           const connectorLength = requireNumber2(
             attachment.connectorLength,
             `${path}.attachment.connectorLength`,
@@ -2452,7 +2453,7 @@ npm run verify:release</code></pre>
             { minimum: 0, maximum: 20 }
           );
           if (connector === "ramp" && connectorLength < 0.2) {
-            addError(errors, `${path}.attachment.connectorLength`, "une rampe doit mesurer au moins 0,20 m", "geometry");
+            addError(errors, `${path}.attachment.connectorLength`, "une rampe doit mesurer au moins 0,20 m", "geometry", "validation.une.rampe.doit.mesurer.au.moins.0.20", {});
           }
           const deckZ = requireNumber2(attachment.deckZ, `${path}.attachment.deckZ`, errors, {
             minimum: -50,
@@ -2473,25 +2474,25 @@ npm run verify:release</code></pre>
             point.north - expectedRoot.north
           )));
           if (rootGap > 0.02) {
-            addError(errors, `${path}.attachment`, `racine distante de ${(rootGap * 100).toFixed(1)} cm du raccord`, "geometry");
+            addError(errors, `${path}.attachment`, `racine distante de ${(rootGap * 100).toFixed(1)} cm du raccord`, "geometry", "validation.racine.distante.de.cm.du.raccord", { value1: (rootGap * 100).toFixed(1) });
           }
           if (Math.abs(deckZ - catway.vertical.deckZ) > 1e-6) {
-            addError(errors, `${path}.attachment.deckZ`, "deckZ doit correspondre au niveau du catway", "geometry");
+            addError(errors, `${path}.attachment.deckZ`, "deckZ doit correspondre au niveau du catway", "geometry", "validation.deckz.doit.correspondre.au.niveau.du.catway", {});
           }
           if (connector === "flush" && Math.abs(parent.vertical.deckZ - catway.vertical.deckZ) > 0.08) {
-            addError(errors, `${path}.attachment.connector`, "\xE9cart vertical sup\xE9rieur \xE0 0,08 m : rampe ou articulation requise", "geometry");
+            addError(errors, `${path}.attachment.connector`, "\xE9cart vertical sup\xE9rieur \xE0 0,08 m : rampe ou articulation requise", "geometry", "validation.ecart.vertical.superieur.a.0.08.m.rampe", {});
           }
         }
         function normalizeDocument(document2, options = {}) {
           const errors = [];
           if (!isObject(document2)) {
-            throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type" }]);
+            throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type", messageKey: "validation.objet.json.attendu", messageParams: {} }]);
           }
           inspectUnsafeValues(document2, "$", errors);
           document2 = migrateLegacyDocument(document2);
-          if (document2.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format");
+          if (document2.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format", "validation.doit.valoir", { value1: FORMAT });
           if (document2.schemaVersion !== SCHEMA_VERSION) {
-            addError(errors, "$.schemaVersion", `version ${document2.schemaVersion} non prise en charge`, "version");
+            addError(errors, "$.schemaVersion", `version ${document2.schemaVersion} non prise en charge`, "version", "validation.version.non.prise.en.charge", { value1: document2.schemaVersion });
           }
           requireString2(document2.generatorVersion, "$.generatorVersion", errors, { max: 80 });
           const metadata = requireObject(document2.metadata, "$.metadata", errors);
@@ -2506,13 +2507,13 @@ npm run verify:release</code></pre>
           }
           const georeference = requireObject(document2.georeference, "$.georeference", errors);
           if (georeference.coordinateSystem !== "local-ENU") {
-            addError(errors, "$.georeference.coordinateSystem", "doit valoir local-ENU", "enum");
+            addError(errors, "$.georeference.coordinateSystem", "doit valoir local-ENU", "enum", "validation.doit.valoir.local.enu", {});
           }
           const origin = requireObject(georeference.origin, "$.georeference.origin", errors);
           requireNumber2(origin.latitude, "$.georeference.origin.latitude", errors, { minimum: -90, maximum: 90 });
           requireNumber2(origin.longitude, "$.georeference.origin.longitude", errors, { minimum: -180, maximum: 180 });
-          if (georeference.distanceUnit !== "m") addError(errors, "$.georeference.distanceUnit", "doit valoir m", "unit");
-          if (georeference.angleUnit !== "rad") addError(errors, "$.georeference.angleUnit", "doit valoir rad", "unit");
+          if (georeference.distanceUnit !== "m") addError(errors, "$.georeference.distanceUnit", "doit valoir m", "unit", "validation.doit.valoir.m", {});
+          if (georeference.angleUnit !== "rad") addError(errors, "$.georeference.angleUnit", "doit valoir rad", "unit", "validation.doit.valoir.rad", {});
           const sources = requireArray(document2.sources, "$.sources", errors);
           sources.forEach((source, index) => {
             const path = `$.sources[${index}]`;
@@ -2522,11 +2523,11 @@ npm run verify:release</code></pre>
             requireString2(object.license, `${path}.license`, errors, { max: 500 });
             validateUrl(object.url, `${path}.url`, errors);
             if (object.kind === "orthophoto" && object.embedded === true) {
-              addError(errors, `${path}.embedded`, "une orthophoto ne peut jamais \xEAtre embarqu\xE9e", "imagery");
+              addError(errors, `${path}.embedded`, "une orthophoto ne peut jamais \xEAtre embarqu\xE9e", "imagery", "validation.une.orthophoto.ne.peut.jamais.etre.embarquee", {});
             }
             for (const key of Object.keys(object)) {
               if (/tile|image|blob|dataurl/i.test(key) && !["retrievedAt"].includes(key)) {
-                addError(errors, `${path}.${key}`, "donn\xE9e raster interdite dans KJP", "imagery");
+                addError(errors, `${path}.${key}`, "donn\xE9e raster interdite dans KJP", "imagery", "validation.donnee.raster.interdite.dans.kjp", {});
               }
             }
           });
@@ -2555,7 +2556,7 @@ npm run verify:release</code></pre>
           ));
           const structureCount = pontoons.length + catways.length + obstacles.length + landAreas.length + buoys.length + pendilles.length;
           if (structureCount > MAX_STRUCTURES) {
-            addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
+            addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit", "validation.maximum.structures", { value1: MAX_STRUCTURES });
           }
           const parentById = new Map([
             ...pontoons,
@@ -2571,7 +2572,7 @@ npm run verify:release</code></pre>
             const id = validateId(object.id, `${path}.id`, errors, ids);
             const parentId = requireString2(object.parentId, `${path}.parentId`, errors, { max: 160 });
             const parent = parentById.get(parentId);
-            if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
+            if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {});
             const quayParent = parent?.type === "quay";
             const local = quayParent ? {} : requireObject(object.localPosition, `${path}.localPosition`, errors);
             const localPosition = quayParent ? null : {
@@ -2591,15 +2592,15 @@ npm run verify:release</code></pre>
             }) : 0;
             const waterSide = quayParent ? attachment.waterSide === "right" ? "right" : "left" : "";
             if (quayParent && !["left", "right"].includes(attachment.waterSide)) {
-              addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+              addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum", "validation.left.ou.right.attendu", {});
             }
             const outsideParent = parent?.type === "buoy" ? Math.abs(localPosition.longitudinal) > parent.radius + 0.15 || Math.abs(localPosition.transverse) > parent.radius + 0.15 : parent && !quayParent && (Math.abs(localPosition.longitudinal) > parent.length / 2 + 0.15 || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15);
             if (outsideParent) {
-              addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry");
+              addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry", "validation.taquet.hors.de.sa.structure.parente", {});
             }
             const z = requireNumber2(object.z, `${path}.z`, errors, { minimum: -10, maximum: 100 });
             if (parent?.type === "buoy" && Math.abs(z - parent.height) > 0.2) {
-              addError(errors, `${path}.z`, "le taquet doit \xEAtre plac\xE9 au sommet de la bou\xE9e", "geometry");
+              addError(errors, `${path}.z`, "le taquet doit \xEAtre plac\xE9 au sommet de la bou\xE9e", "geometry", "validation.le.taquet.doit.etre.place.au.sommet.de", {});
             }
             const orientation = requireNumber2(object.orientation, `${path}.orientation`, errors, {
               minimum: -Math.PI * 8,
@@ -2615,7 +2616,7 @@ npm run verify:release</code></pre>
             };
           });
           if (cleats.length > MAX_CLEATS) {
-            addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
+            addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit", "validation.maximum.taquets", { value1: MAX_CLEATS });
           }
           buoys.forEach((buoy, index) => {
             const buoyCleats = cleats.filter((cleat) => cleat.parentId === buoy.id);
@@ -2624,7 +2625,9 @@ npm run verify:release</code></pre>
                 errors,
                 `$.structures.buoys[${index}]`,
                 "une bou\xE9e corps mort doit poss\xE9der exactement un taquet",
-                "reference"
+                "reference",
+                "validation.une.bouee.corps.mort.doit.posseder.exactement.un",
+                {}
               );
             }
             if (buoy.seamarkType !== "mooring" && buoyCleats.length) {
@@ -2632,7 +2635,9 @@ npm run verify:release</code></pre>
                 errors,
                 `$.structures.buoys[${index}]`,
                 "seule une bou\xE9e corps mort peut porter un taquet",
-                "reference"
+                "reference",
+                "validation.seule.une.bouee.corps.mort.peut.porter.un",
+                {}
               );
             }
           });
@@ -2641,9 +2646,9 @@ npm run verify:release</code></pre>
             const object = requireObject(item, path, errors);
             const id = validateId(object.id, `${path}.id`, errors, ids);
             const parentId = requireString2(object.parentId, `${path}.parentId`, errors, { max: 160 });
-            if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
+            if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {});
             if (!["port", "starboard", "end"].includes(object.side)) {
-              addError(errors, `${path}.side`, "c\xF4t\xE9 invalide", "enum");
+              addError(errors, `${path}.side`, "c\xF4t\xE9 invalide", "enum", "validation.cote.invalide", {});
             }
             const center = validatePoint(object.center, `${path}.center`, errors);
             const heading = requireNumber2(object.heading, `${path}.heading`, errors, {
@@ -2676,7 +2681,7 @@ npm run verify:release</code></pre>
           const berthIds = new Set(berths.map((berth) => berth.id));
           pendilles.forEach((pendille, index) => {
             if (pendille.berthId && !berthIds.has(pendille.berthId)) {
-              addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference");
+              addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference", "validation.place.absente", {});
             }
           });
           const staticBoats = requireArray(document2.staticBoats, "$.staticBoats", errors).map((item, index) => {
@@ -2687,7 +2692,7 @@ npm run verify:release</code></pre>
               required: false,
               max: 160
             });
-            if (berthId && !berthIds.has(berthId)) addError(errors, `${path}.berthId`, "place absente", "reference");
+            if (berthId && !berthIds.has(berthId)) addError(errors, `${path}.berthId`, "place absente", "reference", "validation.place.absente", {});
             const center = validatePoint(object.center, `${path}.center`, errors);
             const heading = requireNumber2(object.heading, `${path}.heading`, errors, {
               minimum: -Math.PI * 8,
@@ -2697,12 +2702,12 @@ npm run verify:release</code></pre>
             const beam = requireNumber2(object.beam, `${path}.beam`, errors, { minimum: 0.4, maximum: 100 });
             const vesselType = object.vesselType === void 0 ? "sailboat" : object.vesselType;
             if (!["sailboat", "motorboat"].includes(vesselType)) {
-              addError(errors, `${path}.vesselType`, "sailboat ou motorboat attendu", "enum");
+              addError(errors, `${path}.vesselType`, "sailboat ou motorboat attendu", "enum", "validation.sailboat.ou.motorboat.attendu", {});
             }
             return { ...object, id, berthId, center, heading, length, beam, vesselType };
           });
           if (staticBoats.length > MAX_BOATS) {
-            addError(errors, "$.staticBoats", `maximum ${MAX_BOATS} bateaux`, "limit");
+            addError(errors, "$.staticBoats", `maximum ${MAX_BOATS} bateaux`, "limit", "validation.maximum.bateaux", { value1: MAX_BOATS });
           }
           const navigation = requireObject(document2.navigation, "$.navigation", errors);
           const entries = requireArray(navigation.entries, "$.navigation.entries", errors).map((item, index) => {
@@ -2718,7 +2723,7 @@ npm run verify:release</code></pre>
             return { ...object, id, name, position, heading };
           });
           if (entries.length !== 1) {
-            addError(errors, "$.navigation.entries", "un point d\u2019entr\xE9e unique est obligatoire", "cardinality");
+            addError(errors, "$.navigation.entries", "un point d\u2019entr\xE9e unique est obligatoire", "cardinality", "validation.un.point.d.entree.unique.est.obligatoire", {});
           }
           const bounds = requireObject(document2.bounds, "$.bounds", errors);
           for (const key of ["minEast", "minNorth", "maxEast", "maxNorth"]) {
@@ -2728,10 +2733,10 @@ npm run verify:release</code></pre>
             });
           }
           if (finite(bounds.minEast) && finite(bounds.maxEast) && bounds.minEast > bounds.maxEast) {
-            addError(errors, "$.bounds", "bornes est invers\xE9es", "geometry");
+            addError(errors, "$.bounds", "bornes est invers\xE9es", "geometry", "validation.bornes.est.inversees", {});
           }
           if (finite(bounds.minNorth) && finite(bounds.maxNorth) && bounds.minNorth > bounds.maxNorth) {
-            addError(errors, "$.bounds", "bornes nord invers\xE9es", "geometry");
+            addError(errors, "$.bounds", "bornes nord invers\xE9es", "geometry", "validation.bornes.nord.inversees", {});
           }
           const editor2 = requireObject(document2.editor, "$.editor", errors);
           requireNumber2(editor2.occupancySeed, "$.editor.occupancySeed", errors, {
@@ -2754,11 +2759,11 @@ npm run verify:release</code></pre>
             const object = requireObject(group, path, errors);
             validateId(object.id, `${path}.id`, errors, ids);
             if (!pontoonById.has(object.parentId)) {
-              addError(errors, `${path}.parentId`, "ponton parent absent", "reference");
+              addError(errors, `${path}.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {});
             }
             requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
               if (!catways.some((catway) => catway.id === id)) {
-                addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference");
+                addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference", "validation.catway.absent", {});
               }
             });
           });
@@ -2772,11 +2777,11 @@ npm run verify:release</code></pre>
             const object = requireObject(group, path, errors);
             validateId(object.id, `${path}.id`, errors, ids);
             if (!pendilleParents.has(object.parentId)) {
-              addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+              addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {});
             }
             requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
               if (!pendilles.some((pendille) => pendille.id === id)) {
-                addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference");
+                addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference", "validation.pendille.absente", {});
               }
             });
           });
@@ -2798,14 +2803,16 @@ npm run verify:release</code></pre>
         }
         function parse2(text, options = {}) {
           if (typeof text !== "string") {
-            throw new KJPValidationError([{ path: "$", message: "texte UTF-8 attendu", code: "type" }]);
+            throw new KJPValidationError([{ path: "$", message: "texte UTF-8 attendu", code: "type", messageKey: "validation.texte.utf.8.attendu", messageParams: {} }]);
           }
           const bytes = textBytes(text);
           if (bytes > MAX_FILE_BYTES) {
             throw new KJPValidationError([{
               path: "$",
               message: `fichier sup\xE9rieur \xE0 ${MAX_FILE_BYTES} octets`,
-              code: "limit"
+              code: "limit",
+              messageKey: "validation.fichier.superieur.a.octets",
+              messageParams: { value1: MAX_FILE_BYTES }
             }]);
           }
           let document2;
@@ -2815,7 +2822,9 @@ npm run verify:release</code></pre>
             throw new KJPValidationError([{
               path: "$",
               message: `JSON illisible (${error.message})`,
-              code: "json"
+              code: "json",
+              messageKey: "validation.json.illisible",
+              messageParams: { value1: error.message }
             }]);
           }
           return normalizeDocument(document2, options);
@@ -2824,7 +2833,7 @@ npm run verify:release</code></pre>
           const normalized = normalizeDocument(document2, { freeze: false });
           const text = stableStringify(normalized, options.compact ? 0 : 2);
           if (textBytes(text) > MAX_FILE_BYTES) {
-            throw new KJPValidationError([{ path: "$", message: "fichier export\xE9 trop volumineux", code: "limit" }]);
+            throw new KJPValidationError([{ path: "$", message: "fichier export\xE9 trop volumineux", code: "limit", messageKey: "validation.fichier.exporte.trop.volumineux", messageParams: {} }]);
           }
           return text;
         }
@@ -3131,7 +3140,7 @@ npm run verify:release</code></pre>
         }
         function legacyTopologyToRuntime(topology) {
           if (!isObject(topology) || topology.schemaVersion !== 2) {
-            throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" }]);
+            throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version", messageKey: "validation.topologie.historique.v2.attendue", messageParams: {} }]);
           }
           const runtime = clone3({
             ...topology,

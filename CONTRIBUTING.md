@@ -42,14 +42,18 @@ npm run build:port-generator
 Commandes ciblées utiles :
 
 ```bash
-npm run test:physics:core
-npm run test:physics:environment
-npm run test:physics:contacts
-npm run verify:simulator
-npm run verify:port-generator
+npm run validate:patch -- --product simulator
+npm run validate:ui -- --product simulator --group controls
+npm run validate:ui -- --product generator --group editing
+npm run validate:physics -- --component rudder
+npm run test:i18n:unit
 ```
 
 Pour un changement physique, appliquez le cadre décrit dans `skills/validate-nautical-physics/`. Un changement transversal de repère, d'intégrateur ou de contraintes justifie `npm run verify:physics`. Un changement visuel n'en a pas besoin.
+
+Les [groupes et règles de sélection](docs/validation-levels.md) permettent de choisir un seul cas indépendant. Une sélection vide échoue ; le journal `.validation-runs/` indique les cas réellement exécutés et leur durée. `test:physics:core` reste la suite fonctionnelle centrale entière, pas une sélection de composant.
+
+`verify:simulator` et `verify:port-generator` qualifient un **produit complet** ; ils ne sont pas des commandes locales. `verify:release` inclut une seule qualification renderer étendue et les contrôles de localisation. Ne lancez pas ses constituants juste avant. Les mesures CPU originales restent dans `qualify:performance`, hors des routes fonctionnelles ; ne relevez pas leurs seuils pour compenser une machine chargée.
 
 ## Principes à préserver
 

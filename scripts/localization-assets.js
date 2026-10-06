@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "..");
 function parameters(value) {
   return [...new Set(String(value).match(/\{\w+\}/g) || [])].sort().join(",");
 }
-function loadCatalogs() {
+function loadCatalogs({ includeGuides = false } = {}) {
   const directory = path.join(root, "src/simulateur-port/locales");
   const catalogs = fs.readdirSync(directory).filter(file => file.endsWith(".json")).sort()
     .map(file => {
@@ -23,7 +23,7 @@ function loadCatalogs() {
           throw new Error(`Missing guide image: ${catalog.code}/${match[1]}`);
         }
       }
-      return { ...catalog, guideHtml: renderReadme(markdown, path.dirname(guide)) };
+      return includeGuides ? { ...catalog, guideHtml: renderReadme(markdown, path.dirname(guide)) } : catalog;
     });
   const reference = catalogs.find(catalog => catalog.code === "fr");
   if (new Set(catalogs.map(c => c.code.toLowerCase())).size !== catalogs.length) throw new Error("Duplicate locale codes");

@@ -1,12 +1,11 @@
 "use strict";
 
-const test = require("node:test");
+const { browserCase } = require("./helpers/browser-harness.js");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const Codec = require("../src/ports/kjp-codec.js");
-const { chromium } = require("playwright");
 
 const projectRoot = path.resolve(__dirname, "..");
 const generatorPath = path.join(projectRoot, "generateur-port.html");
@@ -83,26 +82,7 @@ function createLargePortText() {
   return Codec.serialize(document);
 }
 
-test("générateur communautaire KJP — navigateur, édition et intégration", async t => {
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const errors = [];
-  const externalRequests = [];
-  page.on("pageerror", error => errors.push(error.message));
-  page.on("console", message => {
-    if (message.type() === "error") errors.push(message.text());
-  });
-  page.on("request", request => {
-    if (/^https?:/.test(request.url())) externalRequests.push(request.url());
-  });
-
-  await page.goto(testUrl(generatorPath));
-  await page.waitForFunction(() => Boolean(window.__KJP_GENERATOR_TEST__));
-  await page.waitForTimeout(250);
-
-  await t.test("l’identité KJP et l’aide README sont intégrées au générateur autonome", async () => {
+browserCase("generator:guide.01", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const initial = await page.evaluate(() => ({
       eyebrow: document.querySelector(".brand .eyebrow")?.textContent.trim(),
       logo: document.querySelector(".brand-mark")?.getAttribute("src"),
@@ -123,9 +103,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.match(help.text, /Versions de la release 2\.0/);
     assert.match(help.text, /Arnaud de Moissac/);
     await page.click("#closeReadmeHelp");
-  });
 
-  await t.test("le livrable est un HTML autonome avec OpenLayers 10.10 intégré", () => {
+});
+
+browserCase("generator:smoke.02", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const html = fs.readFileSync(generatorPath, "utf8");
     const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, "package.json"), "utf8"));
     assert.equal(packageJson.devDependencies.ol, "10.10.0");
@@ -142,9 +123,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.match(html, /gall\.openstreetmap\.de/);
     assert.match(html, /lambert\.openstreetmap\.de/);
     assert.match(html, /maxRounds:\s*5/);
-  });
 
-  await t.test("aucune requête cartographique ou géographique n'est émise avant une action", async () => {
+});
+
+browserCase("generator:smoke.03", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const mapRequests = externalRequests.filter(url => !/https:\/\/(?:www\.googletagmanager\.com|(?:www|region\d+)\.google-analytics\.com)\//i.test(url));
     assert.deepEqual(mapRequests, []);
     const report = await page.evaluate(() => ({
@@ -156,9 +138,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.equal(report.layers.seamark, false);
     assert.equal(report.layers.orthophoto, false);
     assert.deepEqual(report.requests, []);
-  });
 
-  await t.test("les actions d'édition sont dans le header et les calques restent compacts", async () => {
+});
+
+browserCase("generator:interface.04", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const report = await page.evaluate(() => {
       const parent = selector => document.querySelector(selector).parentElement;
       return {
@@ -183,9 +166,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.equal(report.opacityInline, true);
     assert.equal(report.seedControl, false);
     assert.equal(report.obsoletePrivacyText, false);
-  });
 
-  await t.test("les valeurs par défaut et les champs de série suivent le mode choisi", async () => {
+});
+
+browserCase("generator:editing.05", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.evaluate(() => window.__KJP_GENERATOR_TEST__.resetWorkspace());
     let report = await page.evaluate(() => ({
       document: window.__KJP_GENERATOR_TEST__.snapshot(),
@@ -225,10 +209,11 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot().metadata.source),
       "Relevé communautaire"
     );
-  });
 
-  let exported;
-  await t.test("la démonstration exerce groupes, taquets, places, bateaux, entrée et export", async () => {
+});
+
+browserCase("generator:editing.06", async ({ page, browser, context, runtimeErrors, externalRequests, errors }, t) => {
+    let exported;
     const report = await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       const document = api.loadDemonstration();
@@ -259,9 +244,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.ok(report.rendered.features > 50);
     assert.match(exported, /^(\{\n  "berths")/);
     assert.doesNotMatch(exported, /data:image|tileData|imageBlob/i);
-  });
 
-  await t.test("une série de pendilles crée places, prises, corps-morts et taquets liés", async () => {
+});
+
+browserCase("generator:pendilles.07", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       const document = api.loadDemonstration();
@@ -290,9 +276,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       && item.line.maximumLength <= 200
     )));
     assert.doesNotThrow(() => Codec.parse(report.exportText));
-  });
 
-  await t.test("import → réexport reste strictement identique", async () => {
+});
+
+browserCase("generator:import.08", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#importInput").setInputFiles({
       name: "port-test.kjp",
       mimeType: "application/json",
@@ -303,9 +290,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     ));
     const second = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.exportText());
     assert.equal(second, exported);
-  });
 
-  await t.test("l’entrée se place par glissement comme une flèche avec un cap nautique", async () => {
+});
+
+browserCase("generator:editing.09", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const mapBox = await page.locator("#map").boundingBox();
     assert.ok(mapBox);
     await page.locator('[data-tool="entry"]').click();
@@ -349,9 +337,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     });
     assert.ok(Math.abs(Math.abs(updated.entry.heading) - Math.PI) < 1e-9);
     assert.ok(Math.abs(updated.render.nauticalHeading - 270) < 1e-9);
-  });
 
-  await t.test("les panneaux latéraux restent réouvrables après leur masquage", async () => {
+});
+
+browserCase("generator:interface.10", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#collapseLeft").click();
     assert.equal(await page.locator("#expandLeft").isVisible(), true);
     await page.locator("#expandLeft").click();
@@ -364,9 +353,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       rightCollapsed: false,
       candidatesOpen: false
     });
-  });
 
-  await t.test("les candidats occupent le panneau droit et se sélectionnent globalement ou par catégorie", async () => {
+});
+
+browserCase("generator:candidates.11", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const fixture = JSON.parse(fs.readFileSync(
       path.join(__dirname, "fixtures", "osm-port-sample.json"),
       "utf8"
@@ -425,9 +415,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     await page.locator("#closeCandidates").click();
     report = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.candidateReport());
     assert.equal(report.open, false);
-  });
 
-  await t.test("le polygone d’analyse limite l’emprise sans masquer la carte", async () => {
+});
+
+browserCase("generator:candidates.12", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#drawAnalysisPolygon").click();
     const mapBox = await page.locator("#map").boundingBox();
     const points = [
@@ -453,9 +444,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     const cleared = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.analysisReport());
     assert.equal(cleared.polygon, null);
     assert.equal(cleared.features, 0);
-  });
 
-  await t.test("la découpe de ponton est prévisualisée puis créée seulement après validation", async () => {
+});
+
+browserCase("generator:candidates.13", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const fixture = JSON.parse(fs.readFileSync(
       path.join(__dirname, "fixtures", "osm-port-sample.json"),
       "utf8"
@@ -491,9 +483,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       "valider une découpe ne doit pas quitter le mode analyse"
     );
     await page.locator("#closeCandidates").click();
-  });
 
-  await t.test("les outils de carte ajoutent réellement un objet à la souris", async () => {
+});
+
+browserCase("generator:editing.14", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const before = await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       return api.loadDemonstration().structures.pontoons.length;
@@ -572,9 +565,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       };
     });
     assert.deepEqual(navigationBuoy, { seamarkType: "buoy_lateral", cleats: 0 });
-  });
 
-  await t.test("les poignées de longueur et d'angle restent synchronisées avec les champs", async () => {
+});
+
+browserCase("generator:editing.15", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const selected = await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       const document = api.loadDemonstration();
@@ -661,9 +655,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     ));
     const deselected = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.renderReport());
     assert.deepEqual(deselected.mapSelected, []);
-  });
 
-  await t.test("une erreur d'export identifie et recentre l'objet à corriger", async () => {
+});
+
+browserCase("generator:editing.16", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const target = await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       const document = api.loadDemonstration();
@@ -686,9 +681,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     ), target.id);
     const focused = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.renderReport());
     assert.deepEqual(focused.mapSelected, [target.id]);
-  });
 
-  await t.test("la largeur demandée dimensionne les places et les bateaux s'y adaptent", async () => {
+});
+
+browserCase("generator:editing.17", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
     await page.locator("#berthWidth").fill("2.8");
     await page.locator("#computeBerthsButton").click();
@@ -718,9 +714,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       Math.max(...wide.staticBoats.map(boat => boat.beam)) > narrowMaximumBeam,
       "les bateaux des places larges doivent pouvoir être plus larges"
     );
-  });
 
-  await t.test("sélection, dimensions, annulation/rétablissement et raccourcis clavier restent opérationnels", async () => {
+});
+
+browserCase("generator:editing.18", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const before = await page.evaluate(() => {
       const api = window.__KJP_GENERATOR_TEST__;
       const document = api.snapshot();
@@ -744,9 +741,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id).length
     ), before.id);
     assert.equal(current, 94);
-  });
 
-  await t.test("l'orthophoto se masque, règle son opacité et n'est référencée que comme aide visuelle", async () => {
+});
+
+browserCase("generator:maps.19", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#orthoLayerToggle").check();
     await page.locator("#orthoOpacity").fill("31");
     const report = await page.evaluate(() => {
@@ -763,9 +761,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     assert.ok(source);
     assert.equal(source.embedded, false);
     assert.doesNotMatch(report.exported, /data:image|imageBlob|tileData/i);
-  });
 
-  await t.test("Nouveau port remet complètement l'éditeur à zéro", async () => {
+});
+
+browserCase("generator:editing.20", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     page.once("dialog", dialog => dialog.accept());
     await page.locator("#newPortButton").click();
     await page.waitForFunction(() => {
@@ -798,9 +797,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     });
     assert.equal(report.candidates.total, 0);
     assert.equal(report.analysis, "Aucune zone analysée");
-  });
 
-  await t.test("l'interface tablette replie l'inspecteur et conserve des cibles tactiles", async () => {
+});
+
+browserCase("generator:interface.21", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const tabletContext = await browser.newContext({
       viewport: { width: 900, height: 760 },
       hasTouch: true,
@@ -838,9 +838,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length === count + 1
     ), before);
     await tabletContext.close();
-  });
 
-  await t.test("le simulateur importe atomiquement KJP au point d'entrée, au neutre et sans conditions", async () => {
+});
+
+browserCase("generator:integration.22", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const simulator = await context.newPage();
     const simulatorErrors = [];
     simulator.on("pageerror", error => simulatorErrors.push(error.message));
@@ -957,12 +958,10 @@ test("générateur communautaire KJP — navigateur, édition et intégration", 
     );
     assert.deepEqual(simulatorErrors, []);
     await simulator.close();
-  });
 
-  await t.test("aucune erreur d'exécution n'est apparue", () => {
+});
+
+browserCase("generator:smoke.23", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     assert.deepEqual(errors, []);
-  });
 
-  await context.close();
-  await browser.close();
 });

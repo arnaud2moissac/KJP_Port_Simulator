@@ -146,13 +146,17 @@ function renderReadme(markdown, root) {
   return html.join("\n");
 }
 
+function logoAsset(root) {
+  const logo = fs.readFileSync(path.join(root, "assets", "kjp-port-simulator-logo.png"));
+  return `data:image/png;base64,${logo.toString("base64")}`;
+}
+
 function projectAssets(root) {
   const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
-  const logo = fs.readFileSync(path.join(root, "assets", "kjp-port-simulator-logo.png"));
   return {
-    logoDataUri: `data:image/png;base64,${logo.toString("base64")}`,
+    logoDataUri: logoAsset(root),
     readmeHtml: renderReadme(readme, root)
   };
 }
 
-module.exports = { projectAssets, renderReadme };
+module.exports = { projectAssets, renderReadme, logoAsset };

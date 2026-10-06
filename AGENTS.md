@@ -82,6 +82,13 @@ Contrôler le build concerné, ouvrir la page, vérifier l'absence d'erreur cons
 puis tester uniquement l'état et l'interaction modifiés. Une inspection visuelle
 ciblée suffit pour une modification visuelle locale.
 
+Pour un test automatisé ciblé, utiliser `npm run validate:ui -- --product
+simulator --group controls` (ou le produit/groupe concerné), et `--case
+controls.48` pour un seul cas. Les groupes et commandes sont décrits dans
+[`docs/validation-levels.md`](docs/validation-levels.md). Le sélecteur refuse une
+sélection vide et vérifie les cas réellement exécutés. `test:e2e`,
+`verify:simulator` et `verify:port-generator` ne sont pas des contrôles locaux.
+
 Utiliser `npm run test:rendering` pour un changement local de ressources ou de
 caméra et `npm run test:renderer:quick` pour un changement intégré du renderer ou
 du secours. Réserver `npm run test:renderer:qualification`,
@@ -102,6 +109,11 @@ Appliquer `validate-nautical-physics` et distinguer :
 Utiliser `npm run test:physics:core`, `test:physics:environment` ou
 `test:physics:contacts` selon le composant. Réserver `npm run verify:physics` aux
 changements physiques transversaux.
+
+Pour un composant core isolé, préférer `npm run validate:physics -- --component
+rudder` (ou `mass`, `hull`, `propulsion`, `moorings`). Les invariants restent
+dans les tests fonctionnels ; les budgets CPU inchangés se qualifient séparément
+par `npm run qualify:performance`, sans relance automatique d'une suite globale.
 
 ### `release-check`
 

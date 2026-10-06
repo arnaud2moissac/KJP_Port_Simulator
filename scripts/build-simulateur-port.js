@@ -3,7 +3,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
-const { projectAssets, renderReadme } = require("./embed-project-readme.js");
+const { logoAsset } = require("./embed-project-readme.js");
 const { loadCatalogs, localizedTemplate } = require("./localization-assets.js");
 
 const root = path.resolve(__dirname, "..");
@@ -19,7 +19,6 @@ const threeEntryPath = path.join(
   "index.js"
 );
 const outputPath = path.join(root, "simulateur-port.html");
-const guidePath = path.join(root, "docs", "guide-utilisateur.md");
 const marker = "/*__PORT_PHYSICS_CORE__*/";
 const codecMarker = "/*__KJP_CODEC__*/";
 const threeMarker = "/*__THREE_RENDERING_BUNDLE__*/";
@@ -211,17 +210,19 @@ function bundleThreeRendering() {
 }
 
 function build() {
-  const catalogs = loadCatalogs();
+  const catalogs = loadCatalogs({ includeGuides: true });
   const template = localizedTemplate(fs.readFileSync(templatePath, "utf8"), catalogs);
   const profiles = fs.readFileSync(profilesPath, "utf8");
   const physics = fs.readFileSync(physicsPath, "utf8");
   const codec = fs.readFileSync(codecPath, "utf8");
   const threeRendering = bundleThreeRendering();
-  const { logoDataUri } = projectAssets(root);
-  const guideHtml = renderReadme(
-    fs.readFileSync(guidePath, "utf8"),
-    path.dirname(guidePath)
-  );
+  const logoDataUri = logoAsset(root);
+  const guideHtml = catalogs.find(catalog => catalog.code === "fr").guideHtml;
+  const embeddedCatalogs = catalogs.map(catalog => {
+    if (catalog.code !== "fr") return catalog;
+    const { guideHtml: _guide, ...metadata } = catalog;
+    return metadata;
+  });
   const topologyMatch = template.match(topologyPattern);
   if (!topologyMatch) {
     throw new Error("Balise <script data-port-topology> absente du modèle HTML.");
@@ -257,7 +258,8 @@ function build() {
     .replace(codecMarker, () => codec.trim())
     .replace(threeMarker, () => threeRendering.trim())
     .replace("/*__KJP_I18N__*/", () =>
-      `globalThis.__KJP_LOCALES__ = ${JSON.stringify(catalogs).replaceAll("<", "\\u003c")};\n`
+      `globalThis.__KJP_LOCALES__ = ${JSON.stringify(embeddedCatalogs).replaceAll("<", "\\u003c")};\n`
+      + 'globalThis.__KJP_LOCALES__.find(catalog => catalog.code === "fr").guideHtml = document.querySelector(".project-help-content").innerHTML;\n'
       + fs.readFileSync(path.join(root, "src/simulateur-port/i18n.js"), "utf8"))
     .replace(readmeMarker, () => guideHtml)
     .replaceAll(logoMarker, logoDataUri);

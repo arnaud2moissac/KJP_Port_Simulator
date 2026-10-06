@@ -1,0 +1,465 @@
+[
+  {
+    "product": "simulator",
+    "id": "smoke.01",
+    "group": "smoke",
+    "name": "Three.js r186 pilote le renderer natif hors ligne",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "guide.02",
+    "group": "guide",
+    "name": "l’identité KJP, le favicon et le guide utilisateur sont intégrés hors ligne"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.03",
+    "group": "ports",
+    "name": "la topologie métrique reste interchangeable mais est intégrée au HTML autonome"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.04",
+    "group": "controls",
+    "name": "les préférences par défaut sont le thème nuit, le son actif et moins de 0,6 nd pour frapper"
+  },
+  {
+    "product": "simulator",
+    "id": "interface.05",
+    "group": "interface",
+    "name": "la navigation reste prioritaire et les commandes ne débordent plus du header"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.06",
+    "group": "ports",
+    "name": "les informations KJP, les raccourcis et les aides du header sont accessibles"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.07",
+    "group": "ports",
+    "name": "Port actif reprend le nom KJP et propose La Trinité et le générateur"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.08",
+    "group": "rendering",
+    "name": "un mètre, un nœud et une seconde ont la même échelle partout"
+  },
+  {
+    "product": "simulator",
+    "id": "camera.09",
+    "group": "camera",
+    "name": "la vue Skipper reste liée à l'axe du bateau"
+  },
+  {
+    "product": "simulator",
+    "id": "camera.10",
+    "group": "camera",
+    "name": "le zoom arrière couvre l'échelle d'un port complet"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.11",
+    "group": "rendering",
+    "name": "l'axe visuel du safran part de la poupe sur 120 % de la coque"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.12",
+    "group": "rendering",
+    "name": "le thème carte marine reste lisible dans tous les rendus",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.13",
+    "group": "rendering",
+    "name": "le vent droit et le courant ondulé restent visibles dans la scène 3D",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.14",
+    "group": "rendering",
+    "name": "Comprendre synthétise tout le fardage en résultantes avant et arrière",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "audio.15",
+    "group": "audio",
+    "name": "le son moteur suit le régime sans échantillon externe ni niveau agressif"
+  },
+  {
+    "product": "simulator",
+    "id": "audio.16",
+    "group": "audio",
+    "name": "un premier toucher démarre le son sur une page tactile"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.17",
+    "group": "controls",
+    "name": "×2 double le temps simulé sans changer le pas ni la trajectoire"
+  },
+  {
+    "product": "simulator",
+    "id": "interface.18",
+    "group": "interface",
+    "name": "les vitesses affichent les normes et conservent l'erre signée"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.19",
+    "group": "topology",
+    "name": "aucun bateau ne chevauche un ponton, un catway ou un autre bateau"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.20",
+    "group": "topology",
+    "name": "les taquets du port sont métriques, réalistes et référencés"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.21",
+    "group": "moorings",
+    "name": "les départs au ponton restaurent deux aussières viscoélastiques"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.22",
+    "group": "moorings",
+    "name": "les pendilles intégrées se prennent, deviennent porteuses puis se libèrent immédiatement"
+  },
+  {
+    "product": "simulator",
+    "id": "calibration.23",
+    "group": "calibration",
+    "name": "la calibration experte règle effectivement le seuil de pose des aussières"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.24",
+    "group": "moorings",
+    "name": "un taquet du bateau accepte deux aussières et refuse la troisième"
+  },
+  {
+    "product": "simulator",
+    "id": "scenarios.25",
+    "group": "scenarios",
+    "name": "le défi 4 enseigne une sortie complète sur garde"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.26",
+    "group": "moorings",
+    "name": "clics souris et tactiles frappent, règlent puis larguent une aussière sans déplacer la caméra"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.27",
+    "group": "moorings",
+    "name": "les jauges compactes affichent et règlent séparément consigne et longueur actuelle"
+  },
+  {
+    "product": "simulator",
+    "id": "moorings.28",
+    "group": "moorings",
+    "name": "les aussières restent lisibles dans les deux vues et les deux thèmes"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.29",
+    "group": "topology",
+    "name": "chaque intervalle offre deux postes et chaque bateau longe un catway"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.30",
+    "group": "topology",
+    "name": "Rejoindre sa place cible un poste libre contre le catway sud"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.31",
+    "group": "topology",
+    "name": "chaque place rejoint un chenal dimensionné pour le voilier"
+  },
+  {
+    "product": "simulator",
+    "id": "scenarios.32",
+    "group": "scenarios",
+    "name": "les sorties libèrent la place sans choc et quittent les pare-battages"
+  },
+  {
+    "product": "simulator",
+    "id": "topology.33",
+    "group": "topology",
+    "name": "les situations commencent sans conditions et avec le seul appui statique attendu"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.34",
+    "group": "physics",
+    "name": "invariants du corps rigide et du safran"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.35",
+    "group": "physics",
+    "name": "le moteur scientifique est intégré avec une masse définie positive"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.36",
+    "group": "physics",
+    "name": "le vent de travers fait abattre l'étrave dans le moteur intégré"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.37",
+    "group": "rendering",
+    "name": "franc-bord lisible et cotes visuelles indépendantes de la physique"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.38",
+    "group": "physics",
+    "name": "non-régression marche avant: la barre ne renverse plus le bateau"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.39",
+    "group": "physics",
+    "name": "barre toute: le voilier sans propulseur conserve une avance"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.40",
+    "group": "physics",
+    "name": "effet de pas, inertie et entraînement par le courant"
+  },
+  {
+    "product": "simulator",
+    "id": "physics.41",
+    "group": "physics",
+    "name": "seuils de contact des pare-battages"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.42",
+    "group": "controls",
+    "name": "le cran neutre interdit une inversion sur un appui continu"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.43",
+    "group": "controls",
+    "name": "Q commande l'avant et W l'arrière sur clavier AZERTY"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.44",
+    "group": "rendering",
+    "name": "le rail de fargue, les cylindres de défense et le renderer natif restent cohérents",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "rendering.45",
+    "group": "rendering",
+    "name": "le renderer natif publie des mesures sans modifier la boucle",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.46",
+    "group": "ports",
+    "name": "les bouées suivent les couleurs et formes IALA A"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.47",
+    "group": "controls",
+    "name": "les flèches pilotent le bateau et Espace met en pause sans recentrer la barre"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.48",
+    "group": "controls",
+    "name": "gaz et barre répondent simultanément aux touches maintenues"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.49",
+    "group": "controls",
+    "name": "commandes tactiles: roue persistante et levier avec arrêt au neutre"
+  },
+  {
+    "product": "simulator",
+    "id": "camera.50",
+    "group": "camera",
+    "name": "deux doigts zooment et déplacent la carte, un toucher inspecte une force"
+  },
+  {
+    "product": "simulator",
+    "id": "trajectories.51",
+    "group": "trajectories",
+    "name": "les trois situations rejouent leur trajectoire étalon exactement"
+  },
+  {
+    "product": "simulator",
+    "id": "smoke.52",
+    "group": "smoke",
+    "name": "non-régression finale hors ligne, ordinateur et mobile",
+    "renderer": "native"
+  },
+  {
+    "product": "generator",
+    "id": "guide.01",
+    "group": "guide",
+    "name": "l’identité KJP et l’aide README sont intégrées au générateur autonome"
+  },
+  {
+    "product": "generator",
+    "id": "smoke.02",
+    "group": "smoke",
+    "name": "le livrable est un HTML autonome avec OpenLayers 10.10 intégré"
+  },
+  {
+    "product": "generator",
+    "id": "smoke.03",
+    "group": "smoke",
+    "name": "aucune requête cartographique ou géographique n'est émise avant une action"
+  },
+  {
+    "product": "generator",
+    "id": "interface.04",
+    "group": "interface",
+    "name": "les actions d'édition sont dans le header et les calques restent compacts"
+  },
+  {
+    "product": "generator",
+    "id": "editing.05",
+    "group": "editing",
+    "name": "les valeurs par défaut et les champs de série suivent le mode choisi"
+  },
+  {
+    "product": "generator",
+    "id": "editing.06",
+    "group": "editing",
+    "name": "la démonstration exerce groupes, taquets, places, bateaux, entrée et export"
+  },
+  {
+    "product": "generator",
+    "id": "pendilles.07",
+    "group": "pendilles",
+    "name": "une série de pendilles crée places, prises, corps-morts et taquets liés"
+  },
+  {
+    "product": "generator",
+    "id": "import.08",
+    "group": "import",
+    "name": "import → réexport reste strictement identique",
+    "fixture": "export"
+  },
+  {
+    "product": "generator",
+    "id": "editing.09",
+    "group": "editing",
+    "name": "l’entrée se place par glissement comme une flèche avec un cap nautique",
+    "fixture": "demo"
+  },
+  {
+    "product": "generator",
+    "id": "interface.10",
+    "group": "interface",
+    "name": "les panneaux latéraux restent réouvrables après leur masquage"
+  },
+  {
+    "product": "generator",
+    "id": "candidates.11",
+    "group": "candidates",
+    "name": "les candidats occupent le panneau droit et se sélectionnent globalement ou par catégorie"
+  },
+  {
+    "product": "generator",
+    "id": "candidates.12",
+    "group": "candidates",
+    "name": "le polygone d’analyse limite l’emprise sans masquer la carte"
+  },
+  {
+    "product": "generator",
+    "id": "candidates.13",
+    "group": "candidates",
+    "name": "la découpe de ponton est prévisualisée puis créée seulement après validation"
+  },
+  {
+    "product": "generator",
+    "id": "editing.14",
+    "group": "editing",
+    "name": "les outils de carte ajoutent réellement un objet à la souris"
+  },
+  {
+    "product": "generator",
+    "id": "editing.15",
+    "group": "editing",
+    "name": "les poignées de longueur et d'angle restent synchronisées avec les champs"
+  },
+  {
+    "product": "generator",
+    "id": "editing.16",
+    "group": "editing",
+    "name": "une erreur d'export identifie et recentre l'objet à corriger"
+  },
+  {
+    "product": "generator",
+    "id": "editing.17",
+    "group": "editing",
+    "name": "la largeur demandée dimensionne les places et les bateaux s'y adaptent"
+  },
+  {
+    "product": "generator",
+    "id": "editing.18",
+    "group": "editing",
+    "name": "sélection, dimensions, annulation/rétablissement et raccourcis clavier restent opérationnels",
+    "fixture": "demo"
+  },
+  {
+    "product": "generator",
+    "id": "maps.19",
+    "group": "maps",
+    "name": "l'orthophoto se masque, règle son opacité et n'est référencée que comme aide visuelle",
+    "fixture": "demo"
+  },
+  {
+    "product": "generator",
+    "id": "editing.20",
+    "group": "editing",
+    "name": "Nouveau port remet complètement l'éditeur à zéro",
+    "fixture": "demo"
+  },
+  {
+    "product": "generator",
+    "id": "interface.21",
+    "group": "interface",
+    "name": "l'interface tablette replie l'inspecteur et conserve des cibles tactiles"
+  },
+  {
+    "product": "generator",
+    "id": "integration.22",
+    "group": "integration",
+    "name": "le simulateur importe atomiquement KJP au point d'entrée, au neutre et sans conditions",
+    "fixture": "export"
+  },
+  {
+    "product": "generator",
+    "id": "smoke.23",
+    "group": "smoke",
+    "name": "aucune erreur d'exécution n'est apparue"
+  }
+]

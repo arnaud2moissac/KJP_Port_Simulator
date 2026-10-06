@@ -2,9 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { performance } = require("node:perf_hooks");
-const fs = require("node:fs");
-const path = require("node:path");
+const { createLargeObstacles } = require("../helpers/large-port-obstacles.js");
 const Physics = require("../../src/simulateur-port/physics-core.js");
 const KJPCodec = require("../../src/ports/kjp-codec.js");
 
@@ -381,40 +379,7 @@ test("contacts portuaires: absence de traversée et convergence 60/120/240 Hz", 
   }
 });
 
-function createLargeObstacles() {
-  const definition = JSON.parse(fs.readFileSync(
-    path.join(__dirname, "..", "fixtures", "kjp-large-port-definition.json"),
-    "utf8"
-  ));
-  const rectangles = [];
-  const boats = [];
-  const { columns, rowPitchMeters, columnPitchMeters } = definition.grid;
-  for (let index = 0; index < definition.counts.pontoons + definition.counts.catways; index += 1) {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    rectangles.push({
-      id: `structure-${index}`,
-      east: 500 + column * columnPitchMeters,
-      north: 500 + row * rowPitchMeters,
-      width: index < definition.counts.pontoons ? 18 : 10,
-      height: index < definition.counts.pontoons ? 2.4 : 0.8,
-      heading: Math.PI / 2 + (index % 7) * 0.03
-    });
-  }
-  for (let index = 0; index < definition.counts.staticBoats; index += 1) {
-    boats.push({
-      id: `boat-${index}`,
-      east: 600 + (index % columns) * columnPitchMeters,
-      north: -600 - Math.floor(index / columns) * rowPitchMeters,
-      heading: Math.PI / 2,
-      length: 9,
-      beam: 3
-    });
-  }
-  return { rectangles, boats };
-}
-
-test("grand port: index spatial sur 2 000 structures et 1 000 bateaux, P95 < 1 ms", () => {
+test("grand port: index spatial sur 2 000 structures et 1 000 bateaux, invariants fonctionnels", () => {
   const simulator = Physics.createSimulator({
     obstacles: createLargeObstacles(),
     environment: { windSpeedKn: 0, currentSpeedKn: 0, propWalk: 0 }
@@ -426,13 +391,9 @@ test("grand port: index spatial sur 2 000 structures et 1 000 bateaux, P95 < 1 m
   const report = simulator.getObstacleIndexReport();
   assert.equal(report.records, 3000);
   assert.ok(report.cells > 0);
-  const durations = [];
   for (let index = 0; index < 600; index += 1) {
-    const start = performance.now();
     simulator.step({ throttle: 0, rudder: 0 }, 1 / 120);
-    if (index >= 100) durations.push(performance.now() - start);
+    const snapshot = simulator.snapshot();
+    assert.ok([...Object.values(snapshot.pose), ...Object.values(snapshot.velocity)].every(Number.isFinite));
   }
-  durations.sort((first, second) => first - second);
-  const p95 = durations[Math.floor(durations.length * 0.95)];
-  assert.ok(p95 < 1, `P95 ${p95.toFixed(3)} ms`);
 });

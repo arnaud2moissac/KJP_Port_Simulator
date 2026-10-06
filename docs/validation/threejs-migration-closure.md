@@ -74,8 +74,10 @@ le tag et n'est plus une dépendance du produit courant.
 ## Garanties transférées
 
 - `tests/simulateur-port.test.js` conserve les commandes, interactions,
-  scénarios, imports, unités, trajectoires étalons et assertions physiques ; il
-  les exerce au démarrage sur le renderer natif réel.
+  scénarios, imports, unités, trajectoires étalons et assertions physiques.
+  Depuis le routage du 6 octobre 2026, les cas sont indépendants : le smoke et
+  les intégrations graphiques emploient le natif réel, les autres interactions
+  le secours Canvas existant avec RAF piloté uniquement par le banc de tests.
 - `tests/native-rendering.test.js` vérifie rapidement la persistance des
   géométries, palettes, libération, joueur local et caméra. Un mouvement de
   caméra ne modifie ni identité, contenu, version d'attribut ni compteur
@@ -105,7 +107,8 @@ doivent être remesurées après une évolution de l'environnement.
 | Commande | Risque et assertions propres | Durée observée | Déclencheur |
 | --- | --- | --- | --- |
 | `npm run test:rendering` | ressources, attributs, palettes, libération, caméra | ~0,5 s | modification locale de rendu |
-| `npm run test:e2e` | fonctions usuelles, physique intégrée et trajectoires sur natif | 78,5 s lors de la release finale | changement fonctionnel du simulateur ou release |
+| `npm run validate:ui -- --group controls` (groupe adaptable) | build, console et interactions sélectionnées | journal par exécution | changement fonctionnel local |
+| `npm run test:e2e` | toutes les fonctions usuelles, intégrations natives et trajectoires | 78,5 s lors de la release finale ; organisation historique | qualification fonctionnelle complète explicite ou release |
 | `npm run test:renderer:quick` | monde, GLB, interactions et secours intégrés | ~85 s | changement intégré du renderer ou du fallback |
 | `npm run test:renderer:qualification` | niveau rapide + références, mutations, déterminisme et soak 1 200 images | 340,1 s avec soak | qualification renderer explicite et release |
 | `npm run qualify:renderer:native` | Chromium, Firefox et WebKit sur trois formats | 9 cas, environ 2 min | matrice navigateur/format explicite |
@@ -117,6 +120,11 @@ cycles de ressources, soak et performances couvrent chacun un risque distinct et
 restent sélectionnables. Les centaines de comparaisons raster/intermédiaires dont
 l'unique objet était la parité avec Legacy sont archivées. Une sélection vide,
 un test ignoré ou un contrôle non lancé est consigné comme non exécuté.
+
+La [politique de validation actuelle](../validation-levels.md) prévaut sur les
+durées historiques. La qualification étendue contient le niveau rapide : ne pas
+enchaîner les deux avant une release. Les benchmarks physiques et ×2 sont
+réservés à `npm run qualify:performance` ; aucune limite temporelle n'a été relevée.
 
 ## Résultats de clôture
 

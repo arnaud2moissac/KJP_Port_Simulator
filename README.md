@@ -32,10 +32,13 @@ Prérequis : Node.js 20 ou plus récent.
 npm ci
 npm run build:simulator
 npm run build:port-generator
-npm run verify:release
 ```
 
 Les fichiers HTML à la racine sont générés. Les modifications se font dans `src/`, puis sont intégrées par les scripts de build. Consultez [CONTRIBUTING.md](CONTRIBUTING.md) avant de proposer une évolution.
+
+Validez selon le risque : `npm run validate:patch -- --product simulator` pour un texte ou style local, `npm run validate:ui -- --product simulator --group controls` pour les commandes, ou `npm run validate:physics -- --component rudder` pour la gouverne. Les groupes et les quatre niveaux sont décrits dans [la politique de validation](docs/validation-levels.md).
+
+`npm run verify:release` est une qualification complète explicite, à lancer **une fois** pour une release, pas après chaque modification. Les budgets CPU sont réservés à `npm run qualify:performance`.
 
 ## Versions de la release 2.0
 

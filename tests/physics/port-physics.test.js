@@ -2,7 +2,6 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { performance } = require("node:perf_hooks");
 const Physics = require("../../src/simulateur-port/physics-core.js");
 
 const DT = 1 / 120;
@@ -1536,7 +1535,7 @@ test("contacts: seuils, amortissement et absence de traversée", () => {
   assert.ok(result.contacts.current.every(contact => contact.penetration < 0.35));
 });
 
-test("balayage déterministe, sensibilité ±20 % et budget temps réel", () => {
+test("balayage déterministe et sensibilité ±20 % sous douze aussières", () => {
   for (const scale of [0.8, 1, 1.2]) {
     const profile = structuredClone(
       Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
@@ -1574,10 +1573,7 @@ test("balayage déterministe, sensibilité ±20 % et budget temps réel", () => 
       }).ok, true);
     }
   }
-  const start = performance.now();
-  const batchDurations = [];
   for (let batch = 0; batch < 500; batch += 1) {
-    const batchStart = performance.now();
     for (let offset = 0; offset < 20; offset += 1) {
       const index = batch * 20 + offset;
       const phase = index % 1200;
@@ -1585,7 +1581,6 @@ test("balayage déterministe, sensibilité ±20 % et budget temps réel", () => 
       const rudder = ((index % 71) - 35) * DEG;
       simulator.step({ throttle, rudder }, DT);
     }
-    batchDurations.push((performance.now() - batchStart) / 20);
     const snapshot = simulator.snapshot();
     assert.ok([
       snapshot.pose.east,
@@ -1598,20 +1593,4 @@ test("balayage déterministe, sensibilité ±20 % et budget temps réel", () => 
       snapshot.propulsion.advanceRatio
     ].every(Number.isFinite));
   }
-  const elapsed = performance.now() - start;
-  const average = elapsed / 10000;
-  batchDurations.sort((left, right) => left - right);
-  const p95 = batchDurations[Math.floor(batchDurations.length * .95)];
-  const x2AverageWorkPerRealSecond = average * 240;
-  const x2P95WorkPerRealSecond = p95 * 240;
-  assert.ok(average < 1, `coût moyen hors budget: ${average.toFixed(3)} ms/pas`);
-  assert.ok(p95 < 1, `95e percentile hors budget: ${p95.toFixed(3)} ms/pas`);
-  assert.ok(
-    x2AverageWorkPerRealSecond < 240,
-    `×2 consommerait ${x2AverageWorkPerRealSecond.toFixed(1)} ms par seconde réelle`
-  );
-  assert.ok(
-    x2P95WorkPerRealSecond < 240,
-    `×2 dépasserait le budget p95: ${x2P95WorkPerRealSecond.toFixed(1)} ms/s`
-  );
 });
