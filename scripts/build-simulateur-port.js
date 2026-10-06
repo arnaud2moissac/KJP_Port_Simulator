@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
 const { projectAssets, renderReadme } = require("./embed-project-readme.js");
+const { loadCatalogs, localizedTemplate } = require("./localization-assets.js");
 
 const root = path.resolve(__dirname, "..");
 const templatePath = path.join(root, "src", "simulateur-port", "template.html");
@@ -210,7 +211,8 @@ function bundleThreeRendering() {
 }
 
 function build() {
-  const template = fs.readFileSync(templatePath, "utf8");
+  const catalogs = loadCatalogs();
+  const template = localizedTemplate(fs.readFileSync(templatePath, "utf8"), catalogs);
   const profiles = fs.readFileSync(profilesPath, "utf8");
   const physics = fs.readFileSync(physicsPath, "utf8");
   const codec = fs.readFileSync(codecPath, "utf8");
@@ -254,6 +256,9 @@ function build() {
     )
     .replace(codecMarker, () => codec.trim())
     .replace(threeMarker, () => threeRendering.trim())
+    .replace("/*__KJP_I18N__*/", () =>
+      `globalThis.__KJP_LOCALES__ = ${JSON.stringify(catalogs).replaceAll("<", "\\u003c")};\n`
+      + fs.readFileSync(path.join(root, "src/simulateur-port/i18n.js"), "utf8"))
     .replace(readmeMarker, () => guideHtml)
     .replaceAll(logoMarker, logoDataUri);
   if (

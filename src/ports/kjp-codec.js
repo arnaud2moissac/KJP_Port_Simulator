@@ -121,33 +121,33 @@
     return Buffer.byteLength(text, "utf8");
   }
 
-  function addError(errors, path, message, code = "invalid") {
-    errors.push({ path, message, code });
+  function addError(errors, path, message, code = "invalid", messageKey, messageParams = {}) {
+    errors.push({ path, message, code, messageKey, messageParams });
   }
 
   function inspectUnsafeValues(value, path, errors, seen = new Set()) {
     if (value && typeof value === "object") {
       if (seen.has(value)) {
-        addError(errors, path, "référence circulaire interdite", "circular");
+        addError(errors, path, "référence circulaire interdite", "circular", "validation.reference.circulaire.interdite", {  });
         return;
       }
       seen.add(value);
     }
     if (typeof value === "number" && !Number.isFinite(value)) {
-      addError(errors, path, "nombre non fini", "non-finite");
+      addError(errors, path, "nombre non fini", "non-finite", "validation.nombre.non.fini", {  });
     } else if (typeof value === "string") {
-      if (value.length > 20000) addError(errors, path, "texte trop long", "limit");
+      if (value.length > 20000) addError(errors, path, "texte trop long", "limit", "validation.texte.trop.long", {  });
       if (DANGEROUS_TEXT.test(value)) {
-        addError(errors, path, "contenu HTML ou script interdit", "unsafe-text");
+        addError(errors, path, "contenu HTML ou script interdit", "unsafe-text", "validation.contenu.html.ou.script.interdit", {  });
       }
     } else if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") {
-      addError(errors, path, "type non JSON interdit", "non-json");
+      addError(errors, path, "type non JSON interdit", "non-json", "validation.type.non.json.interdit", {  });
     } else if (Array.isArray(value)) {
       value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen));
     } else if (isObject(value)) {
       for (const [key, item] of Object.entries(value)) {
         if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor"].includes(key)) {
-          addError(errors, `${path}.${key}`, "clé dangereuse interdite", "unsafe-key");
+          addError(errors, `${path}.${key}`, "clé dangereuse interdite", "unsafe-key", "validation.cle.dangereuse.interdite", {  });
         } else {
           inspectUnsafeValues(item, `${path}.${key}`, errors, seen);
         }
@@ -158,7 +158,7 @@
 
   function requireObject(value, path, errors) {
     if (!isObject(value)) {
-      addError(errors, path, "objet attendu", "type");
+      addError(errors, path, "objet attendu", "type", "validation.objet.attendu", {  });
       return {};
     }
     return value;
@@ -166,7 +166,7 @@
 
   function requireArray(value, path, errors) {
     if (!Array.isArray(value)) {
-      addError(errors, path, "tableau attendu", "type");
+      addError(errors, path, "tableau attendu", "type", "validation.tableau.attendu", {  });
       return [];
     }
     return value;
@@ -174,16 +174,16 @@
 
   function requireString(value, path, errors, { required = true, max = 5000 } = {}) {
     if (value === undefined || value === null || value === "") {
-      if (required) addError(errors, path, "texte obligatoire", "required");
+      if (required) addError(errors, path, "texte obligatoire", "required", "validation.texte.obligatoire", {  });
       return "";
     }
     if (typeof value !== "string") {
-      addError(errors, path, "texte attendu", "type");
+      addError(errors, path, "texte attendu", "type", "validation.texte.attendu", {  });
       return "";
     }
     const result = value.trim();
-    if (required && !result) addError(errors, path, "texte obligatoire", "required");
-    if (result.length > max) addError(errors, path, `maximum ${max} caractères`, "limit");
+    if (required && !result) addError(errors, path, "texte obligatoire", "required", "validation.texte.obligatoire", {  });
+    if (result.length > max) addError(errors, path, `maximum ${max} caractères`, "limit", "validation.maximum.caracteres", { value1: max });
     return result;
   }
 
@@ -193,15 +193,15 @@
     required = true
   } = {}) {
     if (value === undefined || value === null || value === "") {
-      if (required) addError(errors, path, "nombre obligatoire", "required");
+      if (required) addError(errors, path, "nombre obligatoire", "required", "validation.nombre.obligatoire", {  });
       return 0;
     }
     if (!finite(value)) {
-      addError(errors, path, "nombre fini attendu", "type");
+      addError(errors, path, "nombre fini attendu", "type", "validation.nombre.fini.attendu", {  });
       return 0;
     }
     if (value < minimum || value > maximum) {
-      addError(errors, path, `valeur hors limites [${minimum}, ${maximum}]`, "range");
+      addError(errors, path, `valeur hors limites [${minimum}, ${maximum}]`, "range", "validation.valeur.hors.limites", { value1: minimum, value2: maximum });
     }
     return value;
   }
@@ -209,23 +209,23 @@
   function validateUrl(value, path, errors) {
     if (value === undefined || value === null || value === "") return;
     if (typeof value !== "string" || !SAFE_URL.test(value)) {
-      addError(errors, path, "seules les URL HTTP/HTTPS sont autorisées", "url");
+      addError(errors, path, "seules les URL HTTP/HTTPS sont autorisées", "url", "validation.seules.les.url.http.https.sont.autorisees", {  });
       return;
     }
     try {
       const url = new URL(value);
       if (!["http:", "https:"].includes(url.protocol)) throw new Error("protocol");
     } catch {
-      addError(errors, path, "URL HTTP/HTTPS invalide", "url");
+      addError(errors, path, "URL HTTP/HTTPS invalide", "url", "validation.url.http.https.invalide", {  });
     }
   }
 
   function validateId(value, path, errors, ids) {
     const id = requireString(value, path, errors, { max: 160 });
     if (id && !/^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(id)) {
-      addError(errors, path, "identifiant invalide", "id");
+      addError(errors, path, "identifiant invalide", "id", "validation.identifiant.invalide", {  });
     }
-    if (id && ids.has(id)) addError(errors, path, "identifiant dupliqué", "duplicate");
+    if (id && ids.has(id)) addError(errors, path, "identifiant dupliqué", "duplicate", "validation.identifiant.duplique", {  });
     if (id) ids.add(id);
     return id;
   }
@@ -241,7 +241,7 @@
       maximum: MAX_EXTENT_METERS
     });
     if (Math.hypot(east, north) > MAX_EXTENT_METERS + 1e-9) {
-      addError(errors, path, `point situé à plus de ${MAX_EXTENT_METERS} m de l’origine`, "range");
+      addError(errors, path, `point situé à plus de ${MAX_EXTENT_METERS} m de l’origine`, "range", "validation.point.situe.a.plus.de.m.de.l", { value1: MAX_EXTENT_METERS });
     }
     return { east, north };
   }
@@ -264,13 +264,13 @@
     const object = requireObject(value, path, errors);
     const datum = object.datum === "waterline" ? object.datum : "waterline";
     if (object.datum !== "waterline") {
-      addError(errors, `${path}.datum`, "doit valoir waterline", "enum");
+      addError(errors, `${path}.datum`, "doit valoir waterline", "enum", "validation.doit.valoir.waterline", {  });
     }
     const mode = ["floating", "fixed"].includes(object.mode)
       ? object.mode
       : expectedMode;
     if (!["floating", "fixed"].includes(object.mode)) {
-      addError(errors, `${path}.mode`, "mode vertical inconnu", "enum");
+      addError(errors, `${path}.mode`, "mode vertical inconnu", "enum", "validation.mode.vertical.inconnu", {  });
     }
     const baseZ = requireNumber(object.baseZ, `${path}.baseZ`, errors, {
       minimum: -50,
@@ -284,12 +284,12 @@
       minimum: -50,
       maximum: 200
     });
-    if (topZ < baseZ) addError(errors, path, "topZ doit être supérieur ou égal à baseZ", "geometry");
+    if (topZ < baseZ) addError(errors, path, "topZ doit être supérieur ou égal à baseZ", "geometry", "validation.topz.doit.etre.superieur.ou.egal.a.basez", {  });
     if (deckZ < baseZ - 1e-9 || deckZ > topZ + 1e-9) {
-      addError(errors, `${path}.deckZ`, "deckZ doit être compris entre baseZ et topZ", "geometry");
+      addError(errors, `${path}.deckZ`, "deckZ doit être compris entre baseZ et topZ", "geometry", "validation.deckz.doit.etre.compris.entre.basez.et.topz", {  });
     }
     if (finite(fallbackHeight) && Math.abs((topZ - baseZ) - fallbackHeight) > 1e-6) {
-      addError(errors, path, "height doit correspondre à topZ - baseZ", "geometry");
+      addError(errors, path, "height doit correspondre à topZ - baseZ", "geometry", "validation.height.doit.correspondre.a.topz.basez", {  });
     }
     return { datum, mode, baseZ, topZ, deckZ };
   }
@@ -324,7 +324,7 @@
     );
     const endShape = type === "catway" ? (object.endShape ?? "rounded") : undefined;
     if (type === "catway" && !["rounded", "square"].includes(endShape)) {
-      addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum");
+      addError(errors, `${path}.endShape`, "rounded ou square attendu", "enum", "validation.rounded.ou.square.attendu", {  });
     }
     return {
       ...object,
@@ -346,10 +346,10 @@
     const type = ["breakwater", "groyne", "quay", "obstacle"].includes(object.type)
       ? object.type
       : "obstacle";
-    if (type !== object.type) addError(errors, `${path}.type`, "type d'obstacle inconnu", "enum");
+    if (type !== object.type) addError(errors, `${path}.type`, "type d'obstacle inconnu", "enum", "validation.type.d.obstacle.inconnu", {  });
     const points = requireArray(object.points, `${path}.points`, errors)
       .map((point, index) => validatePoint(point, `${path}.points[${index}]`, errors));
-    if (points.length < 2) addError(errors, `${path}.points`, "au moins deux points requis", "geometry");
+    if (points.length < 2) addError(errors, `${path}.points`, "au moins deux points requis", "geometry", "validation.au.moins.deux.points.requis", {  });
     const width = requireNumber(object.width, `${path}.width`, errors, {
       minimum: 0.1,
       maximum: 1000
@@ -373,7 +373,7 @@
     const id = validateId(object.id, `${path}.id`, errors, ids);
     const points = requireArray(object.points, `${path}.points`, errors)
       .map((point, index) => validatePoint(point, `${path}.points[${index}]`, errors));
-    if (points.length < 3) addError(errors, `${path}.points`, "au moins trois points requis", "geometry");
+    if (points.length < 3) addError(errors, `${path}.points`, "au moins trois points requis", "geometry", "validation.au.moins.trois.points.requis", {  });
     return { ...object, id, type: "land", points };
   }
 
@@ -396,7 +396,7 @@
       { max: 80 }
     );
     if (!BUOY_TYPES.includes(seamarkType)) {
-      addError(errors, `${path}.seamarkType`, "type de bouée ou d'amarrage inconnu", "enum");
+      addError(errors, `${path}.seamarkType`, "type de bouée ou d'amarrage inconnu", "enum", "validation.type.de.bouee.ou.d.amarrage.inconnu", {  });
     }
     const shape = requireString(
       object.shape ?? "unknown",
@@ -405,7 +405,7 @@
       { max: 80 }
     );
     if (!BUOY_SHAPES.includes(shape)) {
-      addError(errors, `${path}.shape`, "forme de bouée inconnue", "enum");
+      addError(errors, `${path}.shape`, "forme de bouée inconnue", "enum", "validation.forme.de.bouee.inconnue", {  });
     }
     const category = requireString(
       object.category,
@@ -430,7 +430,7 @@
       { max: 40 }
     ));
     if (colours.length > 8) {
-      addError(errors, `${path}.colours`, "maximum 8 couleurs", "limit");
+      addError(errors, `${path}.colours`, "maximum 8 couleurs", "limit", "validation.maximum.8.couleurs", {  });
     }
     return {
       ...object,
@@ -459,12 +459,12 @@
       ? object.connectionEnd
       : "bow";
     if (!["bow", "stern"].includes(object.connectionEnd)) {
-      addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum");
+      addError(errors, `${path}.connectionEnd`, "bow ou stern attendu", "enum", "validation.bow.ou.stern.attendu", {  });
     }
     const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
     const parent = parents.get(parentId);
     if (!parent || !["pontoon", "quay"].includes(parent.type)) {
-      addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+      addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {  });
     }
     const rawAttachment = requireObject(object.attachment, `${path}.attachment`, errors);
     const expectedKind = parent?.type === "quay" ? "polyline-station" : "rectangle-edge";
@@ -472,7 +472,7 @@
       ? rawAttachment.kind
       : expectedKind;
     if (rawAttachment.kind !== expectedKind) {
-      addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry");
+      addError(errors, `${path}.attachment.kind`, `doit valoir ${expectedKind}`, "geometry", "validation.doit.valoir", { value1: expectedKind });
     }
     const maximumStation = parent?.type === "quay"
       ? polylineLength(parent.points)
@@ -484,11 +484,11 @@
     });
     const edge = rawAttachment.edge || (rawAttachment.waterSide === "right" ? "starboard" : "port");
     if (kind === "rectangle-edge" && !["port", "starboard"].includes(edge)) {
-      addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum");
+      addError(errors, `${path}.attachment.edge`, "port ou starboard attendu", "enum", "validation.port.ou.starboard.attendu", {  });
     }
     const waterSide = rawAttachment.waterSide || (edge === "starboard" ? "right" : "left");
     if (!["left", "right"].includes(waterSide)) {
-      addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+      addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum", "validation.left.ou.right.attendu", {  });
     }
     const z = requireNumber(rawAttachment.z, `${path}.attachment.z`, errors, {
       minimum: -10,
@@ -549,7 +549,7 @@
         geometry.anchor.z - geometry.pickup.z
       );
       if (line.maximumLength + 1e-9 < storedSpan) {
-        addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry");
+        addError(errors, `${path}.line.maximumLength`, "longueur insuffisante pour relier la prise au corps-mort", "geometry", "validation.longueur.insuffisante.pour.relier.la.prise.au.corps", {  });
       }
     }
     return {
@@ -872,16 +872,16 @@
     );
     const parent = pontoons.find(item => item.id === parentId);
     if (!parent) {
-      addError(errors, `${path}.attachment.parentId`, "ponton parent absent", "reference");
+      addError(errors, `${path}.attachment.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {  });
       return;
     }
     if (catway.parentId !== undefined && catway.parentId !== parentId) {
-      addError(errors, `${path}.parentId`, "parentId incohérent avec attachment.parentId", "reference");
+      addError(errors, `${path}.parentId`, "parentId incohérent avec attachment.parentId", "reference", "validation.parentid.incoherent.avec.attachment.parentid", {  });
     }
     const parentEdge = ["port", "starboard"].includes(attachment.parentEdge)
       ? attachment.parentEdge
       : "";
-    if (!parentEdge) addError(errors, `${path}.attachment.parentEdge`, "rive port ou starboard attendue", "enum");
+    if (!parentEdge) addError(errors, `${path}.attachment.parentEdge`, "rive port ou starboard attendue", "enum", "validation.rive.port.ou.starboard.attendue", {  });
     const station = requireNumber(attachment.station, `${path}.attachment.station`, errors, {
       minimum: -parent.length / 2,
       maximum: parent.length / 2
@@ -895,7 +895,7 @@
     const connector = ["flush", "hinge", "ramp"].includes(attachment.connector)
       ? attachment.connector
       : "";
-    if (!connector) addError(errors, `${path}.attachment.connector`, "raccord inconnu", "enum");
+    if (!connector) addError(errors, `${path}.attachment.connector`, "raccord inconnu", "enum", "validation.raccord.inconnu", {  });
     const connectorLength = requireNumber(
       attachment.connectorLength,
       `${path}.attachment.connectorLength`,
@@ -903,7 +903,7 @@
       { minimum: 0, maximum: 20 }
     );
     if (connector === "ramp" && connectorLength < 0.2) {
-      addError(errors, `${path}.attachment.connectorLength`, "une rampe doit mesurer au moins 0,20 m", "geometry");
+      addError(errors, `${path}.attachment.connectorLength`, "une rampe doit mesurer au moins 0,20 m", "geometry", "validation.une.rampe.doit.mesurer.au.moins.0.20", {  });
     }
     const deckZ = requireNumber(attachment.deckZ, `${path}.attachment.deckZ`, errors, {
       minimum: -50,
@@ -924,29 +924,29 @@
       point.north - expectedRoot.north
     )));
     if (rootGap > 0.02) {
-      addError(errors, `${path}.attachment`, `racine distante de ${(rootGap * 100).toFixed(1)} cm du raccord`, "geometry");
+      addError(errors, `${path}.attachment`, `racine distante de ${(rootGap * 100).toFixed(1)} cm du raccord`, "geometry", "validation.racine.distante.de.cm.du.raccord", { value1: (rootGap * 100).toFixed(1) });
     }
     if (Math.abs(deckZ - catway.vertical.deckZ) > 1e-6) {
-      addError(errors, `${path}.attachment.deckZ`, "deckZ doit correspondre au niveau du catway", "geometry");
+      addError(errors, `${path}.attachment.deckZ`, "deckZ doit correspondre au niveau du catway", "geometry", "validation.deckz.doit.correspondre.au.niveau.du.catway", {  });
     }
     if (
       connector === "flush"
       && Math.abs(parent.vertical.deckZ - catway.vertical.deckZ) > 0.08
     ) {
-      addError(errors, `${path}.attachment.connector`, "écart vertical supérieur à 0,08 m : rampe ou articulation requise", "geometry");
+      addError(errors, `${path}.attachment.connector`, "écart vertical supérieur à 0,08 m : rampe ou articulation requise", "geometry", "validation.ecart.vertical.superieur.a.0.08.m.rampe", {  });
     }
   }
 
   function normalizeDocument(document, options = {}) {
     const errors = [];
     if (!isObject(document)) {
-      throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type" }]);
+      throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type" , messageKey: "validation.objet.json.attendu", messageParams: {  }}]);
     }
     inspectUnsafeValues(document, "$", errors);
     document = migrateLegacyDocument(document);
-    if (document.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format");
+    if (document.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format", "validation.doit.valoir", { value1: FORMAT });
     if (document.schemaVersion !== SCHEMA_VERSION) {
-      addError(errors, "$.schemaVersion", `version ${document.schemaVersion} non prise en charge`, "version");
+      addError(errors, "$.schemaVersion", `version ${document.schemaVersion} non prise en charge`, "version", "validation.version.non.prise.en.charge", { value1: document.schemaVersion });
     }
     requireString(document.generatorVersion, "$.generatorVersion", errors, { max: 80 });
 
@@ -963,13 +963,13 @@
 
     const georeference = requireObject(document.georeference, "$.georeference", errors);
     if (georeference.coordinateSystem !== "local-ENU") {
-      addError(errors, "$.georeference.coordinateSystem", "doit valoir local-ENU", "enum");
+      addError(errors, "$.georeference.coordinateSystem", "doit valoir local-ENU", "enum", "validation.doit.valoir.local.enu", {  });
     }
     const origin = requireObject(georeference.origin, "$.georeference.origin", errors);
     requireNumber(origin.latitude, "$.georeference.origin.latitude", errors, { minimum: -90, maximum: 90 });
     requireNumber(origin.longitude, "$.georeference.origin.longitude", errors, { minimum: -180, maximum: 180 });
-    if (georeference.distanceUnit !== "m") addError(errors, "$.georeference.distanceUnit", "doit valoir m", "unit");
-    if (georeference.angleUnit !== "rad") addError(errors, "$.georeference.angleUnit", "doit valoir rad", "unit");
+    if (georeference.distanceUnit !== "m") addError(errors, "$.georeference.distanceUnit", "doit valoir m", "unit", "validation.doit.valoir.m", {  });
+    if (georeference.angleUnit !== "rad") addError(errors, "$.georeference.angleUnit", "doit valoir rad", "unit", "validation.doit.valoir.rad", {  });
 
     const sources = requireArray(document.sources, "$.sources", errors);
     sources.forEach((source, index) => {
@@ -980,11 +980,11 @@
       requireString(object.license, `${path}.license`, errors, { max: 500 });
       validateUrl(object.url, `${path}.url`, errors);
       if (object.kind === "orthophoto" && object.embedded === true) {
-        addError(errors, `${path}.embedded`, "une orthophoto ne peut jamais être embarquée", "imagery");
+        addError(errors, `${path}.embedded`, "une orthophoto ne peut jamais être embarquée", "imagery", "validation.une.orthophoto.ne.peut.jamais.etre.embarquee", {  });
       }
       for (const key of Object.keys(object)) {
         if (/tile|image|blob|dataurl/i.test(key) && !["retrievedAt"].includes(key)) {
-          addError(errors, `${path}.${key}`, "donnée raster interdite dans KJP", "imagery");
+          addError(errors, `${path}.${key}`, "donnée raster interdite dans KJP", "imagery", "validation.donnee.raster.interdite.dans.kjp", {  });
         }
       }
     });
@@ -1033,7 +1033,7 @@
       + pendilles.length
     );
     if (structureCount > MAX_STRUCTURES) {
-      addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit");
+      addError(errors, "$.structures", `maximum ${MAX_STRUCTURES} structures`, "limit", "validation.maximum.structures", { value1: MAX_STRUCTURES });
     }
     const parentById = new Map([
       ...pontoons,
@@ -1050,7 +1050,7 @@
       const id = validateId(object.id, `${path}.id`, errors, ids);
       const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
       const parent = parentById.get(parentId);
-      if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
+      if (!parent) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {  });
       const quayParent = parent?.type === "quay";
       const local = quayParent
         ? {}
@@ -1080,7 +1080,7 @@
         ? (attachment.waterSide === "right" ? "right" : "left")
         : "";
       if (quayParent && !["left", "right"].includes(attachment.waterSide)) {
-        addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum");
+        addError(errors, `${path}.attachment.waterSide`, "left ou right attendu", "enum", "validation.left.ou.right.attendu", {  });
       }
       const outsideParent = parent?.type === "buoy"
         ? (
@@ -1092,11 +1092,11 @@
           || Math.abs(localPosition.transverse) > parent.width / 2 + 0.15
         );
       if (outsideParent) {
-        addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry");
+        addError(errors, `${path}.localPosition`, "taquet hors de sa structure parente", "geometry", "validation.taquet.hors.de.sa.structure.parente", {  });
       }
       const z = requireNumber(object.z, `${path}.z`, errors, { minimum: -10, maximum: 100 });
       if (parent?.type === "buoy" && Math.abs(z - parent.height) > 0.2) {
-        addError(errors, `${path}.z`, "le taquet doit être placé au sommet de la bouée", "geometry");
+        addError(errors, `${path}.z`, "le taquet doit être placé au sommet de la bouée", "geometry", "validation.le.taquet.doit.etre.place.au.sommet.de", {  });
       }
       const orientation = requireNumber(object.orientation, `${path}.orientation`, errors, {
         minimum: -Math.PI * 8,
@@ -1114,7 +1114,7 @@
       };
     });
     if (cleats.length > MAX_CLEATS) {
-      addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit");
+      addError(errors, "$.structures.cleats", `maximum ${MAX_CLEATS} taquets`, "limit", "validation.maximum.taquets", { value1: MAX_CLEATS });
     }
     buoys.forEach((buoy, index) => {
       const buoyCleats = cleats.filter(cleat => cleat.parentId === buoy.id);
@@ -1124,7 +1124,7 @@
           `$.structures.buoys[${index}]`,
           "une bouée corps mort doit posséder exactement un taquet",
           "reference"
-        );
+        , "validation.une.bouee.corps.mort.doit.posseder.exactement.un", {  });
       }
       if (buoy.seamarkType !== "mooring" && buoyCleats.length) {
         addError(
@@ -1132,7 +1132,7 @@
           `$.structures.buoys[${index}]`,
           "seule une bouée corps mort peut porter un taquet",
           "reference"
-        );
+        , "validation.seule.une.bouee.corps.mort.peut.porter.un", {  });
       }
     });
 
@@ -1141,9 +1141,9 @@
       const object = requireObject(item, path, errors);
       const id = validateId(object.id, `${path}.id`, errors, ids);
       const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
-      if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference");
+      if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {  });
       if (!["port", "starboard", "end"].includes(object.side)) {
-        addError(errors, `${path}.side`, "côté invalide", "enum");
+        addError(errors, `${path}.side`, "côté invalide", "enum", "validation.cote.invalide", {  });
       }
       const center = validatePoint(object.center, `${path}.center`, errors);
       const heading = requireNumber(object.heading, `${path}.heading`, errors, {
@@ -1176,7 +1176,7 @@
     const berthIds = new Set(berths.map(berth => berth.id));
     pendilles.forEach((pendille, index) => {
       if (pendille.berthId && !berthIds.has(pendille.berthId)) {
-        addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference");
+        addError(errors, `$.structures.pendilles[${index}].berthId`, "place absente", "reference", "validation.place.absente", {  });
       }
     });
 
@@ -1188,7 +1188,7 @@
         required: false,
         max: 160
       });
-      if (berthId && !berthIds.has(berthId)) addError(errors, `${path}.berthId`, "place absente", "reference");
+      if (berthId && !berthIds.has(berthId)) addError(errors, `${path}.berthId`, "place absente", "reference", "validation.place.absente", {  });
       const center = validatePoint(object.center, `${path}.center`, errors);
       const heading = requireNumber(object.heading, `${path}.heading`, errors, {
         minimum: -Math.PI * 8,
@@ -1198,12 +1198,12 @@
       const beam = requireNumber(object.beam, `${path}.beam`, errors, { minimum: 0.4, maximum: 100 });
       const vesselType = object.vesselType === undefined ? "sailboat" : object.vesselType;
       if (!["sailboat", "motorboat"].includes(vesselType)) {
-        addError(errors, `${path}.vesselType`, "sailboat ou motorboat attendu", "enum");
+        addError(errors, `${path}.vesselType`, "sailboat ou motorboat attendu", "enum", "validation.sailboat.ou.motorboat.attendu", {  });
       }
       return { ...object, id, berthId, center, heading, length, beam, vesselType };
     });
     if (staticBoats.length > MAX_BOATS) {
-      addError(errors, "$.staticBoats", `maximum ${MAX_BOATS} bateaux`, "limit");
+      addError(errors, "$.staticBoats", `maximum ${MAX_BOATS} bateaux`, "limit", "validation.maximum.bateaux", { value1: MAX_BOATS });
     }
 
     const navigation = requireObject(document.navigation, "$.navigation", errors);
@@ -1220,7 +1220,7 @@
       return { ...object, id, name, position, heading };
     });
     if (entries.length !== 1) {
-      addError(errors, "$.navigation.entries", "un point d’entrée unique est obligatoire", "cardinality");
+      addError(errors, "$.navigation.entries", "un point d’entrée unique est obligatoire", "cardinality", "validation.un.point.d.entree.unique.est.obligatoire", {  });
     }
 
     const bounds = requireObject(document.bounds, "$.bounds", errors);
@@ -1231,10 +1231,10 @@
       });
     }
     if (finite(bounds.minEast) && finite(bounds.maxEast) && bounds.minEast > bounds.maxEast) {
-      addError(errors, "$.bounds", "bornes est inversées", "geometry");
+      addError(errors, "$.bounds", "bornes est inversées", "geometry", "validation.bornes.est.inversees", {  });
     }
     if (finite(bounds.minNorth) && finite(bounds.maxNorth) && bounds.minNorth > bounds.maxNorth) {
-      addError(errors, "$.bounds", "bornes nord inversées", "geometry");
+      addError(errors, "$.bounds", "bornes nord inversées", "geometry", "validation.bornes.nord.inversees", {  });
     }
 
     const editor = requireObject(document.editor, "$.editor", errors);
@@ -1258,11 +1258,11 @@
       const object = requireObject(group, path, errors);
       validateId(object.id, `${path}.id`, errors, ids);
       if (!pontoonById.has(object.parentId)) {
-        addError(errors, `${path}.parentId`, "ponton parent absent", "reference");
+        addError(errors, `${path}.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {  });
       }
       requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
         if (!catways.some(catway => catway.id === id)) {
-          addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference");
+          addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference", "validation.catway.absent", {  });
         }
       });
     });
@@ -1276,11 +1276,11 @@
       const object = requireObject(group, path, errors);
       validateId(object.id, `${path}.id`, errors, ids);
       if (!pendilleParents.has(object.parentId)) {
-        addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference");
+        addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {  });
       }
       requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
         if (!pendilles.some(pendille => pendille.id === id)) {
-          addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference");
+          addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference", "validation.pendille.absente", {  });
         }
       });
     });
@@ -1307,7 +1307,7 @@
 
   function parse(text, options = {}) {
     if (typeof text !== "string") {
-      throw new KJPValidationError([{ path: "$", message: "texte UTF-8 attendu", code: "type" }]);
+      throw new KJPValidationError([{ path: "$", message: "texte UTF-8 attendu", code: "type" , messageKey: "validation.texte.utf.8.attendu", messageParams: {  }}]);
     }
     const bytes = textBytes(text);
     if (bytes > MAX_FILE_BYTES) {
@@ -1315,7 +1315,7 @@
         path: "$",
         message: `fichier supérieur à ${MAX_FILE_BYTES} octets`,
         code: "limit"
-      }]);
+      , messageKey: "validation.fichier.superieur.a.octets", messageParams: { value1: MAX_FILE_BYTES }}]);
     }
     let document;
     try {
@@ -1325,7 +1325,7 @@
         path: "$",
         message: `JSON illisible (${error.message})`,
         code: "json"
-      }]);
+      , messageKey: "validation.json.illisible", messageParams: { value1: error.message }}]);
     }
     return normalizeDocument(document, options);
   }
@@ -1334,7 +1334,7 @@
     const normalized = normalizeDocument(document, { freeze: false });
     const text = stableStringify(normalized, options.compact ? 0 : 2);
     if (textBytes(text) > MAX_FILE_BYTES) {
-      throw new KJPValidationError([{ path: "$", message: "fichier exporté trop volumineux", code: "limit" }]);
+      throw new KJPValidationError([{ path: "$", message: "fichier exporté trop volumineux", code: "limit" , messageKey: "validation.fichier.exporte.trop.volumineux", messageParams: {  }}]);
     }
     return text;
   }
@@ -1669,7 +1669,7 @@
 
   function legacyTopologyToRuntime(topology) {
     if (!isObject(topology) || topology.schemaVersion !== 2) {
-      throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" }]);
+      throw new KJPValidationError([{ path: "$.schemaVersion", message: "topologie historique v2 attendue", code: "version" , messageKey: "validation.topologie.historique.v2.attendue", messageParams: {  }}]);
     }
     const runtime = clone({
       ...topology,

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-i18n-pending>
 <head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQMS2JRBQ3"></script>
@@ -13,10 +13,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <meta name="description" content="Simulateur pédagogique de manœuvre de port pour voilier habitable.">
-  <title>KJP Port Simulator — comprendre son bateau au port</title>
+  <meta name="description" content="Simulateur pédagogique de manœuvre de port pour voilier habitable." data-i18n-attr="content:ui.educational.harbour.manoeuvring.simulator.for.cruising.sailboats">
+  <title data-i18n="ui.kjp.port.simulator.understand.your.boat.in.harbour">KJP Port Simulator — comprendre son bateau au port</title>
   <link rel="icon" type="image/png" href="__KJP_LOGO_DATA_URI__">
   <style>
+    html[data-i18n-pending] .app { visibility: hidden; }
     :root {
       --ink: #f3f0e6;
       --muted: #93aab5;
@@ -246,6 +247,14 @@
       justify-content: flex-end;
       gap: 6px;
       min-width: 0;
+    }
+
+    .language-select {
+      width: 54px;
+      min-height: 36px;
+      padding: 0 4px;
+      flex-shrink: 0;
+      font-size: 11px;
     }
 
     .theme-toggle {
@@ -574,6 +583,7 @@
     }
 
     .hud {
+      max-width: calc(100% - 210px);
       pointer-events: none;
       position: absolute;
       z-index: 3;
@@ -1733,6 +1743,7 @@
     }
 
     @media (max-width: 860px) {
+      .hud { max-width: calc(100% - 28px); }
       .topbar {
         grid-template-columns: auto auto minmax(0, 1fr);
         min-height: 64px;
@@ -1785,6 +1796,7 @@
     }
 
     @media (max-width: 640px) {
+      .environment-readout { top: 108px; }
       .brand-mark { width: 36px; height: 36px; }
       .header-tools { gap: 5px; }
       .header-icon-toggle,
@@ -1821,6 +1833,7 @@
     }
 
     @media (max-width: 480px) {
+      .header-tools { flex-wrap: wrap; row-gap: 6px; }
       .topbar { grid-template-columns: 1fr; }
       .brand { display: none; }
       .header-center { display: none; }
@@ -1851,32 +1864,33 @@
 <body data-visual-theme="dark" data-display-mode="navigation">
   <main class="app">
     <header class="topbar">
-      <div class="brand" aria-label="KJP Port Simulator, simulateur de manœuvre">
+      <div class="brand" aria-label="KJP Port Simulator, simulateur de manœuvre" data-i18n-attr="aria-label:ui.kjp.port.simulator.boat.manoeuvring.simulator">
         <img class="brand-mark" src="__KJP_LOGO_DATA_URI__" alt="">
         <div class="brand-copy">
           <div class="brand-kicker">KJP Port Simulator</div>
-          <div class="brand-title">comprendre son bateau au port</div>
+          <div class="brand-title" data-i18n="ui.understand.your.boat.in.harbour">comprendre son bateau au port</div>
         </div>
       </div>
 
       <div class="header-center">
-        <div class="mode-tabs" role="tablist" aria-label="Mode d'affichage">
-          <button type="button" data-mode="navigation" aria-selected="true">Navigation</button>
-          <button type="button" data-mode="understand" aria-selected="false">Comprendre</button>
+        <div class="mode-tabs" role="tablist" aria-label="Mode d'affichage" data-i18n-attr="aria-label:ui.display.mode">
+          <button type="button" data-mode="navigation" aria-selected="true" data-i18n="ui.navigation">Navigation</button>
+          <button type="button" data-mode="understand" aria-selected="false" data-i18n="ui.understand">Comprendre</button>
         </div>
-        <div class="view-tabs" aria-label="Vues">
-          <button type="button" id="topViewButton" aria-pressed="true">Dessus</button>
-          <button type="button" id="skipperViewButton" aria-pressed="false">Skipper</button>
+        <div class="view-tabs" aria-label="Vues" data-i18n-attr="aria-label:ui.views">
+          <button type="button" id="topViewButton" aria-pressed="true" data-i18n="ui.top">Dessus</button>
+          <button type="button" id="skipperViewButton" aria-pressed="false" data-i18n="ui.skipper">Skipper</button>
         </div>
         <div class="understand-view-tabs" id="understandViewTabs" role="group"
              title="Rotation : direction de la composante perpendiculaire F⊥ ; longueur proportionnelle au moment de lacet en N·m."
-          aria-label="Lecture du mode Comprendre" hidden>
-          <button type="button" data-understand-view="translation" aria-pressed="true">Translation</button>
-          <button type="button" data-understand-view="rotation" aria-pressed="false">Rotation <span class="rotation-unit">N·m</span></button>
+          aria-label="Lecture du mode Comprendre" hidden data-i18n-attr="title:ui.rotation.direction.of.the.perpendicular.component.f.length;aria-label:ui.understand.mode.view">
+          <button type="button" data-understand-view="translation" aria-pressed="true" data-i18n="ui.translation">Translation</button>
+          <button type="button" data-understand-view="rotation" aria-pressed="false"><span data-i18n="ui.rotation">Rotation</span> <span class="rotation-unit">N·m</span></button>
         </div>
       </div>
 
       <div class="header-tools">
+        <select id="languageSelect" class="language-select" data-i18n-attr="aria-label:language.label" aria-label="Langue"></select>
         <button
           type="button"
           class="time-scale-toggle"
@@ -1884,7 +1898,7 @@
           aria-label="Activer la vitesse de simulation multipliée par deux"
           title="Vitesse de simulation ×2"
           aria-pressed="false"
-        >×2</button>
+         data-i18n-attr="aria-label:ui.enable.double.simulation.speed;title:ui.simulation.speed.2" data-i18n="ui.2">×2</button>
         <button
           type="button"
           class="header-icon-toggle audio-toggle"
@@ -1892,7 +1906,7 @@
           aria-label="Couper le son du moteur"
           title="Son du moteur"
           aria-pressed="true"
-        >
+         data-i18n-attr="aria-label:ui.mute.engine.sound;title:ui.engine.sound">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 9.5h4l4.5-3.7v12.4L8 14.5H4Z"></path>
             <path class="sound-waves" d="M16 9a4.2 4.2 0 0 1 0 6M18.6 6.6a7.6 7.6 0 0 1 0 10.8"></path>
@@ -1906,7 +1920,7 @@
           aria-label="Activer le thème carte marine clair"
           title="Thème jour / nuit"
           aria-pressed="false"
-        >
+         data-i18n-attr="aria-label:ui.switch.to.light.nautical.chart.theme;title:ui.day.night.theme">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2.75v2M12 19.25v2M4.46 4.46l1.42 1.42M18.12 18.12l1.42 1.42M2.75 12h2M19.25 12h2M4.46 19.54l1.42-1.42M18.12 5.88l1.42-1.42"></path>
             <circle cx="12" cy="12" r="4.15"></circle>
@@ -1919,47 +1933,47 @@
           id="readmeHelpButton"
           aria-label="Ouvrir le guide utilisateur"
           title="Guide utilisateur"
-        >?</button>
-        <div class="simulation-actions" aria-label="Actions de simulation">
-          <button type="button" class="simulation-action" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise">Ⅱ</button>
-          <button type="button" class="simulation-action" id="resetButton" aria-label="Recommencer la situation" title="Recommencer la situation">↻</button>
-          <button type="button" class="simulation-action" id="cameraButton" aria-label="Recentrer la caméra" title="Recentrer la caméra sur le bateau">⌖</button>
+         data-i18n-attr="aria-label:ui.open.user.guide;title:ui.user.guide">?</button>
+        <div class="simulation-actions" aria-label="Actions de simulation" data-i18n-attr="aria-label:ui.simulation.actions">
+          <button type="button" class="simulation-action" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise" data-i18n-attr="aria-label:ui.pause.simulation;title:ui.pause.resume">Ⅱ</button>
+          <button type="button" class="simulation-action" id="resetButton" aria-label="Recommencer la situation" title="Recommencer la situation" data-i18n-attr="aria-label:ui.restart.scenario;title:ui.restart.scenario">↻</button>
+          <button type="button" class="simulation-action" id="cameraButton" aria-label="Recentrer la caméra" title="Recentrer la caméra sur le bateau" data-i18n-attr="aria-label:ui.centre.camera;title:ui.centre.camera.on.the.boat">⌖</button>
         </div>
-        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Masquer les réglages" aria-expanded="true" title="Afficher ou masquer les réglages">☰</button>
+        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Masquer les réglages" aria-expanded="true" title="Afficher ou masquer les réglages" data-i18n-attr="aria-label:toast.hide.settings;title:ui.show.or.hide.settings">☰</button>
       </div>
     </header>
 
     <div class="workspace" id="workspace">
-      <section class="stage" aria-label="Zone de simulation">
+      <section class="stage" aria-label="Zone de simulation" data-i18n-attr="aria-label:ui.simulation.area">
         <canvas
           id="scene"
           tabindex="0"
           aria-label="Vue tridimensionnelle d'un voilier manœuvrant dans un port. Cliquez deux taquets pour frapper une aussière. Cliquez une aussière pour la larguer ou faites-la glisser vers le haut pour l'allonger et vers le bas pour la raccourcir. Les flèches gauche et droite commandent la barre. La flèche haut ou Q commande la marche avant. La flèche bas ou W commande la marche arrière."
-        ></canvas>
+         data-i18n-attr="aria-label:ui.three.dimensional.view.of.a.sailboat.manoeuvring.in"></canvas>
         <div class="stage-vignette" aria-hidden="true"></div>
 
         <div class="hud" aria-live="polite">
           <div class="metric primary">
-            <div class="metric-label">Vitesse fond</div>
-            <div class="metric-value"><strong id="sogValue">0,0</strong> <small>nd</small></div>
-            <div class="metric-detail">Erre <span id="sogAxialValue">0,0</span> nd</div>
+            <div class="metric-label" data-i18n="ui.speed.over.ground">Vitesse fond</div>
+            <div class="metric-value"><strong id="sogValue">0,0</strong> <small data-i18n="ui.kn.3">nd</small></div>
+            <div class="metric-detail"><span data-i18n="ui.headway">Erre</span> <span id="sogAxialValue">0,0</span> <span data-i18n="ui.kn.3">nd</span></div>
           </div>
           <div class="metric">
-            <div class="metric-label">Vitesse surface</div>
-            <div class="metric-value"><span id="stwValue">0,0</span> <small>nd</small></div>
-            <div class="metric-detail">Erre <span id="stwAxialValue">0,0</span> nd</div>
+            <div class="metric-label" data-i18n="ui.speed.through.water">Vitesse surface</div>
+            <div class="metric-value"><span id="stwValue">0,0</span> <small data-i18n="ui.kn.3">nd</small></div>
+            <div class="metric-detail"><span data-i18n="ui.headway">Erre</span> <span id="stwAxialValue">0,0</span> <span data-i18n="ui.kn.3">nd</span></div>
           </div>
           <div class="metric">
-            <div class="metric-label">Cap</div>
+            <div class="metric-label" data-i18n="ui.heading">Cap</div>
             <div class="metric-value"><span id="headingValue">270</span><small>°</small></div>
           </div>
           <div class="metric">
-            <div class="metric-label">Dérive</div>
+            <div class="metric-label" data-i18n="ui.leeway">Dérive</div>
             <div class="metric-value"><span id="driftValue">0,0</span><small>°</small></div>
           </div>
           <div class="metric">
-            <div class="metric-label">Régime</div>
-            <div class="metric-value"><span id="rpmValue">850</span> <small>tr/min</small></div>
+            <div class="metric-label" data-i18n="ui.engine.speed">Régime</div>
+            <div class="metric-value"><span id="rpmValue">850</span> <small data-i18n="ui.rpm">tr/min</small></div>
           </div>
         </div>
 
@@ -1967,25 +1981,25 @@
           <div class="flow-chip">
             <div class="flow-arrow" id="windArrow"></div>
             <div class="flow-copy">
-              <strong>Vent · <span id="windChipValue">0 nd</span></strong>
-              <span id="windChipDirection">vient du 000°</span>
+              <strong><span data-i18n="ui.wind">Vent ·</span> <span id="windChipValue" data-i18n="ui.0.kn">0 nd</span></strong>
+              <span id="windChipDirection" data-i18n="ui.from.000">vient du 000°</span>
             </div>
           </div>
           <div class="flow-chip">
             <div class="flow-arrow current" id="currentArrow"></div>
             <div class="flow-copy">
-              <strong>Courant · <span id="currentChipValue">0 nd</span></strong>
-              <span id="currentChipDirection">vient du 000°</span>
+              <strong><span data-i18n="ui.current.2">Courant ·</span> <span id="currentChipValue" data-i18n="ui.0.kn">0 nd</span></strong>
+              <span id="currentChipDirection" data-i18n="ui.from.000">vient du 000°</span>
             </div>
           </div>
           <div class="flow-chip" id="mooringChip" hidden>
             <div class="flow-arrow mooring" aria-hidden="true"></div>
             <div class="flow-copy">
-              <strong>Amarres · <span id="mooringChipValue">0</span></strong>
-              <span id="mooringChipState">aucune frappée</span>
+              <strong><span data-i18n="ui.lines">Amarres ·</span> <span id="mooringChipValue">0</span></strong>
+              <span id="mooringChipState" data-i18n="ui.none.attached">aucune frappée</span>
             </div>
           </div>
-          <div class="mooring-gauge-panel" id="mooringGaugePanel" aria-label="Réglage des longueurs d'amarres" hidden>
+          <div class="mooring-gauge-panel" id="mooringGaugePanel" aria-label="Réglage des longueurs d'amarres" hidden data-i18n-attr="aria-label:ui.adjust.mooring.line.lengths">
             <div class="mooring-gauge-grid" id="mooringGaugeGrid"></div>
           </div>
         </div>
@@ -1993,79 +2007,79 @@
         <div class="impact-toast" id="impactToast" role="status"></div>
         <div class="force-tooltip" id="forceTooltip" role="tooltip" hidden></div>
 
-        <div class="control-dock" aria-label="Commandes du bateau">
+        <div class="control-dock" aria-label="Commandes du bateau" data-i18n-attr="aria-label:ui.boat.controls">
           <div class="control-module helm-module">
-            <button type="button" class="control-button" id="helmPort" aria-label="Barre à bâbord">←</button>
+            <button type="button" class="control-button" id="helmPort" aria-label="Barre à bâbord" data-i18n-attr="aria-label:ui.helm.to.port">←</button>
             <div class="control-center">
-              <strong>Barre · <span id="rudderValue">0°</span></strong>
+              <strong><span data-i18n="ui.helm">Barre ·</span> <span id="rudderValue">0°</span></strong>
               <div class="rudder-track" aria-hidden="true">
                 <span class="track-indicator" id="rudderIndicator"></span>
               </div>
-              <button type="button" id="centerRudder" style="min-height:0;padding:0;border:0;background:transparent;color:var(--muted);font-size:9px;">Recentrer</button>
+              <button type="button" id="centerRudder" style="min-height:0;padding:0;border:0;background:transparent;color:var(--muted);font-size:9px;" data-i18n="ui.centre">Recentrer</button>
             </div>
-            <button type="button" class="control-button" id="helmStarboard" aria-label="Barre à tribord">→</button>
+            <button type="button" class="control-button" id="helmStarboard" aria-label="Barre à tribord" data-i18n-attr="aria-label:ui.helm.to.starboard">→</button>
           </div>
 
           <div class="control-module throttle-module">
-            <button type="button" class="control-button" id="throttleDown" aria-label="Réduire les gaz ou passer en marche arrière">↓</button>
+            <button type="button" class="control-button" id="throttleDown" aria-label="Réduire les gaz ou passer en marche arrière" data-i18n-attr="aria-label:ui.reduce.throttle.or.select.astern">↓</button>
             <div class="control-center">
-              <strong id="throttleLabel">Neutre</strong>
+              <strong id="throttleLabel" data-i18n="ui.neutral">Neutre</strong>
               <div class="throttle-track" aria-hidden="true">
                 <span class="track-indicator" id="throttleIndicator"></span>
               </div>
-              <span class="neutral-gate" id="neutralGate">cran neutre</span>
+              <span class="neutral-gate" id="neutralGate" data-i18n="ui.neutral.detent">cran neutre</span>
             </div>
-            <button type="button" class="control-button" id="throttleUp" aria-label="Augmenter les gaz ou passer en marche avant">↑</button>
+            <button type="button" class="control-button" id="throttleUp" aria-label="Augmenter les gaz ou passer en marche avant" data-i18n-attr="aria-label:ui.increase.throttle.or.select.ahead">↑</button>
           </div>
         </div>
 
-        <div class="touch-controls" aria-label="Commandes tactiles du bateau">
-          <div class="touch-gamepad touch-helm" aria-label="Commande tactile de barre">
-            <span class="touch-pad-title">Barre</span>
+        <div class="touch-controls" aria-label="Commandes tactiles du bateau" data-i18n-attr="aria-label:ui.touch.boat.controls">
+          <div class="touch-gamepad touch-helm" aria-label="Commande tactile de barre" data-i18n-attr="aria-label:ui.touch.helm.control">
+            <span class="touch-pad-title" data-i18n="ui.helm.2">Barre</span>
             <output class="touch-helm-value" id="touchRudderValue">0°</output>
-            <div class="touch-wheel" id="touchHelmWheel" role="slider" tabindex="0" aria-label="Roue de barre, tourner pour régler l'angle" aria-valuemin="-35" aria-valuemax="35" aria-valuenow="0"><span class="touch-wheel-hub"></span></div>
-            <button type="button" class="touch-pad-center" id="touchCenterRudder" aria-label="Recentrer la barre">
+            <div class="touch-wheel" id="touchHelmWheel" role="slider" tabindex="0" aria-label="Roue de barre, tourner pour régler l'angle" aria-valuemin="-35" aria-valuemax="35" aria-valuenow="0" data-i18n-attr="aria-label:ui.helm.wheel.turn.to.adjust.angle"><span class="touch-wheel-hub"></span></div>
+            <button type="button" class="touch-pad-center" id="touchCenterRudder" aria-label="Recentrer la barre" data-i18n-attr="aria-label:ui.centre.helm">
               <span aria-hidden="true">0</span>
             </button>
           </div>
 
-          <div class="touch-gamepad touch-engine" aria-label="Commande tactile du moteur">
-            <span class="touch-pad-title">Moteur</span>
-            <span class="touch-engine-label forward" aria-hidden="true">AV</span>
+          <div class="touch-gamepad touch-engine" aria-label="Commande tactile du moteur" data-i18n-attr="aria-label:ui.touch.engine.control">
+            <span class="touch-pad-title" data-i18n="ui.engine">Moteur</span>
+            <span class="touch-engine-label forward" aria-hidden="true" data-i18n="ui.fwd">AV</span>
             <div class="touch-engine-track" aria-hidden="true"></div>
-            <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Glisser verticalement pour régler le moteur, toucher pour le neutre" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
+            <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Glisser verticalement pour régler le moteur, toucher pour le neutre" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" data-i18n-attr="aria-label:ui.drag.vertically.to.set.throttle.tap.for.neutral">
               <span id="touchThrottleValue">N</span>
             </button>
-            <span class="touch-engine-label reverse" aria-hidden="true">AR</span>
+            <span class="touch-engine-label reverse" aria-hidden="true" data-i18n="ui.gear.reverse">AR</span>
           </div>
         </div>
 
-        <div class="unsupported" id="unsupported">
+        <div class="unsupported" id="unsupported" data-i18n="ui.your.browser.cannot.display.this.simulator.try.a">
           Votre navigateur ne permet pas d'afficher ce simulateur. Essayez une version récente de Safari, Firefox, Chrome ou Edge.
         </div>
       </section>
 
-      <aside class="sidebar" id="sidebar" aria-label="Réglages du simulateur">
-        <section class="port-control-panel" aria-label="Port et situation">
+      <aside class="sidebar" id="sidebar" aria-label="Réglages du simulateur" data-i18n-attr="aria-label:ui.simulator.settings">
+        <section class="port-control-panel" aria-label="Port et situation" data-i18n-attr="aria-label:ui.harbour.and.scenario">
           <div class="port-control-grid">
             <div class="field">
-              <label for="portSourceSelect">Port actif</label>
+              <label for="portSourceSelect" data-i18n="ui.active.harbour">Port actif</label>
               <div class="port-select-row">
                 <select id="portSourceSelect">
-                  <option value="builtIn">Port pédagogique</option>
-                  <option value="loadTrinite">Charger la Trinité</option>
-                  <option value="buildPort">Construire un port</option>
+                  <option value="builtIn" data-i18n="ui.training.harbour">Port pédagogique</option>
+                  <option value="loadTrinite" data-i18n="ui.load.la.trinite">Charger la Trinité</option>
+                  <option value="buildPort" data-i18n="ui.build.a.harbour">Construire un port</option>
                 </select>
-                <button type="button" class="port-info-button" id="portInfoButton" aria-label="Afficher les informations du port" aria-expanded="false" aria-controls="portInfoPopover" title="Informations du port">?</button>
+                <button type="button" class="port-info-button" id="portInfoButton" aria-label="Afficher les informations du port" aria-expanded="false" aria-controls="portInfoPopover" title="Informations du port" data-i18n-attr="aria-label:ui.show.harbour.information;title:ui.harbour.information">?</button>
               </div>
             </div>
-            <button type="button" class="port-loader-button" id="loadPortButton" aria-controls="portFileInput" aria-label="Charger un port KJP">
+            <button type="button" class="port-loader-button" id="loadPortButton" aria-controls="portFileInput" aria-label="Charger un port KJP" data-i18n-attr="aria-label:ui.load.a.kjp.harbour">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3v12"></path>
                 <path d="m7.5 10.5 4.5 4.5 4.5-4.5"></path>
                 <path d="M4 16.5v3h16v-3"></path>
               </svg>
-              <span class="compact-label">Charger</span>
+              <span class="compact-label" data-i18n="ui.load">Charger</span>
             </button>
             <input id="portFileInput" type="file" accept=".kjp,application/json" hidden>
           </div>
@@ -2073,30 +2087,30 @@
           <article class="port-info-popover" id="portInfoPopover" hidden>
             <div class="port-info-heading">
               <strong id="portInfoName"></strong>
-              <button type="button" id="closePortInfo" aria-label="Fermer les informations du port">×</button>
+              <button type="button" id="closePortInfo" aria-label="Fermer les informations du port" data-i18n-attr="aria-label:ui.close.harbour.information" data-i18n="ui.value">×</button>
             </div>
             <dl id="portInfoDetails"></dl>
-            <a id="portInfoUrl" href="#" target="_blank" rel="noopener noreferrer" hidden>Site de la capitainerie ↗</a>
+            <a id="portInfoUrl" href="#" target="_blank" rel="noopener noreferrer" hidden data-i18n="ui.harbour.master.s.website">Site de la capitainerie ↗</a>
           </article>
 
           <div class="scenario-field">
-            <label for="scenarioSelect">Situation ou exercice</label>
+            <label for="scenarioSelect" data-i18n="ui.scenario.or.exercise">Situation ou exercice</label>
             <select id="scenarioSelect" class="scenario-select">
-              <optgroup label="Situations de départ">
-                <option value="dockForward">Ponton · sortie en marche avant</option>
-                <option value="dockReverse">Ponton · sortie en marche arrière</option>
-                <option value="free">Bassin extérieur</option>
+              <optgroup label="Situations de départ" data-i18n-attr="label:ui.starting.scenarios">
+                <option value="dockForward" data-i18n="ui.pontoon.depart.ahead">Ponton · sortie en marche avant</option>
+                <option value="dockReverse" data-i18n="ui.pontoon.depart.astern">Ponton · sortie en marche arrière</option>
+                <option value="free" data-i18n="ui.outer.basin">Bassin extérieur</option>
               </optgroup>
-              <optgroup label="Exercices guidés">
-                <option value="inertia">Défi 1 · Dompter l'inertie</option>
-                <option value="dock">Défi 2 · Accostage bâbord</option>
-                <option value="starboardDock">Défi 3 · Accostage tribord</option>
-                <option value="reverse">Défi 4 · Sortie en marche arrière</option>
-                <option value="mooring">Défi 5 · Sortir sur garde</option>
-                <option value="medDock">Défi 6 · Accoster sur pendille</option>
-                <option value="medDeparture">Défi 7 · Appareiller sur pendille</option>
-                <option value="halfTurn">Défi 8 · Faire un demi-tour sur place</option>
-                <option value="approach">Défi 9 · Rejoindre sa place</option>
+              <optgroup label="Exercices guidés" data-i18n-attr="label:ui.guided.exercises">
+                <option value="inertia" data-i18n="ui.challenge.1.master.inertia">Défi 1 · Dompter l'inertie</option>
+                <option value="dock" data-i18n="ui.challenge.2.berth.to.port">Défi 2 · Accostage bâbord</option>
+                <option value="starboardDock" data-i18n="ui.challenge.3.berth.to.starboard">Défi 3 · Accostage tribord</option>
+                <option value="reverse" data-i18n="ui.challenge.4.depart.astern">Défi 4 · Sortie en marche arrière</option>
+                <option value="mooring" data-i18n="ui.challenge.5.leave.on.a.spring">Défi 5 · Sortir sur garde</option>
+                <option value="medDock" data-i18n="ui.challenge.6.berth.with.a.laid.mooring">Défi 6 · Accoster sur pendille</option>
+                <option value="medDeparture" data-i18n="ui.challenge.7.depart.from.a.laid.mooring">Défi 7 · Appareiller sur pendille</option>
+                <option value="halfTurn" data-i18n="ui.challenge.8.turn.through.180.on.the.spot">Défi 8 · Faire un demi-tour sur place</option>
+                <option value="approach" data-i18n="ui.challenge.9.reach.your.berth">Défi 9 · Rejoindre sa place</option>
               </optgroup>
             </select>
           </div>
@@ -2105,8 +2119,8 @@
             <strong id="communityPortName"></strong>
             <p id="communityPortMeta"></p>
             <div class="community-port-actions">
-              <select id="visitorBerthSelect" aria-label="Surligner une place visiteurs">
-                <option value="">Places visiteurs</option>
+              <select id="visitorBerthSelect" aria-label="Surligner une place visiteurs" data-i18n-attr="aria-label:ui.highlight.a.visitor.berth">
+                <option value="" data-i18n="ui.visitor.berths">Places visiteurs</option>
               </select>
             </div>
           </article>
@@ -2115,10 +2129,10 @@
         <article class="lesson-card" id="lessonCard" hidden>
           <div class="lesson-top">
             <div>
-              <div class="eyebrow" id="lessonKicker">Défi 01</div>
-              <h2 id="lessonTitle">Dompter l'inertie</h2>
+              <div class="eyebrow" id="lessonKicker" data-i18n="ui.challenge.01">Défi 01</div>
+              <h2 id="lessonTitle" data-i18n="ui.master.inertia">Dompter l'inertie</h2>
             </div>
-            <div class="score" id="lessonScore"><span id="scoreValue">100</span><small>score</small></div>
+            <div class="score" id="lessonScore"><span id="scoreValue">100</span><small data-i18n="ui.score">score</small></div>
           </div>
           <p id="lessonCopy"></p>
           <ol class="lesson-steps" id="lessonSteps" hidden></ol>
@@ -2126,91 +2140,91 @@
             <span class="objective-dot"></span>
             <span id="objectiveText"></span>
           </div>
-          <button type="button" class="lesson-replay" id="strongWindReplay" hidden>Rejouer avec 15 nd de vent</button>
+          <button type="button" class="lesson-replay" id="strongWindReplay" hidden data-i18n="ui.replay.with.15.kn.wind">Rejouer avec 15 nd de vent</button>
         </article>
 
         <div class="diagnostic" id="diagnostic" data-level="ok" aria-live="polite">
-          <div class="diagnostic-label">Analyse instantanée</div>
-          <p id="diagnosticText">Le bateau est presque immobile. Donnez une courte impulsion en marche avant.</p>
+          <div class="diagnostic-label" data-i18n="ui.live.analysis">Analyse instantanée</div>
+          <p id="diagnosticText" data-i18n="ui.the.boat.is.almost.stationary.apply.a.short">Le bateau est presque immobile. Donnez une courte impulsion en marche avant.</p>
         </div>
 
         <section class="section">
-          <div class="section-title"><span>Vent réel à 10 m</span><span id="windSummary" class="control-value">0 nd · 000°</span></div>
+          <div class="section-title"><span data-i18n="ui.true.wind.at.10.m">Vent réel à 10 m</span><span id="windSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span></div>
           <div class="control-row">
-            <div class="control-meta"><label for="windSpeed">Force</label><span class="control-value" data-value-for="windSpeed"></span></div>
+            <div class="control-meta"><label for="windSpeed" data-i18n="ui.speed">Force</label><span class="control-value" data-value-for="windSpeed"></span></div>
             <input id="windSpeed" type="range" min="0" max="30" step="0.5" value="0">
           </div>
           <div class="control-row">
-            <div class="control-meta"><label for="windDirection">Direction d'où il vient</label><span class="control-value" data-value-for="windDirection"></span></div>
+            <div class="control-meta"><label for="windDirection" data-i18n="ui.direction.it.comes.from">Direction d'où il vient</label><span class="control-value" data-value-for="windDirection"></span></div>
             <input id="windDirection" type="range" min="0" max="359" step="1" value="0">
           </div>
         </section>
 
         <section class="section">
-          <div class="section-title"><span>Courant</span><span id="currentSummary" class="control-value">0 nd · 000°</span></div>
+          <div class="section-title"><span data-i18n="ui.current">Courant</span><span id="currentSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span></div>
           <div class="control-row">
-            <div class="control-meta"><label for="currentSpeed">Force</label><span class="control-value" data-value-for="currentSpeed"></span></div>
+            <div class="control-meta"><label for="currentSpeed" data-i18n="ui.speed">Force</label><span class="control-value" data-value-for="currentSpeed"></span></div>
             <input id="currentSpeed" type="range" min="0" max="2.5" step="0.1" value="0">
           </div>
           <div class="control-row">
-            <div class="control-meta"><label for="currentDirection">Direction d'où il vient</label><span class="control-value" data-value-for="currentDirection"></span></div>
+            <div class="control-meta"><label for="currentDirection" data-i18n="ui.direction.it.comes.from">Direction d'où il vient</label><span class="control-value" data-value-for="currentDirection"></span></div>
             <input id="currentDirection" type="range" min="0" max="359" step="1" value="0">
           </div>
         </section>
 
         <details class="section" id="expertDetails">
-          <summary>Calibration experte</summary>
+          <summary data-i18n="ui.expert.calibration">Calibration experte</summary>
           <div class="expert-body">
             <div class="control-row">
-              <div class="control-meta"><label for="boatMass">Masse en charge</label><span class="control-value" data-value-for="boatMass"></span></div>
+              <div class="control-meta"><label for="boatMass" data-i18n="ui.loaded.mass">Masse en charge</label><span class="control-value" data-value-for="boatMass"></span></div>
               <input id="boatMass" type="range" min="5700" max="7800" step="50" value="6500">
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="windage">Fardage</label><span class="control-value" data-value-for="windage"></span></div>
+              <div class="control-meta"><label for="windage" data-i18n="ui.windage">Fardage</label><span class="control-value" data-value-for="windage"></span></div>
               <input id="windage" type="range" min="60" max="140" step="1" value="100">
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="rudderEfficiency">Efficacité du safran</label><span class="control-value" data-value-for="rudderEfficiency"></span></div>
+              <div class="control-meta"><label for="rudderEfficiency" data-i18n="ui.rudder.effectiveness">Efficacité du safran</label><span class="control-value" data-value-for="rudderEfficiency"></span></div>
               <input id="rudderEfficiency" type="range" min="60" max="140" step="1" value="100">
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="lateralResistance">Résistance latérale</label><span class="control-value" data-value-for="lateralResistance"></span></div>
+              <div class="control-meta"><label for="lateralResistance" data-i18n="ui.lateral.resistance">Résistance latérale</label><span class="control-value" data-value-for="lateralResistance"></span></div>
               <input id="lateralResistance" type="range" min="60" max="140" step="1" value="100">
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="propWalk">Effet de pas · hélice droitière</label><span id="propWalkSummary" class="control-value" data-value-for="propWalk">60 %</span></div>
+              <div class="control-meta"><label for="propWalk" data-i18n="ui.prop.walk.right.handed.propeller">Effet de pas · hélice droitière</label><span id="propWalkSummary" class="control-value" data-value-for="propWalk">60 %</span></div>
               <input id="propWalk" type="range" min="0" max="100" step="1" value="60" aria-describedby="propWalkDetails">
-              <p class="sidebar-subtitle" id="propWalkDetails">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
+              <p class="sidebar-subtitle" id="propWalkDetails" data-i18n="ui.astern.the.stern.tends.to.move.to.port">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
             </div>
             <div class="control-row">
-              <div class="control-meta"><label for="mooringAttachSpeed">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
+              <div class="control-meta"><label for="mooringAttachSpeed" data-i18n="ui.attach.a.line.below">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
               <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.6">
             </div>
           </div>
         </details>
 
         <section class="section">
-          <div class="section-title">Lire la vue « Comprendre »</div>
+          <div class="section-title" data-i18n="ui.reading.the.understand.view">Lire la vue « Comprendre »</div>
           <div class="legend">
-            <div class="legend-item"><span class="legend-mark"></span>Vent et force aérodynamique</div>
-            <div class="legend-item"><span class="legend-mark current"></span>Courant et vitesse de l'eau</div>
-            <div class="legend-item"><span class="legend-mark force"></span>Forces coque, quille, hélice et safran</div>
-            <div class="legend-item"><span class="legend-mark contact"></span>Pare-battage en compression ou choc</div>
-            <div class="legend-item"><span class="legend-mark mooring"></span>Amarre ou pendille : clic pour larguer · glisser verticalement pour régler</div>
-            <div class="legend-item"><span class="legend-mark rudder"></span>Axe réel du safran</div>
+            <div class="legend-item"><span class="legend-mark"></span><span data-i18n="ui.wind.and.aerodynamic.force">Vent et force aérodynamique</span></div>
+            <div class="legend-item"><span class="legend-mark current"></span><span data-i18n="ui.current.and.water.velocity">Courant et vitesse de l'eau</span></div>
+            <div class="legend-item"><span class="legend-mark force"></span><span data-i18n="ui.hull.keel.propeller.and.rudder.forces">Forces coque, quille, hélice et safran</span></div>
+            <div class="legend-item"><span class="legend-mark contact"></span><span data-i18n="ui.fender.compression.or.impact">Pare-battage en compression ou choc</span></div>
+            <div class="legend-item"><span class="legend-mark mooring"></span><span data-i18n="ui.mooring.line.or.laid.mooring.click.to.release">Amarre ou pendille : clic pour larguer · glisser verticalement pour régler</span></div>
+            <div class="legend-item"><span class="legend-mark rudder"></span><span data-i18n="ui.actual.rudder.axis">Axe réel du safran</span></div>
           </div>
         </section>
 
         <section class="section">
-          <div class="section-title">Raccourcis</div>
+          <div class="section-title" data-i18n="ui.shortcuts">Raccourcis</div>
           <div class="keyboard-help">
-            <span><kbd>←</kbd> <kbd>→</kbd></span><span>déplacer la barre</span>
-            <span><kbd>↑</kbd>/<kbd>Q</kbd> <kbd>↓</kbd>/<kbd>W</kbd></span><span>avant / arrière avec arrêt au neutre</span>
-            <span><kbd>Espace</kbd>/<kbd>P</kbd></span><span>mettre en pause</span>
-            <span><kbd>R</kbd></span><span>recommencer</span>
-            <span><kbd>Maj</kbd> + glisser</span><span>déplacer la carte autour du bateau</span>
+            <span><kbd>←</kbd> <kbd>→</kbd></span><span data-i18n="ui.move.the.helm">déplacer la barre</span>
+            <span><kbd>↑</kbd>/<kbd>Q</kbd> <kbd>↓</kbd>/<kbd>W</kbd></span><span data-i18n="ui.ahead.astern.with.a.stop.at.neutral">avant / arrière avec arrêt au neutre</span>
+            <span><kbd data-i18n="ui.space">Espace</kbd>/<kbd>P</kbd></span><span data-i18n="ui.pause">mettre en pause</span>
+            <span><kbd>R</kbd></span><span data-i18n="ui.restart">recommencer</span>
+            <span><kbd data-i18n="ui.shift">Maj</kbd> <span data-i18n="ui.drag">+ glisser</span></span><span data-i18n="ui.pan.the.chart.around.the.boat">déplacer la carte autour du bateau</span>
           </div>
-          <p class="disclaimer">Outil pédagogique : le vent, le courant, le chargement et l'état réel du bateau peuvent modifier fortement une manœuvre. Il ne remplace ni un moniteur ni la pratique à bord.</p>
+          <p class="disclaimer" data-i18n="ui.educational.tool.wind.current.loading.and.the.actual">Outil pédagogique : le vent, le courant, le chargement et l'état réel du bateau peuvent modifier fortement une manœuvre. Il ne remplace ni un moniteur ni la pratique à bord.</p>
         </section>
       </aside>
     </div>
@@ -2218,14 +2232,17 @@
 
   <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
     <div class="project-help-header">
-      <strong id="readmeDialogTitle">Guide utilisateur · KJP Port Simulator</strong>
-      <button type="button" class="project-help-close" id="closeReadmeHelp" aria-label="Fermer l’aide">×</button>
+      <strong id="readmeDialogTitle" data-i18n="ui.user.guide.kjp.port.simulator">Guide utilisateur · KJP Port Simulator</strong>
+      <button type="button" class="project-help-close" id="closeReadmeHelp" aria-label="Fermer l’aide" data-i18n-attr="aria-label:ui.close.help" data-i18n="ui.value">×</button>
     </div>
     <article class="project-help-content">
 <!--__README_HTML__-->
     </article>
   </dialog>
 
+  <script>
+/*__KJP_I18N__*/
+  </script>
   <script data-port-topology src="ports/la-trinite-pedagogique.js"></script>
 
   <script>
@@ -2243,6 +2260,28 @@
   <script>
   (() => {
     "use strict";
+
+    const i18n = globalThis.KJPI18n;
+    const t = i18n.t;
+    const msg = i18n.descriptor;
+    const resolveMessage = i18n.resolve;
+    i18n.apply();
+    document.documentElement.removeAttribute("data-i18n-pending");
+
+    function interactionReason(result) {
+      return result.reasonCode ? msg(result.reasonCode, Object.fromEntries(
+        Object.entries(result.reasonParams || {}).map(([key, value]) => [key, typeof value === "number" ? num(value, 1) : value])
+      )) : result.reason;
+    }
+
+    function errorMessage(error, context = "unexpected") {
+      const first = error.errors?.[0];
+      if (first) return first.messageKey
+        ? msg(first.messageKey, first.messageParams)
+        : msg("error.validation", { path: first.path, code: first.code });
+      if (error.status) return msg("error.http", { status: error.status });
+      return msg(context === "network" ? "error.network" : "error.unexpected");
+    }
 
     const DEG = Math.PI / 180;
     const RAD = 180 / Math.PI;
@@ -2306,10 +2345,8 @@
       if (d < -Math.PI / 2) d += Math.PI;
       return d;
     };
-    const fmt = (value, digits = 1) => Number(value).toLocaleString("fr-FR", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    });
+    const fmt = i18n.formatNumber;
+    const num = (number, digits = 1) => ({ number, digits });
     const fmtSigned = (value, digits = 1) => {
       const scale = 10 ** digits;
       const numeric = Number(value);
@@ -2818,8 +2855,8 @@
       toggle.setAttribute(
         "aria-label",
         chartActive
-          ? "Activer le thème nocturne"
-          : "Activer le thème carte marine clair"
+          ? t("ui.switch.to.night.theme")
+          : t("ui.switch.to.light.nautical.chart.theme")
       );
     }
 
@@ -2832,8 +2869,8 @@
       button.setAttribute(
         "aria-label",
         active
-          ? "Revenir à la vitesse normale"
-          : "Activer la vitesse de simulation multipliée par deux"
+          ? t("ui.return.to.normal.simulation.speed")
+          : t("ui.enable.double.simulation.speed")
       );
     }
 
@@ -3023,8 +3060,8 @@
       button.setAttribute(
         "aria-label",
         engineAudio.enabled
-          ? "Couper le son du moteur"
-          : "Activer le son du moteur"
+          ? t("ui.mute.engine.sound")
+          : t("ui.enable.engine.sound")
       );
       if (engineAudio.enabled && resume) {
         const nodes = createEngineAudioGraph();
@@ -3041,8 +3078,8 @@
       button.setAttribute(
         "aria-label",
         engineAudio.enabled
-          ? "Couper le son du moteur"
-          : "Activer le son du moteur"
+          ? t("ui.mute.engine.sound")
+          : t("ui.enable.engine.sound")
       );
       updateEngineAudio(true, {
         fadeIn: engineAudio.enabled && resume && engineAudio.context?.state === "running"
@@ -3126,6 +3163,8 @@
         this.n += moment;
         this.parts.push({
           name: component.source,
+          sourceKey: component.sourceKey,
+          sourceParams: component.sourceParams,
           fx,
           fy,
           x,
@@ -3192,6 +3231,8 @@
       const y = centroidY - correction * fx;
       return {
         name: half === "fore" ? "Vent avant" : "Vent arrière",
+        sourceKey: half === "fore" ? "force.wind.fore" : "force.wind.aft",
+        sourceParams: {},
         fx,
         fy,
         x,
@@ -3326,13 +3367,7 @@
     }
 
     function understandingForceLabel(part) {
-      if (part.name === "Vent avant") return "Fardage proue";
-      if (part.name === "Vent arrière") return "Fardage poupe";
-      if (part.name === "Hélice") return "Moteur · poussée de l'hélice";
-      if (part.name.startsWith("Effet de pas")) return "Pas d'hélice";
-      if (part.name.startsWith("Safran")) return "Safran";
-      if (part.name.startsWith("Quille")) return "Quille";
-      if (part.name.startsWith("Coque")) return part.name;
+      if (part.sourceKey) return t(part.sourceKey, part.sourceParams);
       return part.name;
     }
 
@@ -3611,6 +3646,7 @@
       berthLanes = clonePortData(topology.berthLanes || {});
       staticBoats = clonePortData(topology.staticBoats || []);
       scenarios = clonePortData(topology.scenarios || {});
+      localizeBuiltInScenarios();
       harborNavigationConfig = clonePortData(topology.navigation || {});
       harborTerrain = clonePortData(topology.terrain || { polygons: [] });
       harborLights = clonePortData(topology.lights || { posts: [], entrance: null });
@@ -4133,7 +4169,8 @@
 
     function showStageToast(message, tone = "neutral", duration = 1800) {
       const toast = $("#impactToast");
-      toast.textContent = message;
+      toast.textContent = resolveMessage(message);
+      contacts.toastMessage = message;
       toast.dataset.tone = tone;
       toast.classList.add("visible");
       contacts.toastUntil = performance.now() + duration;
@@ -4199,9 +4236,9 @@
           { impactSpeed: 0 }
         );
         const impactClass = classifyImpact(impact.impactSpeed);
-        let message = `Appui doux · ${fmt(impact.impactSpeed, 2)} m/s`;
-        if (impactClass === "severe") message = `Choc sévère · ${fmt(impact.impactSpeed, 2)} m/s`;
-        else if (impactClass === "warning") message = `Contact trop rapide · ${fmt(impact.impactSpeed, 2)} m/s`;
+        let message = msg("lesson.gentle.contact.m.s", { value1: num(impact.impactSpeed, 2) });
+        if (impactClass === "severe") message = msg("lesson.severe.impact.m.s", { value1: num(impact.impactSpeed, 2) });
+        else if (impactClass === "warning") message = msg("lesson.contact.too.fast.m.s", { value1: num(impact.impactSpeed, 2) });
         showStageToast(message, impactClass === "safe" ? "ok" : "danger", 1700);
       }
 
@@ -4249,16 +4286,16 @@
       const progress = scenarioState.challenge;
       const instructions = {
         "rig-spring": progress?.pivotAchieved
-          ? "La garde a été larguée trop tôt : refrappez-la, revenez au neutre et larguez à moins de 0,3 nd."
-          : "1/5 · Frappez la garde entre le taquet arrière bâbord et le taquet surligné vers l’avant du catway.",
-        "release-lines": "2/5 · La garde est en place. Larguez maintenant la pointe avant et la pointe arrière initiales.",
-        "take-up": "3/5 · La garde a du mou : faites-la glisser vers le bas jusqu’à ce qu’elle devienne tendue.",
-        pivot: "4/5 · Garde tendue : mettez doucement en marche arrière, barre presque au centre, jusqu’à écarter l’étrave d’environ 25°.",
-        neutral: "Étrave suffisamment écartée : revenez au neutre et attendez que l’erre tombe avant de larguer.",
-        "release-spring": "5/5 · Moteur au neutre : larguez la garde, puis engagez doucement la marche avant.",
-        exit: "Garde larguée proprement : avancez dans la zone verte sans rabattre l’étrave sur le catway."
+          ? msg("lesson.the.spring.was.released.too.early.attach.it")
+          : msg("lesson.1.5.attach.the.spring.between.the.aft"),
+        "release-lines": msg("lesson.2.5.the.spring.is.attached.now.release"),
+        "take-up": msg("lesson.3.5.the.spring.is.slack.drag.it"),
+        pivot: msg("lesson.4.5.spring.taut.apply.gentle.astern.helm"),
+        neutral: msg("lesson.bow.sufficiently.clear.return.to.neutral.and.wait"),
+        "release-spring": msg("lesson.5.5.engine.in.neutral.release.the.spring"),
+        exit: msg("lesson.spring.released.safely.move.ahead.into.the.green")
       };
-      return instructions[phase] || scenario.objective;
+      return resolveMessage(instructions[phase] || scenario.objective);
     }
 
     function scoreMooringChallenge(scenario, final = false) {
@@ -4416,19 +4453,19 @@
     function pendilleChallengeInstruction(scenario = scenarios[ui.scenarioId]) {
       const docking = scenario?.pendilleChallenge?.type === "med-docking";
       const instructions = docking ? {
-        approach: "1/6 · Présentez-vous dans l’axe et reculez lentement vers la place centrale.",
-        windward: "2/6 · À portée du quai, frappez d’abord l’aussière arrière au vent sur le taquet indiqué.",
-        pickup: "3/6 · Cliquez la boucle de pendille au quai, puis un taquet d’étrave surligné.",
-        carry: "4/6 · La pendille est menée vers l’avant : restez au neutre si elle approche de l’hélice.",
-        leeward: "5/6 · Pendille frappée : ajoutez maintenant la seconde aussière arrière.",
-        balance: "6/6 · Réglez les trois lignes pour garder la poupe entre 0,8 et 1,5 m du quai, presque à l’arrêt."
+        approach: msg("lesson.1.6.align.with.the.berth.and.reverse"),
+        windward: msg("lesson.2.6.within.reach.of.the.quay.first"),
+        pickup: msg("lesson.3.6.click.the.pickup.loop.at.the"),
+        carry: msg("lesson.4.6.the.laid.mooring.is.being.carried"),
+        leeward: msg("lesson.5.6.laid.mooring.secured.now.add.the"),
+        balance: msg("lesson.6.6.adjust.all.three.lines.to.keep")
       } : {
-        "release-leeward": "1/4 · Larguez d’abord l’aussière arrière sous le vent.",
-        "release-pendille": "2/4 · Détendez puis larguez la pendille, moteur au neutre.",
-        "release-windward": "3/4 · Utilisez encore l’arrière au vent pour contrôler l’étrave, puis larguez au neutre.",
-        exit: "4/4 · Toutes les lignes sont claires : sortez en marche avant vers la zone verte."
+        "release-leeward": msg("lesson.1.4.release.the.leeward.stern.line.first"),
+        "release-pendille": msg("lesson.2.4.slacken.and.release.the.laid.mooring"),
+        "release-windward": msg("lesson.3.4.keep.using.the.windward.stern.line"),
+        exit: msg("lesson.4.4.all.lines.clear.leave.ahead.towards")
       };
-      return instructions[pendilleChallengePhase(scenario)] || scenario.objective;
+      return resolveMessage(instructions[pendilleChallengePhase(scenario)] || scenario.objective);
     }
 
     function updatePendilleChallenge(scenario, dt, speedKn) {
@@ -4680,6 +4717,37 @@
         scenario.initialMoorings || [],
         scenario.initialPendilles || []
       );
+      renderScenarioLesson();
+      if (scenario.displayMode) setDisplayMode(scenario.displayMode);
+      if (scenario.understandView) setUnderstandView(scenario.understandView);
+      if (matchMedia("(max-width: 860px)").matches) {
+        $("#sidebar").classList.remove("open");
+        $("#sidebarToggle").setAttribute("aria-expanded", "false");
+        $("#sidebarToggle").setAttribute("aria-label", t("ui.open.settings"));
+      }
+    }
+
+    function localizeBuiltInScenarios() {
+      if (PORT_TOPOLOGY !== BUILT_IN_TOPOLOGY) return;
+      const catalog = i18n.getCatalog().messages;
+      for (const [id, scenario] of Object.entries(scenarios)) {
+        for (const field of ["kicker", "title", "copy", "objective"]) {
+          const key = `scenario.${id}.${field}`;
+          if (key in catalog) scenario[field] = t(key);
+        }
+        scenario.steps = Object.keys(catalog).filter(key => key.startsWith(`scenario.${id}.step.`))
+          .sort((a, b) => Number(a.split(".").at(-1)) - Number(b.split(".").at(-1))).map(key => t(key));
+        if (scenario.windLevelTwo) {
+          for (const field of ["copy", "objective"]) {
+            const key = `scenario.${id}.levelTwo.${field}`;
+            if (key in catalog) scenario.windLevelTwo[field] = t(key);
+          }
+        }
+      }
+    }
+
+    function renderScenarioLesson() {
+      const scenario = scenarios[ui.scenarioId];
       const card = $("#lessonCard");
       card.hidden = communityPort || ui.scenarioId === "free";
       $("#lessonScore").hidden = !scenario.goal;
@@ -4696,14 +4764,12 @@
       lessonSteps.hidden = !scenario.steps?.length;
       $("#objectiveText").textContent = scenario.objective || "";
       $("#strongWindReplay").textContent = scenario.windLevelTwo
-        ? `Passer au niveau 2 · ${scenario.windLevelTwo.windSpeedKn} nd de vent`
-        : "Rejouer avec 15 nd de vent";
-      if (scenario.displayMode) setDisplayMode(scenario.displayMode);
-      if (scenario.understandView) setUnderstandView(scenario.understandView);
-      if (matchMedia("(max-width: 860px)").matches) {
-        $("#sidebar").classList.remove("open");
-        $("#sidebarToggle").setAttribute("aria-expanded", "false");
-        $("#sidebarToggle").setAttribute("aria-label", "Ouvrir les réglages");
+        ? t("ui.start.level.2.kn.wind", { value1: scenario.windLevelTwo.windSpeedKn })
+        : t("ui.replay.with.15.kn.wind");
+      if (scenarioState.strongWindReplay && scenario.windLevelTwo) {
+        $("#lessonKicker").textContent = t("ui.level.2", { value1: scenario.kicker });
+        $("#lessonCopy").textContent = scenario.windLevelTwo.copy;
+        $("#objectiveText").textContent = scenario.windLevelTwo.objective;
       }
     }
 
@@ -4723,7 +4789,7 @@
       scenarioState.strongWindReplay = true;
       $("#strongWindReplay").hidden = true;
       if (scenario.windLevelTwo) {
-        $("#lessonKicker").textContent = `${scenario.kicker} · Niveau 2`;
+        $("#lessonKicker").textContent = t("ui.level.2", { value1: scenario.kicker });
         $("#lessonCopy").textContent = scenario.windLevelTwo.copy;
         $("#objectiveText").textContent = scenario.windLevelTwo.objective;
       }
@@ -4908,7 +4974,7 @@
       button.setAttribute("aria-pressed", String(controls.paused));
       button.setAttribute(
         "aria-label",
-        controls.paused ? "Reprendre la simulation" : "Mettre la simulation en pause"
+        controls.paused ? t("ui.resume.simulation") : t("ui.pause.simulation")
       );
     }
 
@@ -7243,14 +7309,14 @@
 
     function pairDetails(first, second) {
       if (!first || !second || first.type === second.type) {
-        return { valid: false, reason: "Choisissez un taquet du bateau et un taquet du port." };
+        return { valid: false, reason: msg("toast.choose.one.boat.cleat.and.one.harbour.cleat") };
       }
       const boat = first.type === "boat" ? first : second;
       const shore = first.type === "shore" ? first : second;
       const boatPoint = endpointWorld(boat);
       const shorePoint = endpointWorld(shore);
       if (!boatPoint || !shorePoint) {
-        return { valid: false, reason: "Un des taquets n'existe plus." };
+        return { valid: false, reason: msg("toast.one.of.the.cleats.no.longer.exists") };
       }
       const length = Math.hypot(
         boatPoint[0] - shorePoint[0],
@@ -7258,15 +7324,15 @@
         boatPoint[2] - shorePoint[2]
       );
       if (boatCleatAtCapacity(boat.id)) {
-        return { valid: false, reason: "Ce taquet du bateau porte déjà deux aussières.", boat, shore, length };
+        return { valid: false, reason: msg("toast.this.boat.cleat.already.holds.two.lines"), boat, shore, length };
       }
       if (length > MOORING_POLICY.maximumLength + 1e-9) {
-        return { valid: false, reason: `Taquets trop éloignés · ${fmt(length, 1)} m pour 20 m maximum.`, boat, shore, length };
+        return { valid: false, reason: msg("toast.cleats.too.far.apart.m.maximum.20.m", { value1: num(length, 1) }), boat, shore, length };
       }
       if (!mooringActionAllowed("attach", groundSpeedKn()).ok) {
         return {
           valid: false,
-          reason: `Trop vite pour frapper une aussière · restez sous ${fmt(calibration.mooringAttachSpeedKn, 1)} nd.`,
+          reason: msg("toast.too.fast.to.attach.a.line.stay.below", { value1: num(calibration.mooringAttachSpeedKn, 1) }),
           boat,
           shore,
           length
@@ -7294,37 +7360,37 @@
     function selectMooringEndpoint(endpoint) {
       if (pendilleState.selectedId) {
         if (endpoint.type !== "boat" || !endpointEligible(endpoint)) {
-          showStageToast("Choisissez un taquet libre à l’étrave.");
+          showStageToast(msg("toast.choose.a.free.bow.cleat"));
           return;
         }
         const result = physicsSimulator.beginPendillePickup(pendilleState.selectedId, endpoint.id);
         if (!result.ok) {
-          showStageToast(`Pendille refusée · ${result.reason}.`);
+          showStageToast(msg("toast.laid.mooring.refused", { value1: interactionReason(result) }));
           return;
         }
         pendilleState.selectedId = null;
         latestPhysicsSnapshot = physicsSimulator.snapshot();
         pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
-        showStageToast("Pendille en main · elle est menée vers l’étrave.", "ok", 1800);
+        showStageToast(msg("toast.laid.mooring.in.hand.being.carried.to.the"), "ok", 1800);
         return;
       }
       if (!moorings.selected) {
         if (endpoint.type === "boat" && boatCleatAtCapacity(endpoint.id)) {
-          showStageToast("Ce taquet du bateau porte déjà deux aussières.");
+          showStageToast(msg("toast.this.boat.cleat.already.holds.two.lines"));
           return;
         }
         moorings.selected = { ...endpoint };
-        showStageToast("Premier taquet sélectionné · choisissez l'autre extrémité.", "neutral", 1300);
+        showStageToast(msg("toast.first.cleat.selected.choose.the.other.end"), "neutral", 1300);
         return;
       }
       if (endpointKey(endpoint) === endpointKey(moorings.selected)) {
         moorings.selected = null;
-        showStageToast("Sélection d'aussière annulée.", "neutral", 1100);
+        showStageToast(msg("toast.mooring.selection.cancelled"), "neutral", 1100);
         return;
       }
       if (endpoint.type === moorings.selected.type) {
         if (endpoint.type === "boat" && boatCleatAtCapacity(endpoint.id)) {
-          showStageToast("Ce taquet du bateau porte déjà deux aussières.");
+          showStageToast(msg("toast.this.boat.cleat.already.holds.two.lines"));
           return;
         }
         moorings.selected = { ...endpoint };
@@ -7359,7 +7425,7 @@
         }
       });
       if (!result.ok) {
-        showStageToast(`Aussière refusée · ${result.reason}.`);
+        showStageToast(msg("toast.line.refused", { value1: interactionReason(result) }));
         return;
       }
       moorings.serial += 1;
@@ -7369,10 +7435,10 @@
       syncMooringGauges();
       showStageToast(
         isExpectedSpring
-          ? `Garde frappée · ${fmt(result.mooring.slack, 1)} m de mou à reprendre.`
+          ? msg("toast.spring.attached.m.of.slack.to.take.up", { value1: num(result.mooring.slack, 1) })
           : isExpectedGuard
-            ? `Garde croisée frappée · ${fmt(result.mooring.slack, 1)} m de mou à reprendre.`
-          : `Aussière frappée · ${fmt(result.mooring.length, 1)} m.`,
+            ? msg("toast.crossed.spring.attached.m.of.slack.to.take", { value1: num(result.mooring.slack, 1) })
+          : msg("toast.line.attached.m", { value1: num(result.mooring.length, 1) }),
         "ok"
       );
     }
@@ -7380,7 +7446,7 @@
     function tryDetachMooring(id) {
       const speedKn = groundSpeedKn();
       if (!mooringActionAllowed("detach", speedKn).ok) {
-        showStageToast(`Trop vite pour larguer · ${fmt(speedKn, 1)} nd, maximum 3,0 nd.`);
+        showStageToast(msg("toast.too.fast.to.release.kn.maximum.3.0", { value1: num(speedKn, 1) }));
         return false;
       }
       const line = moorings.current.find(item => item.id === id);
@@ -7388,7 +7454,7 @@
         ? physicsSimulator.releasePendille(line.facilityId)
         : physicsSimulator.detachMooring(id);
       if (!result.ok) {
-        showStageToast(`Impossible de larguer · ${result.reason}.`);
+        showStageToast(msg("toast.cannot.release", { value1: interactionReason(result) }));
         return false;
       }
       latestPhysicsSnapshot = physicsSimulator.snapshot();
@@ -7396,7 +7462,7 @@
       pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
       if (moorings.activeLineId === id) moorings.activeLineId = null;
       syncMooringGauges();
-      showStageToast(line?.sourceType === "pendille" ? "Pendille larguée · attendez qu’elle soit claire." : "Aussière larguée.", "ok", 1800);
+      showStageToast(line?.sourceType === "pendille" ? msg("toast.laid.mooring.released.wait.until.it.is.clear") : msg("toast.line.released"), "ok", 1800);
       return true;
     }
 
@@ -7884,12 +7950,12 @@
 
       const pivots = understandingPivotTargets(physicsView);
       for (const [name, label] of [
-        ["water", "Centre instantané de rotation sur l'eau · il se déplace avec l'erre"],
-        ["ground", "Centre instantané de rotation sur le fond · courant inclus"]
+        ["water", t("force.pivot.water")],
+        ["ground", t("force.pivot.ground")]
       ]) {
         if (!pivots[name].visible) continue;
         const a = project(localPoint(boatMotion, ...pivots[name].position));
-        if (a) understandingHitTargets.push({ kind: "pivot", label, a });
+        if (a) understandingHitTargets.push({ kind: "pivot", label, labelKey: `force.pivot.${name}`, a });
       }
 
       if (!nativeUnderstanding) {
@@ -8100,13 +8166,13 @@
       const ground = groundVelocityWorld();
       const sog = Math.hypot(ground[0], ground[1]) / KNOT;
       const rudderDeg = Math.abs(controls.rudderActual * RAD);
-      if (controls.paused) return { level: "warn", text: "Simulation en pause. Les forces restent visibles mais le temps est arrêté." };
-      if (scenarioState.complete) return { level: "ok", text: `Manœuvre réussie · ${scenarioState.score}/100. Recommencez pour chercher une trajectoire plus douce.` };
-      if (contacts.maxImpact > .4 && contacts.current.length) return { level: "danger", text: "Choc sévère : revenez au neutre et laissez les pare-battages se détendre avant de repartir." };
+      if (controls.paused) return { level: "warn", text: msg("diagnostic.simulation.paused.forces.remain.visible.but.time.has") };
+      if (scenarioState.complete) return { level: "ok", text: msg("diagnostic.manoeuvre.successful.100.restart.to.find.a.smoother", { value1: scenarioState.score }) };
+      if (contacts.maxImpact > .4 && contacts.current.length) return { level: "danger", text: msg("diagnostic.severe.impact.return.to.neutral.and.let.the") };
       if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger) {
         return {
           level: Math.abs(controls.throttleActual) > .03 ? "danger" : "warn",
-          text: "Pendille près de l’hélice — restez au neutre jusqu’à ce qu’elle soit claire."
+          text: msg("diagnostic.laid.mooring.near.the.propeller.stay.in.neutral")
         };
       }
       const activeScenario = scenarios[ui.scenarioId];
@@ -8128,7 +8194,7 @@
         if (wrongLine && phase === "rig-spring") {
           return {
             level: "warn",
-            text: "Cette aussière n’est pas la garde recherchée : reliez le taquet arrière bâbord au taquet surligné vers l’avant."
+            text: msg("diagnostic.this.is.not.the.intended.spring.connect.the")
           };
         }
         return {
@@ -8139,37 +8205,37 @@
       if (activeScenario?.berthChallenge) {
         const challenge = activeScenario.berthChallenge;
         if (contacts.maxImpact > challenge.maximumImpactSpeed) {
-          return { level: "warn", text: "L'étrave a touché trop fort. Recommencez et cassez l'erre plus tôt, avant de frapper la garde." };
+          return { level: "warn", text: msg("diagnostic.the.bow.hit.too.hard.restart.and.reduce") };
         }
         const guard = moorings.current.find(line => (
           line.boatCleatId === challenge.guardBoatCleatId
           && line.shoreCleatId === challenge.guardShoreCleatId
         ));
         if (guard && !guard.taut) {
-          return { level: "ok", text: "La garde croisée est frappée : faites glisser sa jauge vers le bas pour reprendre le mou et retenir l'étrave." };
+          return { level: "ok", text: msg("diagnostic.crossed.spring.attached.drag.its.gauge.down.to") };
         }
         if (!guard && Math.hypot(
           motion.x - activeScenario.goal.x,
           motion.y - activeScenario.goal.y
         ) < 6) {
-          return { level: "ok", text: "Près du poste : reliez le taquet avant bâbord du bateau au taquet de bout du catway, puis reprenez doucement le mou de la garde." };
+          return { level: "ok", text: msg("diagnostic.near.the.berth.connect.the.boat.s.forward") };
         }
       }
       if (activeScenario?.maximumImpactSpeed !== undefined
         && contacts.maxImpact > activeScenario.maximumImpactSpeed) {
-        return { level: "warn", text: "Contact trop rapide : recommencez en coupant l'erre plus tôt. Le vent aide à tourner, mais il ne freine pas le bateau." };
+        return { level: "warn", text: msg("diagnostic.contact.too.fast.restart.and.reduce.headway.earlier") };
       }
       if (contacts.current.length) {
         const impact = Math.max(...contacts.current.map(contact => contact.impactSpeed));
         return impact > .2
-          ? { level: "warn", text: "Le contact est trop rapide. Le neutre plus tôt aurait laissé davantage de temps aux pare-battages." }
-          : { level: "ok", text: "Appui doux sur les pare-battages : ils soutiennent la coque sans rebond brutal." };
+          ? { level: "warn", text: msg("diagnostic.contact.is.too.fast.selecting.neutral.earlier.would") }
+          : { level: "ok", text: msg("diagnostic.gentle.contact.with.the.fenders.they.support.the") };
       }
       if (pendilleState.selectedId) {
-        return { level: "ok", text: "Prise de pendille choisie : cliquez maintenant un taquet libre à l’étrave." };
+        return { level: "ok", text: msg("diagnostic.pickup.selected.now.click.a.free.bow.cleat") };
       }
       if (moorings.selected) {
-        return { level: "ok", text: "Premier taquet choisi : cliquez un taquet compatible de l'autre côté pour frapper l'aussière." };
+        return { level: "ok", text: msg("diagnostic.first.cleat.chosen.click.a.compatible.cleat.on") };
       }
       if (moorings.current.length) {
         const loaded = moorings.current.reduce(
@@ -8179,50 +8245,50 @@
         if (loaded.tension > 80) {
           return {
             level: "warn",
-            text: `${moorings.current.length} amarre${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""} · la plus chargée retient ${fmt(loaded.tension / 1000, 1)} kN.`
+            text: msg("diagnostic.lines.loaded", { count: moorings.current.length, tension: num(loaded.tension / 1000, 1) })
           };
         }
         return {
           level: "ok",
-          text: `${moorings.current.length} amarre${moorings.current.length > 1 ? "s" : ""} frappée${moorings.current.length > 1 ? "s" : ""}. Cliquez pour larguer ; glissez vers le haut pour allonger ou vers le bas pour raccourcir.`
+          text: msg("diagnostic.lines.attached", { count: moorings.current.length })
         };
       }
       if (controls.throttleActual < -.12) {
-        return { level: "warn", text: "En arrière, le pas de l'hélice chasse la poupe vers bâbord. Le safran ne devient utile qu'avec de l'erre." };
+        return { level: "warn", text: msg("diagnostic.astern.prop.walk.pushes.the.stern.to.port") };
       }
       if (rudderDeg > 12 && stw < .18 && controls.throttleActual < .08) {
-        return { level: "warn", text: "La barre manque d'écoulement : sans vitesse ni jet d'hélice, le safran produit très peu de force." };
+        return { level: "warn", text: msg("diagnostic.the.rudder.lacks.flow.without.speed.or.propeller") };
       }
       if (rudderDeg > 10 && controls.throttleActual > .16 && stw < .7) {
-        return { level: "ok", text: "Le jet de l'hélice frappe le safran : le bateau peut pivoter avant même d'avoir beaucoup d'erre." };
+        return { level: "ok", text: msg("diagnostic.propeller.wash.hits.the.rudder.the.boat.can") };
       }
       if (Math.abs(controls.throttleTarget) < .02 && sog > .45) {
-        return { level: "warn", text: "Les gaz sont au neutre, mais l'inertie conserve l'erre. Anticipez avant d'arriver au ponton." };
+        return { level: "warn", text: msg("diagnostic.throttle.is.neutral.but.inertia.preserves.headway.anticipate") };
       }
       if (environment.currentSpeedKn > .55 && stw < .45) {
-        return { level: "warn", text: "Le courant porte tout le bateau. Surveillez la vitesse fond, différente de la vitesse dans l'eau." };
+        return { level: "warn", text: msg("diagnostic.the.current.carries.the.whole.boat.watch.speed") };
       }
       if (environment.windSpeedKn > 12 && sog < 1) {
-        return { level: "warn", text: "À faible vitesse, le vent sur la coque et le mât peut dominer l'action du safran." };
+        return { level: "warn", text: msg("diagnostic.at.low.speed.wind.on.the.hull.and") };
       }
       if (Math.abs(relative[1]) > .18) {
-        return { level: "warn", text: "La quille freine la dérive latérale. Cette résistance déplace aussi le point autour duquel le bateau pivote." };
+        return { level: "warn", text: msg("diagnostic.the.keel.resists.sideways.drift.this.resistance.also") };
       }
-      return { level: "ok", text: "Donnez de courtes impulsions et observez la réponse avant de corriger une seconde fois." };
+      return { level: "ok", text: msg("diagnostic.apply.short.bursts.and.observe.the.response.before") };
     }
 
     function mooringGaugeLabel(line) {
       const station = line.boatCleatId.startsWith("bow-")
-        ? "AV"
+        ? t("ui.fwd")
         : line.boatCleatId.startsWith("stern-")
-          ? "AR"
-          : "M";
-      const side = line.boatCleatId.endsWith("-port") ? "B" : "T";
+          ? t("ui.aft")
+          : t("ui.m");
+      const side = line.boatCleatId.endsWith("-port") ? t("ui.p") : t("ui.s");
       const peers = moorings.current.filter(
         candidate => candidate.boatCleatId === line.boatCleatId
       );
       const ordinal = peers.length > 1 ? peers.indexOf(line) + 1 : "";
-      return `${line.sourceType === "pendille" ? "P·" : ""}${station} ${side}${ordinal}`;
+      return `${line.sourceType === "pendille" ? t("ui.pendille.prefix") : ""}${station} ${side}${ordinal}`;
     }
 
     function createMooringGauge(line) {
@@ -8295,8 +8361,8 @@
       );
       gauge.classList.toggle("is-active", moorings.activeLineId === line.id);
       gauge.querySelector(".mooring-gauge-label").textContent = mooringGaugeLabel(line);
-      gauge.querySelector(".mooring-gauge-values .actual-value").textContent = `R ${fmt(actualLength, 1)}`;
-      gauge.querySelector(".mooring-gauge-values .target-value").textContent = `C ${fmt(targetLength, 1)}`;
+      gauge.querySelector(".mooring-gauge-values .actual-value").textContent = t("ui.a", { value1: fmt(actualLength, 1) });
+      gauge.querySelector(".mooring-gauge-values .target-value").textContent = t("ui.t", { value1: fmt(targetLength, 1) });
       gauge.dataset.actualLength = actualLength.toFixed(3);
       gauge.dataset.targetLength = targetLength.toFixed(3);
       gauge.dataset.rangeMinimum = rangeMinimum.toFixed(3);
@@ -8304,20 +8370,20 @@
       gauge.dataset.actualPosition = actualPosition.toFixed(3);
       gauge.dataset.targetPosition = targetPosition.toFixed(3);
       gauge.dataset.markerShape = "triangles";
-      gauge.setAttribute("aria-label", `${line.sourceType === "pendille" ? "Pendille" : "Aussière"} ${mooringGaugeLabel(line)}, longueur réglée`);
+      gauge.setAttribute("aria-label", t("ui.set.length", { value1: t(line.sourceType === "pendille" ? "ui.pendille.type" : "ui.line.type"), value2: mooringGaugeLabel(line) }));
       gauge.setAttribute("aria-valuemin", minimumLength.toFixed(1));
       gauge.setAttribute("aria-valuemax", maximumLength.toFixed(1));
       gauge.setAttribute("aria-valuenow", targetLength.toFixed(1));
       gauge.setAttribute(
         "aria-valuetext",
-        `${fmt(targetLength, 1)} mètres de consigne, ${fmt(actualLength, 1)} mètres réels`
+        t("ui.metres.target.metres.actual", { value1: fmt(targetLength, 1), value2: fmt(actualLength, 1) })
       );
       gauge.title = [
-        `${mooringGaugeLabel(line)} · consigne ${fmt(targetLength, 1)} m`,
-        `réelle ${fmt(actualLength, 1)} m`,
-        `non étirée ${fmt(unstretchedLength, 1)} m`,
-        `allongement ${fmt((line.strain || 0) * 100, 1)} %`,
-        `tension ${fmt((line.tension || 0) / 1000, 1)} kN`
+        t("ui.target.m", { value1: mooringGaugeLabel(line), value2: fmt(targetLength, 1) }),
+        t("ui.actual.m", { value1: fmt(actualLength, 1) }),
+        t("ui.unstretched.m", { value1: fmt(unstretchedLength, 1) }),
+        t("ui.extension", { value1: fmt((line.strain || 0) * 100, 1) }),
+        t("ui.tension.kn", { value1: fmt((line.tension || 0) / 1000, 1) })
       ].join(" · ");
     }
 
@@ -8390,15 +8456,15 @@
       setText("#mooringChipValue", moorings.current.length);
       setText("#mooringChipState", moorings.current.length
         ? [
-          regularCount ? `${regularCount} aussière${regularCount > 1 ? "s" : ""}` : null,
-          pendilleCount ? `${pendilleCount} pendille${pendilleCount > 1 ? "s" : ""}` : null,
-          `${tautCount} tendue${tautCount === 1 ? "" : "s"}`
+          regularCount ? t("ui.lines.count", { count: regularCount }) : null,
+          pendilleCount ? t("ui.pendilles.count", { count: pendilleCount }) : null,
+          t("ui.taut.count", { count: tautCount })
         ].filter(Boolean).join(" · ")
-        : "aucune frappée");
+        : t("ui.none.attached"));
       syncMooringGauges();
 
       const rudderDeg = controls.rudderTarget * RAD;
-      const rudderSide = Math.abs(rudderDeg) < .5 ? "" : rudderDeg > 0 ? " Bâb." : " Trib.";
+      const rudderSide = Math.abs(rudderDeg) < .5 ? "" : rudderDeg > 0 ? t("ui.port") : t("ui.stbd");
       setText("#rudderValue", `${fmt(Math.abs(rudderDeg), 0)}°${rudderSide}`);
       setStyleProperty("#rudderIndicator", "--position", `${50 - rudderDeg / 35 * 46}%`);
       setStyleProperty("#touchHelmWheel", "--wheel-angle", `${-rudderDeg / .14}deg`);
@@ -8408,27 +8474,27 @@
         : `${Math.round(Math.abs(rudderDeg))}° ${rudderSide.trim()}`);
 
       const throttle = controls.throttleTarget;
-      let throttleLabel = "Neutre";
-      if (throttle > 0) throttleLabel = `Avant · ${Math.round(throttle * 100)} %`;
-      if (throttle < 0) throttleLabel = `Arrière · ${Math.round(Math.abs(throttle) * 100)} %`;
+      let throttleLabel = t("ui.neutral");
+      if (throttle > 0) throttleLabel = t("ui.ahead", { value1: Math.round(throttle * 100) });
+      if (throttle < 0) throttleLabel = t("ui.astern", { value1: Math.round(Math.abs(throttle) * 100) });
       setText("#throttleLabel", throttleLabel);
       setText("#touchThrottleValue", throttle > 0
-        ? `AV ${Math.round(throttle * 100)}`
+        ? t("ui.fwd.2", { value1: Math.round(throttle * 100) })
         : throttle < 0
-          ? `AR ${Math.round(Math.abs(throttle) * 100)}`
+          ? t("ui.rev", { value1: Math.round(Math.abs(throttle) * 100) })
           : "N");
       setStyleProperty("#touchThrottleNeutral", "--throttle-shift",
         `${Math.sign(throttle) * touchThrottleDistanceFor(Math.abs(throttle))}px`);
       $("#touchThrottleNeutral").setAttribute("aria-valuenow", String(Math.round(throttle * 100)));
       setStyleProperty("#throttleIndicator", "--position", `${50 + throttle * 46}%`);
       toggleClass("#neutralGate", "locked", controls.neutralGate !== null);
-      setText("#neutralGate", controls.neutralGate !== null ? "relâchez pour inverser" : "cran neutre");
+      setText("#neutralGate", controls.neutralGate !== null ? t("ui.release.to.reverse") : t("ui.neutral.detent"));
 
       const diagnostic = diagnosticMessage();
-      if (diagnostic.text !== ui.lastDiagnostic) {
-        $("#diagnosticText").textContent = diagnostic.text;
+      if (resolveMessage(diagnostic.text) !== ui.lastDiagnostic) {
+        $("#diagnosticText").textContent = resolveMessage(diagnostic.text);
         $("#diagnostic").dataset.level = diagnostic.level;
-        ui.lastDiagnostic = diagnostic.text;
+        ui.lastDiagnostic = resolveMessage(diagnostic.text);
       }
 
       setText("#scoreValue", scenarioState.score);
@@ -8441,7 +8507,7 @@
       );
       $("#strongWindReplay").hidden = !replayAvailable;
       if (scenarioState.complete) {
-        setText("#objectiveText", "Objectif atteint — manœuvre validée.");
+        setText("#objectiveText", t("ui.objective.reached.manoeuvre.complete"));
       } else if (activeScenario?.mooringChallenge) {
         setText("#objectiveText", mooringChallengeInstruction(activeScenario));
       } else if (activeScenario?.pendilleChallenge) {
@@ -8459,28 +8525,28 @@
 
     function updateControlReadouts() {
       const values = {
-        windSpeed: `${fmt(environment.windSpeedKn, 1)} nd`,
+        windSpeed: t("ui.kn", { value1: fmt(environment.windSpeedKn, 1) }),
         windDirection: `${padHeading(environment.windFromDeg)}°`,
-        currentSpeed: `${fmt(environment.currentSpeedKn, 1)} nd`,
+        currentSpeed: t("ui.kn", { value1: fmt(environment.currentSpeedKn, 1) }),
         currentDirection: `${padHeading(environment.currentFromDeg)}°`,
         propWalk: `${Math.round(environment.propWalk * 100)} %`,
         boatMass: `${fmt(calibration.mass, 0)} kg`,
         windage: `${Math.round(calibration.windage * 100)} %`,
         rudderEfficiency: `${Math.round(calibration.rudder * 100)} %`,
         lateralResistance: `${Math.round(calibration.lateral * 100)} %`,
-        mooringAttachSpeed: `${fmt(calibration.mooringAttachSpeedKn, 1)} nd`
+        mooringAttachSpeed: t("ui.kn", { value1: fmt(calibration.mooringAttachSpeedKn, 1) })
       };
       Object.entries(values).forEach(([id, value]) => {
         const output = $(`[data-value-for="${id}"]`);
         if (output) output.textContent = value;
       });
-      $("#windSummary").textContent = `${fmt(environment.windSpeedKn, 1)} nd · ${padHeading(environment.windFromDeg)}°`;
-      $("#currentSummary").textContent = `${fmt(environment.currentSpeedKn, 1)} nd · ${padHeading(environment.currentFromDeg)}°`;
+      $("#windSummary").textContent = t("ui.kn.2", { value1: fmt(environment.windSpeedKn, 1), value2: padHeading(environment.windFromDeg) });
+      $("#currentSummary").textContent = t("ui.kn.2", { value1: fmt(environment.currentSpeedKn, 1), value2: padHeading(environment.currentFromDeg) });
       $("#propWalkSummary").textContent = `${Math.round(environment.propWalk * 100)} %`;
-      $("#windChipValue").textContent = `${fmt(environment.windSpeedKn, 1)} nd`;
-      $("#windChipDirection").textContent = `vient du ${padHeading(environment.windFromDeg)}°`;
-      $("#currentChipValue").textContent = `${fmt(environment.currentSpeedKn, 1)} nd`;
-      $("#currentChipDirection").textContent = `vient du ${padHeading(environment.currentFromDeg)}°`;
+      $("#windChipValue").textContent = t("ui.kn", { value1: fmt(environment.windSpeedKn, 1) });
+      $("#windChipDirection").textContent = t("ui.from", { value1: padHeading(environment.windFromDeg) });
+      $("#currentChipValue").textContent = t("ui.kn", { value1: fmt(environment.currentSpeedKn, 1) });
+      $("#currentChipDirection").textContent = t("ui.from", { value1: padHeading(environment.currentFromDeg) });
       $("#windArrow").style.setProperty("--rotation", `${environment.windFromDeg}deg`);
       $("#currentArrow").style.setProperty("--rotation", `${environment.currentFromDeg}deg`);
     }
@@ -8501,13 +8567,13 @@
       return {
         id: PORT_TOPOLOGY.id,
         revision: PORT_TOPOLOGY.schemaVersion,
-        name: PORT_TOPOLOGY.name,
+        name: t("port.builtIn.name"),
         author: "KJP",
-        source: "Port pédagogique intégré",
+        source: t("ui.built.in.training.harbour"),
         coordinates: null,
         harborMasterUrl: "https://github.com/arnaud2moissac/KJP_Port_Simulator",
         openingHours: "",
-        currentAdvice: "Sans vent ni courant au départ ; conditions réglables dans le simulateur.",
+        currentAdvice: t("ui.no.wind.or.current.initially.conditions.can.be"),
         createdAt: "",
         updatedAt: ""
       };
@@ -8515,27 +8581,26 @@
 
     function formatPortInformationDate(value) {
       if (!value) return "";
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("fr-FR");
+      return i18n.formatDate(value);
     }
 
     function updatePortInformation() {
       const metadata = activePortMetadata();
-      $("#portInfoName").textContent = metadata.name || PORT_TOPOLOGY.name || "Port";
+      $("#portInfoName").textContent = metadata.name || PORT_TOPOLOGY.name || t("ui.harbour");
       const coordinates = metadata.coordinates;
       const details = [
-        ["Auteur", metadata.author],
-        ["Source", metadata.source],
-        ["Coordonnées", coordinates && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)
-          ? `${coordinates.latitude.toFixed(6)}, ${coordinates.longitude.toFixed(6)}`
+        [t("ui.author"), metadata.author],
+        [t("ui.source"), metadata.source],
+        [t("ui.coordinates"), coordinates && Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)
+          ? `${fmt(coordinates.latitude, 6)}, ${fmt(coordinates.longitude, 6)}`
           : ""],
-        ["Horaires", metadata.openingHours],
-        ["Courant", metadata.currentAdvice],
-        ["Commentaire", metadata.comment],
-        ["Identifiant", metadata.id],
-        ["Révision", metadata.revision ? String(metadata.revision) : ""],
-        ["Créé le", formatPortInformationDate(metadata.createdAt)],
-        ["Mis à jour le", formatPortInformationDate(metadata.updatedAt)]
+        [t("ui.opening.hours"), metadata.openingHours],
+        [t("ui.current"), metadata.currentAdvice],
+        [t("ui.comment"), metadata.comment],
+        [t("ui.identifier"), metadata.id],
+        [t("ui.revision"), metadata.revision ? String(metadata.revision) : ""],
+        [t("ui.created"), formatPortInformationDate(metadata.createdAt)],
+        [t("ui.updated"), formatPortInformationDate(metadata.updatedAt)]
       ].filter(([, value]) => String(value || "").trim());
       const list = $("#portInfoDetails");
       list.replaceChildren();
@@ -8559,20 +8624,22 @@
     function updatePortChrome() {
       const card = $("#communityPortCard");
       const sourceSelect = $("#portSourceSelect");
-      const loadedName = loadedCommunityDocument?.metadata?.name || "Port chargé";
+      const loadedName = loadedCommunityDocument?.metadata?.name || t("ui.loaded.harbour");
       sourceSelect.replaceChildren(
-        new Option("Port pédagogique", "builtIn")
+        new Option(t("ui.training.harbour"), "builtIn")
       );
       if (loadedCommunityDocument) {
         sourceSelect.add(new Option(loadedName, "community"));
       }
-      sourceSelect.add(new Option("Charger la Trinité", "loadTrinite"));
-      sourceSelect.add(new Option("Construire un port", "buildPort"));
+      sourceSelect.add(new Option(t("ui.load.la.trinite"), "loadTrinite"));
+      sourceSelect.add(new Option(t("ui.build.a.harbour"), "buildPort"));
       sourceSelect.value = communityPort ? "community" : "builtIn";
       updatePortInformation();
       if (!communityPort) {
         card.hidden = true;
         $("#scenarioSelect").innerHTML = builtInScenarioMarkup;
+        i18n.apply($("#scenarioSelect"));
+        $("#scenarioSelect").value = ui.scenarioId;
         return;
       }
       card.hidden = false;
@@ -8585,13 +8652,13 @@
       const summary = $("#communityPortMeta");
       summary.textContent = details.join(" · ");
       summary.hidden = details.length === 0;
-      $("#scenarioSelect").innerHTML = `
-        <optgroup label="Port communautaire">
-          <option value="community">Navigation libre · point d’entrée</option>
-        </optgroup>
-      `;
+      const group = document.createElement("optgroup");
+      group.label = t("ui.community.harbour");
+      group.append(new Option(t("ui.community.navigation"), "community"));
+      $("#scenarioSelect").replaceChildren(group);
+      $("#scenarioSelect").value = ui.scenarioId;
       const visitorSelect = $("#visitorBerthSelect");
-      visitorSelect.replaceChildren(new Option("Places visiteurs", ""));
+      visitorSelect.replaceChildren(new Option(t("ui.visitor.berths"), ""));
       for (const berth of harborNavigationConfig.visitorBerths || []) {
         visitorSelect.add(new Option(
           `${berth.name || berth.id} · ${fmt(berth.maxLength, 1)} × ${fmt(berth.maxBeam, 1)} m`,
@@ -8612,7 +8679,7 @@
       physicsSimulator.setObstacles(physicsObstacles());
       applyScenario("community");
       showStageToast(
-        options.reactivated ? `Retour à ${runtime.name}.` : `Port chargé · ${runtime.name}`,
+        options.reactivated ? msg("toast.return.to", { value1: runtime.name }) : msg("toast.harbour.loaded", { value1: runtime.name }),
         "ok",
         2200
       );
@@ -8640,15 +8707,15 @@
     async function loadLaTrinitePort() {
       try {
         const response = await fetch(LA_TRINITE_KJP_URL, { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        showStageToast("Fichier trouvé, en cours de chargement…", "neutral", 10000);
+        if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
+        showStageToast(msg("toast.file.found.loading"), "neutral", 10000);
         const minimumProgress = new Promise(resolve => setTimeout(resolve, 650));
         const contents = await response.text();
         await minimumProgress;
         const loaded = importCommunityPortText(contents);
-        showStageToast(`Fichier chargé · ${loaded.name}`, "ok", 2600);
+        showStageToast(msg("toast.file.loaded", { value1: loaded.name }), "ok", 2600);
       } catch (error) {
-        showStageToast(`Chargement de La Trinité impossible · ${error.message}`, "danger", 4200);
+        showStageToast(msg("toast.cannot.load.la.trinite", { value1: errorMessage(error, "network") }), "danger", 4200);
       }
     }
 
@@ -8657,13 +8724,13 @@
       updatePortChrome();
       physicsSimulator.setObstacles(physicsObstacles());
       applyScenario("dockForward");
-      showStageToast("Port pédagogique restauré.", "ok", 1500);
+      showStageToast(msg("toast.training.harbour.restored"), "ok", 1500);
     }
 
     function readSelectedPortFile(file) {
       if (!file) return;
       if (file.size > KJPCodec.LIMITS.fileBytes) {
-        showStageToast("Fichier refusé · taille supérieure à 10 Mo.", "danger", 2800);
+        showStageToast(msg("toast.file.refused.larger.than.10.mb"), "danger", 2800);
         return;
       }
       const reader = new FileReader();
@@ -8671,15 +8738,14 @@
         try {
           importCommunityPortText(String(reader.result || ""));
         } catch (error) {
-          const first = error.errors?.[0];
-          const detail = first ? `${first.path} · ${first.message}` : error.message;
-          showStageToast(`Port refusé · ${detail}`, "danger", 4200);
+          const detail = errorMessage(error);
+          showStageToast(msg("toast.harbour.refused", { value1: detail }), "danger", 4200);
         } finally {
           $("#portFileInput").value = "";
         }
       });
       reader.addEventListener("error", () => {
-        showStageToast("Lecture du fichier impossible.", "danger", 2600);
+        showStageToast(msg("toast.cannot.read.the.file"), "danger", 2600);
         $("#portFileInput").value = "";
       });
       reader.readAsText(file, "UTF-8");
@@ -8790,7 +8856,7 @@
         camera.pan[0] = berth.x - motion.x;
         camera.pan[1] = berth.y - motion.y;
         camera.follow = false;
-        showStageToast(`${berth.name || berth.id} surlignée.`, "ok", 1400);
+        showStageToast(msg("ui.highlighted", { name: berth.name || berth.id }), "ok", 1400);
       }
     });
     $("#topViewButton").addEventListener("click", () => setCameraView("top"));
@@ -8968,7 +9034,7 @@
       $("#sidebarToggle").setAttribute("aria-expanded", String(open));
       $("#sidebarToggle").setAttribute(
         "aria-label",
-        open ? "Masquer les réglages" : "Ouvrir les réglages"
+        open ? t("toast.hide.settings") : t("ui.open.settings")
       );
     }
 
@@ -8990,6 +9056,7 @@
 
     window.addEventListener("keydown", event => {
       if (readmeDialog.open) return;
+      if (event.target === $("#languageSelect")) return;
       const key = event.key;
       if (keyboardControlKey(key)) {
         event.preventDefault();
@@ -9001,7 +9068,7 @@
         if (pendilleState.selectedId) physicsSimulator.cancelPendillePickup(pendilleState.selectedId);
         moorings.selected = null;
         pendilleState.selectedId = null;
-        showStageToast("Sélection d’amarre annulée.", "neutral", 1000);
+        showStageToast(msg("toast.mooring.selection.cancelled.2"), "neutral", 1000);
         return;
       }
 
@@ -9177,7 +9244,7 @@
       event.preventDefault();
       if (pointer.adjustedTarget !== null) {
         showStageToast(
-          `Longueur d'aussière réglée · ${fmt(pointer.adjustedTarget, 1)} m.`,
+          msg("toast.line.length.set.m", { value1: num(pointer.adjustedTarget, 1) }),
           "ok",
           1300
         );
@@ -9217,7 +9284,7 @@
       );
       if (result.ok) {
         showStageToast(
-          `Longueur d'aussière réglée · ${fmt(result.mooring.targetLength, 1)} m.`,
+          msg("toast.line.length.set.m", { value1: num(result.mooring.targetLength, 1) }),
           "ok",
           900
         );
@@ -9447,7 +9514,7 @@
         && pointer.adjustedMooringLength !== null
       ) {
         showStageToast(
-          `Longueur d'aussière réglée · ${fmt(pointer.adjustedMooringLength, 1)} m.`,
+          msg("toast.line.length.set.m", { value1: num(pointer.adjustedMooringLength, 1) }),
           "ok",
           1300
         );
@@ -9459,11 +9526,11 @@
           if (pendilleState.selectedId === id) {
             physicsSimulator.cancelPendillePickup(id);
             pendilleState.selectedId = null;
-            showStageToast("Prise de pendille annulée.", "neutral", 1100);
+            showStageToast(msg("toast.pickup.cancelled"), "neutral", 1100);
           } else {
             pendilleState.selectedId = id;
             moorings.selected = null;
-            showStageToast("Prise sélectionnée · choisissez un taquet d’étrave.", "neutral", 1600);
+            showStageToast(msg("toast.pickup.selected.choose.a.bow.cleat"), "neutral", 1600);
           }
         } else {
           tryDetachMooring(pointer.mooringHit.id);
@@ -9941,6 +10008,8 @@
       if (!new URLSearchParams(location.search).has("test")) return;
       controls.paused = true;
       window.__PORTANCE_TEST__ = Object.freeze({
+        selectLocale(code) { i18n.setLocale(code, { persist: false, source: "test" }); return i18n.report(); },
+        localeReport: i18n.report,
         selectWorldRenderer(renderer) {
           if (renderer === "native") selectNativeWorldRenderer();
           else if (renderer === "canvas") selectCanvasWorldRenderer();
@@ -10276,6 +10345,40 @@
     updateControlReadouts();
     applyScenario("dockForward");
     syncSidebarForViewport();
+    const languageSelect = $("#languageSelect");
+    languageSelect.replaceChildren(...i18n.supportedLocales().map(locale => {
+      const option = new Option(locale.shortLabel, locale.code);
+      option.title = locale.nativeName;
+      return option;
+    }));
+    function refreshLocale() {
+      i18n.apply();
+      languageSelect.value = i18n.getLocale();
+      localizeBuiltInScenarios();
+      updatePortChrome();
+      renderScenarioLesson();
+      updateControlReadouts();
+      setVisualTheme(ui.visualTheme);
+      setTimeScale(ui.timeScale);
+      $("#pauseButton").setAttribute("aria-label", t(controls.paused ? "ui.resume.simulation" : "ui.pause.simulation"));
+      $("#engineSoundButton").setAttribute("aria-label", t(engineAudio.enabled ? "ui.mute.engine.sound" : "ui.enable.engine.sound"));
+      syncSidebarForViewport();
+      const guide = $(".project-help-content");
+      const scroll = guide.scrollTop;
+      guide.innerHTML = i18n.getCatalog().guideHtml;
+      guide.scrollTop = scroll;
+      if (contacts.toastMessage) $("#impactToast").textContent = resolveMessage(contacts.toastMessage);
+      for (const target of understandingHitTargets) {
+        target.label = target.kind === "force" ? understandingForceLabel(target.part) : t(target.labelKey);
+      }
+      updateUnderstandingTooltip();
+      ui.lastDiagnostic = null;
+      understandingSourceRevision++;
+      updateInterface();
+    }
+    languageSelect.addEventListener("change", () => i18n.setLocale(languageSelect.value));
+    i18n.subscribe(refreshLocale);
+    refreshLocale();
     installTestApi();
     activateInitialWorldRenderer();
     requestAnimationFrame(render);

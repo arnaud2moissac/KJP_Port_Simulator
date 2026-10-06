@@ -14,6 +14,8 @@ Le panneau de droite regroupe le port actif, la situation ou l'exercice, les con
 
 ## Choisir les commandes adaptées à votre écran
 
+Le sélecteur `FR / EN` du bandeau supérieur change immédiatement la langue de l'interface et de ce guide. Au premier lancement, le simulateur utilise une langue compatible du navigateur, sinon le français. Le choix manuel est mémorisé lorsque le stockage du navigateur est disponible. Changer de langue conserve la manœuvre et les réglages en cours. Les noms, commentaires et consignes fournis par l'auteur d'un port importé restent dans leur langue d'origine.
+
 **Sur ordinateur :**
 
 - `←` et `→` déplacent la barre. Elle conserve son angle ; le bouton **Recentrer** la remet dans l'axe.

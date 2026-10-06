@@ -77,6 +77,7 @@ async function screenshotElement(page, selector) {
 test("simulateur de port — cohérence, physique et non-régression", async t => {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({
+    locale: "fr-FR",
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1
   });
@@ -1108,6 +1109,7 @@ test("simulateur de port — cohérence, physique et non-régression", async t =
 
   await t.test("un premier toucher démarre le son sur une page tactile", async () => {
     const touchPage = await browser.newPage({
+      locale: "fr-FR",
       viewport: { width: 1024, height: 768 },
       isMobile: true,
       hasTouch: true

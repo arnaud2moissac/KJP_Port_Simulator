@@ -296,6 +296,24 @@
     };
   }
 
+  // Presentation identifiers are independent of the simulator's selected language.
+  const FORCE_MESSAGE_NAMES = Object.fromEntries(Object.entries({
+      "Vent": "force.wind", "Coque · traînée": "force.hull.drag",
+      "Coque · résistance latérale": "force.hull.lateral", "Quille": "force.keel",
+      "Hélice": "force.propeller", "Effet de pas": "force.propwalk",
+      "Safran": "force.rudder", "Pare-battage": "force.fender", "Contact coque": "force.contact"
+  }).map(([name, sourceKey]) => [name, Object.freeze({ sourceKey, sourceParams: Object.freeze({}) })]));
+  const FORCE_MESSAGE_PREFIXES = {
+      "Appendice": "force.appendage", "Hélice": "force.propeller.unit",
+      "Effet de pas": "force.propwalk.unit", "Safran": "force.rudder.unit",
+      "Reprise humaine": "force.human", "Aussière": "force.line", "Pendille": "force.pendille"
+  };
+  function forceMessageMetadata(source) {
+    if (FORCE_MESSAGE_NAMES[source]) return FORCE_MESSAGE_NAMES[source];
+    const [prefix, ...suffix] = source.split(" · ");
+    return { sourceKey: FORCE_MESSAGE_PREFIXES[prefix], sourceParams: { id: suffix.join(" · ") } };
+  }
+
   function foilModel(input) {
     const {
       u,
@@ -1023,20 +1041,20 @@
     }
 
     function attachMooring(definition = {}) {
-      if (!state) return { ok: false, reason: "simulateur non initialisé" };
+      if (!state) return { ok: false, reason: "simulateur non initialisé", reasonCode: "interaction.simulateur.non.initialise", reasonParams: {} };
       const id = typeof definition.id === "string" && definition.id
         ? definition.id
         : `mooring-${state.moorings.length + 1}`;
       if (state.moorings.some(mooring => mooring.id === id)) {
-        return { ok: false, reason: "identifiant déjà utilisé" };
+        return { ok: false, reason: "identifiant déjà utilisé", reasonCode: "interaction.identifiant.deja.utilise", reasonParams: {} };
       }
       const boatCleat = boatCleatById(definition.boatCleatId);
-      if (!boatCleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      if (!boatCleat) return { ok: false, reason: "taquet du bateau inconnu", reasonCode: "interaction.taquet.du.bateau.inconnu", reasonParams: {} };
       const linesOnBoatCleat = state.moorings.filter(
         mooring => mooring.boatCleatId === boatCleat.id
       ).length;
       if (linesOnBoatCleat >= profile.mooring.maximumLinesPerBoatCleat) {
-        return { ok: false, reason: "capacité du taquet du bateau atteinte" };
+        return { ok: false, reason: "capacité du taquet du bateau atteinte", reasonCode: "interaction.capacite.du.taquet.du.bateau.atteinte", reasonParams: {} };
       }
       const shorePoint = definition.shorePoint || {};
       if (
@@ -1044,7 +1062,7 @@
         || !definition.shoreCleatId
         || ![shorePoint.east, shorePoint.north, shorePoint.z].every(Number.isFinite)
       ) {
-        return { ok: false, reason: "taquet à terre invalide" };
+        return { ok: false, reason: "taquet à terre invalide", reasonCode: "interaction.taquet.a.terre.invalide", reasonParams: {} };
       }
       const draft = {
         id,
@@ -1072,27 +1090,27 @@
         ? geometry.distance
         : Number(definition.length);
       if (!Number.isFinite(length) || length < 0.05) {
-        return { ok: false, reason: "longueur invalide" };
+        return { ok: false, reason: "longueur invalide", reasonCode: "interaction.longueur.invalide", reasonParams: {} };
       }
       if (draft.maximumLength <= 0.05 || draft.maximumLength > 200) {
-        return { ok: false, reason: "longueur maximale invalide" };
+        return { ok: false, reason: "longueur maximale invalide", reasonCode: "interaction.longueur.maximale.invalide", reasonParams: {} };
       }
       if (length > draft.maximumLength + EPSILON) {
-        return { ok: false, reason: `longueur supérieure à ${draft.maximumLength.toFixed(1)} m` };
+        return { ok: false, reason: `longueur supérieure à ${draft.maximumLength.toFixed(1)} m`, reasonCode: "interaction.mooring.maximumLength", reasonParams: { maximumLength: draft.maximumLength } };
       }
       const verticalDistance = Math.abs(geometry.verticalDelta);
       const maximumExtendedLength = length * (
         1 + Math.max(0, draft.elasticity.maximumStrain)
       );
       if (maximumExtendedLength + EPSILON < verticalDistance) {
-        return { ok: false, reason: "longueur inférieure à la différence de hauteur" };
+        return { ok: false, reason: "longueur inférieure à la différence de hauteur", reasonCode: "interaction.longueur.inferieure.a.la.difference.de.hauteur", reasonParams: {} };
       }
       const horizontalLimit = Math.sqrt(Math.max(
         0,
         maximumExtendedLength * maximumExtendedLength - verticalDistance * verticalDistance
       ));
       if (geometry.horizontalDistance > horizontalLimit + profile.mooring.solverTolerance) {
-        return { ok: false, reason: "aussière trop courte pour les taquets" };
+        return { ok: false, reason: "aussière trop courte pour les taquets", reasonCode: "interaction.aussiere.trop.courte.pour.les.taquets", reasonParams: {} };
       }
       const slack = Math.max(0, length - geometry.distance);
       const elastic = mooringElasticLaw(
@@ -1126,12 +1144,12 @@
     }
 
     function setMooringLength(id, requestedLength) {
-      if (!state) return { ok: false, reason: "simulateur non initialisé" };
+      if (!state) return { ok: false, reason: "simulateur non initialisé", reasonCode: "interaction.simulateur.non.initialise", reasonParams: {} };
       const mooring = state.moorings.find(candidate => candidate.id === id);
-      if (!mooring) return { ok: false, reason: "aussière inconnue" };
+      if (!mooring) return { ok: false, reason: "aussière inconnue", reasonCode: "interaction.aussiere.inconnue", reasonParams: {} };
       const numericLength = Number(requestedLength);
       if (!Number.isFinite(numericLength)) {
-        return { ok: false, reason: "longueur invalide" };
+        return { ok: false, reason: "longueur invalide", reasonCode: "interaction.longueur.invalide", reasonParams: {} };
       }
       const geometry = mooringGeometry(mooring);
       const minimumLength = Math.max(0.05, Math.abs(geometry.verticalDelta));
@@ -1152,7 +1170,7 @@
 
     function detachMooring(id) {
       const index = state.moorings.findIndex(mooring => mooring.id === id);
-      if (index < 0) return { ok: false, reason: "aussière inconnue" };
+      if (index < 0) return { ok: false, reason: "aussière inconnue", reasonCode: "interaction.aussiere.inconnue", reasonParams: {} };
       const [mooring] = state.moorings.splice(index, 1);
       lastForces = lastForces.filter(force => force.mooringId !== id);
       return { ok: true, mooring: deepClone(mooring) };
@@ -1179,19 +1197,19 @@
     }
 
     function registerPendille(definition = {}) {
-      if (!state) return { ok: false, reason: "simulateur non initialisé" };
+      if (!state) return { ok: false, reason: "simulateur non initialisé", reasonCode: "interaction.simulateur.non.initialise", reasonParams: {} };
       const id = typeof definition.id === "string" && definition.id
         ? definition.id
         : `pendille-${state.pendilles.length + 1}`;
       if (state.pendilles.some(item => item.id === id)) {
-        return { ok: false, reason: "identifiant déjà utilisé" };
+        return { ok: false, reason: "identifiant déjà utilisé", reasonCode: "interaction.identifiant.deja.utilise", reasonParams: {} };
       }
       if (!validWorldPoint(definition.pickupPoint) || !validWorldPoint(definition.anchorPoint)) {
-        return { ok: false, reason: "prise ou corps-mort invalide" };
+        return { ok: false, reason: "prise ou corps-mort invalide", reasonCode: "interaction.prise.ou.corps.mort.invalide", reasonParams: {} };
       }
       const maximumLength = Number(definition.maximumLength);
       if (!Number.isFinite(maximumLength) || maximumLength <= 0.05 || maximumLength > 200) {
-        return { ok: false, reason: "longueur maximale invalide" };
+        return { ok: false, reason: "longueur maximale invalide", reasonCode: "interaction.longueur.maximale.invalide", reasonParams: {} };
       }
       const pendille = {
         id,
@@ -1271,10 +1289,10 @@
 
     function securePendille(pendille, boatCleatId, explicitLength) {
       const cleat = boatCleatById(boatCleatId);
-      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu", reasonCode: "interaction.taquet.du.bateau.inconnu", reasonParams: {} };
       const shouldBeBow = pendille.connectionEnd !== "stern";
       if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
-        return { ok: false, reason: shouldBeBow ? "taquet d’étrave requis" : "taquet arrière requis" };
+        return { ok: false, reason: shouldBeBow ? "taquet d’étrave requis" : "taquet arrière requis", reasonCode: shouldBeBow ? "interaction.cleat.bowRequired" : "interaction.cleat.sternRequired", reasonParams: {} };
       }
       const boatPoint = localPointToWorld(state.pose, cleat.x, cleat.y);
       const verticalDelta = cleat.z - pendille.anchorPoint.z;
@@ -1324,23 +1342,23 @@
 
     function beginPendillePickup(id, boatCleatId) {
       const pendille = pendilleById.get(id);
-      if (!pendille) return { ok: false, reason: "pendille inconnue" };
-      if (pendille.state !== "available") return { ok: false, reason: "pendille indisponible" };
+      if (!pendille) return { ok: false, reason: "pendille inconnue", reasonCode: "interaction.pendille.inconnue", reasonParams: {} };
+      if (pendille.state !== "available") return { ok: false, reason: "pendille indisponible", reasonCode: "interaction.pendille.indisponible", reasonParams: {} };
       const cleat = boatCleatById(boatCleatId);
-      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu" };
+      if (!cleat) return { ok: false, reason: "taquet du bateau inconnu", reasonCode: "interaction.taquet.du.bateau.inconnu", reasonParams: {} };
       const shouldBeBow = pendille.connectionEnd !== "stern";
       if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
-        return { ok: false, reason: shouldBeBow ? "choisissez un taquet d’étrave" : "choisissez un taquet arrière" };
+        return { ok: false, reason: shouldBeBow ? "choisissez un taquet d’étrave" : "choisissez un taquet arrière", reasonCode: shouldBeBow ? "interaction.cleat.chooseBow" : "interaction.cleat.chooseStern", reasonParams: {} };
       }
       const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
       const groundSpeedKn = Math.hypot(ground.east, ground.north) / KNOT;
       if (groundSpeedKn + EPSILON >= PENDILLE_PICKUP_SPEED_LIMIT_KN) {
-        return { ok: false, reason: "restez sous 0,6 nd pour prendre la pendille" };
+        return { ok: false, reason: "restez sous 0,6 nd pour prendre la pendille", reasonCode: "interaction.restez.sous.0.6.nd.pour.prendre.la", reasonParams: {} };
       }
       const pickup = pendillePickupGeometry(pendille.pickupPoint);
-      if (!pickup.nearestCleat) return { ok: false, reason: "aucun taquet embarqué disponible" };
+      if (!pickup.nearestCleat) return { ok: false, reason: "aucun taquet embarqué disponible", reasonCode: "interaction.aucun.taquet.embarque.disponible", reasonParams: {} };
       if (pickup.distance > PENDILLE_PICKUP_REACH_M + EPSILON) {
-        return { ok: false, reason: "la prise doit être à moins de 1,8 m du bord de coque" };
+        return { ok: false, reason: "la prise doit être à moins de 1,8 m du bord de coque", reasonCode: "interaction.la.prise.doit.etre.a.moins.de.1", reasonParams: {} };
       }
       pendille.state = "in-hand";
       activePendilleIds.add(id);
@@ -1359,8 +1377,8 @@
 
     function cancelPendillePickup(id) {
       const pendille = pendilleById.get(id);
-      if (!pendille) return { ok: false, reason: "pendille inconnue" };
-      if (pendille.state !== "in-hand") return { ok: false, reason: "aucune prise en cours" };
+      if (!pendille) return { ok: false, reason: "pendille inconnue", reasonCode: "interaction.pendille.inconnue", reasonParams: {} };
+      if (pendille.state !== "in-hand") return { ok: false, reason: "aucune prise en cours", reasonCode: "interaction.aucune.prise.en.cours", reasonParams: {} };
       pendille.state = "available";
       activePendilleIds.delete(id);
       pendille.boatCleatId = null;
@@ -1373,12 +1391,12 @@
 
     function releasePendille(id) {
       const pendille = pendilleById.get(id);
-      if (!pendille) return { ok: false, reason: "pendille inconnue" };
+      if (!pendille) return { ok: false, reason: "pendille inconnue", reasonCode: "interaction.pendille.inconnue", reasonParams: {} };
       if (pendille.state === "in-hand") return cancelPendillePickup(id);
-      if (pendille.state !== "secured") return { ok: false, reason: "pendille non frappée" };
+      if (pendille.state !== "secured") return { ok: false, reason: "pendille non frappée", reasonCode: "interaction.pendille.non.frappee", reasonParams: {} };
       const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
       if (Math.hypot(ground.east, ground.north) > 3 * KNOT + EPSILON) {
-        return { ok: false, reason: "vitesse supérieure à 3 nd" };
+        return { ok: false, reason: "vitesse supérieure à 3 nd", reasonCode: "interaction.vitesse.superieure.a.3.nd", reasonParams: {} };
       }
       if (pendille.mooringId) detachMooring(pendille.mooringId);
       pendille.state = "available";
@@ -2971,14 +2989,14 @@
     }
 
     function forceBreakdown() {
-      return deepClone(lastForces);
+      return deepClone(lastForces).map(force => ({ ...force, ...forceMessageMetadata(force.source) }));
     }
 
     function inspectForces() {
       const evaluation = evaluateForces(state, MAX_STEP);
       return {
         acceleration: [...evaluation.acceleration],
-        forces: deepClone(evaluation.accumulator.parts),
+        forces: deepClone(evaluation.accumulator.parts).map(force => ({ ...force, ...forceMessageMetadata(force.source) })),
         total: {
           X: evaluation.accumulator.X,
           Y: evaluation.accumulator.Y,

@@ -10,6 +10,8 @@
     "three": "0.186.0"
   },
   "scripts": {
+    "check:i18n": "node scripts/check-simulator-i18n.js",
+    "test:i18n": "node --test tests/simulator-i18n.test.js",
     "build:simulator": "node scripts/build-simulateur-port.js",
     "capture:renderer:native-baseline": "node scripts/capture-simulator-native-baseline.js",
     "profile:renderer:native": "node scripts/profile-simulator-native-renderer.js",
