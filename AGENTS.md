@@ -142,6 +142,10 @@ résultat, les fichiers touchés et les contrôles réellement exécutés.
 
 This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
 
+L'outil utilisé par ce projet est `graphifyy 0.9.79+kjp.1`, avec les correctifs
+P1 reproductibles décrits dans [`tools/graphify/README.md`](tools/graphify/README.md).
+Avant une mise à jour officielle, porter et valider ces correctifs.
+
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
 
 Rules:

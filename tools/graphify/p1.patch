@@ -1,0 +1,411 @@
+--- a/graphify/analyze.py
++++ b/graphify/analyze.py
+@@ -391 +391 @@
+-        betweenness = nx.edge_betweenness_centrality(G)
++        betweenness = nx.edge_betweenness_centrality(nx.Graph(G))
+--- a/graphify/build.py
++++ b/graphify/build.py
+@@ -24,0 +25 @@
++import hashlib
+@@ -668 +669,2 @@
+-        key = (e.get("source"), e.get("target"), e.get("relation"))
++        key = json.dumps({k: v for k, v in e.items() if k not in {"key", "_src", "_tgt"}},
++                         sort_keys=True, ensure_ascii=False, default=str)
+@@ -1038 +1040 @@
+-    G: nx.Graph = nx.DiGraph() if directed else nx.Graph()
++    G: nx.Graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
+@@ -1397,0 +1400,4 @@
++            if src_ext in {".html", ".htm"} and G.nodes[src].get("_origin") == "ast":
++                src_fam = "js"
++            if tgt_ext in {".html", ".htm"} and G.nodes[tgt].get("_origin") == "ast":
++                tgt_fam = "js"
+@@ -1426,52 +1432,7 @@
+-        # When the graph is undirected and the same node pair appears twice with
+-        # the same relation but opposite directions (e.g. a `calls` b and b `calls` a),
+-        # nx.Graph collapses them into one edge. The deterministic sort above means
+-        # the lexicographically-later direction would systematically overwrite the
+-        # earlier one's _src/_tgt, silently flipping the surviving edge's caller
+-        # and callee. First-seen direction wins instead — drop the redundant
+-        # reverse-direction duplicate so the original direction is preserved (#1061).
+-        if not G.is_directed() and G.has_edge(src, tgt):
+-            existing = edge_data(G, src, tgt)
+-            if existing.get("relation") == attrs.get("relation") and (
+-                existing.get("_src") == tgt and existing.get("_tgt") == src
+-            ):
+-                continue
+-        # A pair that already carries a SPECIFIC relation must not be downgraded
+-        # to a generic one. Only one edge survives per pair here, and the sort
+-        # above orders same-pair edges by relation name, so "last write wins"
+-        # resolved the winner alphabetically — which put `references` after
+-        # `calls` and `uses` after everything. On graphify's own corpus that
+-        # rewrote all 144 pairs where the extraction found both `calls` and
+-        # `references` into plain `references`, and callflow's relation filter
+-        # does not include `references`, so those call sites left the call graph
+-        # entirely. Alphabetical order carries no meaning; keeping the specific
+-        # fact does. The reverse (specific arriving after generic) still
+-        # overwrites, so the outcome no longer depends on edge order at all.
+-        if G.has_edge(src, tgt):
+-            existing_attrs = edge_data(G, src, tgt)
+-            existing_rel = existing_attrs.get("relation")
+-            if (
+-                attrs.get("relation") in _GENERIC_RELATIONS
+-                and existing_rel is not None
+-                and existing_rel not in _GENERIC_RELATIONS
+-            ):
+-                continue
+-            if existing_rel == attrs.get("relation"):
+-                existing_conf = existing_attrs.get("confidence")
+-                incoming_conf = attrs.get("confidence")
+-                existing_rank = _CONFIDENCE_RANK.get(existing_conf, 0)
+-                incoming_rank = _CONFIDENCE_RANK.get(incoming_conf, 0)
+-                if existing_rank > incoming_rank:
+-                    continue
+-                if existing_rank == incoming_rank:
+-                    if existing_attrs.get("source_location") and not attrs.get("source_location"):
+-                        continue
+-                    existing_score = existing_attrs.get("confidence_score")
+-                    incoming_score = attrs.get("confidence_score")
+-                    if (
+-                        existing_score is not None
+-                        and incoming_score is not None
+-                        and existing_score > incoming_score
+-                    ):
+-                        continue
+-        G.add_edge(src, tgt, **attrs)
++        # A proof has its own identity: relation, direction, site and context.
++        # Parallel facts must not overwrite containment, calls or imports.
++        attrs.pop("key", None)
++        proof = json.dumps([src, tgt, attrs], sort_keys=True, ensure_ascii=False,
++                           separators=(",", ":"), default=str)
++        key = hashlib.sha256(proof.encode("utf-8")).hexdigest()
++        G.add_edge(src, tgt, key=key, **attrs)
+--- a/graphify/cache.py
++++ b/graphify/cache.py
+@@ -39 +39 @@
+-_AST_CACHE_SCHEMA = 5  # Python receiver-shadow facts in persisted raw calls.
++_AST_CACHE_SCHEMA = 8  # Python receiver-shadow facts in persisted raw calls.
+--- a/graphify/cli.py
++++ b/graphify/cli.py
+@@ -1872 +1872 @@
+-        from graphify.build import edge_data
++        from graphify.build import edge_datas
+@@ -1879,4 +1879,4 @@
+-            _ed = edge_data(G, nid, nb)
+-            connections.append(
+-                ("out" if _ed.get("_src", nid) == nid else "in", nb, _ed)
+-            )
++            for _ed in edge_datas(G, nid, nb):
++                connections.append(
++                    ("out" if _ed.get("_src", nid) == nid else "in", nb, _ed)
++                )
+@@ -1884,4 +1884,4 @@
+-            _ed = edge_data(G, nb, nid)
+-            connections.append(
+-                ("in" if _ed.get("_src", nb) == nb else "out", nb, _ed)
+-            )
++            for _ed in edge_datas(G, nb, nid):
++                connections.append(
++                    ("in" if _ed.get("_src", nb) == nb else "out", nb, _ed)
++                )
+--- a/graphify/cluster.py
++++ b/graphify/cluster.py
+@@ -388 +388 @@
+-    subgraph = G.subgraph(community_nodes)
++    subgraph = nx.Graph(G.subgraph(community_nodes))
+--- a/graphify/export.py
++++ b/graphify/export.py
+@@ -18 +18 @@
+-from graphify.build import edge_data
++from graphify.build import edge_data, edge_datas
+@@ -867 +866,0 @@
+-                edata = edge_data(G, node_id, neighbor)
+@@ -869,3 +868,4 @@
+-                relation = edata.get("relation", "")
+-                confidence = edata.get("confidence", "EXTRACTED")
+-                lines.append(f"- [[{neighbor_label}]] - `{relation}` [{confidence}]")
++                for edata in edge_datas(G, node_id, neighbor):
++                    relation = edata.get("relation", "")
++                    confidence = edata.get("confidence", "EXTRACTED")
++                    lines.append(f"- [[{neighbor_label}]] - `{relation}` [{confidence}]")
+--- a/graphify/extract.py
++++ b/graphify/extract.py
+@@ -7182,0 +7183,3 @@
++    if path.suffix.lower() in {".html", ".htm"} and "src" in path.parts:
++        from graphify.extractors.html_scripts import extract_html_scripts
++        return extract_html_scripts
+@@ -8722,0 +8726,2 @@
++        if Path(rc.get("source_file") or "").suffix.lower() in {".html", ".htm"}:
++            caller_family = _lang_family("script.js")
+--- a/graphify/extractors/engine.py
++++ b/graphify/extractors/engine.py
+@@ -3003,0 +3004,21 @@
++
++        # Top-level IIFEs are script module scopes for callable declarations.
++        if not is_module_level and any(
++            child.type == "variable_declarator"
++            and child.child_by_field_name("value") is not None
++            and child.child_by_field_name("value").type in _JS_FUNCTION_VALUE_TYPES
++            for child in node.named_children
++        ):
++            ancestor = node.parent
++            fn_types = {"function_declaration", "method_definition", "arrow_function", "function_expression"}
++            while ancestor is not None and ancestor.type not in fn_types:
++                ancestor = ancestor.parent
++            wrapper = ancestor.parent if ancestor is not None else None
++            while wrapper is not None and wrapper.type == "parenthesized_expression":
++                wrapper = wrapper.parent
++            callee = wrapper.child_by_field_name("function") if wrapper is not None and wrapper.type == "call_expression" else None
++            if callee is not None and ancestor is not None and callee.start_byte <= ancestor.start_byte and callee.end_byte >= ancestor.end_byte:
++                owner = wrapper.parent
++                while owner is not None and owner.type not in fn_types | {"program"}:
++                    owner = owner.parent
++                is_module_level = owner is not None and owner.type == "program"
+@@ -6597,0 +6619,42 @@
++
++    js_call_scopes = {}
++    if config.ts_module in ("tree_sitter_javascript", "tree_sitter_typescript"):
++        # Parser byte ranges identify enclosing callable bodies, including
++        # functions represented by a variable declarator. Methods are scopes,
++        # but never lexical bindings for a bare call with the same name.
++        body_scopes = {(body.start_byte, body.end_byte): nid
++                       for nid, body in function_bodies}
++        defs = {}
++        for item in nodes:
++            if item["id"] in callable_def_nids and not item["label"].startswith("."):
++                defs.setdefault((item.get("source_location"),
++                                 item["label"].removesuffix("()")), []).append(item["id"])
++
++        def js_bindings(node, scope):
++            enclosing = scope
++            body_scope = body_scopes.get((node.start_byte, node.end_byte))
++            if body_scope and body_scope != scope and body_scope != file_nid:
++                scope_parents.setdefault(body_scope, scope)
++                enclosing = body_scope
++            elif node.type == "statement_block":
++                enclosing = f"{file_nid}@block:{node.start_byte}"
++                scope_parents[enclosing] = scope
++            if node.type in config.call_types:
++                js_call_scopes[node.start_byte] = enclosing
++            if node.type in ("function_declaration", "generator_function_declaration",
++                             "class_declaration", "variable_declarator"):
++                name_node = node.child_by_field_name("name")
++                if name_node is not None and name_node.type == "identifier":
++                    name = _read_text(name_node, source)
++                    candidates = defs.get((f"L{node.start_point[0] + 1}", name), [])
++                    if len(candidates) == 1:
++                        nid = candidates[0]
++                        lexical_nids_by_scope.setdefault(scope, {})[name] = nid
++                        # The declaration's own name is visible inside its body.
++                        lexical_nids_by_scope.setdefault(nid, {})[name] = nid
++                    elif node.type == "variable_declarator":
++                        lexical_nids_by_scope.setdefault(scope, {})[name] = None
++            for child in node.named_children:
++                js_bindings(child, enclosing)
++        js_bindings(root, file_nid)
++
+@@ -7477,0 +7541,5 @@
++                js_local_data = False
++                _js_member_defer = (
++                    config.ts_module in ("tree_sitter_javascript", "tree_sitter_typescript")
++                    and is_member_call and not self_receiver
++                )
+@@ -7483 +7551 @@
+-                if _python_defer or _java_defer or (_builtin_member_call and not php_builtin_self_call) or _lua_member_defer or (
++                if _js_member_defer or _python_defer or _java_defer or (_builtin_member_call and not php_builtin_self_call) or _lua_member_defer or (
+@@ -7494,2 +7562,3 @@
+-                    if config.ts_module == "tree_sitter_python" and not is_member_call:
+-                        curr_scope = caller_nid
++                    if config.ts_module in ("tree_sitter_python", "tree_sitter_javascript", "tree_sitter_typescript") and not is_member_call:
++                        curr_scope = js_call_scopes.get(node.start_byte, caller_nid)
++                        first_scope = curr_scope
+@@ -7497 +7566,11 @@
+-                        while curr_scope:
++                        visited_scopes = set()
++                        while curr_scope and curr_scope not in visited_scopes:
++                            visited_scopes.add(curr_scope)
++                            if config.ts_module in ("tree_sitter_javascript", "tree_sitter_typescript"):
++                                bound = local_bound_names.get(curr_scope, set())
++                                if curr_scope == first_scope:
++                                    bound = bound | extra_locals
++                                candidate = lexical_nids_by_scope.get(curr_scope, {}).get(callee_name)
++                                if callee_name in bound and (not candidate or candidate == curr_scope):
++                                    js_local_data = True
++                                    break
+@@ -7499,0 +7579,2 @@
++                                if tgt_nid is None and config.ts_module in ("tree_sitter_javascript", "tree_sitter_typescript"):
++                                    js_local_data = True
+@@ -7502,2 +7583,9 @@
+-                        if not tgt_nid:
+-                            tgt_nid = label_to_nid.get(callee_name)
++                        if not tgt_nid and not js_local_data:
++                            if config.ts_module == "tree_sitter_python":
++                                tgt_nid = label_to_nid.get(callee_name)
++                            else:
++                                candidate = label_to_nid.get(callee_name)
++                                # Imported definitions remain eligible; unrelated
++                                # methods in this file do not shadow declarations.
++                                if candidate and nid_to_sf.get(candidate) != str_path:
++                                    tgt_nid = candidate
+@@ -7567 +7655 @@
+-                    if not is_py_local_data:
++                    if not (is_py_local_data or js_local_data):
+--- /dev/null
++++ b/graphify/extractors/html_scripts.py
+@@ -0,0 +1,39 @@
++"""Structural JavaScript extraction from source HTML, preserving source lines."""
++from __future__ import annotations
++import re
++from pathlib import Path
++
++_SCRIPT = re.compile(rb"<script\b([^>]*)>(.*?)</script\s*>", re.I | re.S)
++_ATTR = re.compile(rb"([\w-]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+))", re.I)
++
++def extract_html_scripts(path: Path) -> dict:
++    from graphify.extract import _JS_CONFIG
++    from graphify.extractors.engine import _extract_generic
++    source = path.read_bytes()
++    masked = bytearray(10 if byte == 10 else 32 for byte in source)
++    for script in _SCRIPT.finditer(source):
++        attrs = {m[1].lower(): next((v for v in m.groups()[1:] if v is not None), b"").lower()
++                 for m in _ATTR.finditer(script[1])}
++        if b"src" in attrs:
++            continue
++        kind = attrs.get(b"type", b"")
++        if kind not in {b"", b"module", b"text/javascript", b"application/javascript"}:
++            continue
++        start, end = script.span(2)
++        masked[start:end] = source[start:end]
++    result = _extract_generic(path, _JS_CONFIG, source_override=bytes(masked))
++    # A curated page and its script module are distinct entities. Reusing the
++    # canonical page id would overwrite its semantic label during an update.
++    page = next((n for n in result.get("nodes", []) if n.get("label") == path.name), None)
++    if page is not None:
++        old_id = page["id"]
++        page["id"] = old_id + "_inline_scripts"
++        page["node_kind"] = "script_module"
++        for edge in result.get("edges", []):
++            for key in ("source", "target"):
++                if edge.get(key) == old_id:
++                    edge[key] = page["id"]
++        for call in result.get("raw_calls", []):
++            if call.get("caller_nid") == old_id:
++                call["caller_nid"] = page["id"]
++    return result
+--- a/graphify/serve.py
++++ b/graphify/serve.py
+@@ -1178,33 +1178,32 @@
+-            raw = G[u][v]
+-            d = next(iter(raw.values()), {}) if isinstance(G, (nx.MultiGraph, nx.MultiDiGraph)) else raw
+-            # (u, v) is BFS/DFS visit order, not necessarily the true edge
+-            # direction: on an undirected graph G.neighbors() walks callers
+-            # and callees alike, so a caller->callee edge renders backwards
+-            # whenever the callee is visited first. _src/_tgt (stashed on the
+-            # edge data by the `query` CLI loader) carry the real direction;
+-            # fall back to (u, v) for graphs/edges that don't set them.
+-            src = d.get("_src", u)
+-            tgt = d.get("_tgt", v)
+-            # Guard against a stray/dangling _src/_tgt (hand-edited or adversarial
+-            # graph.json): only trust them when they name exactly this edge's
+-            # endpoints, else fall back to (u, v). Without this, G.nodes[src]
+-            # would KeyError on an unknown id (#2080 review).
+-            if {src, tgt} != {u, v}:
+-                src, tgt = u, v
+-            context = d.get("context")
+-            context_suffix = f" context={sanitize_label(str(context))}" if context else ""
+-            # The relation SITE (call/import/reference line in the source's
+-            # file), not a def line — so "who calls X" cites a clickable call
+-            # location, not the caller's def (#BUG1).
+-            _loc = str(d.get("source_location") or "")
+-            at_suffix = (
+-                f" at={sanitize_label(str(d.get('source_file') or ''))}:{sanitize_label(_loc)}"
+-                if _loc else ""
+-            )
+-            line = (
+-                f"EDGE {sanitize_label(G.nodes[src].get('label', src))} "
+-                f"--{sanitize_label(str(d.get('relation', '')))} "
+-                f"[{sanitize_label(str(d.get('confidence', '')))}{context_suffix}]--> "
+-                f"{sanitize_label(G.nodes[tgt].get('label', tgt))}{at_suffix}"
+-            )
+-            lines.append(line)
++            for d in edge_datas(G, u, v):
++                # (u, v) is BFS/DFS visit order, not necessarily the true edge
++                # direction: on an undirected graph G.neighbors() walks callers
++                # and callees alike, so a caller->callee edge renders backwards
++                # whenever the callee is visited first. _src/_tgt (stashed on the
++                # edge data by the `query` CLI loader) carry the real direction;
++                # fall back to (u, v) for graphs/edges that don't set them.
++                src = d.get("_src", u)
++                tgt = d.get("_tgt", v)
++                # Guard against a stray/dangling _src/_tgt (hand-edited or adversarial
++                # graph.json): only trust them when they name exactly this edge's
++                # endpoints, else fall back to (u, v). Without this, G.nodes[src]
++                # would KeyError on an unknown id (#2080 review).
++                if {src, tgt} != {u, v}:
++                    src, tgt = u, v
++                context = d.get("context")
++                context_suffix = f" context={sanitize_label(str(context))}" if context else ""
++                # The relation SITE (call/import/reference line in the source's
++                # file), not a def line — so "who calls X" cites a clickable call
++                # location, not the caller's def (#BUG1).
++                _loc = str(d.get("source_location") or "")
++                at_suffix = (
++                    f" at={sanitize_label(str(d.get('source_file') or ''))}:{sanitize_label(_loc)}"
++                    if _loc else ""
++                )
++                line = (
++                    f"EDGE {sanitize_label(G.nodes[src].get('label', src))} "
++                    f"--{sanitize_label(str(d.get('relation', '')))} "
++                    f"[{sanitize_label(str(d.get('confidence', '')))}{context_suffix}]--> "
++                    f"{sanitize_label(G.nodes[tgt].get('label', tgt))}{at_suffix}"
++                )
++                lines.append(line)
+@@ -2198,8 +2197,8 @@
+-            d = edge_data(G, nid, nb)
+-            rel = d.get("relation", "")
+-            if rel_filter and rel_filter not in rel.lower():
+-                continue
+-            lines.append(
+-                f"  --> {sanitize_label(G.nodes[nb].get('label', nb))} "
+-                f"[{sanitize_label(str(rel))}] [{sanitize_label(str(d.get('confidence', '')))}]{_edge_at(d)}"
+-            )
++            for d in edge_datas(G, nid, nb):
++                rel = d.get("relation", "")
++                if rel_filter and rel_filter not in rel.lower():
++                    continue
++                lines.append(
++                    f"  --> {sanitize_label(G.nodes[nb].get('label', nb))} "
++                    f"[{sanitize_label(str(rel))}] [{sanitize_label(str(d.get('confidence', '')))}]{_edge_at(d)}"
++                )
+@@ -2207,8 +2206,8 @@
+-            d = edge_data(G, nb, nid)
+-            rel = d.get("relation", "")
+-            if rel_filter and rel_filter not in rel.lower():
+-                continue
+-            lines.append(
+-                f"  <-- {sanitize_label(G.nodes[nb].get('label', nb))} "
+-                f"[{sanitize_label(str(rel))}] [{sanitize_label(str(d.get('confidence', '')))}]{_edge_at(d)}"
+-            )
++            for d in edge_datas(G, nb, nid):
++                rel = d.get("relation", "")
++                if rel_filter and rel_filter not in rel.lower():
++                    continue
++                lines.append(
++                    f"  <-- {sanitize_label(G.nodes[nb].get('label', nb))} "
++                    f"[{sanitize_label(str(rel))}] [{sanitize_label(str(d.get('confidence', '')))}]{_edge_at(d)}"
++                )
+--- a/graphify/watch.py
++++ b/graphify/watch.py
+@@ -1757 +1757,2 @@
+-                        if prior_paths.absolute_identity(str(p), project_root)
++                        if p.suffix.lower() not in {".html", ".htm"}
++                        and prior_paths.absolute_identity(str(p), project_root)
+@@ -2088,0 +2090 @@
++                "multigraph": True,
+@@ -2481 +2483,6 @@
+-    has_code = any(p.suffix.lower() in _CODE_EXTENSIONS for p in batch)
++    from graphify.extract import _get_extractor
++    has_code = any(
++        p.suffix.lower() in _CODE_EXTENSIONS
++        or (p.suffix.lower() in {".html", ".htm"} and _get_extractor(p) is not None)
++        for p in batch
++    )
