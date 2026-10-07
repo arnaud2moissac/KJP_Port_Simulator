@@ -14,7 +14,7 @@ The right-hand panel contains the active harbour, scenario or exercise, instruct
 
 ## Choosing your language
 
-The `FR / EN` selector in the top bar changes the whole interface and this guide immediately. Your first visit uses a supported browser language, or French if none matches. A manual choice is remembered when browser storage is available. Changing language preserves the current manoeuvre and settings. Names, comments and instructions supplied by the author of an imported harbour stay in their original language.
+The `FR / EN / Bzh` selector in the top bar changes the whole interface and this guide immediately: French, English or Breton. Your first visit uses a supported browser language, or French if none matches. A manual choice is remembered when browser storage is available. Changing language preserves the current manoeuvre and settings. Names, comments and instructions supplied by the author of an imported harbour stay in their original language.
 
 ## Choosing controls for your screen
 

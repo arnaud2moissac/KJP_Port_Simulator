@@ -25,6 +25,7 @@ async function capture(code) {
     await save(0);
     const desktopPage = page;
     page = await browser.newPage({ viewport: { width: 1024, height: 768 }, locale: code, hasTouch: true });
+    await page.route("https://www.googletagmanager.com/**", route => route.fulfill({ status: 200, body: "", contentType: "application/javascript" }));
     await page.goto(pathToFileURL(path.join(root, "simulateur-port.html")).href + "?test=1");
     await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
     await page.evaluate(code => window.__PORTANCE_TEST__.selectLocale(code), code);

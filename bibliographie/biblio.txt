@@ -302,3 +302,48 @@ Archive : owasp-denial-of-service.html
 Usage : priorité aux contrôles peu coûteux avant migration, validation détaillée,
         clonage et installation du port ; limitation du volume des diagnostics
         et de la complexité des entrées pendant l'audit de sécurité de l'import KJP.
+
+LOCALISATION BRETONNE — 7 OCTOBRE 2026
+-------------------------------------
+
+[archivé — PDF fourni par l'utilisateur] lexique-maritime-v1-2025.pdf
+Titre imprimé : Lexique maritime — 200 mots pour parler voile / Ger diwar-benn
+                bageal / Words about sailing.
+Identification imprimée : Festival du Chant de Marin, Paimpol / Pempoull 2025.
+Site imprimé : https://www.paimpol-festival.bzh
+Origine : Lexique-maritime-V1-2025.pdf fourni dans la conversation ; remplace
+          les trois photographies initiales comme source de référence.
+Archive : copie intégrale, non modifiée, de 8 pages. Aucun lien public direct
+          vers le PDF ni aucune licence de réutilisation ne sont inférés.
+Usage : base prioritaire du vocabulaire marin français–anglais–breton de KJP :
+        Babourzh, Tribourzh, Kouc'h, Staon, Lev, Taked, Oser, Ere beskell,
+        Porzh, Fardellad, Gwern, Gwibl, Skoulm et autres termes des pages 2 à 7.
+        Comparaison visuelle effectuée : le PDF ne contient pas de couche texte.
+        Correction de lecture : « aussière » = Oser (page 3), et non Osser.
+        Correction de terminologie : Pontig désigne un pontet (page 4), pas un
+        catway ; KJP utilise désormais la formulation descriptive Ponton bihan.
+        Les autres termes nautiques repris du lexique ont été recoupés avec les
+        pages correspondantes ; aucune autre erreur de lecture relevée.
+        Le lexique ne donne pas de terme pour pare-battage, pendille ou
+        catway ; les formulations descriptives proposées par KJP sont signalées
+        dans la dernière section de docs/guide-utilisateur.br.md.
+
+[archivé] brezhoneg21-simulateur.html
+URL canonique : https://www.brezhoneg21.com/geriadurGB.php?araok=de&galleg=simulateur+de+vol
+Usage : complément au lexique fourni pour « simulateur » ; entrée « simulateur
+        de vol » / « drevezer nij », dont le nom drevezer est repris dans KJP.
+
+[archivé] geriafurch-rod-vins.html
+URL canonique : https://geriafurch.bzh/fr?d=brfr&q=rod
+Usage : vérification du complément « rod-viñs » pour hélice ; Geriafurch
+        rassemble plusieurs dictionnaires et conserve leur identification.
+
+[archivé] geriafurch-inertiezh.html
+URL canonique : https://geriafurch.bzh/fr/brfr/termek
+Usage : vérification de la forme « inertiezh », présente dans les entrées
+        d'inertie thermique ; seule la forme du mot est reprise, sans utiliser
+        cette entrée comme référence de physique nautique.
+
+Ces sources complètent le vocabulaire, pas la calibration. La traduction est
+une proposition à faire relire par un bretonnant connaissant la navigation ;
+elle ne constitue pas une validation linguistique par un organisme spécialisé.

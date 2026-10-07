@@ -155,3 +155,151 @@ test("French and English are complete offline and language switches preserve sta
     }
   } finally { await browser.close(); }
 });
+
+test("Breton localizes scenarios, live messages and the offline guide without changing the boat", { timeout: 120000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ locale: "br-FR", viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
+  try {
+    const page = await instrumentPage(await context.newPage(), true);
+    const errors = [], network = [];
+    page.on("pageerror", error => errors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+    await context.route("https://www.googletagmanager.com/**", route => route.fulfill({ status: 200, body: "", contentType: "application/javascript" }));
+    page.on("request", request => { if (/^https?:/.test(request.url()) && !request.url().includes("googletagmanager")) network.push(request.url()); });
+    await page.goto(url, { timeout: 60000 });
+    await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+    const report = await page.evaluate(() => window.__PORTANCE_TEST__.localeReport());
+    assert.equal(report.locale, "br");
+    assert.equal(report.source, "browser");
+    assert.deepEqual([...report.available].sort(), ["br", "en", "fr"]);
+    assert.equal(await page.locator('#languageSelect option[value="br"]').textContent(), "Bzh");
+    assert.equal(await page.locator('#languageSelect option[value="br"]').getAttribute("title"), "Brezhoneg");
+    assert.equal(await page.locator("html").getAttribute("lang"), "br");
+    assert.equal(await page.locator("html").getAttribute("dir"), "ltr");
+    assert.equal(await page.evaluate(() => window.KJPI18n.formatNumber(1.25, 2)), "1,25");
+    assert.equal(await page.evaluate(() => window.KJPI18n.formatDate("2026-10-07T12:00:00Z")), "07/10/2026");
+    const breton = catalogs.find(catalog => catalog.code === "br").messages;
+    assert.equal(await page.title(), breton["ui.kjp.port.simulator.understand.your.boat.in.harbour"]);
+    assert.equal(await page.locator('meta[name="description"]').getAttribute("content"), breton["ui.educational.harbour.manoeuvring.simulator.for.cruising.sailboats"]);
+    const assertBreton = async () => {
+      const surface = await page.evaluate(() => [document.body.innerText,
+        ...Array.from(document.querySelectorAll("[aria-label], [aria-valuetext], [title]"))
+          .flatMap(element => ["aria-label", "aria-valuetext", "title"].map(attribute => element.getAttribute(attribute) || ""))
+      ].join("\n"));
+      for (const [key, value] of Object.entries(catalogs.find(catalog => catalog.code === "fr").messages)) {
+        if (typeof value !== "string" || value === breton[key] || value.length < 12 || /\{/.test(value)) continue;
+        assert.equal(surface.includes(value), false, `French application text remains in Breton: ${key}`);
+      }
+    };
+    for (const id of await page.evaluate(() => Object.keys(window.__PORTANCE_TEST__.scenarioReport()))) {
+      const lesson = await page.evaluate(id => {
+        window.__PORTANCE_TEST__.loadScenario(id);
+        return { title: document.querySelector("#lessonTitle").textContent, copy: document.querySelector("#lessonCopy").textContent };
+      }, id);
+      assert.equal(lesson.title, breton[`scenario.${id}.title`]);
+      assert.equal(lesson.copy, breton[`scenario.${id}.copy`]);
+      await assertBreton();
+    }
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.loadScenario("medDeparture");
+      api.setControls({ throttleTarget: .3, rudderTarget: -.2 });
+      api.advance(.5);
+      const slider = document.querySelector("#windage");
+      slider.value = "115";
+      slider.dispatchEvent(new Event("input", { bubbles: true }));
+      // A boat-relative view avoids including ordinary top-view follow smoothing
+      // in the before/after comparison while also checking that the view stays selected.
+      api.selectCameraView("skipper");
+    });
+    const preserved = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      const settings = () => Array.from(document.querySelectorAll('input[type="range"]')).map(input => [input.id, input.value]);
+      const before = { boat: api.snapshot(), camera: api.cameraReport(), settings: settings() };
+      for (const code of ["fr", "en", "br"]) api.selectLocale(code);
+      return { before, after: { boat: api.snapshot(), camera: api.cameraReport(), settings: settings() } };
+    });
+    for (const field of ["boat", "camera", "settings"]) {
+      assert.equal(JSON.stringify(preserved.after[field]), JSON.stringify(preserved.before[field]), `${field} changed on language switch`);
+    }
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.detachMooring(api.mooringReport().lines[0].id);
+    });
+    assert.equal(await page.locator("#impactToast").textContent(), breton["toast.line.released"]);
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectLocale("en"));
+    assert.match(await page.locator("#impactToast").textContent(), /released/);
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectLocale("br"));
+    assert.equal(await page.locator("#impactToast").textContent(), breton["toast.line.released"]);
+    assert.equal(await page.locator("#diagnosticText").textContent(), breton["diagnostic.simulation.paused.forces.remain.visible.but.time.has"]);
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.loadScenario("halfTurn");
+      api.setControls({ throttleTarget: .4, rudderTarget: -.3 });
+      api.advance(2);
+    });
+    await page.locator('[data-mode="understand"]').click();
+    await page.waitForFunction(() => window.__PORTANCE_TEST__.understandingHitReport().targets.some(target => target.kind === "force"));
+    const target = await page.evaluate(() => window.__PORTANCE_TEST__.understandingHitReport().targets.find(target => target.kind === "force"));
+    const box = await page.locator("#scene").boundingBox();
+    await page.mouse.move(box.x + (target.a.x + target.b.x) / 2, box.y + (target.a.y + target.b.y) / 2);
+    await page.waitForFunction(() => !document.querySelector("#forceTooltip").hidden);
+    const tooltip = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      const before = document.querySelector("#forceTooltip").textContent;
+      api.selectLocale("fr");
+      const french = document.querySelector("#forceTooltip").textContent;
+      api.selectLocale("br");
+      return { before, french, after: document.querySelector("#forceTooltip").textContent };
+    });
+    assert.notEqual(tooltip.french, tooltip.before);
+    assert.equal(tooltip.after, tooltip.before);
+    await page.evaluate(() => document.querySelector("#expertDetails").open = true);
+    await assertBreton();
+    await page.locator("#portInfoButton").click();
+    assert.equal(await page.locator("#portInfoName").textContent(), breton["port.builtIn.name"]);
+    await assertBreton();
+    await page.locator("#closePortInfo").click();
+    await page.locator("#portFileInput").setInputFiles({ name: "invalid.kjp", mimeType: "application/json", buffer: Buffer.from("{") });
+    await page.waitForFunction(() => document.querySelector("#impactToast").textContent.includes("Porzh nac'het"));
+    assert.match(await page.locator("#impactToast").textContent(), /JSON dilennus/);
+    await assertBreton();
+    await page.locator("#readmeHelpButton").click();
+    const guide = await page.locator(".project-help-content").textContent();
+    assert.match(guide, /Kompren ar « Kalibradur arbennik »/);
+    assert.match(guide, /endalc'had e galleg/);
+    assert.match(guide, /Babourzh \/ Tribourzh/);
+    assert.equal(await page.locator(".project-help-content img").count(), 4);
+    await page.waitForFunction(() => [...document.querySelectorAll(".project-help-content img")].every(image => image.complete && image.naturalWidth > 0));
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll(".project-help-content img")].every(image => image.src.startsWith("data:image/"))), true);
+    await assertBreton();
+    await page.locator("#closeReadmeHelp").click();
+    for (const width of [1280, 1024, 390, 360]) {
+      await page.setViewportSize({ width, height: 844 });
+      const bounds = await page.locator("#languageSelect").boundingBox();
+      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width, `Bzh selector overflow at ${width}`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    }
+    await page.selectOption("#languageSelect", "en");
+    await page.selectOption("#languageSelect", "br");
+    await page.reload();
+    const stored = await page.evaluate(() => window.__PORTANCE_TEST__.localeReport());
+    assert.equal(stored.locale, "br");
+    assert.equal(stored.source, "storage");
+    const imported = Codec.createEmpty({ name: "Port français — texte auteur", latitude: 47.586, longitude: -3.03 });
+    imported.metadata.comment = "Conserver ce commentaire français.";
+    imported.navigation.entries.push({ id: "entry", name: "Entrée originale", position: { east: 0, north: 0 }, heading: 0 });
+    const information = await page.evaluate(text => {
+      const api = window.__PORTANCE_TEST__;
+      api.importPort(text);
+      api.selectLocale("en"); api.selectLocale("br");
+      return api.portInformationReport();
+    }, Codec.serialize(imported));
+    assert.equal(information.metadata.name, imported.metadata.name);
+    assert.equal(information.metadata.comment, imported.metadata.comment);
+    assert.ok(information.rows.includes(breton["ui.comment"]));
+    assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.localeReport().missingKeys), []);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(network, []);
+  } finally { await context.close(); await browser.close(); }
+});

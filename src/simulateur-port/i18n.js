@@ -47,7 +47,7 @@
       }
       if (value === undefined) return key;
       if (value && typeof value === "object") {
-        if (!plurals.has(locale)) plurals.set(locale, new Intl.PluralRules(locale));
+        if (!plurals.has(locale)) plurals.set(locale, new Intl.PluralRules([locale, "fr"]));
         value = value[plurals.get(locale).select(Number(params.count))] ?? value.other;
       }
       return String(value).replace(/\{(\w+)\}/g, (_, name) => {
@@ -61,7 +61,9 @@
     }
     function formatNumber(value, digits = 1) {
       const key = `${locale}:${digits}`;
-      if (!numbers.has(key)) numbers.set(key, new Intl.NumberFormat(locale, {
+      // Browsers may support fewer Intl locales than the embedded catalogs.
+      // Use the reference locale instead of the device's arbitrary default.
+      if (!numbers.has(key)) numbers.set(key, new Intl.NumberFormat([locale, "fr"], {
         minimumFractionDigits: digits, maximumFractionDigits: digits
       }));
       return numbers.get(key).format(Number(value));
@@ -69,7 +71,7 @@
     function formatDate(value) {
       if (!value) return "";
       const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat(locale).format(date);
+      return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat([locale, "fr"]).format(date);
     }
     function setLocale(code, options = {}) {
       const next = match(code);
