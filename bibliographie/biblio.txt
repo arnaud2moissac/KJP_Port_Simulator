@@ -126,6 +126,9 @@ Usage : données moteur et transmission du Yanmar 3YM30 envisagées pour le prof
 URL : https://app.jeanneau.com/inventory/8009
 Usage : dimensions constructeur du Sun Odyssey 36i : longueur, largeur,
         déplacement à vide et tirant d'eau du profil de référence.
+        La fiche millésime 2010 précise 5 700 kg à lège avec quille standard GTE.
+Version française également vérifiée : https://app.jeanneau.com/inventory/8010
+Copie FR archivée : jeanneau-so36i-inventaire-2010-fr.pdf
 
 [archivé] la-trinite-passage-brochure.pdf
 URL : https://port-la-trinite-sur-mer.com/wp-content/uploads/sites/5/2024/02/STM-BROCHURE-PASSAGE-2023.pdf
@@ -249,6 +252,34 @@ dans cette bibliographie :
 
 Les variantes Markdown avec des antislashs dans les conversations pointent vers
 les trois premières URL et ont été dédoublonnées.
+
+RESTITUTION ET REBOND DES PARE-BATTAGES — RECHERCHE DU 6 OCTOBRE 2026
+-------------------------------------------------------------------
+
+Recherche pour répondre à une question de calibration, sans modification du
+moteur ni du profil. Distinguer coefficient de restitution (rapport des vitesses
+normales relatives), amortissement, travail de compression et énergie dissipée.
+
+[archivé] polyform-fender-inflation.html
+URL canonique : https://polyformus.com/pages/boat-fender-buoy-inflation-guide
+Usage : consignes fabricant de gonflage (environ 0,15 bar) et avertissement
+        contre le surgonflage ; le gonflage est un état à contrôler pour un essai
+        comparable. La page ne fournit pas de coefficient de restitution mesuré.
+
+[archivé] polyform-f-series-fenders.html
+URL canonique : https://polyform.no/inflatable-buoys-and-fenders/f-series/
+Usage : caractéristiques de défenses cylindriques gonflables, tailles et
+        flexibilité ; proche de la famille envisagée, sans courbe de restitution
+        quantitative permettant de calibrer directement le modèle KJP.
+
+Les sources conservées portent sur les pare-battages gonflables de plaisance.
+Elles ne fournissent pas de coefficient de restitution mesuré pour le SO36i.
+Aucune recommandation chiffrée n'est retenue sur leur seule base. Une calibration
+devrait s'appuyer sur le pare-battage exact et son gonflage, ses courbes de
+chargement/déchargement ou des essais bateau/quai comparables.
+Les moteurs, profils et essais KJP restent des sources internes ; blogs,
+agrégateurs, forums et études de défenses industrielles non transposables ne
+fondent pas une calibration des pare-battages du bateau de référence.
 
 OWASP — DOM based XSS Prevention Cheat Sheet
 URL canonique : https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html
