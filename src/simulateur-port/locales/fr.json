@@ -396,6 +396,8 @@
     "validation.texte.obligatoire": "texte obligatoire",
     "validation.texte.attendu": "texte attendu",
     "validation.maximum.caracteres": "maximum {value1} caractères",
+    "validation.limite.de.complexite": "complexité du fichier supérieure aux limites autorisées",
+    "validation.mode.de.groupe.invalide": "mode de groupe count ou spacing attendu",
     "validation.nombre.obligatoire": "nombre obligatoire",
     "validation.nombre.fini.attendu": "nombre fini attendu",
     "validation.valeur.hors.limites": "valeur hors limites [{value1}, {value2}]",

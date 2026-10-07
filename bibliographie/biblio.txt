@@ -249,3 +249,25 @@ dans cette bibliographie :
 
 Les variantes Markdown avec des antislashs dans les conversations pointent vers
 les trois premières URL et ont été dédoublonnées.
+
+OWASP — DOM based XSS Prevention Cheat Sheet
+URL canonique : https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html
+Archive : owasp-dom-xss-prevention.html
+Usage : méthode de suivi des données .kjp jusqu'aux usages DOM, vérification des
+        affichages en texte et des contextes URL pendant l'audit de sécurité de
+        l'import KJP du 7 octobre 2026. Ne constitue pas une preuve d'absence de
+        vulnérabilité ; les résultats locaux sont dans docs/validation/audit-securite-import-kjp.md.
+
+OWASP — Prototype Pollution Prevention Cheat Sheet
+URL canonique : https://cheatsheetseries.owasp.org/cheatsheets/Prototype_Pollution_Prevention_Cheat_Sheet.html
+Archive : owasp-prototype-pollution-prevention.html
+Usage : contrôle des clés dangereuses et des copies/migrations de documents
+        non fiables dans le codec KJP ; les ensembles de références utilisent
+        Set. Référence de méthode pour l'audit de sécurité de l'import KJP.
+
+OWASP — Denial of Service Cheat Sheet
+URL canonique : https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html
+Archive : owasp-denial-of-service.html
+Usage : priorité aux contrôles peu coûteux avant migration, validation détaillée,
+        clonage et installation du port ; limitation du volume des diagnostics
+        et de la complexité des entrées pendant l'audit de sécurité de l'import KJP.

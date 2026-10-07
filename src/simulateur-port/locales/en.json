@@ -396,6 +396,8 @@
     "validation.texte.obligatoire": "required text",
     "validation.texte.attendu": "text expected",
     "validation.maximum.caracteres": "maximum {value1} characters",
+    "validation.limite.de.complexite": "file complexity exceeds the permitted limits",
+    "validation.mode.de.groupe.invalide": "group mode must be count or spacing",
     "validation.nombre.obligatoire": "required number",
     "validation.nombre.fini.attendu": "finite number expected",
     "validation.valeur.hors.limites": "value outside limits [{value1}, {value2}]",

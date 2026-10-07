@@ -1631,6 +1631,11 @@ npm run build:port-generator</code></pre>
         const MAX_CLEATS = 2e4;
         const MAX_BOATS = 2e3;
         const MAX_EXTENT_METERS = 2e4;
+        const MAX_DEPTH = 64;
+        const MAX_VALUES = 25e4;
+        const MAX_ERRORS = 64;
+        const MAX_POINTS_PER_GEOMETRY = 1024;
+        const MAX_GEOMETRY_POINTS = 8192;
         const BUOY_TYPES = Object.freeze([
           "buoy_cardinal",
           "buoy_installation",
@@ -1729,9 +1734,49 @@ npm run build:port-generator</code></pre>
           return Buffer.byteLength(text, "utf8");
         }
         function addError(errors, path, message, code = "invalid", messageKey, messageParams = {}) {
+          if (errors.length >= MAX_ERRORS) return;
           errors.push({ path, message, code, messageKey, messageParams });
         }
-        function inspectUnsafeValues(value, path, errors, seen = /* @__PURE__ */ new Set()) {
+        function inspectionLimit(path, message) {
+          throw new KJPValidationError([{ path, message, code: "limit", messageKey: "validation.limite.de.complexite", messageParams: {} }]);
+        }
+        function inspectCollectionLimits(document2) {
+          let structures = 0, points = 0, members = 0;
+          const arrays = [
+            ...["pontoons", "catways", "obstacles", "landAreas", "buoys", "pendilles"].map((key) => [document2.structures?.[key], `$.structures.${key}`, MAX_STRUCTURES, true]),
+            [document2.structures?.cleats, "$.structures.cleats", MAX_CLEATS],
+            [document2.staticBoats, "$.staticBoats", MAX_BOATS],
+            [document2.berths, "$.berths", MAX_CLEATS],
+            [document2.navigation?.entries, "$.navigation.entries", 1],
+            [document2.editor?.catwayGroups, "$.editor.catwayGroups", MAX_STRUCTURES],
+            [document2.editor?.pendilleGroups, "$.editor.pendilleGroups", MAX_STRUCTURES]
+          ];
+          for (const [items, path, maximum, structure] of arrays) {
+            if (items === void 0) continue;
+            if (!Array.isArray(items)) {
+              throw new KJPValidationError([{ path, message: "tableau attendu", code: "type", messageKey: "validation.tableau.attendu", messageParams: {} }]);
+            }
+            if (items.length > maximum) inspectionLimit(structure ? "$.structures" : path, `maximum ${maximum} \xE9l\xE9ments`);
+            if (structure) structures += items.length;
+            if (structures > MAX_STRUCTURES) inspectionLimit("$.structures", `maximum ${MAX_STRUCTURES} structures`);
+            if (path === "$.structures.obstacles" || path === "$.structures.landAreas") {
+              for (const item of items) {
+                if (!Array.isArray(item?.points)) continue;
+                if (item.points.length > MAX_POINTS_PER_GEOMETRY) inspectionLimit(path, `maximum ${MAX_POINTS_PER_GEOMETRY} points par g\xE9om\xE9trie`);
+                points += item.points.length;
+                if (points > MAX_GEOMETRY_POINTS) inspectionLimit("$.structures", `maximum ${MAX_GEOMETRY_POINTS} points g\xE9om\xE9triques`);
+              }
+            }
+            if (path.startsWith("$.editor.")) for (const group of items) {
+              if (!Array.isArray(group?.memberIds)) continue;
+              members += group.memberIds.length;
+              if (members > MAX_CLEATS) inspectionLimit("$.editor", `maximum ${MAX_CLEATS} r\xE9f\xE9rences de groupes`);
+            }
+          }
+        }
+        function inspectUnsafeValues(value, path, errors, seen = /* @__PURE__ */ new Set(), depth = 0, budget = { count: 0 }) {
+          if (depth > MAX_DEPTH) inspectionLimit(path, `profondeur maximale ${MAX_DEPTH}`);
+          if (++budget.count > MAX_VALUES) inspectionLimit("$", `maximum ${MAX_VALUES} valeurs JSON`);
           if (value && typeof value === "object") {
             if (seen.has(value)) {
               addError(errors, path, "r\xE9f\xE9rence circulaire interdite", "circular", "validation.reference.circulaire.interdite", {});
@@ -1749,13 +1794,15 @@ npm run build:port-generator</code></pre>
           } else if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") {
             addError(errors, path, "type non JSON interdit", "non-json", "validation.type.non.json.interdit", {});
           } else if (Array.isArray(value)) {
-            value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen));
+            if (value.length > MAX_VALUES) inspectionLimit(path, `maximum ${MAX_VALUES} valeurs JSON`);
+            value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen, depth + 1, budget));
           } else if (isObject(value)) {
             for (const [key, item] of Object.entries(value)) {
-              if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor"].includes(key)) {
+              if (key.length > 240) inspectionLimit(path, "cl\xE9 sup\xE9rieure \xE0 240 caract\xE8res");
+              if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor", "toString", "valueOf"].includes(key)) {
                 addError(errors, `${path}.${key}`, "cl\xE9 dangereuse interdite", "unsafe-key", "validation.cle.dangereuse.interdite", {});
               } else {
-                inspectUnsafeValues(item, `${path}.${key}`, errors, seen);
+                inspectUnsafeValues(item, `${path}.${key}`, errors, seen, depth + 1, budget);
               }
             }
           }
@@ -2488,6 +2535,7 @@ npm run build:port-generator</code></pre>
           if (!isObject(document2)) {
             throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type", messageKey: "validation.objet.json.attendu", messageParams: {} }]);
           }
+          inspectCollectionLimits(document2);
           inspectUnsafeValues(document2, "$", errors);
           document2 = migrateLegacyDocument(document2);
           if (document2.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format", "validation.doit.valoir", { value1: FORMAT });
@@ -2504,6 +2552,9 @@ npm run build:port-generator</code></pre>
           validateUrl(metadata.harborMasterUrl, "$.metadata.harborMasterUrl", errors);
           for (const field of ["openingHours", "currentAdvice", "comment"]) {
             requireString2(metadata[field], `$.metadata.${field}`, errors, { required: false, max: 5e3 });
+          }
+          for (const field of ["createdAt", "updatedAt"]) {
+            requireString2(metadata[field], `$.metadata.${field}`, errors, { required: false, max: 80 });
           }
           const georeference = requireObject(document2.georeference, "$.georeference", errors);
           if (georeference.coordinateSystem !== "local-ENU") {
@@ -2565,6 +2616,7 @@ npm run build:port-generator</code></pre>
             ...obstacles.filter((item) => item.type === "quay")
           ].map((item) => [item.id, item]));
           const pontoonById = new Map(pontoons.map((item) => [item.id, item]));
+          const catwayIds = new Set(catways.map((item) => item.id));
           catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
           const cleats = requireArray(structures.cleats, "$.structures.cleats", errors).map((item, index) => {
             const path = `$.structures.cleats[${index}]`;
@@ -2647,6 +2699,7 @@ npm run build:port-generator</code></pre>
             const id = validateId(object.id, `${path}.id`, errors, ids);
             const parentId = requireString2(object.parentId, `${path}.parentId`, errors, { max: 160 });
             if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {});
+            requireString2(object.name, `${path}.name`, errors, { required: false, max: 240 });
             if (!["port", "starboard", "end"].includes(object.side)) {
               addError(errors, `${path}.side`, "c\xF4t\xE9 invalide", "enum", "validation.cote.invalide", {});
             }
@@ -2758,11 +2811,17 @@ npm run build:port-generator</code></pre>
             const path = `$.editor.catwayGroups[${index}]`;
             const object = requireObject(group, path, errors);
             validateId(object.id, `${path}.id`, errors, ids);
+            const parameters = requireObject(object.parameters, `${path}.parameters`, errors);
+            if (!["count", "spacing"].includes(parameters.mode)) {
+              addError(errors, `${path}.parameters.mode`, "count ou spacing attendu", "enum", "validation.mode.de.groupe.invalide", {});
+            }
+            requireNumber2(parameters.count, `${path}.parameters.count`, errors, { minimum: 1, maximum: MAX_STRUCTURES, required: false });
+            requireNumber2(parameters.spacing, `${path}.parameters.spacing`, errors, { minimum: 2, maximum: MAX_EXTENT_METERS, required: false });
             if (!pontoonById.has(object.parentId)) {
               addError(errors, `${path}.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {});
             }
             requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
-              if (!catways.some((catway) => catway.id === id)) {
+              if (!catwayIds.has(id)) {
                 addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference", "validation.catway.absent", {});
               }
             });
@@ -2772,6 +2831,7 @@ npm run build:port-generator</code></pre>
             "$.editor.pendilleGroups",
             errors
           );
+          const pendilleIds = new Set(pendilles.map((item) => item.id));
           pendilleGroups.forEach((group, index) => {
             const path = `$.editor.pendilleGroups[${index}]`;
             const object = requireObject(group, path, errors);
@@ -2780,7 +2840,7 @@ npm run build:port-generator</code></pre>
               addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {});
             }
             requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
-              if (!pendilles.some((pendille) => pendille.id === id)) {
+              if (!pendilleIds.has(id)) {
                 addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference", "validation.pendille.absente", {});
               }
             });
@@ -3172,7 +3232,12 @@ npm run build:port-generator</code></pre>
             structures: MAX_STRUCTURES,
             cleats: MAX_CLEATS,
             boats: MAX_BOATS,
-            extentMeters: MAX_EXTENT_METERS
+            extentMeters: MAX_EXTENT_METERS,
+            depth: MAX_DEPTH,
+            values: MAX_VALUES,
+            errors: MAX_ERRORS,
+            pointsPerGeometry: MAX_POINTS_PER_GEOMETRY,
+            geometryPoints: MAX_GEOMETRY_POINTS
           }),
           BUOY_TYPES,
           BUOY_SHAPES,

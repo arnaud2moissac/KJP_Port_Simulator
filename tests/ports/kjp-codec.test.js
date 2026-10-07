@@ -379,6 +379,81 @@ test("codec KJP: plafonds de structures, taquets et bateaux sont réellement app
   );
 });
 
+test("codec KJP: les champs affichés et les groupes incomplets sont refusés avant installation", () => {
+  for (const mutate of [
+    document => { document.metadata.createdAt = { toString: "bad" }; },
+    document => { document.metadata.updatedAt = []; },
+    document => { document.berths[0].name = { toString: "bad" }; },
+    document => { delete document.editor.catwayGroups[0].parameters; },
+    document => { document.editor.catwayGroups[0].parameters.count = 1e12; }
+  ]) {
+    const document = createValidPort();
+    mutate(document);
+    assert.throws(() => Codec.parse(JSON.stringify(document)), Codec.KJPValidationError);
+  }
+});
+
+test("codec KJP: profondeur et géométries sont bornées avant les traitements coûteux", () => {
+  const document = createValidPort();
+  const deepText = JSON.stringify(document).slice(0, -1)
+    + ',"extension":' + "[".repeat(5000) + "0" + "]".repeat(5000) + "}";
+  assert.throws(() => Codec.parse(deepText), error => error instanceof Codec.KJPValidationError
+    && error.errors[0].code === "limit");
+  document.structures.obstacles[0].points = Array.from({ length: Codec.LIMITS.pointsPerGeometry },
+    (_, i) => ({ east: i % 100, north: 0 }));
+  assert.equal(Codec.parse(JSON.stringify(document)).structures.obstacles[0].points.length, Codec.LIMITS.pointsPerGeometry);
+  document.structures.obstacles[0].points.push({ east: 0, north: 0 });
+  assert.throws(() => Codec.parse(JSON.stringify(document)), error => error.errors[0].code === "limit");
+  document.structures.obstacles = Array.from({ length: 9 }, (_, i) => ({
+    ...document.structures.obstacles[0], id: `polyline-${i}`,
+    points: document.structures.obstacles[0].points.slice(0, Codec.LIMITS.pointsPerGeometry)
+  }));
+  assert.throws(() => Codec.parse(JSON.stringify(document)), error => error.errors[0].code === "limit");
+});
+
+test("codec KJP: les diagnostics restent bornés et la migration refuse les types invalides", () => {
+  const document = createValidPort();
+  document.structures.obstacles = Array(500).fill(null);
+  assert.throws(() => Codec.parse(JSON.stringify(document)), error => error instanceof Codec.KJPValidationError
+    && error.errors.length === Codec.LIMITS.errors && error.message.length < 10000);
+  document.schemaVersion = 1;
+  document.structures.pontoons = {};
+  assert.throws(() => Codec.parse(JSON.stringify(document)), error => error instanceof Codec.KJPValidationError
+    && error.errors[0].code === "type");
+});
+
+test("codec KJP: les deux ports La Trinité restent compatibles après durcissement", () => {
+  for (const relative of ["la_Trinite.kjp", "examples/la-trinite-sur-mer.kjp"]) {
+    const text = fs.readFileSync(path.resolve(__dirname, "../..", relative), "utf8");
+    const document = Codec.parse(text);
+    assert.equal(document.metadata.name, "La Trinité sur mer");
+    assert.equal(Codec.toRuntimeTopology(document).structures.catways.length, document.structures.catways.length);
+    assert.equal(Codec.serialize(Codec.parse(Codec.serialize(document))), Codec.serialize(document));
+  }
+});
+
+test("codec KJP: le grand port de référence conserve ses 3 000 objets", () => {
+  const { rectangles, boats } = require("../helpers/large-port-obstacles.js").createLargeObstacles();
+  const document = Codec.createEmpty({ id: "large-security-control", name: "Grand port" });
+  document.schemaVersion = 1;
+  rectangles.forEach((rectangle, i) => {
+    const type = i < 1000 ? "pontoon" : "catway";
+    document.structures[type === "pontoon" ? "pontoons" : "catways"].push({
+      id: rectangle.id, type, center: { east: rectangle.east, north: rectangle.north },
+      length: rectangle.width, width: rectangle.height, heading: rectangle.heading, height: 0.5
+    });
+  });
+  document.staticBoats = boats.map(boat => ({
+    id: boat.id, center: { east: boat.east, north: boat.north },
+    heading: boat.heading, length: boat.length, beam: boat.beam
+  }));
+  document.navigation.entries = [{ id: "entry", position: { east: 0, north: 0 }, heading: 0 }];
+  const runtime = Codec.toRuntimeTopology(Codec.parse(JSON.stringify(document)));
+  assert.equal(runtime.structures.docks.length, 1000);
+  assert.equal(runtime.structures.catways.length, 1000);
+  assert.equal(runtime.staticBoats.length, 1000);
+});
+
 test("une orthophoto reste une référence visuelle et aucune tuile ou image n'entre dans KJP", () => {
   const document = createValidPort();
   document.sources.push({

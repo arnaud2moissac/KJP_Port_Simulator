@@ -13,6 +13,11 @@
   const MAX_CLEATS = 20000;
   const MAX_BOATS = 2000;
   const MAX_EXTENT_METERS = 20000;
+  const MAX_DEPTH = 64;
+  const MAX_VALUES = 250000;
+  const MAX_ERRORS = 64;
+  const MAX_POINTS_PER_GEOMETRY = 1024;
+  const MAX_GEOMETRY_POINTS = 8192;
   const BUOY_TYPES = Object.freeze([
     "buoy_cardinal",
     "buoy_installation",
@@ -122,10 +127,53 @@
   }
 
   function addError(errors, path, message, code = "invalid", messageKey, messageParams = {}) {
+    if (errors.length >= MAX_ERRORS) return;
     errors.push({ path, message, code, messageKey, messageParams });
   }
 
-  function inspectUnsafeValues(value, path, errors, seen = new Set()) {
+  function inspectionLimit(path, message) {
+    throw new KJPValidationError([{ path, message, code: "limit", messageKey: "validation.limite.de.complexite", messageParams: {} }]);
+  }
+
+  // Bornes vérifiées avant migration, copies et validation détaillée.
+  function inspectCollectionLimits(document) {
+    let structures = 0, points = 0, members = 0;
+    const arrays = [
+      ...["pontoons", "catways", "obstacles", "landAreas", "buoys", "pendilles"].map(key => [document.structures?.[key], `$.structures.${key}`, MAX_STRUCTURES, true]),
+      [document.structures?.cleats, "$.structures.cleats", MAX_CLEATS],
+      [document.staticBoats, "$.staticBoats", MAX_BOATS],
+      [document.berths, "$.berths", MAX_CLEATS],
+      [document.navigation?.entries, "$.navigation.entries", 1],
+      [document.editor?.catwayGroups, "$.editor.catwayGroups", MAX_STRUCTURES],
+      [document.editor?.pendilleGroups, "$.editor.pendilleGroups", MAX_STRUCTURES]
+    ];
+    for (const [items, path, maximum, structure] of arrays) {
+      if (items === undefined) continue;
+      if (!Array.isArray(items)) {
+        throw new KJPValidationError([{ path, message: "tableau attendu", code: "type", messageKey: "validation.tableau.attendu", messageParams: {} }]);
+      }
+      if (items.length > maximum) inspectionLimit(structure ? "$.structures" : path, `maximum ${maximum} éléments`);
+      if (structure) structures += items.length;
+      if (structures > MAX_STRUCTURES) inspectionLimit("$.structures", `maximum ${MAX_STRUCTURES} structures`);
+      if (path === "$.structures.obstacles" || path === "$.structures.landAreas") {
+        for (const item of items) {
+          if (!Array.isArray(item?.points)) continue;
+          if (item.points.length > MAX_POINTS_PER_GEOMETRY) inspectionLimit(path, `maximum ${MAX_POINTS_PER_GEOMETRY} points par géométrie`);
+          points += item.points.length;
+          if (points > MAX_GEOMETRY_POINTS) inspectionLimit("$.structures", `maximum ${MAX_GEOMETRY_POINTS} points géométriques`);
+        }
+      }
+      if (path.startsWith("$.editor.")) for (const group of items) {
+        if (!Array.isArray(group?.memberIds)) continue;
+        members += group.memberIds.length;
+        if (members > MAX_CLEATS) inspectionLimit("$.editor", `maximum ${MAX_CLEATS} références de groupes`);
+      }
+    }
+  }
+
+  function inspectUnsafeValues(value, path, errors, seen = new Set(), depth = 0, budget = { count: 0 }) {
+    if (depth > MAX_DEPTH) inspectionLimit(path, `profondeur maximale ${MAX_DEPTH}`);
+    if (++budget.count > MAX_VALUES) inspectionLimit("$", `maximum ${MAX_VALUES} valeurs JSON`);
     if (value && typeof value === "object") {
       if (seen.has(value)) {
         addError(errors, path, "référence circulaire interdite", "circular", "validation.reference.circulaire.interdite", {  });
@@ -143,13 +191,15 @@
     } else if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") {
       addError(errors, path, "type non JSON interdit", "non-json", "validation.type.non.json.interdit", {  });
     } else if (Array.isArray(value)) {
-      value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen));
+      if (value.length > MAX_VALUES) inspectionLimit(path, `maximum ${MAX_VALUES} valeurs JSON`);
+      value.forEach((item, index) => inspectUnsafeValues(item, `${path}[${index}]`, errors, seen, depth + 1, budget));
     } else if (isObject(value)) {
       for (const [key, item] of Object.entries(value)) {
-        if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor"].includes(key)) {
+        if (key.length > 240) inspectionLimit(path, "clé supérieure à 240 caractères");
+        if (DANGEROUS_TEXT.test(key) || ["__proto__", "prototype", "constructor", "toString", "valueOf"].includes(key)) {
           addError(errors, `${path}.${key}`, "clé dangereuse interdite", "unsafe-key", "validation.cle.dangereuse.interdite", {  });
         } else {
-          inspectUnsafeValues(item, `${path}.${key}`, errors, seen);
+          inspectUnsafeValues(item, `${path}.${key}`, errors, seen, depth + 1, budget);
         }
       }
     }
@@ -942,6 +992,7 @@
     if (!isObject(document)) {
       throw new KJPValidationError([{ path: "$", message: "objet JSON attendu", code: "type" , messageKey: "validation.objet.json.attendu", messageParams: {  }}]);
     }
+    inspectCollectionLimits(document);
     inspectUnsafeValues(document, "$", errors);
     document = migrateLegacyDocument(document);
     if (document.format !== FORMAT) addError(errors, "$.format", `doit valoir "${FORMAT}"`, "format", "validation.doit.valoir", { value1: FORMAT });
@@ -959,6 +1010,9 @@
     validateUrl(metadata.harborMasterUrl, "$.metadata.harborMasterUrl", errors);
     for (const field of ["openingHours", "currentAdvice", "comment"]) {
       requireString(metadata[field], `$.metadata.${field}`, errors, { required: false, max: 5000 });
+    }
+    for (const field of ["createdAt", "updatedAt"]) {
+      requireString(metadata[field], `$.metadata.${field}`, errors, { required: false, max: 80 });
     }
 
     const georeference = requireObject(document.georeference, "$.georeference", errors);
@@ -1042,6 +1096,7 @@
       ...obstacles.filter(item => item.type === "quay")
     ].map(item => [item.id, item]));
     const pontoonById = new Map(pontoons.map(item => [item.id, item]));
+    const catwayIds = new Set(catways.map(item => item.id));
     catways.forEach((catway, index) => validateCatwayAttachment(catway, index, pontoons, errors));
 
     const cleats = requireArray(structures.cleats, "$.structures.cleats", errors).map((item, index) => {
@@ -1142,6 +1197,7 @@
       const id = validateId(object.id, `${path}.id`, errors, ids);
       const parentId = requireString(object.parentId, `${path}.parentId`, errors, { max: 160 });
       if (!parentById.has(parentId)) addError(errors, `${path}.parentId`, "structure parente absente", "reference", "validation.structure.parente.absente", {  });
+      requireString(object.name, `${path}.name`, errors, { required: false, max: 240 });
       if (!["port", "starboard", "end"].includes(object.side)) {
         addError(errors, `${path}.side`, "côté invalide", "enum", "validation.cote.invalide", {  });
       }
@@ -1257,11 +1313,17 @@
       const path = `$.editor.catwayGroups[${index}]`;
       const object = requireObject(group, path, errors);
       validateId(object.id, `${path}.id`, errors, ids);
+      const parameters = requireObject(object.parameters, `${path}.parameters`, errors);
+      if (!["count", "spacing"].includes(parameters.mode)) {
+        addError(errors, `${path}.parameters.mode`, "count ou spacing attendu", "enum", "validation.mode.de.groupe.invalide", {});
+      }
+      requireNumber(parameters.count, `${path}.parameters.count`, errors, { minimum: 1, maximum: MAX_STRUCTURES, required: false });
+      requireNumber(parameters.spacing, `${path}.parameters.spacing`, errors, { minimum: 2, maximum: MAX_EXTENT_METERS, required: false });
       if (!pontoonById.has(object.parentId)) {
         addError(errors, `${path}.parentId`, "ponton parent absent", "reference", "validation.ponton.parent.absent", {  });
       }
       requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
-        if (!catways.some(catway => catway.id === id)) {
+        if (!catwayIds.has(id)) {
           addError(errors, `${path}.memberIds[${memberIndex}]`, "catway absent", "reference", "validation.catway.absent", {  });
         }
       });
@@ -1271,6 +1333,7 @@
       "$.editor.pendilleGroups",
       errors
     );
+    const pendilleIds = new Set(pendilles.map(item => item.id));
     pendilleGroups.forEach((group, index) => {
       const path = `$.editor.pendilleGroups[${index}]`;
       const object = requireObject(group, path, errors);
@@ -1279,7 +1342,7 @@
         addError(errors, `${path}.parentId`, "ponton ou quai parent absent", "reference", "validation.ponton.ou.quai.parent.absent", {  });
       }
       requireArray(object.memberIds, `${path}.memberIds`, errors).forEach((id, memberIndex) => {
-        if (!pendilles.some(pendille => pendille.id === id)) {
+        if (!pendilleIds.has(id)) {
           addError(errors, `${path}.memberIds[${memberIndex}]`, "pendille absente", "reference", "validation.pendille.absente", {  });
         }
       });
@@ -1702,7 +1765,12 @@
       structures: MAX_STRUCTURES,
       cleats: MAX_CLEATS,
       boats: MAX_BOATS,
-      extentMeters: MAX_EXTENT_METERS
+      extentMeters: MAX_EXTENT_METERS,
+      depth: MAX_DEPTH,
+      values: MAX_VALUES,
+      errors: MAX_ERRORS,
+      pointsPerGeometry: MAX_POINTS_PER_GEOMETRY,
+      geometryPoints: MAX_GEOMETRY_POINTS
     }),
     BUOY_TYPES,
     BUOY_SHAPES,
