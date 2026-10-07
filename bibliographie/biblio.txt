@@ -3,6 +3,11 @@ Bibliographie KJP Port Simulator
 
 Périmètre
 ---------
+Depuis le 7 octobre 2026, l'obligation de référencement et d'archivage s'applique
+uniquement aux sujets nautiques ou physiques de KJP, conformément à AGENTS.md.
+Les autres sujets, dont l'outillage logiciel, le rendu et l'interface, n'imposent
+ni ajout bibliographique ni archive. Les références historiques sont conservées.
+
 Inventaire constitué le 19 septembre 2026 après lecture exhaustive des 210 tours
 des huit conversations Codex liées au dépôt KJP : création du simulateur,
 simulation de port, tranches de migration Three, audit du safran, contrôles iPad
@@ -347,3 +352,21 @@ Usage : vérification de la forme « inertiezh », présente dans les entrées
 Ces sources complètent le vocabulaire, pas la calibration. La traduction est
 une proposition à faire relire par un bretonnant connaissant la navigation ;
 elle ne constitue pas une validation linguistique par un organisme spécialisé.
+
+OUTILLAGE GRAPHIFY — 7 OCTOBRE 2026
+----------------------------------
+
+[URL seule] Graphify — documentation d'installation et d'intégration sur PyPI
+URL canonique : https://pypi.org/project/graphifyy/
+Usage : maintenance de l'outil de navigation du dépôt ; installation isolée
+        avec uv, synchronisation du skill Codex et des hooks Git existants.
+        Mise à jour de graphifyy 0.9.53 vers 0.9.79, testée sur une copie du
+        projet avant actualisation du graphe local. Aucun rôle de calibration
+        ou de validation de la physique nautique.
+Archive : téléchargement HTML proposé puis refusé par l'utilisateur ; l'URL
+          canonique est conservée sans archive.
+Exclusions : métadonnées PyPI (https://pypi.org/pypi/graphifyy/json), dépôt
+             https://github.com/Graphify-Labs/graphify et release v0.9.79 :
+             références techniques de version et de distribution, exclues des
+             sources bibliographiques. L'ancien alias safishamsi/graphify
+             redirige vers Graphify-Labs/graphify.

@@ -48,11 +48,19 @@ sans rétablir une exigence de parité pixel avec Legacy.
 
 ## Sources et bibliographie
 
-Par défaut, toute source externe effectivement utilisée pour comprendre,
-concevoir, calibrer, valider ou implémenter KJP doit être ajoutée au même
-changement dans [`bibliographie/biblio.txt`](bibliographie/biblio.txt). Indiquer
-l'URL canonique, le rôle précis de la source dans le projet et, si utile, la
-conversation ou le document KJP qui l'a introduite.
+L'obligation de référencement et d'archivage bibliographique s'applique
+uniquement aux sources externes effectivement utilisées pour comprendre,
+concevoir, calibrer, valider ou implémenter les sujets nautiques ou physiques
+de KJP (navigation, manœuvre, terminologie nautique, modèles et phénomènes
+physiques). Ajouter ces sources au même changement dans
+[`bibliographie/biblio.txt`](bibliographie/biblio.txt). Indiquer l'URL canonique,
+le rôle précis de la source dans le projet et, si utile, la conversation ou le
+document KJP qui l'a introduite.
+
+Les autres sujets, notamment l'outillage de développement, les bibliothèques
+logicielles, le rendu et l'interface, n'imposent ni entrée bibliographique ni
+archive. Une source utilisée pour un sujet nautique ou physique reste soumise
+à la règle, quel que soit le composant du projet concerné.
 
 - Archiver la réponse originale dans `bibliographie/` au format PDF ou HTML
   lorsque son téléchargement public est possible ; employer un nom de fichier
@@ -66,8 +74,8 @@ conversation ou le document KJP qui l'a introduite.
   dans le manifeste.
 
 Cette mise à jour documentaire fait partie du comportement normal dès qu'une
-source est utilisée ; elle n'autorise pas à remplacer une mesure, une calibration
-ou une validation par une simple citation.
+source du périmètre nautique ou physique est utilisée ; elle n'autorise pas à
+remplacer une mesure, une calibration ou une validation par une simple citation.
 
 ## Valider proportionnellement au risque
 
