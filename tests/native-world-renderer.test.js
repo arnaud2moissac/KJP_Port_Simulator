@@ -83,17 +83,18 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
       return { mass, x: cx / mass, y: cy / mass, width: maxX - minX + 1,
         height: maxY - minY + 1, calls: renderer.info.render.calls, glError: gl.getError() };
     };
-    const directions = [[4,0],[-4,0],[0,4],[0,-4]].map(vector => ({
+    const directions = [[4,0],[-4,0],[0,4],[0,-4],[.514444,0]].map(vector => ({
       vector, before: capture(vector, 0), after: capture(vector, .1)
     }));
     const calm = capture([0,0], 0);
+    const lengths = [.25, .5, 1, 6.25, 12, 24].map(knots => ({ knots, ...capture([knots * .514444, 0], 0) }));
     const zoomed = capture([40,0], 0);
     const cover = new P.Mesh(new P.PlaneGeometry(40, 40), new P.MeshBasicMaterial({ color: 0x224466 }));
     cover.position.set(x, y, 1); scene.add(cover);
     capture([0,0], 0); const opaque = [...pixels];
     capture([4,0], 0); const occluded = pixels.every((value, index) => value === opaque[index]);
     resources.dispose(); cover.geometry.dispose(); cover.material.dispose(); renderer.dispose();
-    return { directions, calm, zoomed, occluded };
+    return { directions, calm, lengths, zoomed, occluded };
   });
   for (const { vector, before, after } of results.directions) {
     assert.ok(before.mass > 0 && after.mass > 0);
@@ -104,6 +105,14 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
   }
   assert.equal(results.calm.mass, 0);
   assert.equal(results.calm.calls, 0);
+  // Longueurs métriques des deux repères, du milieu et du raccord vers le calme.
+  // À 24 nd le plafond visuel reste de 35 px (caméra à 20 px/m).
+  const expectedLengths = [.257222, .514444, .54575885217, .8745548, 1.2346656, 1.75];
+  for (const [index, { knots, width, mass }] of results.lengths.entries()) {
+    const expected = expectedLengths[index] * 20;
+    assert.ok(mass > 0, `vent visible à ${knots} nd`);
+    assert.ok(Math.abs(width - expected) <= 1, `${knots} nd : ${width} px au lieu de ${expected}`);
+  }
   assert.ok(results.zoomed.width <= 36, "traînée plafonnée à 35 pixels plus rasterisation");
   assert.equal(results.occluded, true, "un objet opaque masque entièrement les filaments derrière lui");
   assert.deepEqual(errors, []);

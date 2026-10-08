@@ -1982,14 +1982,14 @@
             <div class="flow-arrow" id="windArrow"></div>
             <div class="flow-copy">
               <strong><span data-i18n="ui.wind">Vent ·</span> <span id="windChipValue" data-i18n="ui.0.kn">0 nd</span></strong>
-              <span id="windChipDirection" data-i18n="ui.from.000">vient du 000°</span>
+              <span id="windChipDirection" data-i18n="ui.flow.direction.180">Direction 180°</span>
             </div>
           </div>
           <div class="flow-chip">
             <div class="flow-arrow current" id="currentArrow"></div>
             <div class="flow-copy">
               <strong><span data-i18n="ui.current.2">Courant ·</span> <span id="currentChipValue" data-i18n="ui.0.kn">0 nd</span></strong>
-              <span id="currentChipDirection" data-i18n="ui.from.000">vient du 000°</span>
+              <span id="currentChipDirection" data-i18n="ui.flow.direction.180">Direction 180°</span>
             </div>
           </div>
           <div class="flow-chip" id="mooringChip" hidden>
@@ -2155,8 +2155,8 @@
             <input id="windSpeed" type="range" min="0" max="30" step="0.5" value="0">
           </div>
           <div class="control-row">
-            <div class="control-meta"><label for="windDirection" data-i18n="ui.direction.it.comes.from">Direction d'où il vient</label><span class="control-value" data-value-for="windDirection"></span></div>
-            <input id="windDirection" type="range" min="0" max="359" step="1" value="0">
+            <div class="control-meta"><label for="windDirection" data-i18n="ui.direction">Direction</label><span class="control-value" data-value-for="windDirection"></span></div>
+            <input id="windDirection" type="range" min="0" max="359" step="1" value="180">
           </div>
         </section>
 
@@ -2167,8 +2167,8 @@
             <input id="currentSpeed" type="range" min="0" max="2.5" step="0.1" value="0">
           </div>
           <div class="control-row">
-            <div class="control-meta"><label for="currentDirection" data-i18n="ui.direction.it.comes.from">Direction d'où il vient</label><span class="control-value" data-value-for="currentDirection"></span></div>
-            <input id="currentDirection" type="range" min="0" max="359" step="1" value="0">
+            <div class="control-meta"><label for="currentDirection" data-i18n="ui.direction">Direction</label><span class="control-value" data-value-for="currentDirection"></span></div>
+            <input id="currentDirection" type="range" min="0" max="359" step="1" value="180">
           </div>
         </section>
 
@@ -8539,20 +8539,27 @@
       }
     }
 
+    // The UI shows the direction of travel; the environment keeps its source bearings.
+    function flowDirection(degrees) {
+      return (Number(degrees) + 180) % 360;
+    }
+
     function syncEnvironmentInputs() {
       $("#windSpeed").value = environment.windSpeedKn;
-      $("#windDirection").value = environment.windFromDeg;
+      $("#windDirection").value = flowDirection(environment.windFromDeg);
       $("#currentSpeed").value = environment.currentSpeedKn;
-      $("#currentDirection").value = environment.currentFromDeg;
+      $("#currentDirection").value = flowDirection(environment.currentFromDeg);
       updateControlReadouts();
     }
 
     function updateControlReadouts() {
+      const windDirection = flowDirection(environment.windFromDeg);
+      const currentDirection = flowDirection(environment.currentFromDeg);
       const values = {
         windSpeed: t("ui.kn", { value1: fmt(environment.windSpeedKn, 1) }),
-        windDirection: `${padHeading(environment.windFromDeg)}°`,
+        windDirection: `${padHeading(windDirection)}°`,
         currentSpeed: t("ui.kn", { value1: fmt(environment.currentSpeedKn, 1) }),
-        currentDirection: `${padHeading(environment.currentFromDeg)}°`,
+        currentDirection: `${padHeading(currentDirection)}°`,
         propWalk: `${Math.round(environment.propWalk * 100)} %`,
         boatMass: `${fmt(calibration.mass, 0)} kg`,
         windage: `${Math.round(calibration.windage * 100)} %`,
@@ -8564,15 +8571,15 @@
         const output = $(`[data-value-for="${id}"]`);
         if (output) output.textContent = value;
       });
-      $("#windSummary").textContent = t("ui.kn.2", { value1: fmt(environment.windSpeedKn, 1), value2: padHeading(environment.windFromDeg) });
-      $("#currentSummary").textContent = t("ui.kn.2", { value1: fmt(environment.currentSpeedKn, 1), value2: padHeading(environment.currentFromDeg) });
+      $("#windSummary").textContent = t("ui.kn.2", { value1: fmt(environment.windSpeedKn, 1), value2: padHeading(windDirection) });
+      $("#currentSummary").textContent = t("ui.kn.2", { value1: fmt(environment.currentSpeedKn, 1), value2: padHeading(currentDirection) });
       $("#propWalkSummary").textContent = `${Math.round(environment.propWalk * 100)} %`;
       $("#windChipValue").textContent = t("ui.kn", { value1: fmt(environment.windSpeedKn, 1) });
-      $("#windChipDirection").textContent = t("ui.from", { value1: padHeading(environment.windFromDeg) });
+      $("#windChipDirection").textContent = t("ui.flow.direction", { value1: padHeading(windDirection) });
       $("#currentChipValue").textContent = t("ui.kn", { value1: fmt(environment.currentSpeedKn, 1) });
-      $("#currentChipDirection").textContent = t("ui.from", { value1: padHeading(environment.currentFromDeg) });
-      $("#windArrow").style.setProperty("--rotation", `${environment.windFromDeg}deg`);
-      $("#currentArrow").style.setProperty("--rotation", `${environment.currentFromDeg}deg`);
+      $("#currentChipDirection").textContent = t("ui.flow.direction", { value1: padHeading(currentDirection) });
+      $("#windArrow").style.setProperty("--rotation", `${windDirection}deg`);
+      $("#currentArrow").style.setProperty("--rotation", `${currentDirection}deg`);
     }
 
     const builtInScenarioMarkup = $("#scenarioSelect").innerHTML;
@@ -8777,9 +8784,9 @@
 
     const inputs = {
       windSpeed: value => environment.windSpeedKn = Number(value),
-      windDirection: value => environment.windFromDeg = Number(value),
+      windDirection: value => environment.windFromDeg = flowDirection(value),
       currentSpeed: value => environment.currentSpeedKn = Number(value),
-      currentDirection: value => environment.currentFromDeg = Number(value),
+      currentDirection: value => environment.currentFromDeg = flowDirection(value),
       propWalk: value => environment.propWalk = Number(value) / 100,
       boatMass: value => calibration.mass = Number(value),
       windage: value => calibration.windage = Number(value) / 100,

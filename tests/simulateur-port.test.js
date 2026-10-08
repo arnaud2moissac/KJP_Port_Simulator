@@ -286,6 +286,57 @@ browserCase("simulator:controls.04", async ({ page, browser, context, runtimeErr
 
 });
 
+browserCase("simulator:controls.53", async ({ page }) => {
+    const before = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    for (const kind of ["wind", "current"]) {
+      assert.equal(await page.locator(`label[for="${kind}Direction"]`).textContent(), "Direction");
+      assert.equal(await page.locator(`#${kind}Direction`).inputValue(), "180");
+      await page.locator(`#${kind}Direction`).evaluate(input => {
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    }
+    assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot()), before,
+      "réappliquer la direction affichée doit conserver exactement l'état physique");
+
+    for (const direction of [0, 90, 120, 180, 270, 359]) {
+      for (const kind of ["wind", "current"]) {
+        await page.locator(`#${kind}Direction`).evaluate((input, direction) => {
+          input.value = String(direction);
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }, direction);
+        const heading = String(direction).padStart(3, "0");
+        assert.equal(await page.locator(`#${kind}ChipDirection`).textContent(), `Direction ${heading}°`);
+        assert.equal(await page.locator(`[data-value-for="${kind}Direction"]`).textContent(), `${heading}°`);
+        assert.ok((await page.locator(`#${kind}Summary`).textContent()).endsWith(`· ${heading}°`));
+        assert.equal(await page.locator(`#${kind}Arrow`).evaluate(element =>
+          element.style.getPropertyValue("--rotation")), `${direction}deg`);
+      }
+      const environment = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().environment);
+      assert.equal(environment.windFromDeg, (direction + 180) % 360);
+      assert.equal(environment.currentFromDeg, (direction + 180) % 360);
+    }
+    // Displaying a new bearing preserves the existing world/physics vector convention.
+    for (const [kind, speed] of [["wind", "12"], ["current", "1.4"]]) {
+      await page.locator(`#${kind}Speed`).evaluate((input, value) => {
+        input.value = value;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }, speed);
+    }
+    const units = await page.evaluate(() => window.__PORTANCE_TEST__.unitCoherenceReport());
+    for (const kind of ["wind", "current"]) {
+      for (const axis of ["east", "north"]) {
+        assert.ok(Math.abs(units[kind].visualVector[axis] - units[kind].physicsVector[axis]) < 1e-9);
+      }
+      assert.ok(units[kind].visualVector.east < 0);
+      assert.ok(units[kind].visualVector.north > 0);
+    }
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+    for (const kind of ["wind", "current"]) {
+      assert.equal(await page.locator(`#${kind}Direction`).inputValue(), "180");
+      assert.equal(await page.locator(`#${kind}ChipDirection`).textContent(), "Direction 180°");
+    }
+});
+
 browserCase("simulator:interface.05", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const initial = await page.evaluate(() => {
       const box = selector => {
@@ -982,7 +1033,7 @@ browserCase("simulator:rendering.14", async ({ page, browser, context, runtimeEr
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await page.locator("#windDirection").evaluate(input => {
-      input.value = "0";
+      input.value = "180";
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await page.locator('[data-mode="understand"]').click();

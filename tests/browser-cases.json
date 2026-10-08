@@ -319,6 +319,13 @@
     "renderer": "native"
   },
   {
+    "product": "simulator",
+    "id": "controls.53",
+    "group": "controls",
+    "name": "vent et courant affichent et règlent leur direction de déplacement sans changer la convention physique",
+    "renderer": "native"
+  },
+  {
     "product": "generator",
     "id": "guide.01",
     "group": "guide",

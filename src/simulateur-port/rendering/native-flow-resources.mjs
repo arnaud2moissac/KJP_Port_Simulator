@@ -62,11 +62,15 @@ function createWindRecord(field) {
       void main() {
         vec2 offset = mod(seed.xy * domainSize + wind * time - domainMin, domainSize);
         vec2 head = domainMin + offset;
-        float speed = length(wind);
-        vec2 trail = wind * .4;
+        // Progression linéaire : 0,5 nd reprend la longueur de l'ancien 5 nd,
+        // et 12 nd garde sa longueur. Sous 0,5 nd, la queue tend vers zéro.
+        float speedKn = length(wind) / .514444;
+        float referenceKn = mix(5., 12., max(0., (speedKn - .5) / 11.5));
+        float trailScale = referenceKn / max(speedKn, .5);
+        vec2 trail = wind * (.2 * trailScale);
         // Une queue ne rejoint jamais l'autre bord du domaine périodique.
         vec2 edge = min(offset, domainSize - offset);
-        float boundary = smoothstep(0., max(.15, speed * .4), min(edge.x, edge.y));
+        float boundary = smoothstep(0., max(.15, length(trail)), min(edge.x, edge.y));
         float age = fract(seed.z + time / 8.);
         visibility = boundary * smoothstep(0., .12, age) * (1. - smoothstep(.8, 1., age));
         vec4 headView = modelViewMatrix * vec4(head, .03, 1.);
