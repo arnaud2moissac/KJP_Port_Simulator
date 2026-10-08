@@ -3,6 +3,56 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
+test("vent natif — graines persistantes, advection uniforme et libération", async () => {
+  const { createNativeFlowResources } = await import("../src/simulateur-port/rendering/native-flow-resources.mjs");
+  const definition = { fields: [{ id: "wind", kind: "filaments", width: 2.1,
+    capacity: 256, color: "rgba(98,219,227,.58)" }] };
+  const resources = createNativeFlowResources(definition);
+  const wind = resources.group.getObjectByName("flow:wind");
+  const attributes = Object.entries(wind.geometry.attributes).map(([name, attribute]) => ({
+    name, attribute, array: attribute.array, values: [...attribute.array], version: attribute.version
+  }));
+  const original = structuredClone(definition);
+  const viewport = { width: 1114, height: 834, near: .035 };
+  const field = { id: "wind", color: definition.fields[0].color, vector: [3, -4], time: 0,
+    domain: { minX: -40, minY: -30, width: 80, height: 60 }, count: 190 };
+  const update = overrides => resources.update({ fields: [{ ...field, ...overrides }] }, viewport);
+  update();
+  const before = resources.report().wind;
+  update({ time: 120 });
+  update({ time: 121, vector: [-3, 4], domain: { minX: 20, minY: 40, width: 160, height: 120 } });
+  assert.deepEqual(wind.material.uniforms.wind.value.toArray(), [-3, 4]);
+  assert.equal(wind.material.uniforms.time.value, 121);
+  assert.equal(resources.report().wind.drawCalls, 1);
+  assert.equal(wind.material.depthTest, true);
+  assert.equal(wind.material.depthWrite, false);
+  for (const { name, attribute, array, values, version } of attributes) {
+    assert.equal(wind.geometry.attributes[name], attribute);
+    assert.equal(attribute.array, array);
+    assert.deepEqual([...attribute.array], values);
+    assert.equal(attribute.version, version);
+  }
+  assert.equal(resources.report().wind.geometry, before.geometry);
+  assert.equal(resources.report().wind.bufferVersion, before.bufferVersion);
+  assert.deepEqual(definition, original);
+  update({ vector: [0, 0] });
+  assert.equal(wind.geometry.instanceCount, 0);
+  assert.equal(resources.report().wind.drawCalls, 0);
+  assert.throws(() => update({ count: 257 }), /invalide/);
+  assert.throws(() => update({ vector: [NaN, 1] }), /invalide/);
+  const second = createNativeFlowResources(definition);
+  assert.deepEqual(second.group.children[0].geometry.attributes.seed.array,
+    wind.geometry.attributes.seed.array, "graines reproductibles");
+  second.dispose();
+  let geometryDisposals = 0, materialDisposals = 0;
+  wind.geometry.addEventListener("dispose", () => geometryDisposals++);
+  wind.material.addEventListener("dispose", () => materialDisposals++);
+  resources.dispose(); resources.dispose();
+  assert.equal(geometryDisposals, 1);
+  assert.equal(materialDisposals, 1);
+  assert.equal(resources.group.children.length, 0);
+});
+
 test("ressources natives — géométries métriques, palettes et libération", async () => {
   const { createNativeInfrastructureResources } = await import("../src/simulateur-port/rendering/native-infrastructure-resources.mjs");
   const ring = [[0,0,0],[4,0,0],[4,1,0],[1,1,0],[1,4,0],[0,4,0]];

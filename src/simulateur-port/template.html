@@ -6629,7 +6629,7 @@
       };
     }
 
-    function flowParticlePresentation(simulationSeconds) {
+    function flowParticlePresentation(simulationSeconds, includeWind = true) {
       const palette = visualPalette();
       const wrap = (value, minimum, span) => (
         minimum + ((value - minimum) % span + span) % span
@@ -6685,7 +6685,7 @@
       return {
         fields: [
           { id: "wind", color: palette.semantic.windTrail, width: FLOW_VISUAL.wind.width,
-            paths: drawField(windWorldVector(), palette.semantic.windTrail, 3, 30, .72, .65, FLOW_VISUAL.wind) },
+            paths: includeWind ? drawField(windWorldVector(), palette.semantic.windTrail, 3, 30, .72, .65, FLOW_VISUAL.wind) : [] },
           { id: "current", color: palette.semantic.currentTrail, width: FLOW_VISUAL.current.width,
             paths: drawField(currentWorldVector(), palette.semantic.currentTrail, 7, 24, .06, 1.5, FLOW_VISUAL.current) }
         ]
@@ -6709,18 +6709,53 @@
       return {
         fields: [
           { id: "wind", color: visualPalette().semantic.windTrail,
-            width: FLOW_VISUAL.wind.width, capacity: 30 },
+            kind: "filaments", width: 2.1, capacity: 256 },
           { id: "current", color: visualPalette().semantic.currentTrail,
             width: FLOW_VISUAL.current.width, capacity: 24 * (CURRENT_WAVE_PROFILE.length - 1) }
         ]
       };
     }
 
+    function nativeWindDomain() {
+      const fallback = () => {
+        const domain = flowParticleDomain();
+        return { minX: domain.centered ? domain.centerX - domain.width / 2 : domain.minX,
+          minY: domain.centered ? domain.centerY - domain.height / 2 : domain.minY,
+          width: domain.width, height: domain.height };
+      };
+      if (camera.view === "skipper") return fallback();
+      // Intersection du champ visible avec le plan de présentation. Les graines
+      // restent sur le GPU ; zoom/pan ne transfèrent aucune géométrie.
+      const basis = frameBasis || cameraBasis();
+      const focal = Math.min(canvasWidth, canvasHeight) * 1.05;
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const ray = basis.forward.map((value, axis) => value
+          + sx * canvasWidth / (2 * focal) * basis.right[axis]
+          + sy * canvasHeight / (2 * focal) * basis.up[axis]);
+        if (ray[2] >= -.0001) return fallback();
+        const distance = (.03 - basis.position[2]) / ray[2];
+        const x = basis.position[0] + ray[0] * distance;
+        const y = basis.position[1] + ray[1] * distance;
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+      return { minX: minX - 2, minY: minY - 2,
+        width: maxX - minX + 4, height: maxY - minY + 4 };
+    }
+
     function nativeFlowPresentation(simulationSeconds) {
-      const presentation = flowParticlePresentation(simulationSeconds);
+      const presentation = flowParticlePresentation(simulationSeconds, false);
       const palette = visualPalette();
+      const vector = windWorldVector();
+      const count = Math.hypot(...vector) < .02 ? 0
+        : Math.min(256, Math.max(48, Math.round(220 * canvasWidth * canvasHeight / (1114 * 834))));
+      flowRenderStats.windSegments = count;
       return {
-        fields: presentation.fields.map(field => {
+        fields: [{ id: "wind", color: ui.mode === "understand"
+          ? palette.wireframe.muted : palette.semantic.windTrail,
+          vector, time: reducedMotion ? 0 : simulationSeconds,
+          domain: nativeWindDomain(), count }, ...presentation.fields.filter(field => field.id === "current").map(field => {
           const segments = flowSegments(field);
           flowRenderStats[`${field.id}Segments`] = segments.length;
           return {
@@ -6728,7 +6763,7 @@
             color: ui.mode === "understand" ? palette.wireframe.muted : field.color,
             segments
           };
-        })
+        })]
       };
     }
 

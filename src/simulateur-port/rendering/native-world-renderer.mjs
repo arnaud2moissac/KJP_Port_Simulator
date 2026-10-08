@@ -73,7 +73,7 @@ export function createNativeWorldRenderer(definition, {
     if (asynchronousResourceError) throw asynchronousResourceError;
     lastCamera = camera;
     if (playerResources) playerResources.update(playerPresentation);
-    if (flowResources) flowResources.update(flowPresentation);
+    if (flowResources) flowResources.update(flowPresentation, camera);
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     const w = Math.round(camera.width * pixelRatio), h = Math.round(camera.height * pixelRatio);
     if (canvas.width !== w || canvas.height !== h) renderer.setSize(w / pixelRatio, h / pixelRatio, false);
@@ -131,7 +131,8 @@ export function createNativeWorldRenderer(definition, {
       ...(resources.report ? { catalog: resources.report(), memory: { ...renderer.info.memory },
         draw: { ...renderer.info.render },
         materials: materials.map(m => ({
-          id: m.uuid, role: m.userData.role, color: m.color.getHexString(), opacity: m.opacity,
+          id: m.uuid, role: m.userData.role,
+          color: (m.color || m.uniforms?.tint?.value).getHexString(), opacity: m.opacity,
           ...(m.isMeshBasicMaterial ? { wireframe: m.wireframe } : {}),
           ...(Number.isFinite(m.linewidth) ? { linewidth: m.linewidth, baseLinewidth: m.userData.baseLinewidth } : {})
         })) } : {}),

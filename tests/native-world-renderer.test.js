@@ -34,6 +34,81 @@ const persistentGeometry = report => report.resources
       bytes: attribute.bytes
     })) }));
 
+test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul draw", async t => {
+  const { build } = require("esbuild");
+  const bundle = await build({
+    stdin: { resolveDir: path.resolve(__dirname, ".."), contents: `
+      import { Scene, OrthographicCamera, WebGLRenderer, Mesh, PlaneGeometry, MeshBasicMaterial } from 'three';
+      import { createNativeFlowResources } from './src/simulateur-port/rendering/native-flow-resources.mjs';
+      globalThis.windProbe = { Scene, OrthographicCamera, WebGLRenderer, Mesh, PlaneGeometry, MeshBasicMaterial, createNativeFlowResources };
+    ` }, bundle: true, write: false, format: "iife"
+  });
+  const browser = await chromium.launch({ headless: true });
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
+  await page.setContent("<!doctype html><body></body>");
+  await page.addScriptTag({ content: bundle.outputFiles[0].text });
+  const results = await page.evaluate(() => {
+    const P = windProbe;
+    const resources = P.createNativeFlowResources({ fields: [{ id: "wind", kind: "filaments",
+      capacity: 256, width: 2.1, color: "rgba(98,219,227,.58)" }] });
+    const scene = new P.Scene();
+    scene.add(resources.group);
+    const renderer = new P.WebGLRenderer({ alpha: true, antialias: false });
+    renderer.setSize(400, 400); renderer.setClearColor(0, 0);
+    const camera = new P.OrthographicCamera(-10, 10, 10, -10, .035, 100);
+    const seed = resources.group.children[0].geometry.attributes.seed.array;
+    const x = seed[0] * 500, y = seed[1] * 500;
+    camera.position.set(x, y, 10); camera.lookAt(x, y, 0);
+    const pixels = new Uint8Array(400 * 400 * 4);
+    const capture = (vector, time) => {
+      resources.update({ fields: [{ id: "wind", color: "rgba(98,219,227,.58)", vector, time,
+        domain: { minX: 0, minY: 0, width: 500, height: 500 }, count: 1 }] },
+      { width: 400, height: 400, near: .035 });
+      renderer.render(scene, camera);
+      const gl = renderer.getContext();
+      gl.readPixels(0, 0, 400, 400, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      let mass = 0, cx = 0, cy = 0, minX = 400, maxX = -1, minY = 400, maxY = -1;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const alpha = pixels[i + 3];
+        if (!alpha) continue;
+        const px = (i / 4) % 400, py = Math.floor(i / 4 / 400);
+        mass += alpha; cx += alpha * px; cy += alpha * py;
+        minX = Math.min(minX, px); maxX = Math.max(maxX, px);
+        minY = Math.min(minY, py); maxY = Math.max(maxY, py);
+      }
+      return { mass, x: cx / mass, y: cy / mass, width: maxX - minX + 1,
+        height: maxY - minY + 1, calls: renderer.info.render.calls, glError: gl.getError() };
+    };
+    const directions = [[4,0],[-4,0],[0,4],[0,-4]].map(vector => ({
+      vector, before: capture(vector, 0), after: capture(vector, .1)
+    }));
+    const calm = capture([0,0], 0);
+    const zoomed = capture([40,0], 0);
+    const cover = new P.Mesh(new P.PlaneGeometry(40, 40), new P.MeshBasicMaterial({ color: 0x224466 }));
+    cover.position.set(x, y, 1); scene.add(cover);
+    capture([0,0], 0); const opaque = [...pixels];
+    capture([4,0], 0); const occluded = pixels.every((value, index) => value === opaque[index]);
+    resources.dispose(); cover.geometry.dispose(); cover.material.dispose(); renderer.dispose();
+    return { directions, calm, zoomed, occluded };
+  });
+  for (const { vector, before, after } of results.directions) {
+    assert.ok(before.mass > 0 && after.mass > 0);
+    assert.ok(Math.abs(after.x - before.x - vector[0] * 2) < .7, JSON.stringify({ vector, before, after }));
+    assert.ok(Math.abs(after.y - before.y - vector[1] * 2) < .7, JSON.stringify({ vector, before, after }));
+    assert.equal(after.calls, 1);
+    assert.equal(after.glError, 0);
+  }
+  assert.equal(results.calm.mass, 0);
+  assert.equal(results.calm.calls, 0);
+  assert.ok(results.zoomed.width <= 36, "traînée plafonnée à 35 pixels plus rasterisation");
+  assert.equal(results.occluded, true, "un objet opaque masque entièrement les filaments derrière lui");
+  assert.deepEqual(errors, []);
+});
+
 test("renderer natif — persistance, caméra, composition 2D et flux", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
@@ -281,9 +356,30 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   await settle(page, 4);
   const flowing = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
   assert.ok(flowing.flow.wind.segments > 0);
+  assert.equal(flowing.flow.wind.kind, "filaments");
+  assert.equal(flowing.flow.wind.drawCalls, 1);
+  assert.ok(flowing.flow.wind.particles <= 256);
   assert.ok(flowing.flow.current.segments > 0);
   assert.ok(flowing.player.understanding.forceCount > 0);
   assert.deepEqual(persistentGeometry(flowing), persistentGeometry(afterMotion));
+  const windGeometry = report => report.resources.find(resource => resource.role === "flow:wind");
+  const windSnapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  await settle(page, 8);
+  const pausedWind = await page.evaluate(() => ({
+    world: window.__PORTANCE_TEST__.worldRendererReport(),
+    snapshot: window.__PORTANCE_TEST__.snapshot()
+  }));
+  assert.deepEqual(pausedWind.snapshot, windSnapshot, "le shader ne change aucun état physique");
+  assert.deepEqual(pausedWind.world.flow.wind, flowing.flow.wind, "le vent reste figé en pause");
+  assert.deepEqual(windGeometry(pausedWind.world), windGeometry(flowing));
+  await page.evaluate(() => window.__PORTANCE_TEST__.advance(.3));
+  await settle(page, 3);
+  const advectedWind = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+  assert.ok(advectedWind.flow.wind.time > flowing.flow.wind.time);
+  assert.deepEqual(windGeometry(advectedWind), windGeometry(flowing),
+    "l'advection GPU ne transfère pas les buffers du vent");
+  assert.deepEqual(advectedWind.flow.wind.vector, flowing.flow.wind.vector,
+    "toutes les particules utilisent le vecteur de vent uniforme existant");
   const windTargets = await page.evaluate(() => window.__PORTANCE_TEST__.understandingHitReport().targets);
   assert.ok(windTargets.some(target => target.label === "Fardage proue"));
   assert.ok(windTargets.some(target => target.label === "Fardage poupe"));
