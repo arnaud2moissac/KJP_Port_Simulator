@@ -460,6 +460,6 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   assert.deepEqual(remoteRequests, []);
 
   t.diagnostic(`Grand port : ${JSON.stringify(largePortFlow)} pixels de flux visibles`);
-  t.diagnostic(`N4 : ${first.report.catalog.owners.length} propriétaires persistants, ${nativeOpaque} pixels natifs non transparents`);
+  t.diagnostic(`Renderer natif : ${first.report.catalog.owners.length} propriétaires persistants, ${nativeOpaque} pixels natifs non transparents`);
   t.diagnostic(`Routage final : ${JSON.stringify(rolledBack.report.routing)}`);
 });

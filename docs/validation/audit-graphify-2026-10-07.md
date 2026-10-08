@@ -113,7 +113,7 @@ AST. Ses 15 nœuds sont sémantiques et ne représentent pas ces définitions.
 Le template du générateur n'a pas non plus d'extracteur AST.
 
 Conséquence vérifiée : deux mentions de `drawWater()` dans
-[`threejs-renderer-migration.md`](../threejs-renderer-migration.md), lignes 358
+[`threejs-renderer-migration.md` au commit audité](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/b93f3da0f20b4e2f18f337d4f77936da9bf2a0e1/docs/threejs-renderer-migration.md), lignes 358
 et 1247, sont reliées à la fonction homonyme du script d'illustration
 `scripts/export-physics-model-illustrations.mjs`, alors que la fonction du
 simulateur est dans le template, ligne 6485. `graphify explain drawWater` renvoie

@@ -1,7 +1,6 @@
 "use strict";
 
-// Matrice pérenne des références natives. Les identifiants restent stables afin
-// de relire les mesures archivées pendant la migration.
+// Matrice des références natives ; garder les identifiants des scènes stables.
 module.exports = Object.freeze([
   Object.freeze({ id: "built-in-dark-top-navigation", port: "built-in", theme: "dark", view: "top", mode: "navigation" }),
   Object.freeze({

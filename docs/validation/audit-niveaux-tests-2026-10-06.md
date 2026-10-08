@@ -181,5 +181,5 @@ globale `verify:release`, la matrice multibrowser et le soak renderer n'ont pas
 - [Commandes npm](../../package.json), [README](../../README.md), [CONTRIBUTING](../../CONTRIBUTING.md).
 - [E2E simulateur](../../tests/simulateur-port.test.js), [E2E générateur](../../tests/port-generator.test.js), [localisation](../../tests/simulator-i18n.test.js).
 - [Physique centrale](../../tests/physics/port-physics.test.js), [environnement](../../tests/physics/wind-current-profiles.test.js), [contacts](../../tests/physics/port-obstacles.test.js).
-- [Manifeste renderer](threejs-migration-closure.md), [qualification renderer](../../tests/native-renderer-qualification.test.js).
+- [Manifeste renderer historique](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/b93f3da0f20b4e2f18f337d4f77936da9bf2a0e1/docs/validation/threejs-migration-closure.md), [qualification renderer](../../tests/native-renderer-qualification.test.js).
 - [Chargement des catalogues](../../scripts/localization-assets.js), [build simulateur](../../scripts/build-simulateur-port.js), [rendu des documents](../../scripts/embed-project-readme.js).

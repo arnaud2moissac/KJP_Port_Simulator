@@ -21,22 +21,18 @@ automatique.
 KJP_Port_Simulator/ — Simulateur nautique et générateur de ports autonomes.
 ├── .codex/ — Configuration, hooks et skills Codex propres au projet.
 │   ├── skills/ — Instructions spécialisées disponibles dans ce dépôt.
-│   │   ├── graphify/ — Skill de navigation dans le graphe de connaissances.
-│   │   │   ├── references/ — Procédures complémentaires du skill Graphify.
-│   │   │   │   ├── add-watch.md — Procédures Graphify d'ajout de sources et de surveillance.
-│   │   │   │   ├── exports.md — Procédures d'export des vues et formats Graphify.
-│   │   │   │   ├── extraction-spec.md — Spécification des entités et relations extraites par Graphify.
-│   │   │   │   ├── github-and-merge.md — Procédures Graphify pour les dépôts GitHub et les fusions de graphes.
-│   │   │   │   ├── hooks.md — Intégration de Graphify aux hooks et aux agents.
-│   │   │   │   ├── query.md — Navigation et interrogation du graphe de connaissances.
-│   │   │   │   ├── transcribe.md — Procédure de transcription des contenus audio et vidéo.
-│   │   │   │   └── update.md — Procédures de mise à jour et de regroupement du graphe.
-│   │   │   ├── .graphify_version — Version installée du skill Graphify.
-│   │   │   └── SKILL.md — Instructions du skill de graphe de connaissances.
-│   │   └── kjp-three-render-migration/ — Skill de maintenance du renderer du simulateur.
-│   │       ├── agents/ — Métadonnées du skill pour les agents.
-│   │       │   └── openai.yaml — Présentation et paramètres du skill dans l’interface des agents.
-│   │       └── SKILL.md — Instructions de maintenance et qualification du renderer KJP.
+│   │   └── graphify/ — Skill de navigation dans le graphe de connaissances.
+│   │       ├── references/ — Procédures complémentaires du skill Graphify.
+│   │       │   ├── add-watch.md — Procédures Graphify d'ajout de sources et de surveillance.
+│   │       │   ├── exports.md — Procédures d'export des vues et formats Graphify.
+│   │       │   ├── extraction-spec.md — Spécification des entités et relations extraites par Graphify.
+│   │       │   ├── github-and-merge.md — Procédures Graphify pour les dépôts GitHub et les fusions de graphes.
+│   │       │   ├── hooks.md — Intégration de Graphify aux hooks et aux agents.
+│   │       │   ├── query.md — Navigation et interrogation du graphe de connaissances.
+│   │       │   ├── transcribe.md — Procédure de transcription des contenus audio et vidéo.
+│   │       │   └── update.md — Procédures de mise à jour et de regroupement du graphe.
+│   │       ├── .graphify_version — Version installée du skill Graphify.
+│   │       └── SKILL.md — Instructions du skill de graphe de connaissances.
 │   ├── hooks.json — Configuration des hooks Codex et de l'intégration Graphify.
 │   └── hooks.json.graphify-bak — Sauvegarde de la configuration des hooks avant intégration Graphify.
 ├── assets/ — Ressources graphiques communes aux produits.
@@ -68,9 +64,7 @@ KJP_Port_Simulator/ — Simulateur nautique et générateur de ports autonomes.
 │   ├── marin-cross-flow-drag.html — Source archivée : référence sur la traînée transversale d'un navire en manœuvre.
 │   ├── mca-mgn-301-appendix-2.html — Source archivée : annexe de recommandations nautiques de la MCA.
 │   ├── mmg-standard.html — Source archivée : présentation de la méthode MMG de prédiction des manœuvres.
-│   ├── openai-three-webgl-game-skill.html — Source archivée : référence de skill pour les jeux Three/WebGL.
 │   ├── openseamap-qgis.html — Source archivée : utilisation des données OpenSeaMap dans QGIS.
-│   ├── optimize-web-animations-skill.html — Source archivée : référence de skill d'optimisation des animations web.
 │   ├── osm-seamark-buoys.html — Source archivée : description des bouées dans OpenStreetMap.
 │   ├── osm-seamark-item-q6753.html — Source archivée : description de l'objet ponton/quai dans OpenStreetMap.
 │   ├── osm-seamark-object-usage.html — Source archivée : règles d'utilisation des objets de balisage OpenStreetMap.
@@ -84,12 +78,6 @@ KJP_Port_Simulator/ — Simulateur nautique et générateur de ports autonomes.
 │   ├── polyform-f-series-fenders.html — Source archivée : caractéristiques des pare-battages Polyform série F.
 │   ├── polyform-fender-inflation.html — Source archivée : recommandations de gonflage des pare-battages Polyform.
 │   ├── rya-med-mooring.html — Source archivée : guide de l'amarrage méditerranéen cul à quai.
-│   ├── threejs-batched-mesh.html — Source archivée : documentation Three.js des maillages regroupés BatchedMesh.
-│   ├── threejs-game-studio.html — Source archivée : référence du skill de développement de jeux Three.js.
-│   ├── threejs-instanced-mesh.html — Source archivée : documentation Three.js des maillages instanciés.
-│   ├── threejs-line2.html — Source archivée : documentation Three.js des lignes épaisses Line2.
-│   ├── threejs-migration-r185-r186.html — Source archivée : guide de migration Three.js entre les versions r185 et r186.
-│   ├── threejs-webglrenderer.html — Source archivée : documentation du renderer WebGL de Three.js.
 │   └── uscg-boat-crew-handbook.pdf — Source archivée : manuel de l'US Coast Guard sur la conduite et les manœuvres.
 ├── docs/ — Documentation utilisateur, technique et études du projet.
 │   ├── images/ — Illustrations et captures des guides utilisateur.
@@ -112,16 +100,12 @@ KJP_Port_Simulator/ — Simulateur nautique et générateur de ports autonomes.
 │   │   ├── rapport-audit-calibration-experte.md — Audit des paramètres de « Calibration experte ».
 │   │   ├── rapport-recalibration-aerodynamique.md — Recalibration aérodynamique basse vitesse.
 │   │   ├── rapport-test-manoeuvres-dynamiques.md — Rapport — départ dynamique sur pointe arrière au vent.
-│   │   ├── threejs-migration-closure.md — Clôture de la migration Three.js.
-│   │   ├── threejs-native-closure-matrix.json — Matrice finale des résultats de qualification du renderer natif.
-│   │   ├── threejs-native-closure-performance.json — Mesures de performance de clôture de la migration.
-│   │   ├── threejs-native-n5-performance.json — Mesures de performance de l'étape N5 du renderer natif.
-│   │   └── threejs-native-n6-matrix.json — Matrice de qualification de l'étape N6 du renderer natif.
+│   │   └── threejs-migration-closure.md — Notice de récupération des archives de migration dans Git.
 │   ├── guide-utilisateur.br.md — Guide utilisateur illustré en breton.
 │   ├── guide-utilisateur.en.md — Guide utilisateur illustré en anglais.
 │   ├── guide-utilisateur.md — Guide utilisateur illustré en français.
 │   ├── localisation-simulateur.md — Organisation des langues et règles de traduction du simulateur.
-│   ├── threejs-renderer-migration.md — Cadrage et suivi de la migration du renderer vers Three natif.
+│   ├── renderer-three.md — Contrat et maintenance du renderer natif et du secours Canvas.
 │   └── validation-levels.md — Politique de validation proportionnelle au risque et commandes ciblées.
 ├── examples/ — Exemples de ports importables au format KJP.
 │   └── la-trinite-sur-mer.kjp — Exemple complet de La Trinité-sur-Mer à importer.
@@ -227,14 +211,6 @@ KJP_Port_Simulator/ — Simulateur nautique et générateur de ports autonomes.
 │   │   ├── kjp-codec.test.js — Tests de validation, compatibilité et robustesse du format KJP.
 │   │   └── pontoon-decomposition.test.js — Tests de décomposition géométrique des pontons.
 │   ├── visual-baselines/ — Captures de référence pour les comparaisons visuelles.
-│   │   ├── legacy/ — Références historiques du renderer Legacy.
-│   │   │   ├── built-in-chart-skipper-navigation.png — Référence visuelle : port embarqué, thème carte, vue skipper en navigation.
-│   │   │   ├── built-in-chart-top-understand.png — Référence visuelle : port embarqué, thème carte, vue de dessus en mode Comprendre.
-│   │   │   ├── built-in-dark-anatomy-understand.png — Référence visuelle : port embarqué, thème sombre, anatomie en mode Comprendre.
-│   │   │   ├── built-in-dark-top-navigation.png — Référence visuelle : port embarqué, thème sombre, vue de dessus en navigation.
-│   │   │   ├── la-trinite-chart-skipper-navigation.png — Référence visuelle : la Trinité, thème carte, vue skipper en navigation.
-│   │   │   ├── la-trinite-dark-top-navigation.png — Référence visuelle : la Trinité, thème sombre, vue de dessus en navigation.
-│   │   │   └── manifest.json — Inventaire, empreintes et métadonnées des captures de référence.
 │   │   └── native/ — Références courantes du renderer Three natif.
 │   │       ├── built-in-chart-skipper-navigation.png — Référence visuelle : port embarqué, thème carte, vue skipper en navigation.
 │   │       ├── built-in-chart-top-understand.png — Référence visuelle : port embarqué, thème carte, vue de dessus en mode Comprendre.

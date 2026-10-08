@@ -14,7 +14,7 @@ function vector(values, name) {
 
 // Présentation seulement : monde métrique XY, Z vertical ; viewport en pixels
 // CSS, indépendant du DPR. La base est celle déjà calculée par le propriétaire
-// Legacy (suivi/interpolation/commandes), jamais un second contrôleur caméra.
+// KJP (suivi/interpolation/commandes), jamais un second contrôleur caméra.
 export function createCameraSnapshot({ basis, width, height, focalScale, near, far }) {
   const snapshot = {
     position: vector(basis.position, "position"),
@@ -64,12 +64,11 @@ export function createThreeCamera() {
     cameraPoint.fromArray(point).applyMatrix4(camera.matrixWorldInverse);
     const depth = -cameraPoint.z;
     if (depth < frame.near - 1e-7) return null;
-    // Même tolérance et dénominateur que project() Legacy au plan proche.
+    // Même tolérance et dénominateur que project() du Canvas au plan proche.
     cameraPoint.z = -Math.max(frame.near, depth);
     cameraPoint.applyMatrix4(camera.projectionMatrix);
-    // Pas de rejet hors écran/au-delà de far : contrat d'ancres Legacy.
-    // Le clipping des primitives et la profondeur GPU logarithmique Legacy
-    // ne sont PAS reproduits par la matrice perspective standard Three.
+    // Pas de rejet hors écran/au-delà de far : conserver les ancres KJP.
+    // Le clipping des primitives est distinct de cette projection d'ancres.
     return {
       x: (cameraPoint.x + 1) * frame.width / 2,
       y: (1 - cameraPoint.y) * frame.height / 2,

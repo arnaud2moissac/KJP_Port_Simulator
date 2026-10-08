@@ -31,20 +31,39 @@ rapport, abstraction ou test si le besoin n'est ni demandé ni durable.
 
 ## Maintenance du renderer Three.js
 
-Pour tout travail sur le rendu Three du simulateur, lire le skill
-`kjp-three-render-migration` puis suivre le cadrage de référence dans
-[`docs/threejs-renderer-migration.md`](docs/threejs-renderer-migration.md), en
-particulier sa section prescriptive et son suivi de clôture. L'inventaire de
-retrait et le manifeste historique sont dans
-[`docs/validation/threejs-migration-closure.md`](docs/validation/threejs-migration-closure.md).
+Pour maintenir, qualifier ou optimiser le rendu Three natif du simulateur et
+son secours Canvas 2D, lire d'abord le contrat de
+[`docs/renderer-three.md`](docs/renderer-three.md). Ce contrat concerne le
+simulateur ; il ne s'applique ni au générateur de ports ni aux modifications de
+physique nautique. Le renderer natif conserve ses géométries monde.
 
-Le produit contient le renderer Three natif à géométries monde persistantes et
-un secours Canvas 2D direct. Les anciens backends WebGL sont disponibles dans la
-référence Git `threejs-migration-legacy-final`, pas dans le produit courant. Le
-natif reste soumis aux invariants physiques et fonctionnels exacts ; sa gate
-visuelle porte sur la fidélité, la lisibilité, l'information et l'interaction.
-Les références raster natives servent à détecter les régressions de ce backend,
-sans rétablir une exigence de parité pixel avec Legacy.
+- Relever le répertoire réel, la branche, HEAD et le diff avant de travailler ;
+  préserver les modifications préexistantes, sans changement de branche ni reset.
+- Three consomme la pose et la caméra KJP. Ne modifier ni moteur, profil,
+  collision, pas de temps, interpolation, commande, trajectoire ou ancrage
+  fonctionnel ou référence physique pour adapter le rendu ; aucun calcul Three
+  ne pilote la simulation.
+- Conserver le Canvas 2D supérieur, les overlays, le picking et les `hitTargets`,
+  les aussières et les pare-battages. Ne pas substituer du raycasting aux
+  interactions existantes.
+- Garder les ressources statiques persistantes et le GLB joueur chargé une fois.
+  Un mouvement de caméra ne reconstruit ni ne retransfère leurs attributs.
+- Les erreurs WebGL2, GLB, reconstruction ou perte de contexte doivent produire
+  un diagnostic explicite et activer le secours Canvas sans changer l'état physique.
+- La fidélité visuelle porte sur les dimensions, l'occlusion, la lisibilité,
+  l'information et l'interaction. Les références natives détectent les régressions ;
+  les comparaisons physiques, fonctionnelles et de trajectoires restent exactes.
+
+Classer la demande selon les routes ci-dessus : rendu ou interaction relève de
+`ui-check` ; une qualification complète ne s'exécute que si elle est demandée.
+Les validations proportionnées sont définies ci-dessous. L'accès aux anciens
+backends et aux preuves historiques est décrit dans la
+[notice de récupération](docs/validation/threejs-migration-closure.md) ; ne pas
+réintroduire les anciens renderers WebGL comme dépendances du produit.
+Pour adapter une API Three, charger le skill global `threejs-game-studio` et
+vérifier la révision installée. Ses exemples génériques de boucle, éclairage ou
+raycasting ne remplacent pas les propriétaires KJP. Ne pas modifier un skill
+global pour une règle propre à ce dépôt.
 
 ## Sources et bibliographie
 
@@ -97,9 +116,9 @@ controls.48` pour un seul cas. Les groupes et commandes sont décrits dans
 sélection vide et vérifie les cas réellement exécutés. `test:e2e`,
 `verify:simulator` et `verify:port-generator` ne sont pas des contrôles locaux.
 
-Utiliser `npm run test:rendering` pour un changement local de ressources ou de
-caméra et `npm run test:renderer:quick` pour un changement intégré du renderer ou
-du secours. Réserver `npm run test:renderer:qualification`,
+Utiliser `npm run test:rendering` pour un changement local de ressources, de
+palette ou de caméra et `npm run test:renderer:quick` pour un changement intégré
+du renderer ou du secours. Réserver `npm run test:renderer:qualification`,
 `npm run qualify:renderer:native` et `npm run profile:renderer:native` à une
 qualification explicite : ces contrôles sont lourds et ne font pas partie de
 `test:e2e`.

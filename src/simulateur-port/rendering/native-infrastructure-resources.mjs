@@ -40,7 +40,7 @@ function applyColor(material, value) {
 }
 
 // Entrée : propriétaires et primitives 3D métriques à rôles de palette. Les
-// infrastructures sont en coordonnées monde ; N3 réutilise ce constructeur
+// infrastructures sont en coordonnées monde ; le joueur réutilise ce constructeur
 // pour le joueur en coordonnées locales. Aucun RenderFrame ni calcul caméra.
 export function createNativeInfrastructureResources({ owners, palette }) {
   const group = new Group(), geometries = [], materials = new Map(), inventory = [];
@@ -100,7 +100,7 @@ export function createNativeInfrastructureResources({ owners, palette }) {
         if (polygon.stroke !== false && polygon.stroke != null) line([...points, points[0]], polygon.stroke, polygon.lineWidth ?? .7, polygon.layer);
       }
       for (const source of owner.lines) {
-        if (source.dash?.length) throw new TypeError("Native infrastructure: pointillés hors lot N2.1");
+        if (source.dash?.length) throw new TypeError("Native infrastructure: pointillés non pris en charge");
         line(checkedPoints(source.points, 2), source.color, source.width, source.layer);
       }
       for (const b of batches.values()) {

@@ -8135,17 +8135,6 @@
       }
       drawMooringLayer();
       drawUnderstandingOverlay();
-      const appearance = `${ui.visualTheme}:${ui.mode}`;
-      if (!nativeWorldActive && nativeInfrastructureEnabled && nativeInfrastructureAppearance !== appearance) {
-        nativeWorldRenderer.updatePalette(nativeInfrastructurePalette(), {
-          wireframe: false
-        });
-        nativeInfrastructureAppearance = appearance;
-      }
-      if (!nativeWorldActive && nativeWorldRenderer) {
-        nativeWorldRenderer.render(nativeCameraSnapshot(), pixelRatio,
-          nativePlayerEnabled ? nativePlayerPresentation() : null);
-      }
       frameMotion = null;
       visibleHarborFrameCache = null;
       if (contacts.toastUntil && performance.now() > contacts.toastUntil) {

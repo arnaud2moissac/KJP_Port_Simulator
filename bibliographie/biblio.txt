@@ -6,7 +6,9 @@ Périmètre
 Depuis le 7 octobre 2026, l'obligation de référencement et d'archivage s'applique
 uniquement aux sujets nautiques ou physiques de KJP, conformément à AGENTS.md.
 Les autres sujets, dont l'outillage logiciel, le rendu et l'interface, n'imposent
-ni ajout bibliographique ni archive. Les références historiques sont conservées.
+ni ajout bibliographique ni archive. Les références nautiques et physiques sont
+conservées. Les archives techniques de migration Three.js sont récupérables dans
+Git selon docs/validation/threejs-migration-closure.md.
 
 Inventaire constitué le 19 septembre 2026 après lecture exhaustive des 210 tours
 des huit conversations Codex liées au dépôt KJP : création du simulateur,
@@ -198,48 +200,6 @@ Usage : exclusion documentée de l'analyse automatique des tuiles Google.
 URL : https://www.esa.int/Applications/Observing_the_Earth/Copernicus/Sentinel-2?app=true
 Usage : évaluation de la résolution Sentinel-2, jugée insuffisante pour repérer
         les voiliers individuellement dans une marina.
-
-RENDERER THREE.JS ET OUTILLAGE
-------------------------------
-
-[archivé] threejs-migration-r185-r186.html
-URL : https://github.com/mrdoob/three.js/wiki/Migration-Guide#185--186
-Usage : vérification du passage Three.js r185 vers r186 pendant la migration.
-
-[archivé] threejs-webglrenderer.html
-URL : https://threejs.org/docs/pages/WebGLRenderer.html
-Usage : configuration WebGLRenderer, métriques renderer.info et perte de contexte.
-
-[archivé] threejs-instanced-mesh.html
-URL : https://threejs.org/docs/pages/InstancedMesh.html
-Usage : instancing des objets répétés du monde et des ressources persistantes.
-
-[archivé] threejs-batched-mesh.html
-URL : https://threejs.org/docs/pages/BatchedMesh.html
-Usage : regroupement des géométries hétérogènes et réduction des appels de rendu.
-
-[archivé] threejs-line2.html
-URL : https://threejs.org/docs/pages/Line2.html
-Usage : traits épais lorsque LineBasicMaterial ne peut pas porter l'épaisseur
-        demandée par l'interface.
-
-[URL seule — HTTP 404] threejs-disposal.html
-URL : https://threejs.org/manual/en/how-to-dispose-of-objects.html
-Usage : stratégie de libération des géométries et matériaux Three ; URL citée
-        historiquement, désormais non servie sous cette adresse.
-
-[archivé] threejs-game-studio.html
-URL : https://github.com/chrislaupama/threejs-game-studio
-Usage : source du skill évalué lors de la préparation de la migration Three.js.
-
-[archivé] optimize-web-animations-skill.html
-URL : https://github.com/MengTo/Skills/blob/main/agent-skills/codex/optimize-web-animations/SKILL.md
-Usage : skill de profiling WebGL/animations évoqué comme option ultérieure.
-
-[archivé] openai-three-webgl-game-skill.html
-URL : https://github.com/openai/plugins/blob/main/plugins/game-studio/skills/three-webgl-game/SKILL.md
-Usage : skill comparé à l'approche KJP ; non retenu car trop large pour la
-        migration sans changement de physique.
 
 URL EXCLUES COMME NON BIBLIOGRAPHIQUES
 --------------------------------------

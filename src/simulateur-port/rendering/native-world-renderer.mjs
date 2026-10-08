@@ -20,11 +20,11 @@ export function createNativeWorldRenderer(definition, {
   const layers = new Map();
   try {
     if (playerDefinition) {
-      if (typeof playerFactory !== "function") throw new TypeError("Native static: fabrique joueur absente");
+      if (typeof playerFactory !== "function") throw new TypeError("Renderer Three natif : fabrique joueur absente");
       playerResources = playerFactory(playerDefinition);
     }
     if (flowDefinition) {
-      if (typeof flowFactory !== "function") throw new TypeError("Native static: fabrique de flux absente");
+      if (typeof flowFactory !== "function") throw new TypeError("Renderer Three natif : fabrique de flux absente");
       flowResources = flowFactory(flowDefinition);
     }
   } catch (error) {
@@ -152,7 +152,7 @@ export function createNativeWorldRenderer(definition, {
   }
   function replaceLayer(name, definition) {
     ensureActive();
-    if (typeof name !== "string" || !name) throw new TypeError("Native static: nom de couche invalide");
+    if (typeof name !== "string" || !name) throw new TypeError("Renderer Three natif : nom de couche invalide");
     const next = layerFactory(definition);
     const previous = layers.get(name);
     if (previous) { scene.remove(previous.group); previous.dispose(); }
@@ -169,7 +169,7 @@ export function createNativeWorldRenderer(definition, {
   }
   function attach(parent, before = null) {
     ensureActive();
-    if (!(parent instanceof Element)) throw new TypeError("Native static: conteneur absent");
+    if (!(parent instanceof Element)) throw new TypeError("Renderer Three natif : conteneur absent");
     parent.insertBefore(canvas, before);
   }
   function detach() {

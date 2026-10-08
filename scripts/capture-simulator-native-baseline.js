@@ -4,6 +4,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 const scenes = require("./simulator-render-scenes.js");
@@ -12,16 +13,33 @@ const root = path.resolve(__dirname, "..");
 const outputDirectory = path.join(root, "tests", "visual-baselines", "native");
 const update = process.argv.includes("--update");
 const htmlIndex = process.argv.indexOf("--html");
+if (htmlIndex >= 0 && (!process.argv[htmlIndex + 1] || process.argv[htmlIndex + 1].startsWith("--"))) {
+  throw new Error("Chemin --html absent");
+}
 const simulatorPath = htmlIndex >= 0
   ? path.resolve(process.argv[htmlIndex + 1])
   : path.join(root, "simulateur-port.html");
-if (htmlIndex >= 0 && !process.argv[htmlIndex + 1]) throw new Error("Chemin --html absent");
 const candidateDirectory = update
   ? outputDirectory
   : fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-baseline-candidate-"));
 const portText = fs.readFileSync(path.join(root, "examples", "la-trinite-sur-mer.kjp"), "utf8");
 const fixedTime = 12_345;
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
+
+function sourceProvenance(html) {
+  const source = { sourcePath: simulatorPath, sourceSha256: sha256(html) };
+  const relative = path.relative(root, simulatorPath);
+  if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return source;
+  try {
+    const options = { cwd: root, maxBuffer: 8 * 1024 * 1024, stdio: ["ignore", "pipe", "ignore"] };
+    const commit = execFileSync("git", ["rev-parse", "HEAD"], options).toString().trim();
+    const committed = execFileSync("git", ["show", `${commit}:${relative.split(path.sep).join("/")}`], options);
+    if (html.equals(committed)) source.sourceCommit = commit;
+  } catch {
+    // Un HTML externe ou non commité conserve son chemin et son empreinte.
+  }
+  return source;
+}
 
 async function settle(page, count = 3) {
   await page.evaluate(frames => new Promise(resolve => {
@@ -50,6 +68,7 @@ async function configure(page, scene) {
 
 async function main() {
   if (!fs.existsSync(simulatorPath)) throw new Error(`HTML absent : ${simulatorPath}`);
+  const provenance = sourceProvenance(fs.readFileSync(simulatorPath));
   fs.mkdirSync(candidateDirectory, { recursive: true });
   const browser = await chromium.launch({ headless: true });
   const results = [];
@@ -93,8 +112,7 @@ async function main() {
   const manifest = {
     schemaVersion: 1,
     renderer: "three-native",
-    sourceTag: "threejs-migration-legacy-final",
-    sourceCommit: "78fb7d148fe065d6fa2479dc8c1eaae151f755e1",
+    ...provenance,
     browser: `Chromium ${browser.version()}`,
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,

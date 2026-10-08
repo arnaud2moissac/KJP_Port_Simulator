@@ -200,10 +200,8 @@ async function visualMetrics(page, reference, candidate, transform = "none") {
       metrics,
       gates: {
         presence: a.count > 20 && b.count >= Math.max(20, a.count * .65) && b.count <= a.count * 1.4,
-        // La forme GLB validée du joueur remplace la coque procédurale Legacy.
-        // Le gabarit du modèle est contrôlé séparément dans native-player.test.js ;
-        // ce seuil monde doit détecter une omission ou un déplacement sans
-        // imposer l'ancienne surface de coque pixel par pixel au natif.
+        // Le gabarit GLB est contrôlé séparément dans native-player.test.js ;
+        // ce seuil monde détecte une omission ou un déplacement du joueur.
         alignment: metrics.coverageRecall >= .80 && metrics.centerDx <= .16 && metrics.centerDy <= .16,
         scale: metrics.widthRatio >= .65 && metrics.widthRatio <= 1.4 && metrics.heightRatio >= .65 && metrics.heightRatio <= 1.4,
         stroke: b.edges >= 20 && metrics.edgeRatio >= .50 && metrics.edgeRatio <= 2
@@ -215,7 +213,7 @@ async function visualMetrics(page, reference, candidate, transform = "none") {
 test("renderer natif — références sémantiques, DPR et mutations", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
-  const output = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-n5-"));
+  const output = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-qualification-"));
   const cases = [
     ...scenes.map(scene => ({ scene, dpr: 1 })),
     ...scenes.filter(scene => ["built-in-dark-top-navigation", "built-in-chart-skipper-navigation"].includes(scene.id))

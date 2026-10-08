@@ -5,7 +5,6 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 
@@ -17,14 +16,11 @@ const headless = process.argv.includes("--headless");
 const allowSoftware = process.argv.includes("--allow-software");
 const referenceIndex = process.argv.indexOf("--reference");
 const explicitReference = referenceIndex >= 0 ? process.argv[referenceIndex + 1] : null;
-if (referenceIndex >= 0 && !explicitReference) throw new Error("Chemin --reference absent");
-const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-profile-"));
-const referencePath = explicitReference ? path.resolve(explicitReference) : path.join(temporary, "reference.html");
-if (!explicitReference) {
-  fs.writeFileSync(referencePath, execFileSync("git", [
-    "show", "threejs-migration-legacy-final:simulateur-port.html"
-  ], { cwd: root, maxBuffer: 8 * 1024 * 1024 }));
+if (!explicitReference || explicitReference.startsWith("--")) {
+  throw new Error("Référence HTML requise : utiliser --reference <HTML>");
 }
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "kjp-native-profile-"));
+const referencePath = path.resolve(explicitReference);
 const warmupFrames = quick ? 8 : 30;
 const measuredFrames = quick ? 30 : 120;
 const repetitions = quick ? 1 : 3;
@@ -165,7 +161,7 @@ async function main() {
   const ratios = pairs.map(pair => pair.p95Ratio).sort((a, b) => a - b);
   const report = {
     schemaVersion: 2,
-    reference: "threejs-migration-legacy-final",
+    reference: referencePath,
     candidate: path.relative(root, candidatePath),
     artifacts: {
       referenceSha256: sha256(fs.readFileSync(referencePath)),
