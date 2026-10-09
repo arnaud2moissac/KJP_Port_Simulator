@@ -111,7 +111,9 @@ For stern-to berthing, first control the stern with stern lines. Then tap the pi
 
 ## Adjusting wind, current and the boat
 
-Wind and current are defined by speed and the direction **they come from**. Start without disturbances, then add one condition at a time to identify its effect.
+Wind and current are set by speed and their **direction of travel**. The on-screen readings and arrows show the same direction: 000° towards north, 090° east, 180° south and 270° west. Start without disturbances, then add one condition at a time to identify its effect.
+
+Wind appears as thin filaments with fading trails; current appears as translucent tapered shapes with open arrowheads, below the wind. Each field is uniform across the water. Particles travel at the flow speed and follow simulation time: pause freezes them and ×2 speeds up their movement. Their length is adjusted for readability. In the light theme, wind has stronger contrast and current uses a softer blue; Understand dims both to keep forces readable. These displays do not change the physics engine.
 
 **Right-handed propeller** adjusts prop walk: astern it tends to push the stern to port. **Expert calibration** adjusts loaded mass, windage, rudder effectiveness, lateral resistance and the maximum speed allowed for line attachment. Keep defaults while learning, then change one setting at a time to represent another boat or situation.
 

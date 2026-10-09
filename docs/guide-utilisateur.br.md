@@ -109,7 +109,9 @@ Evit stagañ penn a-dreñv ouzh ar c'hae, reolit da gentañ penn a-dreñv ar vag
 
 ## Reoliñ an avel, ar redenn hag ar vag
 
-An avel hag ar redenn a vez termenet dre o nerzh ha dre an tu **ma teuont anezhañ**. Krogit hep direizhderioù, ha goude ouzhpennit un aoz hepken. Evel-se e c'hallit liammañ ar respont gwellet ouzh ar pennkaoz reizh.
+An avel hag ar redenn a vez reoliet dre o nerzh ha dre an tu **ma'z eont**. An titouroù war ar skramm hag ar biroù a ziskouez an hevelep tu : 000° etrezek an norzh, 090° etrezek ar reter, 180° etrezek ar su ha 270° etrezek ar c'hornôg. Krogit hep direizhderioù, ha goude ouzhpennit un aoz hepken. Evel-se e c'hallit liammañ ar respont gwellet ouzh ar pennkaoz reizh.
+
+An avel a vez diskouezet gant neudennigoù ha roudoù o vont da get ; ar redenn gant stummoù hir ha treuzwelus gant ur beg digor, dindan an avel. Unvan eo pep hini war an holl gorread dour. An elfennoù a zilec'h gant tizh an avel pe ar redenn ha gant amzer an drevezadur : ar pausa a baouez anezho ha ×2 a buana o dilec'hiadur. Azasaet eo o hirder evit ma vo aes o lenn. En tem sklaer e weler gwelloc'h an avel hag ur glas dousoc'h a vez implijet evit ar redenn ; e Kompren e vez diskretoc'h an daou evit lezel an nerzhioù lennus. Ne cheñch ket ar c'heflusker fizik gant an diskouezadurioù-se.
 
 An arventenn **Rod-viñs dehou** a reol efed ar paz : a-dreñv, tennañ a ra da gas penn a-dreñv ar vag da vabourzh. Ar rann **Kalibradur arbennik** a ro tro da azasaat ar mas karget, ar fardellad, efedusted al lev, ar rezistañs a-gostez hag an tizh uhelañ aotreet da stagañ un oser. Mirit an talvoudoù kinniget evit dizoleiñ an drevezer ; goude cheñchit anezho unan hag unan da ziskouez ur vag pe un degouezh disheñvel.
 

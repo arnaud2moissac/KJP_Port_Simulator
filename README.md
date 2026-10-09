@@ -19,6 +19,12 @@ ou
 
 Le [guide utilisateur](docs/guide-utilisateur.md) présente la prise en main, les aussières, les pendilles méditerranéennes et les principes du moteur physique sans répéter toute l'interface.
 
+Le rendu intégré à `main` le 9 octobre 2026 représente le vent par des filaments
+à traînée progressive et le courant par des fuseaux translucides à pointe ouverte.
+Les réglages et les indicateurs affichent leur direction de déplacement. Cette
+évolution graphique conserve le moteur physique ; son contrat et ses contrôles
+sont décrits dans [la documentation du renderer](docs/renderer-three.md).
+
 Pour créer un port, ouvrez `generateur-port.html`, dessinez ou analysez une zone OpenStreetMap, définissez son entrée, puis exportez un fichier `.kjp`. La structure du format est décrite dans [ports/KJP.md](ports/KJP.md).
 
 https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html

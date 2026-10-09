@@ -109,7 +109,9 @@ Pour un amarrage cul au quai, commencez par contrôler la poupe avec les aussiè
 
 ## Régler le vent, le courant et le bateau
 
-Le vent et le courant sont définis par leur force et par la direction **d'où ils viennent**. Commencez sans perturbation, puis ajoutez une seule condition. Cette méthode permet d'attribuer la réaction observée à la bonne cause.
+Le vent et le courant se règlent par leur force et par leur **direction de déplacement**. Les indications à l'écran et leurs flèches montrent ce même sens : 000° vers le nord, 090° vers l'est, 180° vers le sud et 270° vers l'ouest. Commencez sans perturbation, puis ajoutez une seule condition. Cette méthode permet d'attribuer la réaction observée à la bonne cause.
+
+Le vent apparaît sous forme de filaments avec une traînée progressive ; le courant, sous forme de fuseaux translucides à pointe ouverte, sous le vent. Chaque champ est uniforme sur tout le plan d'eau. Les particules se déplacent à la vitesse du flux et suivent le temps de simulation : la pause les fige et ×2 accélère leur déplacement. Leur longueur est adaptée à la lisibilité. En thème clair, le vent est plus contrasté et le courant bleu adouci ; dans Comprendre, les deux sont atténués pour laisser les forces lisibles. Ces représentations ne changent pas le moteur physique.
 
 Le réglage **Hélice droitière** dose l'effet de pas : en marche arrière, il tend à chasser la poupe vers bâbord. La section **Calibration experte** permet d'adapter la masse en charge, le fardage, l'efficacité du safran, la résistance latérale et la vitesse maximale autorisée pour frapper une aussière. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
 

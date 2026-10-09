@@ -59,6 +59,70 @@ diagnostic explicite puis activer le painter Canvas 2D. Le canvas natif est lib�
 le routage ne remplace ni n'avance l'état physique. Un joueur invisible ne constitue
 pas un secours acceptable : l'erreur asynchrone du GLB doit être relayée au produit.
 
+## Vent et courant intégrés — 9 octobre 2026
+
+Le rendu de particules validé sur `codex/wind-particles-prototype` est intégré
+à `main` au commit `e22b49b15b661df5b855e7611b815d2e65312c6d`. Il remplace
+les traits natifs de vent et les segments natifs de courant. Le moteur physique,
+les profils et le format des ports restent inchangés.
+
+`rendering/native-flow-resources.mjs` possède les rubans instanciés, leurs graines
+déterministes et leurs buffers persistants. `nativeFlowPresentation()` transmet
+les vecteurs existants en m/s, le temps KJP, le domaine visible et la palette.
+L'advection, les dégradés et les apparitions/disparitions sont calculés dans le
+shader ; aucun segment CPU n'est reconstruit pour ces deux champs natifs.
+Chaque champ visible tient dans un appel de dessin GPU.
+
+| Champ | Présentation | Plafond d'instances | Longueur apparente maximale | Plan monde |
+| --- | --- | --- | --- | --- |
+| Vent | filaments fins, queue transparente et tête discrète | 256 | 35 px CSS | `z=0,03 m` |
+| Courant | fuseau translucide et pointe ouverte | 128 | 70 px CSS | `z=0,01 m` |
+
+Toutes les particules d'un champ suivent le même vecteur, sans turbulence ni
+variation locale de vitesse. Leur déplacement suit la vitesse réelle et le temps
+simulé ; leur longueur est une échelle visuelle pour la lecture. Pour le vent,
+0,5 nd reprend la longueur de l'ancien réglage à 5 nd, tandis que 12 nd conserve
+sa longueur validée. La progression est linéaire entre ces deux repères, avec un
+raccord vers zéro sous 0,5 nd et le plafond apparent au zoom.
+
+La pause fige les particules et ×2 suit l'horloge KJP. Avec la préférence de
+mouvement réduit, leur présentation reste statique. Un flux nul est masqué
+(seuil visuel de 0,02 m/s). Une nouvelle direction réoriente immédiatement les
+particules ; l'advection analytique peut aussi les repositionner lors d'un
+changement de vitesse ou de direction. Le domaine se répète avec une disparition
+aux frontières pour éviter une traînée reliant artificiellement deux bords.
+
+Le courant est sous le vent. Les deux champs respectent la profondeur des coques
+et infrastructures, sans écrire dans le tampon de profondeur. Le Canvas supérieur,
+les aussières, les pare-battages et le picking conservent leur priorité.
+
+| Thème Navigation | Vent : teinte / opacité globale | Courant : teinte / opacité globale |
+| --- | --- | --- |
+| Sombre | `#62DBE3` / 58 % | `#20518F` / 100 % |
+| Carte clair | `#00617A` / 100 % | `#537E9B` / 48 % |
+
+Le shader module encore ces opacités selon la forme, la traînée et le cycle de vie.
+L'indicateur de courant reprend sa teinte de particules dans chaque thème.
+Comprendre atténue les flux pour préserver la lecture des forces ; l'opacité globale
+du courant y est de 32 % en sombre et de 18 % en clair. Le secours Canvas conserve
+sa représentation antérieure et ses diagnostics. Les ressources de particules sont
+libérées avec le backend.
+
+Les contrôles d'intégration du 9 octobre ont validé le build, les traductions,
+les six tests de ressources et les huit cas de commandes. Les tests GPU contrôlent
+le déplacement signé, le flux nul, les plafonds, l'occlusion et un appel de dessin
+par champ. Le profil CPU apparié sur Apple M1 n'a pas montré de dégradation des
+temps de rendu ; les snapshots physiques et les caméras comparés étaient identiques.
+Ce contrôle ciblé ne constitue pas une qualification complète de release.
+
+La suite `test:renderer:quick` brute reste à 2/9 : cinq assertions de fonctionnement
+sans requête externe rencontrent le script Analytics et deux tests recherchent des
+libellés français dans un navigateur en anglais. Sur une copie temporaire sans
+le script Analytics et avec `fr-FR`, 8/9 passent. L'échec restant concerne le clic
+à l'origine commune « Moteur / Pas d'hélice » dans Comprendre ; il a été reproduit
+à l'identique sur le HTML de `main` avant intégration. Les assertions et les
+références visuelles historiques n'ont pas été modifiées pour obtenir un succès.
+
 ## Joueur et mode Comprendre
 
 Le GLB joueur est chargé une fois, sa géométrie reste partagée et son calage local
