@@ -27,10 +27,12 @@ function checkedPoint(point) {
   return point;
 }
 
-// Le vent uniforme permet une advection analytique : seuls les uniforms changent.
+// Les flux uniformes permettent une advection analytique : seuls les uniforms changent.
 // Les rubans restent au plan d'eau, derrière les coques et les pontons.
-function createWindRecord(field) {
-  if (field.capacity > 256) throw new RangeError("Vent natif : capacité maximale 256");
+function createParticleRecord(field) {
+  const current = field.kind === "arrows";
+  const limit = current ? 128 : 256;
+  if (field.capacity > limit) throw new RangeError(`Flux natif : capacité maximale ${limit}`);
   const geometry = new InstancedBufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute([
     0, -1, 0, 1, -1, 0, 1, 1, 0, 0, 1, 0
@@ -42,39 +44,47 @@ function createWindRecord(field) {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
     seeds[index] = seed / 4294967296;
   }
+  // Décaler la grille du courant évite de superposer les têtes des deux champs.
+  if (current) for (let index = 0; index < seeds.length; index += 3) {
+    seeds[index] = (seeds[index] + .317) % 1;
+    seeds[index + 1] = (seeds[index + 1] + .419) % 1;
+  }
   geometry.setAttribute("seed", new InstancedBufferAttribute(seeds, 3));
   geometry.instanceCount = 0;
   const material = new ShaderMaterial({
     transparent: true, depthTest: true, depthWrite: false, side: DoubleSide,
     toneMapped: false,
     uniforms: {
-      wind: { value: new Vector2() }, time: { value: 0 },
+      velocity: { value: new Vector2() }, time: { value: 0 },
       domainMin: { value: new Vector2() }, domainSize: { value: new Vector2(1, 1) },
       resolution: { value: new Vector2(1, 1) }, nearClip: { value: .035 },
       width: { value: field.width }, tint: { value: new Color() }, opacity: { value: 0 }
     },
     vertexShader: /* glsl */`
       attribute vec3 seed;
-      uniform vec2 wind, domainMin, domainSize, resolution;
+      uniform vec2 velocity, domainMin, domainSize, resolution;
       uniform float time, width, nearClip;
       varying vec2 ribbon;
+      varying vec2 particleSize;
       varying float visibility;
       void main() {
-        vec2 offset = mod(seed.xy * domainSize + wind * time - domainMin, domainSize);
+        vec2 offset = mod(seed.xy * domainSize + velocity * time - domainMin, domainSize);
         vec2 head = domainMin + offset;
+        ${current ? "vec2 trail = velocity * 8.5;" : /* glsl */`
         // Progression linéaire : 0,5 nd reprend la longueur de l'ancien 5 nd,
         // et 12 nd garde sa longueur. Sous 0,5 nd, la queue tend vers zéro.
-        float speedKn = length(wind) / .514444;
+        float speedKn = length(velocity) / .514444;
         float referenceKn = mix(5., 12., max(0., (speedKn - .5) / 11.5));
         float trailScale = referenceKn / max(speedKn, .5);
-        vec2 trail = wind * (.2 * trailScale);
+        vec2 trail = velocity * (.2 * trailScale);
+        `}
         // Une queue ne rejoint jamais l'autre bord du domaine périodique.
         vec2 edge = min(offset, domainSize - offset);
         float boundary = smoothstep(0., max(.15, length(trail)), min(edge.x, edge.y));
         float age = fract(seed.z + time / 8.);
         visibility = boundary * smoothstep(0., .12, age) * (1. - smoothstep(.8, 1., age));
-        vec4 headView = modelViewMatrix * vec4(head, .03, 1.);
-        vec4 tailView = modelViewMatrix * vec4(head - trail, .03, 1.);
+        vec4 headView = modelViewMatrix * vec4(head, ${current ? ".01" : ".03"}, 1.);
+        vec4 tailView = modelViewMatrix * vec4(head - trail, ${current ? ".01" : ".03"}, 1.);
         if (headView.z >= -nearClip) {
           visibility = 0.;
           gl_Position = vec4(2., 2., 2., 1.);
@@ -89,8 +99,8 @@ function createWindRecord(field) {
         vec4 tailClip = projectionMatrix * tailView;
         vec2 delta = (headClip.xy / headClip.w - tailClip.xy / tailClip.w) * resolution * .5;
         float pixels = length(delta);
-        // 35 px maximum, quelle que soit la distance de la caméra.
-        float screenRatio = min(1., 35. / max(pixels, .001));
+        // Longueur apparente bornée, quelle que soit la distance de la caméra.
+        float screenRatio = min(1., ${current ? "70." : "35."} / max(pixels, .001));
         float worldRatio = screenRatio * headClip.w / mix(tailClip.w, headClip.w, screenRatio);
         tailClip = mix(headClip, tailClip, worldRatio);
         vec2 normal = vec2(-delta.y, delta.x) / max(pixels, .001);
@@ -98,9 +108,39 @@ function createWindRecord(field) {
         clip.xy += normal * position.y * width / resolution * clip.w;
         gl_Position = clip;
         ribbon = position.xy;
+        particleSize = vec2(min(pixels, ${current ? "70." : "35."}), width * .5);
       }
     `,
-    fragmentShader: /* glsl */`
+    fragmentShader: current ? /* glsl */`
+      uniform vec3 tint;
+      uniform float opacity;
+      varying vec2 ribbon, particleSize;
+      varying float visibility;
+      float segmentDistance(vec2 p, vec2 a, vec2 b) {
+        vec2 ab = b - a;
+        return length(p - a - ab * clamp(dot(p - a, ab) / max(dot(ab, ab), .001), 0., 1.));
+      }
+      void main() {
+        float x = ribbon.x;
+        float taper = min(pow(clamp(x / .43, 0., 1.), .72), 1. - smoothstep(.73, .90, x));
+        float halfWidth = .77 * taper;
+        float aa = max(fwidth(ribbon.y), .025);
+        float fill = (1. - smoothstep(halfWidth - aa, halfWidth + aa, abs(ribbon.y))) * step(x, .90);
+        vec2 p = ribbon * particleSize;
+        float spine = (1. - smoothstep(.30, .70, abs(p.y)))
+          * smoothstep(.04, .20, x) * (1. - smoothstep(.83, .90, x));
+        // Corps de la variante 2, pointe ouverte de la variante 3 (1,75 px).
+        float tip = particleSize.x * .995;
+        float base = max(0., tip - 5.28);
+        float side = min(particleSize.y * .87, 2.784);
+        float d = min(segmentDistance(p, vec2(base, side), vec2(tip, 0.)),
+                      segmentDistance(p, vec2(base, -side), vec2(tip, 0.)));
+        float head = 1. - smoothstep(.875, 1.525, d);
+        float alpha = max(fill * .38, max(spine * .40, head));
+        gl_FragColor = vec4(tint, opacity * alpha * visibility);
+        #include <colorspace_fragment>
+      }
+    ` : /* glsl */`
       uniform vec3 tint;
       uniform float opacity;
       varying vec2 ribbon;
@@ -115,10 +155,10 @@ function createWindRecord(field) {
   });
   applyColor(material, field.color);
   const object = new Mesh(geometry, material);
-  return { object, geometry, material, capacity: field.capacity, count: 0, updates: 0, kind: "filaments" };
+  return { object, geometry, material, capacity: field.capacity, count: 0, updates: 0, kind: field.kind };
 }
 
-function updateWind(record, field, viewport) {
+function updateParticles(record, field, viewport) {
   const { vector, time, domain, count } = field;
   if (!Array.isArray(vector) || vector.length !== 2 || !vector.every(Number.isFinite)
     || !Number.isFinite(time) || time < 0 || !domain
@@ -127,10 +167,10 @@ function updateWind(record, field, viewport) {
     || !Number.isInteger(count) || count < 0 || count > record.capacity
     || !viewport || ![viewport.width, viewport.height, viewport.near].every(Number.isFinite)
     || viewport.width <= 0 || viewport.height <= 0 || viewport.near <= 0) {
-    throw new TypeError("Vent natif : présentation invalide");
+    throw new TypeError("Flux natif : présentation invalide");
   }
   const u = record.material.uniforms;
-  u.wind.value.fromArray(vector);
+  u.velocity.value.fromArray(vector);
   u.time.value = time;
   u.domainMin.value.set(domain.minX, domain.minY);
   u.domainSize.value.set(domain.width, domain.height);
@@ -156,11 +196,12 @@ export function createNativeFlowResources({ fields }) {
         || !Number.isFinite(field.width) || field.width <= 0) {
         throw new TypeError("Flux natif : champ invalide");
       }
-      if (field.id === "wind" && field.kind === "filaments") {
-        const record = createWindRecord(field);
-        record.object.name = "flow:wind";
-        record.object.userData = { owner: "flow:wind", family: "flow", kind: "filaments" };
-        record.object.renderOrder = -2;
+      if ((field.id === "wind" && field.kind === "filaments")
+        || (field.id === "current" && field.kind === "arrows")) {
+        const record = createParticleRecord(field);
+        record.object.name = `flow:${field.id}`;
+        record.object.userData = { owner: `flow:${field.id}`, family: "flow", kind: field.kind };
+        record.object.renderOrder = field.id === "current" ? -3 : -2;
         record.object.frustumCulled = false;
         group.add(record.object);
         records.set(field.id, record);
@@ -215,8 +256,8 @@ export function createNativeFlowResources({ fields }) {
       }
       presented.add(field.id);
       applyColor(record.material, field.color);
-      if (record.kind === "filaments") {
-        updateWind(record, field, viewport);
+      if (record.kind) {
+        updateParticles(record, field, viewport);
         continue;
       }
       if (!Array.isArray(field.segments)) throw new TypeError("Flux natif : segments absents");
@@ -247,7 +288,7 @@ export function createNativeFlowResources({ fields }) {
   function report() {
     if (disposed) throw new Error("Flux natif : ressources libérées");
     return Object.fromEntries([...records].map(([id, record]) => {
-      const buffer = record.kind === "filaments"
+      const buffer = record.kind
         ? record.geometry.attributes.seed : record.geometry.attributes.instanceStart.data;
       return [id, {
         capacity: record.capacity,
@@ -256,9 +297,9 @@ export function createNativeFlowResources({ fields }) {
         bufferBytes: buffer.array.byteLength,
         bufferVersion: buffer.version,
         geometry: record.geometry.uuid,
-        ...(record.kind === "filaments" ? {
+        ...(record.kind ? {
           kind: record.kind, particles: record.count, drawCalls: record.count ? 1 : 0,
-          vector: record.material.uniforms.wind.value.toArray(),
+          vector: record.material.uniforms.velocity.value.toArray(),
           time: record.material.uniforms.time.value
         } : {})
       }];

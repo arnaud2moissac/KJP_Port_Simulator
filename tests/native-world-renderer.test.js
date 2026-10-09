@@ -34,7 +34,8 @@ const persistentGeometry = report => report.resources
       bytes: attribute.bytes
     })) }));
 
-test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul draw", async t => {
+for (const fieldId of ["wind", "current"])
+  test(`${fieldId} GPU — déplacement signé, longueur bornée, occlusion et un seul draw`, async t => {
   const { build } = require("esbuild");
   const bundle = await build({
     stdin: { resolveDir: path.resolve(__dirname, ".."), contents: `
@@ -51,10 +52,10 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
   await page.setContent("<!doctype html><body></body>");
   await page.addScriptTag({ content: bundle.outputFiles[0].text });
-  const results = await page.evaluate(() => {
+  const results = await page.evaluate(fieldId => {
     const P = windProbe;
-    const resources = P.createNativeFlowResources({ fields: [{ id: "wind", kind: "filaments",
-      capacity: 256, width: 2.1, color: "rgba(98,219,227,.58)" }] });
+    const resources = P.createNativeFlowResources({ fields: [{ id: fieldId, kind: fieldId === "wind" ? "filaments" : "arrows",
+      capacity: 128, width: fieldId === "wind" ? 2.1 : 7.8, color: "rgba(98,219,227,.58)" }] });
     const scene = new P.Scene();
     scene.add(resources.group);
     const renderer = new P.WebGLRenderer({ alpha: true, antialias: false });
@@ -65,7 +66,7 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
     camera.position.set(x, y, 10); camera.lookAt(x, y, 0);
     const pixels = new Uint8Array(400 * 400 * 4);
     const capture = (vector, time) => {
-      resources.update({ fields: [{ id: "wind", color: "rgba(98,219,227,.58)", vector, time,
+      resources.update({ fields: [{ id: fieldId, color: "rgba(98,219,227,.58)", vector, time,
         domain: { minX: 0, minY: 0, width: 500, height: 500 }, count: 1 }] },
       { width: 400, height: 400, near: .035 });
       renderer.render(scene, camera);
@@ -87,15 +88,18 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
       vector, before: capture(vector, 0), after: capture(vector, .1)
     }));
     const calm = capture([0,0], 0);
-    const lengths = [.25, .5, 1, 6.25, 12, 24].map(knots => ({ knots, ...capture([knots * .514444, 0], 0) }));
+    const lengths = (fieldId === "wind" ? [.25, .5, 1, 6.25, 12, 24] : [.1, .5, 1.4, 2.5]).map(knots => ({ knots, ...capture([knots * .514444, 0], 0) }));
     const zoomed = capture([40,0], 0);
     const cover = new P.Mesh(new P.PlaneGeometry(40, 40), new P.MeshBasicMaterial({ color: 0x224466 }));
     cover.position.set(x, y, 1); scene.add(cover);
     capture([0,0], 0); const opaque = [...pixels];
     capture([4,0], 0); const occluded = pixels.every((value, index) => value === opaque[index]);
+    cover.position.z = .02;
+    capture([0,0], 0); const waterSurface = [...pixels];
+    capture([4,0], 0); const belowWind = pixels.every((value, index) => value === waterSurface[index]);
     resources.dispose(); cover.geometry.dispose(); cover.material.dispose(); renderer.dispose();
-    return { directions, calm, lengths, zoomed, occluded };
-  });
+    return { directions, calm, lengths, zoomed, occluded, belowWind };
+  }, fieldId);
   for (const { vector, before, after } of results.directions) {
     assert.ok(before.mass > 0 && after.mass > 0);
     assert.ok(Math.abs(after.x - before.x - vector[0] * 2) < .7, JSON.stringify({ vector, before, after }));
@@ -107,14 +111,17 @@ test("vent GPU — déplacement signé, longueur bornée, occlusion et un seul d
   assert.equal(results.calm.calls, 0);
   // Longueurs métriques des deux repères, du milieu et du raccord vers le calme.
   // À 24 nd le plafond visuel reste de 35 px (caméra à 20 px/m).
-  const expectedLengths = [.257222, .514444, .54575885217, .8745548, 1.2346656, 1.75];
+  const expectedLengths = fieldId === "wind"
+    ? [.257222, .514444, .54575885217, .8745548, 1.2346656, 1.75]
+    : [.4372774, 2.186387, 3.5, 3.5];
   for (const [index, { knots, width, mass }] of results.lengths.entries()) {
     const expected = expectedLengths[index] * 20;
     assert.ok(mass > 0, `vent visible à ${knots} nd`);
     assert.ok(Math.abs(width - expected) <= 1, `${knots} nd : ${width} px au lieu de ${expected}`);
   }
-  assert.ok(results.zoomed.width <= 36, "traînée plafonnée à 35 pixels plus rasterisation");
+  assert.ok(results.zoomed.width <= (fieldId === "wind" ? 36 : 71), "longueur apparente plafonnée");
   assert.equal(results.occluded, true, "un objet opaque masque entièrement les filaments derrière lui");
+  assert.equal(results.belowWind, fieldId === "current", "le courant est sous le plan du vent");
   assert.deepEqual(errors, []);
 });
 
@@ -369,6 +376,9 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   assert.equal(flowing.flow.wind.drawCalls, 1);
   assert.ok(flowing.flow.wind.particles <= 256);
   assert.ok(flowing.flow.current.segments > 0);
+  assert.equal(flowing.flow.current.kind, "arrows");
+  assert.equal(flowing.flow.current.drawCalls, 1);
+  assert.ok(flowing.flow.current.particles <= 128);
   assert.ok(flowing.player.understanding.forceCount > 0);
   assert.deepEqual(persistentGeometry(flowing), persistentGeometry(afterMotion));
   const windGeometry = report => report.resources.find(resource => resource.role === "flow:wind");
@@ -381,10 +391,16 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
   assert.deepEqual(pausedWind.snapshot, windSnapshot, "le shader ne change aucun état physique");
   assert.deepEqual(pausedWind.world.flow.wind, flowing.flow.wind, "le vent reste figé en pause");
   assert.deepEqual(windGeometry(pausedWind.world), windGeometry(flowing));
+  const currentGeometry = report => report.resources.find(resource => resource.role === "flow:current");
+  assert.deepEqual(pausedWind.world.flow.current, flowing.flow.current, "le courant reste figé en pause");
+  assert.deepEqual(currentGeometry(pausedWind.world), currentGeometry(flowing));
   await page.evaluate(() => window.__PORTANCE_TEST__.advance(.3));
   await settle(page, 3);
   const advectedWind = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
   assert.ok(advectedWind.flow.wind.time > flowing.flow.wind.time);
+  assert.ok(advectedWind.flow.current.time > flowing.flow.current.time);
+  assert.deepEqual(currentGeometry(advectedWind), currentGeometry(flowing),
+    "l'advection GPU ne transfère pas les buffers du courant");
   assert.deepEqual(windGeometry(advectedWind), windGeometry(flowing),
     "l'advection GPU ne transfère pas les buffers du vent");
   assert.deepEqual(advectedWind.flow.wind.vector, flowing.flow.wind.vector,

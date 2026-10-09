@@ -828,7 +828,7 @@
       transform: rotate(var(--rotation));
     }
 
-    .flow-arrow.current { color: var(--amber); }
+    .flow-arrow.current { color: #20518F; }
     .flow-arrow.mooring {
       color: var(--amber);
       transform: none;
@@ -1681,6 +1681,8 @@
       background: linear-gradient(145deg, #f3f6f3, #e5eeeb);
     }
 
+    body[data-visual-theme="chart"] .flow-arrow.current { color: #537E9B; }
+
     body[data-visual-theme="chart"] .brand-mark {
       border-color: rgba(0, 107, 130, .34);
       background: #fff;
@@ -2475,6 +2477,7 @@
           windTrail: "rgba(98,219,227,.58)",
           current: "#f0b763",
           currentTrail: "rgba(240,183,99,.54)",
+          currentParticle: "rgba(32,81,143,1)",
           force: "#82d1a0",
           propWalk: "#f0b763",
           contact: "#ff8c79",
@@ -2590,10 +2593,11 @@
           majorColor: "rgba(23,47,56,.42)"
         },
         semantic: {
-          wind: "#006b82",
-          windTrail: "rgba(0,83,104,.64)",
+          wind: "#00617A",
+          windTrail: "rgba(0,97,122,1)",
           current: "#914900",
           currentTrail: "rgba(124,58,0,.62)",
+          currentParticle: "rgba(83,126,155,.48)",
           force: "#37651f",
           propWalk: "#914900",
           contact: "#a9232c",
@@ -6692,10 +6696,6 @@
       };
     }
 
-    function flowSegments(field) {
-      return field.paths.flatMap(path => path.points.slice(1).map((point, index) => [path.points[index], point]));
-    }
-
     function drawFlowParticles(simulationSeconds) {
       const presentation = flowParticlePresentation(simulationSeconds);
       for (const field of presentation.fields) {
@@ -6710,13 +6710,13 @@
         fields: [
           { id: "wind", color: visualPalette().semantic.windTrail,
             kind: "filaments", width: 2.1, capacity: 256 },
-          { id: "current", color: visualPalette().semantic.currentTrail,
-            width: FLOW_VISUAL.current.width, capacity: 24 * (CURRENT_WAVE_PROFILE.length - 1) }
+          { id: "current", color: visualPalette().semantic.currentParticle,
+            kind: "arrows", width: 7.8, capacity: 128 }
         ]
       };
     }
 
-    function nativeWindDomain() {
+    function nativeFlowDomain(planeZ = .03) {
       const fallback = () => {
         const domain = flowParticleDomain();
         return { minX: domain.centered ? domain.centerX - domain.width / 2 : domain.minX,
@@ -6734,7 +6734,7 @@
           + sx * canvasWidth / (2 * focal) * basis.right[axis]
           + sy * canvasHeight / (2 * focal) * basis.up[axis]);
         if (ray[2] >= -.0001) return fallback();
-        const distance = (.03 - basis.position[2]) / ray[2];
+        const distance = (planeZ - basis.position[2]) / ray[2];
         const x = basis.position[0] + ray[0] * distance;
         const y = basis.position[1] + ray[1] * distance;
         minX = Math.min(minX, x); maxX = Math.max(maxX, x);
@@ -6745,25 +6745,25 @@
     }
 
     function nativeFlowPresentation(simulationSeconds) {
-      const presentation = flowParticlePresentation(simulationSeconds, false);
       const palette = visualPalette();
       const vector = windWorldVector();
       const count = Math.hypot(...vector) < .02 ? 0
         : Math.min(256, Math.max(48, Math.round(220 * canvasWidth * canvasHeight / (1114 * 834))));
       flowRenderStats.windSegments = count;
+      const currentVector = currentWorldVector();
+      const currentCount = Math.hypot(...currentVector) < .02 ? 0
+        : Math.min(128, Math.max(16, Math.round(58 * canvasWidth * canvasHeight / (1114 * 934))));
+      flowRenderStats.currentSegments = currentCount;
       return {
         fields: [{ id: "wind", color: ui.mode === "understand"
           ? palette.wireframe.muted : palette.semantic.windTrail,
           vector, time: reducedMotion ? 0 : simulationSeconds,
-          domain: nativeWindDomain(), count }, ...presentation.fields.filter(field => field.id === "current").map(field => {
-          const segments = flowSegments(field);
-          flowRenderStats[`${field.id}Segments`] = segments.length;
-          return {
-            id: field.id,
-            color: ui.mode === "understand" ? palette.wireframe.muted : field.color,
-            segments
-          };
-        })]
+          domain: nativeFlowDomain(), count },
+          { id: "current", color: ui.mode === "understand"
+            ? (palette.id === "chart" ? "rgba(83,126,155,.18)" : "rgba(32,81,143,.32)")
+            : palette.semantic.currentParticle,
+            vector: currentVector, time: reducedMotion ? 0 : simulationSeconds,
+            domain: nativeFlowDomain(.01), count: currentCount }]
       };
     }
 
