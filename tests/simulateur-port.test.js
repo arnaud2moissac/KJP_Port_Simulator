@@ -1839,7 +1839,7 @@ browserCase("simulator:moorings.22", async ({ page, browser, context, runtimeErr
       const released = api.releasePendille("pendille-med-2");
       const clear = released.snapshot.pendilles.find(item => item.id === "pendille-med-2");
       api.reset({ x: -90, y: 37.5, heading: -Math.PI / 2 });
-      const pickup = api.pickupPendille("pendille-med-2", "bow-starboard");
+      const pickup = api.pickupPendille("pendille-med-2", "stern-starboard");
       const secured = api.advance(12);
       return {
         initial,
@@ -1862,6 +1862,7 @@ browserCase("simulator:moorings.22", async ({ page, browser, context, runtimeErr
     assert.equal(result.clear.danger, false);
     assert.equal(result.pickup.ok, true);
     assert.equal(result.securedPendille.state, "secured");
+    assert.equal(result.securedPendille.boatCleatId, "stern-starboard");
     assert.equal(result.securedLine.sourceType, "pendille");
     assert.equal(result.securedLine.workingLoadN, 12000);
     assert.ok(result.securedLine.maximumLength > 20);

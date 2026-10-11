@@ -143,7 +143,9 @@ Usage : organisation qualitative des pannes et contexte du port de La Trinité.
 
 [archivé] rya-med-mooring.html
 URL : https://www.rya.org.uk/boating-abroad/med-mooring-stern-to/
-Usage : contexte pédagogique de manoeuvre arrière et d'amarrage arrière.
+Usage : audit pédagogique des pendilles : amarrage arrière ou avant au quai,
+        reprise de la ligne légère, ordre des amarres sous vent traversier et
+        réglage final de la pendille pour tenir le bateau écarté du quai.
 
 DONNEES PORTUAIRES, CARTOGRAPHIE ET LICENCES
 --------------------------------------------

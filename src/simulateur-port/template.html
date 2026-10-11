@@ -7938,7 +7938,6 @@
           selected
           && cleat
           && !boatCleatAtCapacity(cleat.id)
-          && (selected.connectionEnd === "stern" ? cleat.x < 0 : cleat.x > 0)
         );
       }
       if (!moorings.selected) return true;
@@ -7949,7 +7948,7 @@
     function selectMooringEndpoint(endpoint) {
       if (pendilleState.selectedId) {
         if (endpoint.type !== "boat" || !endpointEligible(endpoint)) {
-          showStageToast(msg("toast.choose.a.free.bow.cleat"));
+          showStageToast(msg("toast.choose.a.free.boat.cleat"));
           return;
         }
         const result = physicsSimulator.beginPendillePickup(pendilleState.selectedId, endpoint.id);
@@ -7960,8 +7959,8 @@
         pendilleState.selectedId = null;
         latestPhysicsSnapshot = physicsSimulator.snapshot();
         pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
-        showStageToast(msg("toast.laid.mooring.in.hand.being.carried.to.the"), "ok", 1800);
-        return;
+        showStageToast(msg("toast.laid.mooring.in.hand.being.carried.to.selected.cleat"), "ok", 1800);
+        return result;
       }
       if (!moorings.selected) {
         if (endpoint.type === "boat" && boatCleatAtCapacity(endpoint.id)) {
@@ -8820,7 +8819,7 @@
           : { level: "ok", text: msg("diagnostic.gentle.contact.with.the.fenders.they.support.the") };
       }
       if (pendilleState.selectedId) {
-        return { level: "ok", text: msg("diagnostic.pickup.selected.now.click.a.free.bow.cleat") };
+        return { level: "ok", text: msg("diagnostic.pickup.selected.now.click.a.free.boat.cleat") };
       }
       if (moorings.selected) {
         return { level: "ok", text: msg("diagnostic.first.cleat.chosen.click.a.compatible.cleat.on") };
@@ -10157,7 +10156,7 @@
           } else {
             pendilleState.selectedId = id;
             moorings.selected = null;
-            showStageToast(msg("toast.pickup.selected.choose.a.bow.cleat"), "neutral", 1600);
+            showStageToast(msg("toast.pickup.selected.choose.a.boat.cleat"), "neutral", 1600);
           }
         } else {
           tryDetachMooring(pointer.mooringHit.id);
@@ -10814,7 +10813,8 @@
           return mooringReport();
         },
         pickupPendille(id, boatCleatId) {
-          const result = physicsSimulator.beginPendillePickup(id, boatCleatId);
+          pendilleState.selectedId = id;
+          const result = selectMooringEndpoint({ type: "boat", id: boatCleatId });
           latestPhysicsSnapshot = physicsSimulator.snapshot();
           pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
           return { result, snapshot: testSnapshot() };

@@ -19,9 +19,11 @@
   const RHO_AIR = 1.225;
   const MAX_STEP = 1 / 120;
   const EPSILON = 1e-9;
-  // Portée opérationnelle de 1,5 m, augmentée de 0,3 m pour absorber le fait
-  // que la prise KJP représente le centre de sa boucle sur le ponton.
-  const PENDILLE_PICKUP_REACH_M = 1.8;
+  // Portée pédagogique calibrée à 2,5 m depuis le bord de coque afin de
+  // conserver une marge avant le contact avec le quai. Cette estimation inclut
+  // l'usage d'une gaffe et le fait que la prise KJP représente le centre de la
+  // boucle posée sur le ponton ; ce n'est pas une limite physique universelle.
+  const PENDILLE_PICKUP_REACH_M = 2.5;
   const PENDILLE_PICKUP_SPEED_LIMIT_KN = 0.6;
   const PHYSICS_VERSION = "6.0.0";
   // Quadrature de Gauss-Legendre à huit points. Elle permet d'intégrer la
@@ -1290,10 +1292,6 @@
     function securePendille(pendille, boatCleatId, explicitLength) {
       const cleat = boatCleatById(boatCleatId);
       if (!cleat) return { ok: false, reason: "taquet du bateau inconnu", reasonCode: "interaction.taquet.du.bateau.inconnu", reasonParams: {} };
-      const shouldBeBow = pendille.connectionEnd !== "stern";
-      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
-        return { ok: false, reason: shouldBeBow ? "taquet d’étrave requis" : "taquet arrière requis", reasonCode: shouldBeBow ? "interaction.cleat.bowRequired" : "interaction.cleat.sternRequired", reasonParams: {} };
-      }
       const boatPoint = localPointToWorld(state.pose, cleat.x, cleat.y);
       const verticalDelta = cleat.z - pendille.anchorPoint.z;
       const distance = Math.hypot(
@@ -1346,10 +1344,6 @@
       if (pendille.state !== "available") return { ok: false, reason: "pendille indisponible", reasonCode: "interaction.pendille.indisponible", reasonParams: {} };
       const cleat = boatCleatById(boatCleatId);
       if (!cleat) return { ok: false, reason: "taquet du bateau inconnu", reasonCode: "interaction.taquet.du.bateau.inconnu", reasonParams: {} };
-      const shouldBeBow = pendille.connectionEnd !== "stern";
-      if ((shouldBeBow && cleat.x <= 0) || (!shouldBeBow && cleat.x >= 0)) {
-        return { ok: false, reason: shouldBeBow ? "choisissez un taquet d’étrave" : "choisissez un taquet arrière", reasonCode: shouldBeBow ? "interaction.cleat.chooseBow" : "interaction.cleat.chooseStern", reasonParams: {} };
-      }
       const ground = bodyToWorld(state.velocity.u, state.velocity.v, state.pose.heading);
       const groundSpeedKn = Math.hypot(ground.east, ground.north) / KNOT;
       if (groundSpeedKn + EPSILON >= PENDILLE_PICKUP_SPEED_LIMIT_KN) {
@@ -1358,7 +1352,12 @@
       const pickup = pendillePickupGeometry(pendille.pickupPoint);
       if (!pickup.nearestCleat) return { ok: false, reason: "aucun taquet embarqué disponible", reasonCode: "interaction.aucun.taquet.embarque.disponible", reasonParams: {} };
       if (pickup.distance > PENDILLE_PICKUP_REACH_M + EPSILON) {
-        return { ok: false, reason: "la prise doit être à moins de 1,8 m du bord de coque", reasonCode: "interaction.la.prise.doit.etre.a.moins.de.1", reasonParams: {} };
+        return {
+          ok: false,
+          reason: "la prise doit être à moins de 2,5 m du bord de coque",
+          reasonCode: "interaction.pendille.pickup.tooFar",
+          reasonParams: { maximumDistance: PENDILLE_PICKUP_REACH_M }
+        };
       }
       pendille.state = "in-hand";
       activePendilleIds.add(id);

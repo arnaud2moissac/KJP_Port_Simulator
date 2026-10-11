@@ -1020,6 +1020,7 @@ test("pendilles: machine d’état déterministe, activation unilatérale et lar
 test("pendilles: la prise dépend du bord de coque et respecte strictement 0,6 nd", () => {
   const dimensions = Physics.DEFAULT_PROFILE.dimensions;
   const bowCleat = Physics.DEFAULT_PROFILE.mooring.cleats.find(cleat => cleat.id === "bow-starboard");
+  const sternCleat = Physics.DEFAULT_PROFILE.mooring.cleats.find(cleat => cleat.id === "stern-starboard");
   const baseDefinition = {
     berthId: "med-berth",
     connectionEnd: "bow",
@@ -1050,25 +1051,35 @@ test("pendilles: la prise dépend du bord de coque et respecte strictement 0,6 n
   const transomResult = createPickupSimulator("from-transom", transomPickup)
     .beginPendillePickup("from-transom", bowCleat.id);
   assert.equal(transomResult.ok, true, "le taquet d’étrave ne doit pas limiter la portée de prise");
-  assert.ok(transomResult.pendille.pickupHullDistance <= 1.8);
+  assert.ok(transomResult.pendille.pickupHullDistance <= 2.5);
   assert.ok(transomResult.pendille.transferDuration > directBowDistance * 0.8);
+
+  const bowToSimulator = createPickupSimulator("bow-to", transomPickup);
+  const bowToResult = bowToSimulator.beginPendillePickup("bow-to", sternCleat.id);
+  assert.equal(bowToResult.ok, true, "une pendille doit pouvoir être frappée à l’arrière en amarrage avant au quai");
+  for (let index = 0; index < Math.ceil((bowToResult.pendille.transferDuration + DT) / DT); index += 1) {
+    bowToSimulator.step({ throttle: 0, rudder: 0 }, DT);
+  }
+  const bowToSnapshot = bowToSimulator.snapshot();
+  assert.equal(bowToSnapshot.pendilles[0].state, "secured");
+  assert.equal(bowToSnapshot.moorings[0].boatCleatId, sternCleat.id);
 
   const maximumBeamStation = Physics.DEFAULT_PROFILE.geometry.gunwale.reduce(
     (maximum, station) => station.halfBeam > maximum.halfBeam ? station : maximum
   );
   const sidePickup = {
-    east: maximumBeamStation.halfBeam + 1.75,
+    east: maximumBeamStation.halfBeam + 2.45,
     north: maximumBeamStation.x,
     z: 0.4
   };
   const sideResult = createPickupSimulator("from-side", sidePickup)
     .beginPendillePickup("from-side", bowCleat.id);
   assert.equal(sideResult.ok, true);
-  assert.ok(Math.abs(sideResult.pendille.pickupHullDistance - 1.75) < 1e-9);
+  assert.ok(Math.abs(sideResult.pendille.pickupHullDistance - 2.45) < 1e-9);
 
   const tooFarPickup = {
     east: 0,
-    north: -(dimensions.lengthOverall / 2 + 1.81),
+    north: -(dimensions.lengthOverall / 2 + 2.51),
     z: 0.4
   };
   const tooFarResult = createPickupSimulator("too-far", tooFarPickup)
