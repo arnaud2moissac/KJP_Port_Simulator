@@ -1274,13 +1274,18 @@ browserCase("simulator:rendering.13", async ({ page, browser, context, runtimeEr
       );
     });
     await page.waitForTimeout(80);
-    const report = await page.evaluate(() => window.__PORTANCE_TEST__.visualReport());
-    assert.equal(report.flow.wind.shape, "straight");
-    assert.equal(report.flow.current.shape, "wave");
-    assert.ok(report.flow.wind.width >= 1.8);
-    assert.ok(report.flow.current.width >= 2);
-    assert.ok(report.flow.wind.renderedSegments >= 25);
-    assert.ok(report.flow.current.renderedSegments >= 200);
+    const report = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+    assert.equal(report.active, "native");
+    assert.equal(report.glError, 0);
+    assert.equal(report.flow.wind.kind, "filaments");
+    assert.equal(report.flow.current.kind, "arrows");
+    for (const [id, speedKn] of [["wind", 12], ["current", 2]]) {
+      const field = report.flow[id];
+      assert.ok(field.particles > 0, id + ": visible particles");
+      assert.equal(field.drawCalls, 1, id + ": instanced field is drawn");
+      assert.ok(Math.abs(Math.hypot(...field.vector) - speedKn * .514444) < 1e-8,
+        id + ": presentation preserves the physical speed in m/s");
+    }
 
 });
 
@@ -3244,7 +3249,7 @@ browserCase("simulator:smoke.52", async ({ page, browser, context, runtimeErrors
     assert.ok(desktopImage.length > 20_000, "la scène 3D paraît vide ou uniforme");
     assert.deepEqual(
       desktop.options.slice(0, 3),
-      ["dockForward", "dockReverse", "free"]
+      ["dockForward", "dockReverse", "placement"]
     );
     assert.ok(desktop.options.includes("mooring"));
     assert.ok(desktop.options.includes("medDock"));

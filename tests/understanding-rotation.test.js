@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
+const { stubSimulatorAnalytics } = require("./helpers/simulator-network.js");
 
 const url = new URL(pathToFileURL(path.resolve(__dirname, "..", "simulateur-port.html")));
 url.searchParams.set("test", "1");
@@ -15,7 +16,8 @@ const closeTo = (actual, expected, label) => assert.ok(Math.abs(actual - expecte
 test("Comprendre — décomposition de rotation, invariants et secours Canvas", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
-  const page = await browser.newPage({ viewport: { width: 1180, height: 760 } });
+  const page = await browser.newPage({ viewport: { width: 1180, height: 760 }, locale: "fr-FR" });
+  await stubSimulatorAnalytics(page);
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(url.href);

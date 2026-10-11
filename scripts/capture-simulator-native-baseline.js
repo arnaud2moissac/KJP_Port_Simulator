@@ -8,9 +8,10 @@ const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 const scenes = require("./simulator-render-scenes.js");
+const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("../tests/helpers/simulator-network.js");
 
 const root = path.resolve(__dirname, "..");
-const outputDirectory = path.join(root, "tests", "visual-baselines", "native");
+const outputDirectory = path.join(root, "tests", "visual-baselines", "native-v2.1.0");
 const update = process.argv.includes("--update");
 const htmlIndex = process.argv.indexOf("--html");
 if (htmlIndex >= 0 && (!process.argv[htmlIndex + 1] || process.argv[htmlIndex + 1].startsWith("--"))) {
@@ -74,11 +75,14 @@ async function main() {
   const results = [];
   try {
     for (const scene of scenes) {
-      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1, locale: "fr-FR" });
+      await stubSimulatorAnalytics(page);
       const errors = [], requests = [];
       page.on("pageerror", error => errors.push(error.message));
       page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-      page.on("request", request => { if (/^https?:/i.test(request.url())) requests.push(request.url()); });
+      page.on("request", request => {
+        if (/^https?:/i.test(request.url()) && !isSimulatorAnalyticsRequest(request.url())) requests.push(request.url());
+      });
       await page.addInitScript(time => {
         const raf = requestAnimationFrame.bind(window);
         window.requestAnimationFrame = callback => raf(() => callback(time));
@@ -116,6 +120,7 @@ async function main() {
     browser: `Chromium ${browser.version()}`,
     viewport: { width: 1280, height: 800 },
     deviceScaleFactor: 1,
+    locale: "fr-FR",
     fixedTime,
     scenes: results
   };

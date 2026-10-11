@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "renderer": "three-native",
+  "sourcePath": "/Users/arnaud/Codex_main/KJP_Port_Simulator/simulateur-port.html",
+  "sourceSha256": "29c59f24a391c442788aa33d0fc8845ad0ee51f68cff1baa8d5524b2ddeb0c9a",
+  "browser": "Chromium 149.0.7827.55",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 1,
+  "fixedTime": 12345,
+  "scenes": [
+    {
+      "id": "built-in-dark-top-navigation",
+      "port": "built-in",
+      "theme": "dark",
+      "view": "top",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v2.1.0/built-in-dark-top-navigation.png",
+      "imageBytes": 47588,
+      "imageSha256": "8167cc37235b21e6bfb01f42cee44e2e17ac61daf6b06cd24f1e11349aeeadd1",
+      "reportSha256": "1cbca36f296792c0c1e30f86e249d0c8eae7ed9491bcf5eba5eef8bb62c7de99"
+    },
+    {
+      "id": "built-in-chart-top-understand",
+      "port": "built-in",
+      "theme": "chart",
+      "view": "top",
+      "mode": "understand",
+      "environment": {
+        "windSpeedKn": 12,
+        "windFromDeg": 300,
+        "currentSpeedKn": 1.4,
+        "currentFromDeg": 215
+      },
+      "image": "tests/visual-baselines/native-v2.1.0/built-in-chart-top-understand.png",
+      "imageBytes": 128247,
+      "imageSha256": "2fd7872e6396a1326965cd924702da7cd9886a4cbf93846f2565ce7a683dc638",
+      "reportSha256": "30a950d059f7f31ceb3fb6d45d6a1f4e58f4db38644fd755e19fac14df892a1e"
+    },
+    {
+      "id": "built-in-chart-skipper-navigation",
+      "port": "built-in",
+      "theme": "chart",
+      "view": "skipper",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v2.1.0/built-in-chart-skipper-navigation.png",
+      "imageBytes": 92248,
+      "imageSha256": "247abb756f3af348ad68ad52d5b3aa36c3efa792561b50602fc24ef27e5c0b4c",
+      "reportSha256": "7540b15c14e83f40051ef908939a7b8ca899ba43f806d3a22aa29def097f5320"
+    },
+    {
+      "id": "la-trinite-dark-top-navigation",
+      "port": "la-trinite-sur-mer",
+      "theme": "dark",
+      "view": "top",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v2.1.0/la-trinite-dark-top-navigation.png",
+      "imageBytes": 27589,
+      "imageSha256": "5c34296bb27aa479bf000513b109eee62bee6874c21bd922d33a13f52ef58253",
+      "reportSha256": "3cac37b3e4c90f37ede56f2ef51ead843dd9dd635a3564dceb6f6e7ea013fa9e"
+    },
+    {
+      "id": "la-trinite-chart-skipper-navigation",
+      "port": "la-trinite-sur-mer",
+      "theme": "chart",
+      "view": "skipper",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v2.1.0/la-trinite-chart-skipper-navigation.png",
+      "imageBytes": 63442,
+      "imageSha256": "a553334ed6cc9d4746f86d1e235ee966f677292caa704a02bc79c92753c76010",
+      "reportSha256": "036b99d8ced5bfd0bbe6e515ac36c0d6e520f7e6c69fb56a2cffe3b6924e4780"
+    }
+  ],
+  "locale": "fr-FR",
+  "sourceTag": "v2.1.0"
+}

@@ -20967,9 +20967,14 @@ void main() {
         const distance = target.kind === "pivot"
           ? Math.hypot(point.x - target.a.x, point.y - target.a.y)
           : pointSegmentProjection(point, target.a, target.b).distance;
+        // A visible force marker remains inspectable where an arrow shares
+        // its origin. Outside the marker, retain nearest-segment picking.
+        const priority = target.kind === "force" && ui.understandView === "rotation"
+          && !target.part.rotationArrowVisible && distance <= 4.5 ? 0 : 1;
         if (distance <= (understandingTouchSelection ? 24 : 13)
-          && (!nearest || distance < nearest.distance)) {
-          nearest = { target, distance };
+          && (!nearest || priority < nearest.priority
+            || priority === nearest.priority && distance < nearest.distance)) {
+          nearest = { target, distance, priority };
         }
       }
       if (!nearest) {

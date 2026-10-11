@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
+const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("./helpers/simulator-network.js");
 
 const root = path.resolve(__dirname, "..");
 const simulatorPath = path.join(root, "simulateur-port.html");
@@ -23,7 +24,8 @@ function url(parameters = {}) {
   return value.href;
 }
 
-function observe(page) {
+async function observe(page) {
+  await stubSimulatorAnalytics(page);
   const errors = [], warnings = [], externalRequests = [];
   page.on("pageerror", error => errors.push(error.stack || error.message));
   page.on("console", message => {
@@ -31,7 +33,7 @@ function observe(page) {
     else if (message.type() === "warning") warnings.push(message.text());
   });
   page.on("request", request => {
-    if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
+    if (/^https?:/i.test(request.url()) && !isSimulatorAnalyticsRequest(request.url())) externalRequests.push(request.url());
   });
   return { errors, warnings, externalRequests };
 }
@@ -53,8 +55,8 @@ test("renderer natif — démarrage produit, GLB, appareils et import", async t 
     { id: "desktop", viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 },
     { id: "mobile", viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }
   ]) {
-    const page = await browser.newPage(configuration);
-    const observed = observe(page);
+    const page = await browser.newPage({ ...configuration, locale: "fr-FR" });
+    const observed = await observe(page);
     await page.goto(simulatorUrl.href);
     await page.waitForSelector('body[data-world-renderer="native"]');
     if (configuration.id === "desktop") await page.locator("#skipperViewButton").click();
@@ -99,7 +101,7 @@ test("renderer natif — démarrage produit, GLB, appareils et import", async t 
   }
 
   const page = await browser.newPage({ viewport: { width: 1180, height: 760 }, deviceScaleFactor: 2 });
-  const observed = observe(page);
+  const observed = await observe(page);
   await page.goto(url({ test: "1" }));
   await page.waitForFunction(() => window.__PORTANCE_TEST__?.worldRendererReport().player?.model?.ready);
   const initial = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
@@ -125,7 +127,7 @@ test("secours Canvas 2D — sélection, picking et reprise native préservent l'
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
   const page = await browser.newPage({ viewport: { width: 1180, height: 760 } });
-  const observed = observe(page);
+  const observed = await observe(page);
   await page.goto(url({ test: "1" }));
   await page.waitForFunction(() => window.__PORTANCE_TEST__?.worldRendererReport().player?.model?.ready);
   await page.evaluate(() => {
@@ -172,7 +174,7 @@ test("secours Canvas 2D — démarrage, WebGL2, GLB, reconstruction et perte de 
 
   async function expectFallback(parameters, setup = null, trigger = null, expected) {
     const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
-    const observed = observe(page);
+    const observed = await observe(page);
     if (setup) await page.addInitScript(setup);
     await page.goto(url({ test: "1", ...parameters }));
     await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));

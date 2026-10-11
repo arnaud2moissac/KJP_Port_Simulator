@@ -9,6 +9,7 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 const scenes = require("../scripts/simulator-render-scenes.js");
+const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("./helpers/simulator-network.js");
 
 const root = path.resolve(__dirname, "..");
 const portText = fs.readFileSync(path.join(root, "examples", "la-trinite-sur-mer.kjp"), "utf8");
@@ -16,11 +17,12 @@ const simulatorUrl = new URL(pathToFileURL(path.join(root, "simulateur-port.html
 simulatorUrl.searchParams.set("test", "1");
 const viewport = { width: 1280, height: 800 };
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
-const baselineDirectory = path.join(root, "tests", "visual-baselines", "native");
+const baselineDirectory = path.join(root, "tests", "visual-baselines", "native-v2.1.0");
 const baseline = JSON.parse(fs.readFileSync(path.join(baselineDirectory, "manifest.json"), "utf8"));
 
 async function createPage(browser, dpr = 1) {
-  const page = await browser.newPage({ viewport, deviceScaleFactor: dpr });
+  const page = await browser.newPage({ viewport, deviceScaleFactor: dpr, locale: "fr-FR" });
+  await stubSimulatorAnalytics(page);
   const errors = [], warnings = [], externalRequests = [];
   page.on("pageerror", error => errors.push(error.stack || error.message));
   page.on("console", message => {
@@ -28,7 +30,7 @@ async function createPage(browser, dpr = 1) {
     else if (message.type() === "warning") warnings.push(message.text());
   });
   page.on("request", request => {
-    if (/^https?:/i.test(request.url())) externalRequests.push(request.url());
+    if (/^https?:/i.test(request.url()) && !isSimulatorAnalyticsRequest(request.url())) externalRequests.push(request.url());
   });
   await page.addInitScript(() => {
     let callbacks = new Map(), nextId = 0, timestamp = 12_345, maximumPending = 0;

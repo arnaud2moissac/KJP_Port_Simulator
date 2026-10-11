@@ -192,6 +192,15 @@ Sans `--update`, les captures restent candidates ; ne pas actualiser une référ
 pour masquer une divergence. Les métadonnées historiques des références natives
 existantes ne sont pas réécrites.
 
+La qualification de la release 2.1 utilise `tests/visual-baselines/native-v2.1.0/`.
+Ces cinq vues ont été inspectées après les évolutions des profils, de la
+localisation et des flux. Les références historiques dans `native/` restent
+intactes ; les empreintes de la nouvelle référence portent sur le moteur 6.0.0
+et le profil Sun Odyssey 36i 6.0.1. Les trajectoires physiques n'ont pas été
+réécrites pendant cette qualification. Les contextes fixent la langue française
+et neutralisent localement le seul script Analytics connu, tout autre accès HTTP
+restant un échec.
+
 La fidélité porte sur la présence, les dimensions, l'occlusion, la lisibilité,
 l'information et les interactions. Les références raster natives protègent ce
 backend ; les mutations significatives doivent rester détectées. Les snapshots

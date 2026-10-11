@@ -6,6 +6,7 @@ const { pathToFileURL } = require("node:url");
 const { createHash } = require("node:crypto");
 const { chromium } = require("playwright");
 const KJPCodec = require("../src/ports/kjp-codec.js");
+const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("./helpers/simulator-network.js");
 
 const simulatorPath = path.resolve(__dirname, "..", "simulateur-port.html");
 const simulatorUrl = new URL(pathToFileURL(simulatorPath));
@@ -128,7 +129,8 @@ for (const fieldId of ["wind", "current"])
 test("renderer natif — persistance, caméra, composition 2D et flux", async t => {
   const browser = await chromium.launch({ headless: true });
   t.after(() => browser.close());
-  const page = await browser.newPage({ viewport: { width: 1180, height: 760 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: 1180, height: 760 }, deviceScaleFactor: 1, locale: "fr-FR" });
+  await stubSimulatorAnalytics(page);
   const errors = [];
   const remoteRequests = [];
   page.on("pageerror", error => errors.push(error.stack || error.message));
@@ -136,7 +138,7 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
     if (message.type() === "error") errors.push(message.text());
   });
   page.on("request", request => {
-    if (/^https?:/.test(request.url())) remoteRequests.push(request.url());
+    if (/^https?:/.test(request.url()) && !isSimulatorAnalyticsRequest(request.url())) remoteRequests.push(request.url());
   });
   await page.addInitScript(() => {
     const originalRequestAnimationFrame = requestAnimationFrame.bind(window);

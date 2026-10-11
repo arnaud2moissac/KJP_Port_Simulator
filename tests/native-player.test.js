@@ -7,6 +7,7 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
 const KJPCodec = require("../src/ports/kjp-codec.js");
+const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("./helpers/simulator-network.js");
 
 const root = path.resolve(__dirname, "..");
 const simulatorUrl = pathToFileURL(path.join(root, "simulateur-port.html"));
@@ -17,11 +18,14 @@ const emptyPortText = KJPCodec.serialize(emptyPort);
 const near = (actual, expected, tolerance = 1e-6) => Math.abs(actual - expected) <= tolerance;
 
 async function pageFor(browser, dpr = 1) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: dpr });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: dpr, locale: "fr-FR" });
+  await stubSimulatorAnalytics(page);
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-  page.on("request", request => { if (/^https?:/.test(request.url())) errors.push(request.url()); });
+  page.on("request", request => {
+    if (/^https?:/.test(request.url()) && !isSimulatorAnalyticsRequest(request.url())) errors.push(request.url());
+  });
   await page.addInitScript(() => {
     const raf = requestAnimationFrame.bind(window);
     let pending = [], time = 1000;

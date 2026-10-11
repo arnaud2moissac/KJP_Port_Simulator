@@ -100,7 +100,8 @@ browserCase("generator:guide.01", async ({ page, browser, context, runtimeErrors
       text: document.querySelector("#readmeDialog").textContent
     }));
     assert.equal(help.open, true);
-    assert.match(help.text, /Versions de la release 2\.0/);
+    const releaseSeries = require("../package.json").version.split(".").slice(0, 2).join(".");
+    assert.ok(help.text.includes("Versions de la release " + releaseSeries));
     assert.match(help.text, /Arnaud de Moissac/);
     await page.click("#closeReadmeHelp");
 

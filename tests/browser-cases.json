@@ -77,7 +77,7 @@
     "product": "simulator",
     "id": "rendering.13",
     "group": "rendering",
-    "name": "le vent droit et le courant ondulé restent visibles dans la scène 3D",
+    "name": "le vent en filaments et le courant en fuseaux restent affichés par Three.js",
     "renderer": "native"
   },
   {
