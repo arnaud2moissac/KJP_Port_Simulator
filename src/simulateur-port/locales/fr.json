@@ -466,6 +466,26 @@
     "interaction.cleat.chooseBow": "choisissez un taquet d’étrave",
     "interaction.cleat.chooseStern": "choisissez un taquet arrière",
     "port.builtIn.name": "Port - bassin pédagogique",
-    "ui.gear.reverse": "AR"
+    "ui.gear.reverse": "AR",
+    "placement.blocked.short": "Obstacle · déplacement bloqué",
+    "placement.invalid.short": "Départ occupé",
+    "placement.title": "Placer le bateau",
+    "placement.custom": "Départ personnalisé",
+    "placement.help": "Simulation suspendue · Glissez le bateau ou une poignée. Touchez le bateau puis une destination pour le déplacer sans glisser.",
+    "placement.blocked": "Obstacle · déplacement bloqué. Le dernier emplacement libre reste validable.",
+    "placement.invalid": "Le départ chevauche un obstacle. Déplacez le bateau pour le dégager avant de valider.",
+    "placement.destination": "Choisissez une destination sur la carte.",
+    "placement.confirm": "Valider",
+    "placement.cancel": "Annuler",
+    "placement.cap": "Cap",
+    "placement.rotate": "Tourner le bateau",
+    "placement.zoom.in": "Zoomer",
+    "placement.zoom.out": "Dézoomer",
+    "placement.recenter": "Recentrer",
+    "placement.sliding": "Contact · le bateau glisse le long de l’obstacle.",
+    "placement.sliding.short": "Contact · glissement",
+    "placement.start": "Démarrer ▶",
+    "placement.mooring.title": "Amarrer",
+    "placement.mooring.help": "Simulation suspendue · Choisissez un taquet du bateau puis un taquet du port pour frapper une amarre. Réglez sa longueur, puis cliquez sur Démarrer."
   }
 }

@@ -49,7 +49,7 @@ Ar c'huzulioù er banell a-zehou a cheñch e-pad an deleviadenn. Ma vez diaes, s
 
 ## Mont war-raok gant an degouezhioù hag an daeoù
 
-An daou guitadenn ponton hag ar poull diavaez a servij da bleustriñ en un doare dieub. An nav dae a ginnig ur hent pleustriñ :
+An daou guitadenn ponton hag **Lec’hiañ ar vag** a servij da bleustriñ en un doare dieub. Gallout a reer lec’hiañ ar vag e pep porzh enporzhiet ivez : ehanet eo ar simuladur ha dalc’het eo reoladurioù an avel hag ar red. Riklit ar vag evit he dilec’hiañ hag unan eus an daou grog evit he zreiñ ; riklañ a ra ar vag a-hed ar skoilhoù hep treuziñ anezho, ha bevennet eo an treiñ gant ar stekiñ. Gallout a reer dibab ar vag ha goude ul lec’h. **Nullañ** a adkav ar stad diaraok ; **Gwiriañ** a zigor **Stagañ ar vag**, gant ar simuladur ehanet c’hoazh. Stagit an ereoù ha reolit o hirderioù, ha klikit war **Loc’hañ**. **Adkregiñ** a adkav ar penn-kentañ personelaet gant an ereoù prientet hag o reoladurioù betek cheñch porzh. An nav dae a ginnig ur hent pleustriñ :
 
 - **Dae 1 · Mestroniañ an inertiezh** : kemer lañs hag en em harz en un takad resis.
 - **Daeoù 2 ha 3 · Kaeañ e babourzh hag e tribourzh** : prientiñ an ahel, digreskiñ al lañs hag implijout an avel hep bezañ dalc'het gantañ.

@@ -49,7 +49,7 @@ Les consignes du panneau de droite évoluent pendant la manœuvre. En cas de dif
 
 ## Progresser avec les situations et les défis
 
-Les deux sorties de ponton et le bassin extérieur servent à expérimenter librement. Les neuf défis proposent ensuite une progression :
+Les deux sorties de ponton et **Placer le bateau** servent à expérimenter librement. Le placement est aussi disponible dans chaque port importé : la simulation est suspendue, le vent et le courant sont conservés. Glissez le bateau pour le déplacer et les deux poignées de la rosace pour le tourner ; le bateau glisse le long des obstacles sans les traverser et les collisions limitent la rotation. Vous pouvez aussi toucher le bateau puis sa destination. **Annuler** retrouve la situation précédente ; **Valider** ouvre la phase **Amarrer**, avec la simulation toujours suspendue. Frappez les amarres souhaitées et réglez leurs longueurs, puis cliquez sur **Démarrer**. **Recommencer** retrouve ce départ personnalisé avec les amarres préparées et leurs réglages, jusqu’au changement de port. Les neuf défis proposent ensuite une progression :
 
 - **Défi 1 · Dompter l'inertie** : prendre de l'erre puis s'arrêter dans une zone précise.
 - **Défis 2 et 3 · Accostages bâbord et tribord** : préparer l'alignement, casser l'erre et utiliser le vent sans le subir.

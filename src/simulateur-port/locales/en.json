@@ -466,6 +466,26 @@
     "interaction.cleat.chooseBow": "choose a bow cleat",
     "interaction.cleat.chooseStern": "choose a stern cleat",
     "port.builtIn.name": "Harbour - training basin",
-    "ui.gear.reverse": "REV"
+    "ui.gear.reverse": "REV",
+    "placement.blocked.short": "Obstacle · movement blocked",
+    "placement.invalid.short": "Departure occupied",
+    "placement.title": "Place the boat",
+    "placement.custom": "Custom departure",
+    "placement.help": "Simulation paused · Drag the boat or a handle. Select the boat, then a destination to move without dragging.",
+    "placement.blocked": "Obstacle · movement blocked. The last clear position can still be confirmed.",
+    "placement.invalid": "The departure overlaps an obstacle. Move the boat clear before confirming.",
+    "placement.destination": "Choose a destination on the chart.",
+    "placement.confirm": "Confirm",
+    "placement.cancel": "Cancel",
+    "placement.cap": "Heading",
+    "placement.rotate": "Rotate the boat",
+    "placement.zoom.in": "Zoom in",
+    "placement.zoom.out": "Zoom out",
+    "placement.recenter": "Recenter",
+    "placement.sliding": "Contact · the boat slides along the obstacle.",
+    "placement.sliding.short": "Contact · sliding",
+    "placement.start": "Start ▶",
+    "placement.mooring.title": "Moor the boat",
+    "placement.mooring.help": "Simulation paused · Select a boat cleat, then a harbour cleat to attach a line. Adjust its length, then select Start."
   }
 }

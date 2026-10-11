@@ -66,6 +66,377 @@ async function screenshotElement(page, selector) {
   assert.ok(box && box.width > 0 && box.height > 0, `${selector}: zone absente`);
   return page.screenshot({ clip: box });
 }
+
+browserCase("simulator:placement.01", async ({ page }) => {
+  await page.evaluate(() => {
+    document.querySelector("#windSpeed").value = 8;
+    document.querySelector("#windSpeed").dispatchEvent(new Event("input"));
+  });
+  const before = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  await page.selectOption("#scenarioSelect", "placement");
+  const draft = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(draft.active, true);
+  assert.equal(draft.valid, true);
+  assert.deepEqual(draft.core, before.core);
+  assert.deepEqual(draft.environment, before.environment);
+  assert.deepEqual(draft.draft, { x: 25, y: 48, heading: -Math.PI / 2 });
+  assert.ok(draft.camera.distance > 53);
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("q");
+  const moved = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.ok(moved.draft.x < draft.draft.x);
+  assert.notEqual(moved.draft.heading, draft.draft.heading);
+  assert.deepEqual(moved.core, before.core);
+  await page.keyboard.press("Escape");
+  const cancelled = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(cancelled.active, false);
+  assert.deepEqual(cancelled.core, before.core);
+  assert.deepEqual(cancelled.controls, before.controls);
+  assert.deepEqual(cancelled.camera, before.camera);
+  assert.equal(cancelled.scenarioId, before.scenarioId);
+});
+
+browserCase("simulator:placement.02", async ({ page }) => {
+  await page.evaluate(() => {
+    document.querySelector("#windSpeed").value = 9;
+    document.querySelector("#windSpeed").dispatchEvent(new Event("input"));
+    document.querySelector("#currentSpeed").value = .5;
+    document.querySelector("#currentSpeed").dispatchEvent(new Event("input"));
+  });
+  await page.selectOption("#scenarioSelect", "placement");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("e");
+  const draft = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  await page.click("#placementConfirm");
+  const mooring = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(mooring.phase, "mooring");
+  assert.equal(mooring.controls.paused, true);
+  assert.equal(mooring.core.moorings.length, 0);
+  assert.equal(await page.locator("#placementRose").isVisible(), false);
+  await page.click("#placementConfirm");
+  const started = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(started.active, false);
+  assert.equal(started.scenarioId, "customDeparture");
+  assert.equal(started.controls.paused, false);
+  assert.equal(started.core.moorings.length, 0);
+  assert.equal(started.controls.throttleTarget, 0);
+  assert.equal(started.controls.rudderTarget, 0);
+  assert.equal(started.camera.distance, 53);
+  assert.deepEqual(started.environment, draft.environment);
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("customDeparture"));
+  const replayed = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(replayed.core.pose.east, draft.draft.x);
+  assert.equal(replayed.core.pose.north, draft.draft.y);
+  assert.ok(Math.abs(replayed.core.pose.heading - Math.atan2(Math.sin(Math.PI / 2 - draft.draft.heading), Math.cos(Math.PI / 2 - draft.draft.heading))) < 1e-8);
+  assert.ok(Object.values(replayed.core.velocity).every(value => value === 0));
+  assert.equal(await page.locator('option[value="placement"]').count(), 1);
+});
+
+browserCase("simulator:placement.03", async ({ page }) => {
+  const text = createPortInformationText();
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), text);
+  await page.selectOption("#scenarioSelect", "placement");
+  const initial = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.deepEqual(initial.draft, { x: 0, y: 0, heading: 0 });
+  const box = await page.locator("#scene").boundingBox();
+  const center = initial.center;
+  await page.mouse.move(box.x + center.x, box.y + center.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + center.x + 35, box.y + center.y + 10, { steps: 4 });
+  await page.mouse.up();
+  const translated = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.ok(translated.draft.x > 0);
+  const handle = await page.locator("#placementHandlePort").boundingBox();
+  const c = translated.center;
+  await page.mouse.move(handle.x + 22, handle.y + 22);
+  await page.mouse.down();
+  await page.mouse.move(box.x + c.x + c.radius, box.y + c.y, { steps: 8 });
+  await page.mouse.up();
+  const rotated = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.notEqual(rotated.draft.heading, translated.draft.heading);
+  assert.deepEqual(rotated.core, initial.core);
+  await page.click("#placementConfirm");
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), text);
+  assert.equal(await page.locator('option[value="customDeparture"]').count(), 0);
+});
+
+browserCase("simulator:placement.04", async ({ page }) => {
+  assert.equal(await page.evaluate(() => navigator.maxTouchPoints > 0), true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.selectOption("#scenarioSelect", "placement");
+  const initial = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  const box = await page.locator("#scene").boundingBox();
+  const x = box.x + initial.center.x, y = box.y + initial.center.y;
+  await page.locator("#scene").dispatchEvent("pointerdown", { pointerId: 71, pointerType: "touch", clientX: x, clientY: y, button: 0 });
+  await page.locator("#scene").dispatchEvent("pointermove", { pointerId: 71, pointerType: "touch", clientX: x + 20, clientY: y, button: 0 });
+  const moved = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.notEqual(moved.draft.x, initial.draft.x);
+  await page.locator("#scene").dispatchEvent("pointerdown", { pointerId: 72, pointerType: "touch", clientX: x + 70, clientY: y, button: 0 });
+  await page.locator("#scene").dispatchEvent("pointermove", { pointerId: 72, pointerType: "touch", clientX: x + 110, clientY: y + 20, button: 0 });
+  const gesture = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.deepEqual(gesture.draft, moved.draft);
+  assert.notEqual(gesture.camera.distance, moved.camera.distance);
+  for (const pointerId of [71, 72]) await page.locator("#scene").dispatchEvent("pointerup", { pointerId, pointerType: "touch", clientX: x, clientY: y, button: 0 });
+  assert.equal(await page.locator("#placementConfirm").isEnabled(), true);
+  await page.click("#placementCancel");
+  const restored = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.deepEqual(restored.core, initial.core);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.selectOption("#scenarioSelect", "placement");
+  const rose = await page.locator("#placementRose").boundingBox();
+  const toolbar = await page.locator("#placementToolbar").boundingBox();
+  assert.ok(rose.y + rose.height <= toolbar.y);
+  assert.ok(rose.y >= 0 && rose.y + rose.height <= 390);
+  const landscape = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  const landscapeBox = await page.locator("#scene").boundingBox();
+  await page.touchscreen.tap(landscapeBox.x + landscape.center.x, landscapeBox.y + landscape.center.y);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).armed, true);
+  await page.touchscreen.tap(landscapeBox.x + landscape.center.x + 140, landscapeBox.y + landscape.center.y);
+  assert.notDeepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).draft, landscape.draft);
+});
+
+browserCase("simulator:placement.05", async ({ page }, t) => {
+  for (const [width, height] of [[1440, 900], [1024, 768], [390, 844], [320, 568]]) {
+    await page.setViewportSize({ width, height });
+    for (const theme of ["dark", "chart"]) {
+      await page.evaluate(theme => window.__PORTANCE_TEST__.selectVisualTheme(theme), theme);
+      await page.selectOption("#scenarioSelect", "placement");
+      await page.waitForFunction(() => document.querySelector("#placementHeading").textContent.length > 0);
+      t.diagnostic(width + "×" + height + " " + theme);
+      const rendered = await page.evaluate(() => {
+        const p = window.__PORTANCE_TEST__.placementReport();
+        const world = window.__PORTANCE_TEST__.worldRendererReport();
+        return { draft: p.draft, player: world.player?.pose, ready: world.player?.model?.ready };
+      });
+      assert.equal(rendered.ready, true);
+      assert.deepEqual(rendered.player, rendered.draft);
+      if (process.env.KJP_PLACEMENT_CAPTURE_DIR && theme === "dark" && [1440, 390].includes(width)) {
+        fs.mkdirSync(process.env.KJP_PLACEMENT_CAPTURE_DIR, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.KJP_PLACEMENT_CAPTURE_DIR, "placement-" + width + ".png") });
+      }
+      for (const id of ["#placementHandlePort", "#placementHandleStarboard", "#placementConfirm", "#placementCancel"]) {
+        const box = await page.locator(id).boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44);
+        assert.ok(box.x >= 0 && box.x + box.width <= width + 1, id + ": horizontal fit");
+        assert.ok(box.y >= 0 && box.y + box.height <= height + 1, id + ": vertical fit");
+      }
+      assert.equal(await page.locator(".control-dock").isVisible(), false);
+      assert.equal(await page.locator(".touch-controls").isVisible(), false);
+      assert.equal(await page.locator(".rose-cardinal, #placementFine, #placementFineToggle, #placementCapInput").count(), 0);
+      await page.click("#placementConfirm");
+      const mooring = await page.evaluate(() => ({
+        placement: window.__PORTANCE_TEST__.placementReport(),
+        player: window.__PORTANCE_TEST__.worldRendererReport().player?.pose
+      }));
+      assert.equal(mooring.placement.phase, "mooring");
+      assert.deepEqual(mooring.player, rendered.draft);
+      assert.ok(mooring.placement.mooringTargets.cleats.length > 0);
+      await page.click("#placementCancel");
+    }
+  }
+});
+
+function placementQuayText(east) {
+  const document = structuredClone(KJPCodec.parse(createPortInformationText()));
+  document.navigation.entries[0].position.east = east;
+  document.structures.obstacles.push({ id: "placement-quay", type: "quay", width: .1, height: 1,
+    points: [{ east: 0, north: -20 }, { east: 0, north: 20 }] });
+  return KJPCodec.serialize(document);
+}
+
+browserCase("simulator:placement.06", async ({ page }) => {
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), placementQuayText(-15));
+  await page.selectOption("#scenarioSelect", "placement");
+  const before = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  const box = await page.locator("#scene").boundingBox();
+  await page.mouse.click(box.x + before.center.x, box.y + before.center.y);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).armed, true);
+  await page.mouse.click(box.x + before.center.x + 240, box.y + before.center.y);
+  const stopped = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(stopped.blocked, true);
+  assert.equal(stopped.valid, true);
+  assert.ok(stopped.draft.x > -15 && stopped.draft.x < -5);
+  assert.deepEqual(stopped.core, before.core);
+  assert.equal(await page.locator("#placementConfirm").isEnabled(), true);
+});
+
+browserCase("simulator:placement.07", async ({ page }) => {
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), placementQuayText(-5));
+  await page.selectOption("#scenarioSelect", "placement");
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).valid, false);
+  assert.equal(await page.locator("#placementConfirm").isEnabled(), false);
+  await page.keyboard.press("ArrowLeft");
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).valid, true);
+  assert.equal(await page.locator("#placementConfirm").isEnabled(), true);
+});
+
+browserCase("simulator:placement.08", async ({ page }) => {
+  for (const input of ["mouse", "touch"]) {
+    await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), placementQuayText(-15));
+    await page.selectOption("#scenarioSelect", "placement");
+    const initial = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    const box = await page.locator("#scene").boundingBox();
+    const x = box.x + initial.center.x, y = box.y + initial.center.y;
+    const send = async (type, px, py) => {
+      if (input === "touch") await page.locator("#scene").dispatchEvent(type, {
+        pointerId: 83, pointerType: "touch", clientX: px, clientY: py, button: 0
+      });
+      else if (type === "pointerdown") { await page.mouse.move(px, py); await page.mouse.down(); }
+      else if (type === "pointerup") await page.mouse.up();
+      else await page.mouse.move(px, py, { steps: 8 });
+    };
+    await send("pointerdown", x, y);
+    await send("pointermove", x + 240, y);
+    const contact = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(contact.blocked, true);
+    await send("pointermove", x + 240, y - 100);
+    const slid = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(slid.sliding, true, input + ": tangential movement is accepted");
+    assert.equal(slid.valid, true);
+    assert.ok(slid.draft.y > contact.draft.y + 3);
+    await send("pointermove", x + 228, y - 100);
+    const away = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.ok(away.draft.x < slid.draft.x - .05, input + ": pulling back must not require crossing the old cursor target");
+    assert.equal(away.valid, true);
+    assert.deepEqual(away.core, initial.core);
+    await send("pointerup", x + 228, y - 100);
+    assert.equal(await page.locator("#placementConfirm").isEnabled(), true);
+  }
+});
+
+function mooringPreparationText() {
+  const document = structuredClone(KJPCodec.parse(placementQuayText(-12)));
+  for (const [id, station] of [["prep-cleat-a", 18], ["prep-cleat-b", 22]]) {
+    document.structures.cleats.push({ id, parentId: "placement-quay", z: 1, orientation: 0,
+      attachment: { kind: "polyline-station", station, waterSide: "left" } });
+  }
+  return KJPCodec.serialize(document);
+}
+
+function preparedLineSettings(core) {
+  return core.moorings.map(line => ({ id: line.id, boatCleatId: line.boatCleatId,
+    shoreCleatId: line.shoreCleatId, length: line.length, targetLength: line.targetLength }));
+}
+
+browserCase("simulator:placement.09", async ({ page }) => {
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), mooringPreparationText());
+  await page.selectOption("#scenarioSelect", "placement");
+  await page.click("#placementConfirm");
+  const initial = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(initial.phase, "mooring");
+  assert.equal(initial.controls.paused, true);
+  assert.equal(await page.locator("#placementBanner strong").textContent(), "Amarrer");
+  assert.equal(await page.locator("#placementConfirm").textContent(), "Démarrer ▶");
+  assert.equal(await page.locator("#placementRose").isVisible(), false);
+  assert.equal(await page.locator(".control-dock").isVisible(), false);
+  const clickCleat = async (type, id, touch) => {
+    const target = await page.evaluate(({ type, id }) => window.__PORTANCE_TEST__.placementReport()
+      .mooringTargets.cleats.find(hit => hit.endpoint.type === type && hit.endpoint.id === id), { type, id });
+    assert.ok(target, type + ": " + id);
+    const box = await page.locator("#scene").boundingBox();
+    if (touch) await page.touchscreen.tap(box.x + target.x, box.y + target.y);
+    else await page.mouse.click(box.x + target.x, box.y + target.y);
+  };
+  await clickCleat("boat", "bow-port", false);
+  await clickCleat("shore", "prep-cleat-a", false);
+  await clickCleat("boat", "bow-starboard", true);
+  await clickCleat("shore", "prep-cleat-b", true);
+  const attached = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(attached.core.moorings.length, 2);
+  const gauge = page.locator('.mooring-gauge[data-mooring-id="user-1"]');
+  await gauge.focus();
+  await page.keyboard.press("PageUp");
+  const prepared = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(prepared.core.moorings[0].targetLength, Math.round((attached.core.moorings[0].targetLength + .5) * 10) / 10);
+  assert.deepEqual(prepared.core.pose, initial.core.pose);
+  assert.deepEqual(prepared.core.velocity, initial.core.velocity);
+  assert.equal(prepared.simulationTime, initial.simulationTime);
+  await page.evaluate(() => window.__PORTANCE_TEST__.advance(5));
+  assert.deepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).core, prepared.core);
+  const settings = preparedLineSettings(prepared.core);
+  for (const [width, height] of [[1280, 800], [844, 390], [390, 844], [320, 568]]) {
+    await page.setViewportSize({ width, height });
+    for (const theme of ["dark", "chart"]) {
+      await page.evaluate(theme => window.__PORTANCE_TEST__.selectVisualTheme(theme), theme);
+      const banner = await page.locator("#placementBanner").boundingBox();
+      const readout = await page.locator(".environment-readout").boundingBox();
+      const toolbar = await page.locator("#placementToolbar").boundingBox();
+      assert.ok(banner.x + banner.width <= readout.x || banner.y + banner.height <= readout.y,
+        width + "×" + height + ": instructions must not cover the mooring panel");
+      assert.ok(readout.y + readout.height <= toolbar.y, width + "×" + height + ": panel must fit above actions");
+      for (const id of ["#placementConfirm", "#placementCancel"]) {
+        const box = await page.locator(id).boundingBox();
+        assert.ok(box.width >= 44 && box.height >= 44 && box.x >= 0 && box.x + box.width <= width);
+        assert.ok(box.y >= 0 && box.y + box.height <= height);
+      }
+      if (process.env.KJP_PLACEMENT_CAPTURE_DIR && theme === "dark" && [1280, 390].includes(width)) {
+        fs.mkdirSync(process.env.KJP_PLACEMENT_CAPTURE_DIR, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.KJP_PLACEMENT_CAPTURE_DIR, "mooring-preparation-" + width + ".png") });
+      }
+    }
+  }
+  for (const locale of ["en", "br", "fr"]) {
+    await page.evaluate(locale => window.__PORTANCE_TEST__.selectLocale(locale), locale);
+    const banner = await page.locator("#placementBanner").boundingBox();
+    const panel = await page.locator(".environment-readout").boundingBox();
+    assert.ok(banner.y + banner.height <= panel.y, locale + ": translated help must not cover mooring controls");
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.click("#placementConfirm");
+  const started = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(started.phase, "idle");
+  assert.equal(started.controls.paused, false);
+  assert.equal(started.scenarioId, "customDeparture");
+  assert.equal(started.core.moorings.length, 2);
+  await page.evaluate(() => window.__PORTANCE_TEST__.detachMooring("user-1"));
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).core.moorings.length, 1);
+  await page.click("#resetButton");
+  const restarted = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(restarted.core.moorings.length, 2);
+  assert.deepEqual(restarted.core.moorings.map(line => line.targetLength), settings.map(line => line.targetLength));
+  for (let repeat = 0; repeat < 2; repeat++) {
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("customDeparture"));
+    const replayed = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.deepEqual(preparedLineSettings(replayed.core), settings);
+    assert.deepEqual(replayed.core.pose, prepared.core.pose);
+    assert.ok(Object.values(replayed.core.velocity).every(value => value === 0));
+    await page.evaluate(() => window.__PORTANCE_TEST__.detachMooring("user-1"));
+  }
+  await page.evaluate(() => window.__PORTANCE_TEST__.attachMooring("bow-port", "prep-cleat-a"));
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).core.moorings.length, 2);
+});
+
+browserCase("simulator:placement.10", async ({ page }) => {
+  await page.evaluate(text => {
+    const api = window.__PORTANCE_TEST__;
+    api.importPort(text);
+    api.loadScenario("community");
+    api.attachMooring("bow-port", "prep-cleat-a");
+    api.setMooringLength("user-1", 9);
+  }, mooringPreparationText());
+  const original = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(original.core.moorings.length, 1);
+  for (const cancel of ["button", "Escape"]) {
+    await page.selectOption("#scenarioSelect", "placement");
+    await page.keyboard.press("ArrowLeft");
+    await page.click("#placementConfirm");
+    await page.evaluate(() => window.__PORTANCE_TEST__.attachMooring("bow-starboard", "prep-cleat-b"));
+    const preparing = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(preparing.phase, "mooring");
+    assert.notDeepEqual(preparing.core, original.core);
+    if (cancel === "button") await page.click("#placementCancel");
+    else await page.keyboard.press("Escape");
+    const restored = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(restored.phase, "idle");
+    assert.deepEqual(restored.core, original.core);
+    assert.deepEqual(restored.controls, original.controls);
+    assert.deepEqual(restored.camera, original.camera);
+    assert.equal(restored.scenarioId, original.scenarioId);
+    assert.equal(restored.simulationTime, original.simulationTime);
+    assert.equal(await page.locator('option[value="customDeparture"]').count(), 0);
+  }
+});
+
 browserCase("simulator:smoke.01", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const report = await page.evaluate(() => ({
       activeRenderer: window.__PORTANCE_TEST__.visualReport().renderer,

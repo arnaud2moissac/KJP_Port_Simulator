@@ -468,5 +468,69 @@
     "id": "smoke.23",
     "group": "smoke",
     "name": "aucune erreur d'exécution n'est apparue"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.01",
+    "name": "le placement suspend la physique et annuler restaure la situation"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.02",
+    "name": "le départ personnalisé conserve l’environnement et se rejoue"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.03",
+    "name": "les ports importés proposent le placement et ses gestes souris"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.04",
+    "name": "le tactile arbitre placement et gestes à deux doigts",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.05",
+    "name": "rosace et actions restent lisibles dans les formats et thèmes",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.06",
+    "name": "le placement par clic s’arrête au quai et reste validable"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.07",
+    "name": "un départ importé occupé doit être dégagé avant validation"
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.08",
+    "name": "souris et tactile glissent au contact et dégagent immédiatement le bateau",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.09",
+    "name": "la phase Amarrer garde le bateau immobile et mémorise les amarres pour Recommencer",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
+    "group": "placement",
+    "id": "placement.10",
+    "name": "Annuler pendant Amarrer retrouve exactement le simulateur précédent"
   }
 ]

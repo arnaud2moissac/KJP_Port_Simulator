@@ -51,7 +51,7 @@ Instructions in the right-hand panel evolve during the manoeuvre. If you have di
 
 ## Progressing through scenarios and challenges
 
-The two pontoon departures and outer basin allow free experimentation. The nine challenges then provide a progression:
+The two pontoon departures and **Place the boat** allow free experimentation. Placement is also available in every imported harbour: simulation pauses and wind and current settings are preserved. Drag the boat to move it and either rose handle to rotate it; the boat slides along obstacles without passing through them, and collisions constrain rotation. Alternatively, select the boat then a destination. **Cancel** restores the previous situation; **Confirm** opens **Moor the boat**, with simulation still paused. Attach the desired lines and adjust their lengths, then select **Start**. **Restart** restores this custom departure with its prepared lines and their settings until the harbour changes. The nine challenges then provide a progression:
 
 - **Challenge 1 · Master inertia**: gain headway, then stop in a precise area.
 - **Challenges 2 and 3 · Berth to port and starboard**: prepare alignment, reduce headway and use the wind without being controlled by it.

@@ -469,6 +469,26 @@
     "interaction.cleat.chooseBow": "dibabit un taked staon",
     "interaction.cleat.chooseStern": "dibabit un taked a-dreñv",
     "port.builtIn.name": "Porzh - poull pleustriñ",
-    "ui.gear.reverse": "DR"
+    "ui.gear.reverse": "DR",
+    "placement.blocked.short": "Skoilh · dilec’hiadur stanket",
+    "placement.invalid.short": "Penn-kentañ stanket",
+    "placement.title": "Lec’hiañ ar vag",
+    "placement.custom": "Loc’hañ personelaet",
+    "placement.help": "Ehanet eo ar simuladur · Riklit ar vag pe ur c’hrog. Dibabit ar vag, ha goude ul lec’h evit he dilec’hiañ hep riklañ.",
+    "placement.blocked": "Skoilh · dilec’hiadur stanket. Gallout a reer gwiriañ al lec’h dieub diwezhañ.",
+    "placement.invalid": "War ur skoilh emañ ar vag er penn-kentañ. Dilec’hiit anezhi evit he dieubiñ a-raok gwiriañ.",
+    "placement.destination": "Dibabit ul lec’h war ar gartenn.",
+    "placement.confirm": "Gwiriañ",
+    "placement.cancel": "Nullañ",
+    "placement.cap": "Pennhent",
+    "placement.rotate": "Treiñ ar vag",
+    "placement.zoom.in": "Zoumañ",
+    "placement.zoom.out": "Dizoumañ",
+    "placement.recenter": "Adkreizañ",
+    "placement.sliding": "Stekiñ · riklañ a ra ar vag a-hed ar skoilh.",
+    "placement.sliding.short": "Stekiñ · riklañ",
+    "placement.start": "Loc’hañ ▶",
+    "placement.mooring.title": "Stagañ ar vag",
+    "placement.mooring.help": "Ehanet eo ar simuladur · Dibabit un taked war ar vag ha goude un taked er porzh evit stagañ un ere. Reolit e hirder, ha klikit war Loc’hañ."
   }
 }

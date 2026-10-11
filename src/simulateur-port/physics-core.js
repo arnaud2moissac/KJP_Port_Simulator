@@ -3080,6 +3080,7 @@
     pointPolylineContact,
     pointPolygonContact,
     pointCircleContact,
+    pointBoatContact,
     pointInPolygon,
     buildObstacleIndex,
     queryObstacleIndex,

@@ -243,6 +243,9 @@ function build() {
   if (!template.includes(threeMarker)) {
     throw new Error(`Marqueur Three.js absent dans ${templatePath}`);
   }
+  if (!template.includes("/*__BOAT_PLACEMENT__*/")) {
+    throw new Error("Marqueur de placement du bateau absent.");
+  }
   if (!template.includes(readmeMarker) || !template.includes(logoMarker)) {
     throw new Error(`Marqueurs d'identité ou d'aide absents dans ${templatePath}`);
   }
@@ -256,6 +259,7 @@ function build() {
       () => `${profiles.trim()}\n\n${physics.trim()}`
     )
     .replace(codecMarker, () => codec.trim())
+    .replace("/*__BOAT_PLACEMENT__*/", () => fs.readFileSync(path.join(root, "src/simulateur-port/boat-placement.js"), "utf8").trim())
     .replace(threeMarker, () => threeRendering.trim())
     .replace("/*__KJP_I18N__*/", () =>
       `globalThis.__KJP_LOCALES__ = ${JSON.stringify(embeddedCatalogs).replaceAll("<", "\\u003c")};\n`
@@ -266,6 +270,7 @@ function build() {
   if (
     output.includes(marker)
     || output.includes(codecMarker)
+    || output.includes("/*__BOAT_PLACEMENT__*/")
     || output.includes(threeMarker)
     || output.includes(readmeMarker)
     || output.includes(logoMarker)

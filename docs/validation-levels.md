@@ -26,7 +26,7 @@ explicite et d'un nettoyage garanti. Seul le processus Chromium est partagé.
 
 - Simulateur : `smoke`, `controls`, `interface`, `guide`, `ports`, `camera`,
   `calibration`, `audio`, `moorings`, `topology`, `scenarios`, `physics`,
-  `rendering`, `trajectories`.
+  `rendering`, `trajectories`, `placement`.
 - Générateur : `smoke`, `guide`, `interface`, `editing`, `pendilles`, `import`,
   `candidates`, `maps`, `integration`.
 

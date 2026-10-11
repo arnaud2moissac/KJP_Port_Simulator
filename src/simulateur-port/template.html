@@ -61,6 +61,44 @@
 
     * { box-sizing: border-box; }
 
+    .placement-banner, .placement-toolbar, .placement-rose { position: absolute; z-index: 12; }
+    .placement-banner[hidden], .placement-toolbar[hidden], .placement-rose[hidden] { display: none; }
+    .placement-banner { top: 14px; left: 14px; right: 14px; max-width: 560px;
+      background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 16px; padding: 12px 16px; pointer-events: none; }
+    .placement-banner strong { display: block; font-size: 15px; }
+    .placement-banner p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+    .placement-banner[data-blocked="true"] p { color: var(--amber); }
+    .placement-toolbar { bottom: 14px; left: 50%; transform: translateX(-50%); width: max-content;
+      max-width: calc(100% - 24px); background: var(--panel-solid); border: 1px solid var(--line-strong); border-radius: 18px; padding: 10px; }
+    .placement-actions { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .placing-boat #lessonCard, .placing-boat #diagnostic { display: none; }
+    .placement-toolbar button { min-width: 44px; min-height: 44px; }
+    .placement-toolbar .placement-confirm { background: var(--cyan); color: var(--navy-0); font-weight: 700; }
+    .placement-rose { pointer-events: none; border: 1.5px solid var(--cyan); border-radius: 50%; }
+    .rose-heading { position: absolute; left: 50%; top: -56px; transform: translateX(-50%); white-space: nowrap;
+      background: var(--panel-solid); color: var(--ink); padding: 5px 10px; border-radius: 8px; font-size: 13px; }
+    .placement-rose .rose-handle { pointer-events: auto; touch-action: none; position: absolute; min-height: 44px;
+      width: 44px; height: 44px; padding: 0; margin: -22px; background: var(--panel-solid); color: var(--cyan);
+      border: 2px solid var(--cyan); font-size: 24px; cursor: grab; }
+    .placing-boat .hud, .placing-boat .control-dock, .placing-boat .touch-controls,
+    .placing-boat .environment-readout, .placing-boat .mooring-gauge-panel { visibility: hidden; pointer-events: none; }
+    .preparing-moorings .hud, .preparing-moorings .control-dock, .preparing-moorings .touch-controls { visibility: hidden; pointer-events: none; }
+    .preparing-moorings #lessonCard, .preparing-moorings #diagnostic { display: none; }
+    .preparing-moorings .placement-banner { max-width: calc(100% - 210px); }
+    @media (max-width: 860px) { .preparing-moorings .placement-banner { max-width: none; } }
+    @media (max-width: 640px) {
+      .placement-banner { top: 10px; left: 10px; right: 10px; padding: 10px 12px; }
+      .placement-toolbar { bottom: max(10px, env(safe-area-inset-bottom)); width: calc(100% - 20px); max-width: none; }
+      .placement-actions { gap: 6px; }
+      .placement-actions .placement-confirm { flex: 1; min-width: 155px; }
+    }
+    @media (max-height: 540px) and (min-width: 640px) {
+      .placement-banner { padding: 6px 12px; top: 6px; width: max-content; }
+      .placement-banner p { display: none; }
+      .placement-toolbar { padding: 6px; bottom: 6px; }
+      .rose-heading { left: calc(100% + 32px); top: 50%; transform: translateY(-50%); }
+    }
+
     html, body {
       margin: 0;
       min-width: 320px;
@@ -2056,6 +2094,24 @@
           </div>
         </div>
 
+        <div class="placement-banner" id="placementBanner" hidden>
+          <strong data-i18n="placement.title">Placer le bateau</strong>
+          <p id="placementStatus" role="status" aria-live="polite"></p>
+        </div>
+        <div class="placement-rose" id="placementRose" hidden>
+          <output class="rose-heading" id="placementHeading" aria-live="off"></output>
+          <button class="rose-handle" type="button" id="placementHandlePort" aria-label="Tourner le bateau" data-i18n-attr="aria-label:placement.rotate">↻</button>
+          <button class="rose-handle" type="button" id="placementHandleStarboard" aria-label="Tourner le bateau" data-i18n-attr="aria-label:placement.rotate">↻</button>
+        </div>
+        <div class="placement-toolbar" id="placementToolbar" hidden aria-label="Placement du bateau" data-i18n-attr="aria-label:placement.title">
+          <div class="placement-actions">
+            <button type="button" id="placementZoomOut" aria-label="Dézoomer" data-i18n-attr="aria-label:placement.zoom.out">−</button>
+            <button type="button" id="placementZoomIn" aria-label="Zoomer" data-i18n-attr="aria-label:placement.zoom.in">+</button>
+            <button type="button" id="placementRecenter" aria-label="Recentrer la caméra" data-i18n-attr="aria-label:placement.recenter">⌖</button>
+            <button type="button" id="placementCancel" data-i18n="placement.cancel">Annuler</button>
+            <button type="button" class="placement-confirm" id="placementConfirm" data-i18n="placement.confirm">Valider</button>
+          </div>
+        </div>
         <div class="unsupported" id="unsupported" data-i18n="ui.your.browser.cannot.display.this.simulator.try.a">
           Votre navigateur ne permet pas d'afficher ce simulateur. Essayez une version récente de Safari, Firefox, Chrome ou Edge.
         </div>
@@ -2101,7 +2157,7 @@
               <optgroup label="Situations de départ" data-i18n-attr="label:ui.starting.scenarios">
                 <option value="dockForward" data-i18n="ui.pontoon.depart.ahead">Ponton · sortie en marche avant</option>
                 <option value="dockReverse" data-i18n="ui.pontoon.depart.astern">Ponton · sortie en marche arrière</option>
-                <option value="free" data-i18n="ui.outer.basin">Bassin extérieur</option>
+                <option value="placement" data-i18n="placement.title">Placer le bateau</option>
               </optgroup>
               <optgroup label="Exercices guidés" data-i18n-attr="label:ui.guided.exercises">
                 <option value="inertia" data-i18n="ui.challenge.1.master.inertia">Défi 1 · Dompter l'inertie</option>
@@ -2253,6 +2309,10 @@
 
   <script>
 /*__KJP_CODEC__*/
+  </script>
+
+  <script>
+/*__BOAT_PLACEMENT__*/
   </script>
 
   <script>
@@ -2701,6 +2761,9 @@
       paused: false
     };
 
+    const placement = { active: false, mooring: false, draft: null, controller: null, pointer: null,
+      armed: false, blocked: false, sliding: false, contact: null, saved: null, disabled: [], center: null };
+
     const motion = {
       x: 25,
       y: -27.35,
@@ -3037,6 +3100,7 @@
       const master = engineAudio.nodes.master.gain;
       const audible = (
         engineAudio.enabled
+        && !isPreparingDeparture()
         && !document.hidden
         && engineAudio.context.state === "running"
       );
@@ -3416,6 +3480,10 @@
     }
 
     function prepareInterpolatedFrameMotion(alpha) {
+      if (placement.active) {
+        Object.assign(interpolatedFrameMotion, placement.draft, { u: 0, v: 0, r: 0 });
+        return interpolatedFrameMotion;
+      }
       const ratio = controls.paused ? 1 : clamp(alpha, 0, 1);
       interpolatedFrameMotion.x = lerp(previousPhysicsPose.x, motion.x, ratio);
       interpolatedFrameMotion.y = lerp(previousPhysicsPose.y, motion.y, ratio);
@@ -3637,6 +3705,7 @@
     }
 
     function installRuntimeTopology(topology) {
+      if (isPreparingDeparture()) cancelBoatPlacement();
       if (!nativeInfrastructureEnabled) {
         nativeWorldRenderer?.dispose();
         nativeWorldRenderer = null;
@@ -4034,11 +4103,11 @@
       }
 
       const target = [
-        boatMotion.x + camera.pan[0],
-        boatMotion.y + camera.pan[1],
+        (placement.active ? placement.origin.x : boatMotion.x) + camera.pan[0],
+        (placement.active ? placement.origin.y : boatMotion.y) + camera.pan[1],
         camera.pan[2]
       ];
-      const followAlpha = 1 - Math.exp(-CAMERA_FOLLOW_RATE * ui.frameDelta);
+      const followAlpha = placement.active ? 1 : 1 - Math.exp(-CAMERA_FOLLOW_RATE * ui.frameDelta);
       camera.target[0] = lerp(camera.target[0], target[0], followAlpha);
       camera.target[1] = lerp(camera.target[1], target[1], followAlpha);
       camera.target[2] = lerp(camera.target[2], target[2], followAlpha);
@@ -4181,7 +4250,7 @@
     }
 
     function physicsStep(dt) {
-      if (controls.paused) return;
+      if (controls.paused || isPreparingDeparture()) return;
       const nextEnvironmentKey = environmentKey();
       if (nextEnvironmentKey !== physicsEnvironmentKey) {
         physicsSimulator.setEnvironment(environment);
@@ -4595,6 +4664,7 @@
           throw new Error(`Taquet initial absent : ${definition.shoreCleatId}`);
         }
         return {
+          ...definition,
           id: definition.id,
           boatCleatId: definition.boatCleatId,
           shoreCleatId: shoreCleat.id,
@@ -4697,10 +4767,21 @@
         moorings: initialMooringDefinitions(initialMoorings),
         pendilles: initialPendilleDefinitions(initialPendilles)
       }, environment);
+      // Preserve the paid-out length and the crew's requested length separately.
+      // A paused preparation must not advance the hauling dynamics to save them.
+      const targets = [
+        ...initialMoorings,
+        ...initialPendilles.filter(item => item.state === "secured").map(item => ({
+          id: "pendille:" + item.id, targetLength: item.targetLength
+        }))
+      ].filter(item => Number.isFinite(item.targetLength));
+      for (const definition of targets) physicsSimulator.setMooringLength(definition.id, definition.targetLength);
+      if (targets.length) latestPhysicsSnapshot = physicsSimulator.snapshot();
       previousPhysicsPose.x = motion.x;
       previousPhysicsPose.y = motion.y;
       previousPhysicsPose.heading = motion.heading;
       moorings.current = latestPhysicsSnapshot.moorings.map(line => ({ ...line }));
+      moorings.serial = 1 + Math.max(0, ...moorings.current.map(line => Number(/^user-(\d+)$/.exec(line.id)?.[1]) || 0));
       pendilleState.current = (latestPhysicsSnapshot.pendilles || []).map(item => ({ ...item }));
       forceAccumulator.reset();
       understandingSourceRevision++;
@@ -4708,8 +4789,11 @@
     }
 
     function applyScenario(id) {
+      if (id === "placement") { beginBoatPlacement(); return; }
+      if (isPreparingDeparture()) cancelBoatPlacement();
       const scenario = scenarios[id] || scenarios.free;
       ui.scenarioId = scenarios[id] ? id : "free";
+      ensureCustomDepartureOption();
       $("#scenarioSelect").value = ui.scenarioId;
       environment.windSpeedKn = scenario.environment.windSpeedKn;
       environment.windFromDeg = scenario.environment.windFromDeg;
@@ -4753,7 +4837,7 @@
     function renderScenarioLesson() {
       const scenario = scenarios[ui.scenarioId];
       const card = $("#lessonCard");
-      card.hidden = communityPort || ui.scenarioId === "free";
+      card.hidden = communityPort || ["free", "customDeparture"].includes(ui.scenarioId);
       $("#lessonScore").hidden = !scenario.goal;
       $("#objectiveLine").hidden = !scenario.goal;
       $("#lessonKicker").textContent = scenario.kicker;
@@ -4836,8 +4920,472 @@
     }
 
     function recenterCamera() {
+      if (placement.active) { recenterPlacement(); return; }
       setCameraView(camera.view);
     }
+
+    function ensureCustomDepartureOption() {
+      const select = $("#scenarioSelect");
+      if (scenarios.customDeparture && !select.querySelector('option[value="customDeparture"]')) {
+        select.querySelector("optgroup").append(new Option(t("placement.custom"), "customDeparture"));
+      }
+      const custom = select.querySelector('option[value="customDeparture"]');
+      if (custom) custom.textContent = t("placement.custom");
+    }
+
+    function placementCorePose(pose = placement.draft) {
+      return { east: pose.x, north: pose.y, heading: coreHeadingFromScene(pose.heading) };
+    }
+
+    function isPreparingDeparture() {
+      return placement.active || placement.mooring;
+    }
+
+    function beginBoatPlacement() {
+      if (isPreparingDeparture()) return;
+      placement.saved = { camera: structuredClone(camera), controls: { ...controls },
+        mode: ui.mode, understandView: ui.understandView, scenarioId: ui.scenarioId,
+        canvasLabel: canvas.getAttribute("aria-label") };
+      clearHeldKeyboardControls();
+      placement.controller = KJPBoatPlacement.createController({
+        physics: PortPhysics, profile: physicsSimulator.getProfile(), obstacles: physicsObstacles()
+      });
+      const initial = (communityPort ? scenarios.community : scenarios.free).initial;
+      placement.draft = { x: initial.x, y: initial.y, heading: initial.heading };
+      placement.origin = { ...placement.draft };
+      placement.active = true;
+      placement.pointer = null; placement.armed = false; placement.blocked = false; placement.sliding = false; placement.contact = null;
+      placement.center = null;
+      $("#placementHeading").textContent = "";
+      controls.paused = true;
+      syncPauseButton();
+      setDisplayMode("navigation");
+      setCameraView("top");
+      camera.target = [initial.x, initial.y, 0];
+      camera.follow = false;
+      placement.disabled = $$("#sidebar input:not([type='file']), #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
+        .map(element => ({ element, disabled: element.disabled }));
+      placement.disabled.forEach(({ element }) => element.disabled = true);
+      document.querySelector(".app").classList.add("placing-boat");
+      ["#placementBanner", "#placementToolbar", "#placementRose"].forEach(id => $(id).hidden = false);
+      $("#scenarioSelect").value = "placement";
+      canvas.setAttribute("aria-label", t("placement.help"));
+      if (matchMedia("(max-width: 860px)").matches) {
+        $("#sidebar").classList.remove("open"); syncSidebarForViewport();
+      }
+      resizeCanvas();
+      updatePlacementStatus();
+      fitPlacementCamera();
+      keepPlacementVisible();
+      canvas.focus();
+      updatePlacementStatus();
+    }
+
+    function fitPlacementCamera() {
+      recenterPlacement();
+      const bounds = PORT_TOPOLOGY.bounds;
+      camera.distance = 100;
+      if (bounds) {
+        const points = [[bounds.minX, bounds.minY, 0], [bounds.maxX, bounds.minY, 0],
+          [bounds.maxX, bounds.maxY, 0], [bounds.minX, bounds.maxY, 0]];
+        for (let i = 0; i < 50; i++) {
+          frameBasis = cameraBasis();
+          const projected = points.map(project);
+          if (projected.every(p => p && p.x > 30 && p.x < canvasWidth - 30
+            && p.y > 100 && p.y < canvasHeight - 200)) break;
+          if (camera.distance >= CAMERA_DISTANCE_MAX) break;
+          camera.distance = Math.min(CAMERA_DISTANCE_MAX, camera.distance * 1.12);
+        }
+      } else camera.distance = 180;
+      frameBasis = null;
+    }
+
+    function recenterPlacement() {
+      if (!placement.active) return;
+      camera.pan = [placement.draft.x - placement.origin.x, placement.draft.y - placement.origin.y, 0];
+      camera.target = [placement.draft.x, placement.draft.y, 0]; frameBasis = null;
+      keepPlacementVisible();
+    }
+
+    function keepPlacementVisible() {
+      if (!placement.active || placement.pointer) return;
+      frameBasis = cameraBasis();
+      const p = project([placement.draft.x, placement.draft.y, 0]);
+      if (!p) return;
+      const rect = canvas.getBoundingClientRect();
+      const banner = $("#placementBanner").getBoundingClientRect();
+      const toolbar = $("#placementToolbar").getBoundingClientRect();
+      const radius = Math.max(matchMedia("(pointer: coarse), (max-width: 640px)").matches ? 88 : 72,
+        ...[-1, 1].map(sign => project(localPoint(placement.draft, sign * BOAT_PROFILE.length / 2, 0, 0)))
+          .filter(Boolean).map(end => Math.hypot(end.x - p.x, end.y - p.y) + 30));
+      const short = canvasHeight < 480 && canvasWidth >= 640;
+      const top = banner.bottom - rect.top + radius + (short ? 25 : 60);
+      const bottom = toolbar.top - rect.top - radius - 25;
+      const desiredY = top <= bottom ? clamp(p.y, top, bottom) : (banner.bottom + toolbar.top) / 2 - rect.top;
+      const desiredX = clamp(p.x, radius + 25, Math.max(radius + 25, canvasWidth - radius - 25));
+      const from = placementWaterPoint(rect.left + p.x, rect.top + p.y);
+      const to = placementWaterPoint(rect.left + desiredX, rect.top + desiredY);
+      if (from && to) {
+        camera.pan[0] += from.x - to.x; camera.pan[1] += from.y - to.y;
+      }
+      frameBasis = null;
+    }
+
+    function endPlacement() {
+      placement.active = false; placement.mooring = false; placement.pointer = null; placement.armed = false;
+      for (const id of canvasTouches.keys()) {
+        for (const element of [canvas, $("#placementHandlePort"), $("#placementHandleStarboard")]) {
+          if (element.hasPointerCapture(id)) element.releasePointerCapture(id);
+        }
+      }
+      canvasTouches.clear(); canvasGesture = null; camera.pointer = null;
+      placement.disabled.forEach(({ element, disabled }) => element.disabled = disabled);
+      document.querySelector(".app").classList.remove("placing-boat");
+      document.querySelector(".app").classList.remove("preparing-moorings");
+      ["#placementBanner", "#placementToolbar", "#placementRose"].forEach(id => $(id).hidden = true);
+      placement.mooringLayoutKey = "";
+      $(".environment-readout").style.removeProperty("top");
+      $("#mooringGaugePanel").style.removeProperty("max-height");
+      canvas.setAttribute("aria-label", t("ui.three.dimensional.view.of.a.sailboat.manoeuvring.in"));
+      canvas.style.cursor = "grab";
+    }
+
+    function cancelBoatPlacement() {
+      if (!isPreparingDeparture()) return;
+      const saved = placement.saved;
+      endPlacement();
+      if (saved.live) {
+        physicsSimulator = saved.live.physicsSimulator;
+        latestPhysicsSnapshot = saved.live.latestPhysicsSnapshot;
+        physicsCalibrationKey = saved.live.physicsCalibrationKey;
+        physicsEnvironmentKey = saved.live.physicsEnvironmentKey;
+        Object.assign(motion, saved.live.motion);
+        Object.assign(previousPhysicsPose, saved.live.previousPhysicsPose);
+        Object.assign(contacts, saved.live.contacts);
+        Object.assign(moorings, saved.live.moorings, { gaugePointer: null, gaugeSignature: "" });
+        Object.assign(pendilleState, saved.live.pendilleState);
+        Object.assign(scenarioState, saved.live.scenarioState);
+        ui.simTime = saved.live.simTime;
+        ui.accumulator = saved.live.accumulator;
+      }
+      Object.assign(controls, saved.controls);
+      syncPauseButton();
+      Object.assign(camera, saved.camera, { pointer: null });
+      ui.scenarioId = saved.scenarioId;
+      $("#scenarioSelect").value = ui.scenarioId;
+      setDisplayMode(saved.mode);
+      setUnderstandView(saved.understandView);
+      renderScenarioLesson();
+      syncMooringGauges();
+      placement.saved = null;
+      syncCameraButtons(); frameBasis = null; canvas.focus();
+    }
+
+    function confirmBoatPlacement() {
+      if (!placement.active || placement.pointer || canvasGesture
+        || !placement.controller.inspect(placementCorePose()).valid) return false;
+      const initial = { ...placement.draft, u: 0, v: 0, r: 0 };
+      const preparedPhysics = PortPhysics.createSimulator({
+        profile: physicsSimulator.getProfile(), obstacles: physicsObstacles()
+      });
+      // Keep the original simulator intact until starting, so cancelling the
+      // mooring phase also restores its propulsion, contacts and line history.
+      placement.saved.live = {
+        physicsSimulator, latestPhysicsSnapshot, physicsCalibrationKey, physicsEnvironmentKey,
+        motion: { ...motion }, previousPhysicsPose: { ...previousPhysicsPose },
+        contacts: structuredClone(contacts),
+        moorings: { ...moorings, current: structuredClone(moorings.current), hitTargets: structuredClone(moorings.hitTargets) },
+        pendilleState: structuredClone(pendilleState), scenarioState: structuredClone(scenarioState),
+        simTime: ui.simTime, accumulator: ui.accumulator
+      };
+      placement.active = false;
+      placement.mooring = true;
+      document.querySelector(".app").classList.remove("placing-boat");
+      document.querySelector(".app").classList.add("preparing-moorings");
+      $("#placementRose").hidden = true;
+      physicsSimulator = preparedPhysics;
+      ui.scenarioId = "free";
+      resetMotion(initial);
+      controls.paused = true;
+      camera.follow = true;
+      syncPauseButton();
+      $("#scenarioSelect").value = "placement";
+      canvas.setAttribute("aria-label", t("placement.mooring.help"));
+      updatePlacementStatus();
+      canvas.focus();
+      return true;
+    }
+
+    function startPreparedDeparture() {
+      if (!placement.mooring || camera.pointer || canvasGesture || moorings.gaugePointer) return false;
+      const snapshot = physicsSimulator.snapshot();
+      const initialMoorings = snapshot.moorings.filter(line => line.sourceType !== "pendille").map(line => ({
+        id: line.id, boatCleatId: line.boatCleatId, shoreCleatId: line.shoreCleatId,
+        length: line.length, targetLength: line.targetLength,
+        maximumLength: line.maximumLength, elasticity: structuredClone(line.elasticity)
+      }));
+      const initialPendilles = snapshot.pendilles.map(item => {
+        const line = snapshot.moorings.find(line => line.id === item.mooringId);
+        return { id: item.id, state: item.state === "secured" ? "secured" : "available",
+          boatCleatId: item.state === "secured" ? item.boatCleatId : null,
+          ...(line ? { length: line.length, targetLength: line.targetLength } : {}) };
+      });
+      scenarios.customDeparture = {
+        initial: { ...motion, u: 0, v: 0, r: 0 }, environment: { ...environment },
+        initialMoorings, initialPendilles, goal: null,
+        kicker: "", title: t("placement.custom"), copy: "", objective: ""
+      };
+      endPlacement();
+      placement.saved = null;
+      moorings.selected = null; moorings.hover = null; pendilleState.selectedId = null;
+      ui.scenarioId = "customDeparture";
+      ensureCustomDepartureOption();
+      $("#scenarioSelect").value = ui.scenarioId;
+      controls.paused = false;
+      syncPauseButton();
+      renderScenarioLesson();
+      canvas.focus();
+      return true;
+    }
+
+    function movePlacementDraft(target) {
+      const result = placement.controller.move(placementCorePose(), placementCorePose(target));
+      placement.draft = { x: result.pose.east, y: result.pose.north, heading: sceneHeadingFromCore(result.pose.heading) };
+      placement.blocked = result.blocked; placement.contact = result.contact;
+      placement.sliding = Boolean(result.sliding);
+      updatePlacementStatus();
+      keepPlacementVisible();
+    }
+
+    function updatePlacementStatus() {
+      if (!isPreparingDeparture()) return;
+      if (placement.mooring) {
+        setText("#placementBanner strong", t("placement.mooring.title"));
+        setText("#placementStatus", t("placement.mooring.help"));
+        setText("#placementConfirm", t("placement.start"));
+        $("#placementBanner").dataset.blocked = "false";
+        $("#placementConfirm").disabled = Boolean(camera.pointer || canvasGesture || moorings.gaugePointer);
+        const layoutKey = [canvasWidth, canvasHeight, i18n.getLocale(), moorings.current.length].join(":");
+        if (placement.mooringLayoutKey !== layoutKey) {
+          placement.mooringLayoutKey = layoutKey;
+          const readout = $(".environment-readout");
+          const panel = $("#mooringGaugePanel");
+          if (matchMedia("(max-width: 860px)").matches) {
+            readout.style.top = ($("#placementBanner").getBoundingClientRect().bottom
+              - canvas.getBoundingClientRect().top + 10) + "px";
+          } else readout.style.removeProperty("top");
+          if (!panel.hidden) panel.style.maxHeight = Math.min(368, Math.max(56,
+            $("#placementToolbar").getBoundingClientRect().top - panel.getBoundingClientRect().top - 10)) + "px";
+        }
+        return;
+      }
+      setText("#placementConfirm", t("placement.confirm"));
+      const valid = placement.controller.inspect(placementCorePose()).valid;
+      const key = !valid ? "placement.invalid" : placement.sliding ? "placement.sliding" : placement.blocked ? "placement.blocked"
+        : placement.armed ? "placement.destination" : "placement.help";
+      const status = $("#placementStatus");
+      if (status.textContent !== t(key)) status.textContent = t(key);
+      const compact = canvasHeight < 480 && canvasWidth >= 640;
+      const titleKey = compact && !valid ? "placement.invalid.short"
+        : compact && placement.sliding ? "placement.sliding.short"
+        : compact && placement.blocked ? "placement.blocked.short" : "placement.title";
+      $("#placementBanner strong").textContent = t(titleKey);
+      $("#placementBanner").dataset.blocked = String(!valid || placement.blocked);
+      $("#placementConfirm").disabled = !valid || Boolean(placement.pointer || canvasGesture);
+    }
+
+    function placementWaterPoint(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const basis = cameraBasis();
+      const focal = Math.min(canvasWidth, canvasHeight) * 1.05;
+      const sx = (clientX - rect.left - canvasWidth / 2) / focal;
+      const sy = -(clientY - rect.top - canvasHeight / 2) / focal;
+      const ray = basis.forward.map((v, i) => v + basis.right[i] * sx + basis.up[i] * sy);
+      if (Math.abs(ray[2]) < 1e-9) return null;
+      const distance = -basis.position[2] / ray[2];
+      return { x: basis.position[0] + ray[0] * distance, y: basis.position[1] + ray[1] * distance };
+    }
+
+    function placementBoatHit(clientX, clientY) {
+      frameBasis = cameraBasis();
+      const center = project([placement.draft.x, placement.draft.y, 0]);
+      const point = placementWaterPoint(clientX, clientY);
+      if (!point || !center) return false;
+      const rect = canvas.getBoundingClientRect();
+      if (Math.hypot(clientX - rect.left - center.x, clientY - rect.top - center.y) <= 24) return true;
+      const local = worldToBody(point.x - placement.draft.x, point.y - placement.draft.y, placement.draft.heading);
+      return Math.abs(local[0]) <= BOAT_PROFILE.length / 2 && Math.abs(local[1]) <= BOAT_PROFILE.beam / 2;
+    }
+
+    function placementPointerDown(event, mode) {
+      if (!placement.active) return false;
+      if (event.pointerType !== "touch" && event.button !== 0) return true;
+      event.preventDefault(); canvas.focus();
+      if (event.pointerType === "touch") {
+        canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (canvasTouches.size >= 2) {
+          placement.pointer = null; placement.armed = false;
+          startCanvasGesture(); updatePlacementStatus();
+          try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
+          return true;
+        }
+        if (canvasGesture) return true;
+      }
+      const point = placementWaterPoint(event.clientX, event.clientY);
+      if (!point) return true;
+      mode ||= placementBoatHit(event.clientX, event.clientY) ? "boat" : "pan";
+      placement.pointer = { id: event.pointerId, mode, x: event.clientX, y: event.clientY,
+        clientX: event.clientX, clientY: event.clientY, pan: camera.pan.slice(),
+        offset: { x: placement.draft.x - point.x, y: placement.draft.y - point.y },
+        angle: Math.atan2(point.y - placement.draft.y, point.x - placement.draft.x),
+        moved: false, destination: placement.armed };
+      try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
+      updatePlacementStatus();
+      return true;
+    }
+
+    function placementPointerMove(event) {
+      if (!placement.active) return false;
+      if (canvasTouches.has(event.pointerId)) {
+        canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (canvasGesture) { moveCanvasGesture(); return true; }
+      }
+      const p = placement.pointer;
+      if (!p || p.id !== event.pointerId) {
+        canvas.style.cursor = placementBoatHit(event.clientX, event.clientY) ? "grab" : "move";
+        return true;
+      }
+      p.clientX = event.clientX; p.clientY = event.clientY;
+      const dx = event.clientX - p.x, dy = event.clientY - p.y;
+      if (Math.hypot(dx, dy) > 6) p.moved = true;
+      if (!p.moved) return true;
+      placement.armed = false;
+      if (p.mode === "pan") {
+        const basis = cameraBasis(), scale = camera.distance * .0019;
+        camera.pan = [p.pan[0] - basis.right[0] * dx * scale + basis.up[0] * dy * scale,
+          p.pan[1] - basis.right[1] * dx * scale + basis.up[1] * dy * scale, 0];
+      } else {
+        const point = placementWaterPoint(event.clientX, event.clientY);
+        if (!point) return true;
+        if (p.mode === "boat") {
+          movePlacementDraft({ ...placement.draft, x: point.x + p.offset.x, y: point.y + p.offset.y });
+          // Don't accumulate an unreachable cursor target inside the quay.
+          // A change of pointer direction must immediately pull the boat away.
+          p.offset = { x: placement.draft.x - point.x, y: placement.draft.y - point.y };
+        }
+        else {
+          const angle = Math.atan2(point.y - placement.draft.y, point.x - placement.draft.x);
+          movePlacementDraft({ ...placement.draft, heading: wrapAngle(placement.draft.heading + wrapAngle(angle - p.angle)) });
+          p.angle = angle;
+        }
+      }
+      canvas.style.cursor = "grabbing"; frameBasis = null;
+      return true;
+    }
+
+    function placementPointerUp(event) {
+      if (!placement.active) return false;
+      canvasTouches.delete(event.pointerId);
+      if (canvasGesture) {
+        if (canvasTouches.size === 0) canvasGesture = null;
+        placement.pointer = null; updatePlacementStatus(); return true;
+      }
+      const p = placement.pointer;
+      if (!p || p.id !== event.pointerId) return true;
+      if (!p.moved && event.type === "pointerup") {
+        if (p.mode === "boat") placement.armed = !placement.armed;
+        else if (p.mode === "pan" && p.destination) {
+          const point = placementWaterPoint(event.clientX, event.clientY);
+          if (point) movePlacementDraft({ ...placement.draft, ...point });
+          placement.armed = false;
+        }
+      }
+      placement.pointer = null; updatePlacementStatus(); keepPlacementVisible();
+      return true;
+    }
+
+    function placementEdgePan(dt) {
+      const p = placement.pointer;
+      if (!placement.active || !p?.moved || p.mode !== "boat") return;
+      const rect = canvas.getBoundingClientRect();
+      const x = p.clientX - rect.left, y = p.clientY - rect.top;
+      const vx = x < 32 ? -1 : x > rect.width - 32 ? 1 : 0;
+      const vy = y < 32 ? -1 : y > rect.height - 32 ? 1 : 0;
+      if (!vx && !vy) return;
+      const basis = cameraBasis(), speed = camera.distance * .25 * dt;
+      camera.pan[0] += (basis.right[0] * vx - basis.up[0] * vy) * speed;
+      camera.pan[1] += (basis.right[1] * vx - basis.up[1] * vy) * speed;
+      placementPointerMove({ pointerId: p.id, clientX: p.clientX, clientY: p.clientY });
+    }
+
+    function drawPlacementPresentation() {
+      if (!placement.active) return;
+      const pose = placement.draft;
+      const center = project([pose.x, pose.y, 0]);
+      if (!center) { $("#placementRose").hidden = true; return; }
+      $("#placementRose").hidden = false;
+      const ends = [-1, 1].map(sign => project(localPoint(pose, sign * BOAT_PROFILE.length / 2, 0, 0)));
+      const radius = Math.max(matchMedia("(pointer: coarse), (max-width: 640px)").matches ? 88 : 72,
+        ...ends.filter(Boolean).map(p => Math.hypot(p.x - center.x, p.y - center.y) + 30));
+      const stage = canvas.parentElement.getBoundingClientRect(), rect = canvas.getBoundingClientRect();
+      const rose = $("#placementRose");
+      rose.style.width = rose.style.height = radius * 2 + "px";
+      rose.style.left = center.x - radius + rect.left - stage.left + "px";
+      rose.style.top = center.y - radius + rect.top - stage.top + "px";
+      const side = project(localPoint(pose, 0, 1, 0));
+      const angle = side ? Math.atan2(side.y - center.y, side.x - center.x) : 0;
+      ["#placementHandlePort", "#placementHandleStarboard"].forEach((id, i) => {
+        const a = angle + i * Math.PI;
+        $(id).style.left = radius + Math.cos(a) * radius + "px";
+        $(id).style.top = radius + Math.sin(a) * radius + "px";
+      });
+      const heading = (90 - pose.heading * RAD + 360) % 360;
+      $("#placementHeading").textContent = t("placement.cap") + " " + String(Math.round(heading) % 360).padStart(3, "0") + "°";
+      placement.center = { x: center.x, y: center.y, radius };
+      const style = getComputedStyle(document.body);
+      ctx.save();
+      ctx.strokeStyle = style.getPropertyValue("--cyan"); ctx.globalAlpha = .55;
+      ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(center.x, center.y, 24, 0, Math.PI * 2); ctx.stroke();
+      if (placement.blocked && placement.contact) {
+        const contact = project([placement.contact.east, placement.contact.north, .1]);
+        if (contact) {
+          ctx.globalAlpha = 1; ctx.strokeStyle = style.getPropertyValue("--amber"); ctx.lineWidth = 2;
+          ctx.setLineDash([]); ctx.beginPath(); ctx.arc(contact.x, contact.y, 8, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function stepBoatPlacement(direction) {
+      if (!placement.active) return;
+      const pose = { ...placement.draft };
+      if (direction === "north") pose.y += .5;
+      if (direction === "south") pose.y -= .5;
+      if (direction === "east") pose.x += .5;
+      if (direction === "west") pose.x -= .5;
+      if (direction === "left") pose.heading += DEG;
+      if (direction === "right") pose.heading -= DEG;
+      movePlacementDraft(pose);
+    }
+
+    $("#placementCancel").addEventListener("click", cancelBoatPlacement);
+    $("#placementConfirm").addEventListener("click", () => placement.mooring ? startPreparedDeparture() : confirmBoatPlacement());
+    $("#placementRecenter").addEventListener("click", () => placement.mooring ? recenterCamera() : recenterPlacement());
+    $("#placementZoomIn").addEventListener("click", () => camera.distance = clamp(camera.distance / 1.25, CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX));
+    $("#placementZoomOut").addEventListener("click", () => camera.distance = clamp(camera.distance * 1.25, CAMERA_DISTANCE_MIN, CAMERA_DISTANCE_MAX));
+    ["#placementHandlePort", "#placementHandleStarboard"].forEach(id => {
+      const handle = $(id);
+      handle.addEventListener("pointerdown", event => placementPointerDown(event, "rotate"));
+      handle.addEventListener("pointermove", placementPointerMove);
+      handle.addEventListener("pointerup", placementPointerUp);
+      handle.addEventListener("pointercancel", placementPointerUp);
+      handle.addEventListener("lostpointercapture", placementPointerUp);
+      handle.addEventListener("keydown", event => {
+        if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault(); stepBoatPlacement(event.key === "ArrowLeft" ? "left" : "right");
+        }
+      });
+    });
 
     function adjustRudder(direction) {
       controls.rudderTarget = clamp(
@@ -4940,6 +5488,7 @@
     }
 
     function updateHeldKeyboardControls(now) {
+      if (isPreparingDeparture()) return;
       for (const axis of ["rudder", "throttle"]) {
         const direction = heldKeyboardDirection(axis);
         if (!direction || now < keyboardRepeatAt[axis]) continue;
@@ -4972,7 +5521,12 @@
     );
 
     function togglePause() {
+      if (isPreparingDeparture()) return;
       controls.paused = !controls.paused;
+      syncPauseButton();
+    }
+
+    function syncPauseButton() {
       const button = $("#pauseButton");
       button.textContent = controls.paused ? "▶" : "Ⅱ";
       button.setAttribute("aria-pressed", String(controls.paused));
@@ -7811,6 +8365,7 @@
     }
 
     function addGoalGeometry() {
+      if (placement.active) return;
       const goal = scenarios[ui.scenarioId].goal;
       if (!goal || scenarioState.complete) return;
       const color = visualPalette().semantic.goal;
@@ -8061,7 +8616,8 @@
       const elapsed = Math.min(.1, Math.max(0, (time - ui.lastFrame) / 1000));
       ui.lastFrame = time;
       ui.frameDelta = elapsed || ui.frameDelta;
-      if (!controls.paused) {
+      placementEdgePan(elapsed);
+      if (!controls.paused && !isPreparingDeparture()) {
         ui.accumulator = Math.min(
           .18 * ui.timeScale,
           ui.accumulator + elapsed * ui.timeScale
@@ -8097,12 +8653,12 @@
           });
         }
         addBoatMesh(frameMotion, true);
-        addRudderAxis();
+        if (!isPreparingDeparture()) addRudderAxis();
       } else {
         // Projections conservées uniquement pour l'objectif pédagogique et
         // l'axe de barre. Le picking et les aussières sont dessinés plus bas.
         addGoalGeometry();
-        addRudderAxis();
+        if (!isPreparingDeparture()) addRudderAxis();
       }
       if (nativeWorldActive) {
         try {
@@ -8168,8 +8724,10 @@
           overlayLayers: overlayLines.filter(item => item.layer >= 10).map(item => item.layer)
         };
       }
-      drawMooringLayer();
-      drawUnderstandingOverlay();
+      if (!placement.active) {
+        drawMooringLayer();
+        drawUnderstandingOverlay();
+      } else drawPlacementPresentation();
       frameMotion = null;
       visibleHarborFrameCache = null;
       if (contacts.toastUntil && performance.now() > contacts.toastUntil) {
@@ -8178,6 +8736,7 @@
       }
       updateEngineAudio();
       updateInterface();
+      if (placement.mooring) updatePlacementStatus();
       renderPerformance.lastFrameVisibilityComputations = renderPerformance.visibilityComputations;
       const renderCpuMs = performance.now() - renderCpuStart;
       recordRenderCpuTime(renderCpuMs);
@@ -8671,6 +9230,7 @@
         $("#scenarioSelect").innerHTML = builtInScenarioMarkup;
         i18n.apply($("#scenarioSelect"));
         $("#scenarioSelect").value = ui.scenarioId;
+        ensureCustomDepartureOption();
         return;
       }
       card.hidden = false;
@@ -8685,9 +9245,10 @@
       summary.hidden = details.length === 0;
       const group = document.createElement("optgroup");
       group.label = t("ui.community.harbour");
-      group.append(new Option(t("ui.community.navigation"), "community"));
+      group.append(new Option(t("ui.community.navigation"), "community"), new Option(t("placement.title"), "placement"));
       $("#scenarioSelect").replaceChildren(group);
       $("#scenarioSelect").value = ui.scenarioId;
+      ensureCustomDepartureOption();
       const visitorSelect = $("#visitorBerthSelect");
       visitorSelect.replaceChildren(new Option(t("ui.visitor.berths"), ""));
       for (const berth of harborNavigationConfig.visitorBerths || []) {
@@ -8852,6 +9413,7 @@
       readSelectedPortFile(event.target.files?.[0]);
     });
     $("#portSourceSelect").addEventListener("change", event => {
+      if (isPreparingDeparture()) cancelBoatPlacement();
       const choice = event.target.value;
       if (choice === "loadTrinite" || choice === "buildPort") {
         event.target.value = communityPort ? "community" : "builtIn";
@@ -9088,6 +9650,22 @@
     window.addEventListener("keydown", event => {
       if (readmeDialog.open) return;
       if (event.target === $("#languageSelect")) return;
+      if (isPreparingDeparture()) {
+        if (event.key === "Escape") { event.preventDefault(); cancelBoatPlacement(); return; }
+        if (placement.mooring && event.target.closest?.("#mooringGaugePanel")) return;
+        if (["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(event.target.tagName)) return;
+        if (placement.mooring) {
+          if (event.key === "Enter") { event.preventDefault(); startPreparedDeparture(); }
+          else if (keyboardControlKey(event.key) || [" ", "p", "P", "r", "R"].includes(event.key)) event.preventDefault();
+          return;
+        }
+        const direction = { ArrowUp: "north", ArrowDown: "south", ArrowLeft: "west", ArrowRight: "east",
+          q: "left", Q: "left", e: "right", E: "right" }[event.key];
+        if (direction) { event.preventDefault(); stepBoatPlacement(direction); }
+        else if (event.key === "Enter") { event.preventDefault(); confirmBoatPlacement(); }
+        else if (keyboardControlKey(event.key) || [" ", "p", "P", "r", "R"].includes(event.key)) event.preventDefault();
+        return;
+      }
       const key = event.key;
       if (keyboardControlKey(key)) {
         event.preventDefault();
@@ -9114,14 +9692,24 @@
     }, { capture: true });
 
     window.addEventListener("keyup", event => {
+      if (isPreparingDeparture()) return;
       if (keyboardControlKey(event.key)) {
         event.preventDefault();
         setKeyboardControlHeld(event.key, false);
       }
     }, { capture: true });
     window.addEventListener("blur", clearHeldKeyboardControls);
+    function stopPlacementPointers() {
+      if (!isPreparingDeparture()) return;
+      placement.pointer = null; placement.armed = false;
+      if (placement.mooring) { camera.pointer = null; moorings.gaugePointer = null; }
+      canvasTouches.clear(); canvasGesture = null;
+      updatePlacementStatus();
+    }
+    window.addEventListener("blur", stopPlacementPointers);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) clearHeldKeyboardControls();
+      if (document.hidden) stopPlacementPointers();
     });
 
     function pointSegmentProjection(point, first, second) {
@@ -9379,6 +9967,7 @@
     }
 
     canvas.addEventListener("pointerdown", event => {
+      if (placementPointerDown(event)) return;
       event.preventDefault();
       canvas.focus();
       if (event.pointerType === "touch") {
@@ -9440,6 +10029,7 @@
     });
 
     canvas.addEventListener("pointermove", event => {
+      if (placementPointerMove(event)) return;
       if (event.pointerType === "touch" && canvasTouches.has(event.pointerId)) {
         canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (canvasGesture) {
@@ -9529,6 +10119,7 @@
     });
 
     canvas.addEventListener("pointerup", event => {
+      if (placementPointerUp(event)) return;
       if (event.pointerType === "touch") {
         canvasTouches.delete(event.pointerId);
         if (canvasGesture) {
@@ -9585,6 +10176,7 @@
       canvas.style.cursor = cursorForMooringHit(moorings.hover);
     });
     canvas.addEventListener("pointercancel", event => {
+      if (placementPointerUp(event)) return;
       canvasTouches.delete(event.pointerId);
       canvasGesture = null;
       camera.pointer = null;
@@ -9594,6 +10186,7 @@
       if (!moorings.gaugePointer) moorings.activeLineId = null;
       canvas.style.cursor = "grab";
     });
+    canvas.addEventListener("lostpointercapture", placementPointerUp);
     canvas.addEventListener("pointerleave", () => {
       if (!camera.pointer && !understandingTouchSelection) {
         moorings.hover = null;
@@ -9604,6 +10197,7 @@
     });
     canvas.addEventListener("contextmenu", event => event.preventDefault());
     canvas.addEventListener("dblclick", event => {
+      if (placement.active) return;
       if (!findMooringHit(event.clientX, event.clientY, event.pointerType)) resetCamera();
     });
     canvas.addEventListener("wheel", event => {
@@ -10039,6 +10633,15 @@
       if (!new URLSearchParams(location.search).has("test")) return;
       controls.paused = true;
       window.__PORTANCE_TEST__ = Object.freeze({
+        placementReport() {
+          return { active: placement.active, phase: placement.mooring ? "mooring" : placement.active ? "placement" : "idle",
+            draft: placement.draft ? { ...placement.draft } : null,
+            center: placement.center ? { ...placement.center } : null, blocked: placement.blocked, sliding: placement.sliding,
+            armed: placement.armed, valid: placement.active ? placement.controller.inspect(placementCorePose()).valid : null,
+            mooringTargets: placement.mooring ? structuredClone(moorings.hitTargets) : null,
+            scenarioId: ui.scenarioId, simulationTime: ui.simTime, camera: structuredClone(camera),
+            core: physicsSimulator.snapshot(), environment: { ...environment }, controls: { ...controls } };
+        },
         selectLocale(code) { i18n.setLocale(code, { persist: false, source: "test" }); return i18n.report(); },
         localeReport: i18n.report,
         selectWorldRenderer(renderer) {
@@ -10356,6 +10959,7 @@
     window.addEventListener("resize", () => {
       resizeCanvas();
       syncSidebarForViewport();
+      if (placement.active) requestAnimationFrame(() => { updatePlacementStatus(); keepPlacementVisible(); });
     });
     window.addEventListener("pointerdown", () => {
       void unlockEngineAudio();
@@ -10387,6 +10991,12 @@
       languageSelect.value = i18n.getLocale();
       localizeBuiltInScenarios();
       updatePortChrome();
+      ensureCustomDepartureOption();
+      $("#scenarioSelect").value = isPreparingDeparture() ? "placement" : ui.scenarioId;
+      if (isPreparingDeparture()) {
+        updatePlacementStatus();
+        canvas.setAttribute("aria-label", t(placement.mooring ? "placement.mooring.help" : "placement.help"));
+      }
       renderScenarioLesson();
       updateControlReadouts();
       setVisualTheme(ui.visualTheme);

@@ -64,9 +64,13 @@ async function instrumentPage(raw, controlled) {
       transact(() => target.waitForFunction(fn, arg, { ...options, polling: 25 }));
     if (["evaluate", "setViewportSize", "reload", "click", "selectOption", "fill", "waitForSelector", "waitForEvent", "screenshot"].includes(property)) return (...args) =>
       transact(() => target[property](...args));
-    if (property === "goto") return (url, options = {}) => transact(() => target.goto(url, {
-      ...options, waitUntil: options.waitUntil || "domcontentloaded"
-    }));
+    if (property === "goto") return async (url, options = {}) => {
+      // Repainting the old document while goto replaces its execution context
+      // races navigation. Start the controlled paint pump after DOM readiness.
+      const result = await target.goto(url, { ...options, waitUntil: options.waitUntil || "domcontentloaded" });
+      await paint();
+      return result;
+    };
     const value = target[property];
     return typeof value === "function" ? value.bind(target) : value;
   } });
@@ -83,7 +87,7 @@ function browserCase(definition, callback) {
   test(name, { timeout: 120000 }, async t => {
     browser ||= chromium.launch({ headless: true });
     const engine = await browser;
-    const context = await engine.newContext({ locale: "fr-FR", viewport: definition.product === "simulator"
+    const context = await engine.newContext({ locale: "fr-FR", hasTouch: Boolean(definition.hasTouch), viewport: definition.product === "simulator"
       ? { width: 1280, height: 800 } : { width: 1440, height: 900 }, reducedMotion: "reduce" });
     const raw = await context.newPage();
     const runtimeErrors = [], externalRequests = [];
