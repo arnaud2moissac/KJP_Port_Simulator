@@ -19,8 +19,9 @@ function environment(overrides = {}) {
   };
 }
 
-function create(profile, environmentInput = environment(), initial = {}) {
+function create(profile, environmentInput = environment(), initial = {}, options = {}) {
   const simulator = Physics.createSimulator({
+    ...options,
     profile,
     environment: environmentInput,
     obstacles: []
@@ -38,6 +39,31 @@ function create(profile, environmentInput = environment(), initial = {}) {
     }
   }, environmentInput);
   return simulator;
+}
+
+function twinPropulsorProfile() {
+  const raw = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  raw.id = "synthetic-twin-propulsor-rotation";
+  raw.version = "1.0.0";
+  raw.propulsors[0].position.y = -0.35;
+  raw.propulsors.push(structuredClone(raw.propulsors[0]));
+  raw.propulsors[1].id = "shaft-propeller-starboard";
+  raw.propulsors[1].position.y = 0.35;
+  raw.rudders[0].position.y = -0.42;
+  raw.rudders.push(structuredClone(raw.rudders[0]));
+  raw.rudders[1].id = "spade-rudder-starboard";
+  raw.rudders[1].position.y = 0.42;
+  raw.rudders[1].slipstreamSources = ["shaft-propeller-starboard"];
+  return Physics.compileVesselProfile(raw);
+}
+
+function withoutEffectiveRotations(snapshot) {
+  const copy = structuredClone(snapshot);
+  delete copy.propulsion.rotation;
+  for (const unit of copy.propulsion.units) delete unit.rotation;
+  return copy;
 }
 
 function advance(simulator, seconds, controls = ZERO_CONTROLS, dt = DT) {
@@ -223,6 +249,174 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   const invalidStock = Physics.validateVesselProfile(missingStock);
   assert.equal(invalidStock.ok, false);
   assert.ok(invalidStock.errors.some(message => /stock\.chordFraction/.test(message)));
+});
+
+test("sens d'hélice: contrat générique, validation et isolation par instance", () => {
+  for (const raw of RAW_PROFILES) {
+    const propulsorId = raw.propulsors[0].id;
+    for (const invalidRotation of [undefined, "clockwise", null]) {
+      const invalid = structuredClone(raw);
+      invalid.propulsors[0].rotation = invalidRotation;
+      const report = Physics.validateVesselProfile(invalid);
+      assert.equal(report.ok, false, `${raw.id}: sens ${invalidRotation} accepté`);
+      assert.match(report.errors.join(" "), /right ou left/);
+    }
+
+    const inherited = create(raw);
+    assert.deepEqual(inherited.getPropulsorRotations(), { [propulsorId]: "right" });
+    assert.equal(inherited.snapshot().propulsion.units[0].rotation, "right");
+
+    const overridden = create(raw, environment(), {}, {
+      propulsorRotations: { [propulsorId]: "left" }
+    });
+    assert.deepEqual(overridden.getPropulsorRotations(), { [propulsorId]: "left" });
+    assert.equal(overridden.snapshot().propulsion.units[0].rotation, "left");
+    overridden.reset();
+    assert.equal(overridden.snapshot().propulsion.units[0].rotation, "left");
+
+    const returned = overridden.getPropulsorRotations();
+    returned[propulsorId] = "right";
+    assert.equal(overridden.getPropulsorRotations()[propulsorId], "left");
+    assert.equal(inherited.getPropulsorRotations()[propulsorId], "right");
+
+    const beforeInvalid = overridden.getPropulsorRotations();
+    assert.throws(
+      () => overridden.setPropulsorRotation("unknown-propulsor", "right"),
+      /Propulseur inconnu/
+    );
+    assert.throws(
+      () => overridden.setPropulsorRotation(propulsorId, "clockwise"),
+      /Sens de rotation invalide/
+    );
+    assert.deepEqual(overridden.getPropulsorRotations(), beforeInvalid);
+  }
+
+  assert.throws(
+    () => Physics.createSimulator({ propulsorRotations: [] }),
+    /doit être un objet/
+  );
+  const malformedCompiled = structuredClone(Physics.DEFAULT_PROFILE);
+  malformedCompiled.compiled = true;
+  delete malformedCompiled.propulsors[0].rotation;
+  assert.throws(
+    () => Physics.createSimulator({ profile: malformedCompiled }),
+    /Profil bateau invalide.*right ou left/
+  );
+  assert.throws(
+    () => Physics.createSimulator({ propulsorRotations: { unknown: "left" } }),
+    /Propulseur inconnu/
+  );
+  assert.throws(
+    () => Physics.createSimulator({
+      propulsorRotations: { [Physics.DEFAULT_PROFILE.propulsors[0].id]: "clockwise" }
+    }),
+    /Sens de rotation invalide/
+  );
+});
+
+test("sens d'hélice: inversion complète sur les trois profils sans altérer la poussée", () => {
+  for (const raw of RAW_PROFILES) {
+    const id = raw.propulsors[0].id;
+    const right = create(raw, environment({ propWalk: 0 }));
+    const left = create(raw, environment({ propWalk: 0 }));
+    advance(right, 4, { throttle: -0.7, rudder: 0 });
+    advance(left, 4, { throttle: -0.7, rudder: 0 });
+    right.setEnvironment({ propWalk: 1 });
+    left.setEnvironment({ propWalk: 1 });
+    left.setPropulsorRotation(id, "left");
+
+    const rightInspection = right.inspectForces();
+    const leftInspection = left.inspectForces();
+    assert.deepEqual(leftInspection.propeller, rightInspection.propeller);
+    const force = (inspection, source) => inspection.forces.find(item => item.source === source);
+    const propellerSource = raw.propulsors.length === 1 ? "Hélice" : `Hélice · ${id}`;
+    const walkSource = raw.propulsors.length === 1 ? "Effet de pas" : `Effet de pas · ${id}`;
+    assert.deepEqual(force(leftInspection, propellerSource), force(rightInspection, propellerSource));
+    assert.equal(force(leftInspection, walkSource).X, force(rightInspection, walkSource).X);
+    assert.equal(force(leftInspection, walkSource).Y, -force(rightInspection, walkSource).Y);
+    assert.equal(force(leftInspection, walkSource).N, -force(rightInspection, walkSource).N);
+
+    right.step({ throttle: -0.7, rudder: 0 }, DT);
+    left.step({ throttle: -0.7, rudder: 0 }, DT);
+    const rightWakes = new Map(right.snapshot().propulsion.slipstreams.map(wake => [wake.id, wake]));
+    const leftWakes = new Map(left.snapshot().propulsion.slipstreams.map(wake => [wake.id, wake]));
+    for (const [wakeId, rightWake] of rightWakes) {
+      const leftWake = leftWakes.get(wakeId);
+      assert.equal(leftWake.targetAxialVelocity, rightWake.targetAxialVelocity);
+      assert.equal(leftWake.targetTangentialVelocity, -rightWake.targetTangentialVelocity);
+      assert.equal(leftWake.tangentialVelocity, -rightWake.tangentialVelocity);
+    }
+  }
+});
+
+test("sens d'hélice: configurations multiples et associations de jets restent indépendantes", () => {
+  const profile = twinPropulsorProfile();
+  const [portId, starboardId] = profile.propulsors.map(propulsor => propulsor.id);
+  const right = create(profile, environment({ propWalk: 0 }));
+  const opposed = create(profile, environment({ propWalk: 0 }));
+  advance(right, 4, { throttle: -0.7, rudder: 0 });
+  advance(opposed, 4, { throttle: -0.7, rudder: 0 });
+  right.setEnvironment({ propWalk: 1 });
+  opposed.setEnvironment({ propWalk: 1 });
+  opposed.setPropulsorRotation(starboardId, "left");
+
+  assert.deepEqual(right.getPropulsorRotations(), {
+    [portId]: "right",
+    [starboardId]: "right"
+  });
+  assert.deepEqual(opposed.getPropulsorRotations(), {
+    [portId]: "right",
+    [starboardId]: "left"
+  });
+  const bySource = inspection => new Map(inspection.forces.map(force => [force.source, force]));
+  const rightForces = bySource(right.inspectForces());
+  const opposedForces = bySource(opposed.inspectForces());
+  assert.deepEqual(
+    opposedForces.get(`Hélice · ${portId}`),
+    rightForces.get(`Hélice · ${portId}`)
+  );
+  assert.deepEqual(
+    opposedForces.get(`Hélice · ${starboardId}`),
+    rightForces.get(`Hélice · ${starboardId}`)
+  );
+  assert.deepEqual(
+    opposedForces.get(`Effet de pas · ${portId}`),
+    rightForces.get(`Effet de pas · ${portId}`)
+  );
+  assert.equal(
+    opposedForces.get(`Effet de pas · ${starboardId}`).Y,
+    -rightForces.get(`Effet de pas · ${starboardId}`).Y
+  );
+  assert.equal(
+    opposedForces.get(`Effet de pas · ${starboardId}`).N,
+    -rightForces.get(`Effet de pas · ${starboardId}`).N
+  );
+
+  right.step({ throttle: -0.7, rudder: 0 }, DT);
+  opposed.step({ throttle: -0.7, rudder: 0 }, DT);
+  const rightWakes = new Map(right.snapshot().propulsion.slipstreams.map(wake => [wake.propulsorId, wake]));
+  const opposedWakes = new Map(opposed.snapshot().propulsion.slipstreams.map(wake => [wake.propulsorId, wake]));
+  assert.equal(
+    opposedWakes.get(portId).targetTangentialVelocity,
+    rightWakes.get(portId).targetTangentialVelocity
+  );
+  assert.equal(
+    opposedWakes.get(starboardId).targetTangentialVelocity,
+    -rightWakes.get(starboardId).targetTangentialVelocity
+  );
+});
+
+test("sens d'hélice: une bascule conserve intégralement l'état dynamique", () => {
+  for (const throttle of [0, 0.7, -0.7]) {
+    const simulator = create(Physics.DEFAULT_PROFILE, environment({ propWalk: 1 }));
+    advance(simulator, 2, { throttle, rudder: 12 * Physics.DEG });
+    const before = simulator.snapshot();
+    const id = before.propulsion.units[0].id;
+    simulator.setPropulsorRotation(id, "left");
+    const after = simulator.snapshot();
+    assert.deepEqual(withoutEffectiveRotations(after), withoutEffectiveRotations(before));
+    assert.equal(after.propulsion.units[0].rotation, "left");
+  }
 });
 
 test("invariants universels sur petit, référence et grand croiseur", () => {

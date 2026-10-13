@@ -505,7 +505,7 @@ browserCase("simulator:guide.02", async ({ page, browser, context, runtimeErrors
     assert.match(help.text, /Manœuvrer au port avec KJP Port Simulator/);
     assert.match(help.text, /Sur ordinateur/);
     assert.match(help.text, /Sur tablette ou téléphone/);
-    assert.match(help.text, /Comprendre la « Calibration experte »/);
+    assert.match(help.text, /Comprendre les « Réglages avancés »/);
     assert.match(help.text, /modèle utilisé pour le Sun Odyssey 36i/);
     assert.doesNotMatch(help.text, /Profondeur du port|petit fond|garde sous quille/);
     for (const heading of [
@@ -518,7 +518,7 @@ browserCase("simulator:guide.02", async ({ page, browser, context, runtimeErrors
       "Comprendre pourquoi le bateau tourne ou dérive",
       "Utiliser les pare-battages, les aussières et les pendilles",
       "Régler le vent, le courant et le bateau",
-      "Comprendre la « Calibration experte »",
+      "Comprendre les « Réglages avancés »",
       "Charger ou retrouver un port",
       "Pourquoi le comportement est crédible"
     ]) {
@@ -1870,15 +1870,102 @@ browserCase("simulator:moorings.22", async ({ page, browser, context, runtimeErr
 });
 
 browserCase("simulator:calibration.23", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
-    const expert = page.locator("#expertDetails");
-    await expert.evaluate(element => {
+    const advanced = page.locator("#advancedDetails");
+    await advanced.evaluate(element => {
       element.open = true;
     });
-    assert.equal(await expert.locator("#propWalk").count(), 1);
-    assert.equal(
-      await page.locator('label[for="propWalk"]').textContent(),
-      "Effet de pas · hélice droitière"
+    assert.equal(await page.locator("#expertDetails").count(), 0);
+    const advancedRanges = await advanced.locator('input[type="range"]').evaluateAll(inputs => (
+      inputs.map(input => ({
+        id: input.id,
+        min: input.min,
+        max: input.max,
+        step: input.step,
+        value: input.value
+      }))
+    ));
+    assert.deepEqual(
+      advancedRanges.map(input => input.id),
+      [
+        "mouseHelmSensitivity",
+        "boatMass",
+        "windage",
+        "rudderEfficiency",
+        "lateralResistance",
+        "propWalk",
+        "mooringAttachSpeed"
+      ]
     );
+    assert.deepEqual(advancedRanges, [
+      { id: "mouseHelmSensitivity", min: "25", max: "300", step: "5", value: "100" },
+      { id: "boatMass", min: "5700", max: "7800", step: "50", value: "6500" },
+      { id: "windage", min: "60", max: "140", step: "1", value: "100" },
+      { id: "rudderEfficiency", min: "60", max: "140", step: "1", value: "100" },
+      { id: "lateralResistance", min: "60", max: "140", step: "1", value: "100" },
+      { id: "propWalk", min: "0", max: "100", step: "1", value: "60" },
+      { id: "mooringAttachSpeed", min: "0.1", max: "1", step: "0.1", value: "0.6" }
+    ]);
+    assert.deepEqual(
+      await advanced.locator(".advanced-group-title").allTextContents(),
+      ["Commandes", "Bateau"]
+    );
+    assert.equal(await advanced.locator("#propWalk").count(), 1);
+    assert.equal(await page.locator('label[for="propWalk"]').textContent(), "Effet de pas · hélice");
+    assert.equal(await page.locator("#windSpeed").evaluate(node => Boolean(node.closest("#advancedDetails"))), false);
+    assert.equal(await page.locator("#currentSpeed").evaluate(node => Boolean(node.closest("#advancedDetails"))), false);
+
+    const rotation = page.locator("#propulsorRotationControls button");
+    assert.equal(await rotation.count(), 1);
+    assert.equal((await rotation.textContent()).trim(), "Droitière ⇄");
+    assert.equal(await rotation.getAttribute("aria-pressed"), "false");
+    assert.match(await rotation.getAttribute("aria-label"), /shaft-propeller.*droitière.*gauchère/i);
+    assert.equal(await page.locator("#propWalk").inputValue(), "60");
+
+    const beforeToggle = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    await rotation.click();
+    const afterToggle = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal((await rotation.textContent()).trim(), "Gauchère ⇄");
+    assert.equal(await rotation.getAttribute("aria-pressed"), "true");
+    assert.match(await page.locator("#propWalkDetails").textContent(), /tribord/);
+    assert.equal(await page.locator("#propWalk").inputValue(), "60");
+    assert.equal(afterToggle.propulsion.units[0].rotation, "left");
+    assert.deepEqual(afterToggle.motion, beforeToggle.motion);
+    assert.deepEqual(afterToggle.controls, beforeToggle.controls);
+    assert.deepEqual(afterToggle.contacts, beforeToggle.contacts);
+    assert.deepEqual(afterToggle.moorings, beforeToggle.moorings);
+    assert.deepEqual(afterToggle.timing, beforeToggle.timing);
+    const withoutRotation = propulsion => {
+      const copy = structuredClone(propulsion);
+      delete copy.rotation;
+      copy.units.forEach(unit => delete unit.rotation);
+      return copy;
+    };
+    assert.deepEqual(
+      withoutRotation(afterToggle.propulsion),
+      withoutRotation(beforeToggle.propulsion)
+    );
+
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectLocale("en"));
+    assert.equal((await rotation.textContent()).trim(), "Left-handed ⇄");
+    assert.match(await page.locator("#propWalkDetails").textContent(), /starboard/);
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectLocale("br"));
+    assert.equal((await rotation.textContent()).trim(), "Kleiz ⇄");
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectLocale("fr"));
+
+    const restarted = await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockReverse"));
+    assert.equal(restarted.propulsion.units[0].rotation, "left");
+    await page.selectOption("#scenarioSelect", "placement");
+    assert.equal(await rotation.isDisabled(), true);
+    await page.click("#placementConfirm");
+    const prepared = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(prepared.phase, "mooring");
+    assert.equal(prepared.core.propulsion.units[0].rotation, "left");
+    await page.click("#placementCancel");
+    const restored = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+    assert.equal(restored.core.propulsion.units[0].rotation, "left");
+    assert.equal(await rotation.isDisabled(), false);
+    assert.equal((await rotation.textContent()).trim(), "Gauchère ⇄");
+
     const input = page.locator("#mooringAttachSpeed");
     assert.equal(await input.inputValue(), "0.6");
     assert.equal(
@@ -2793,7 +2880,7 @@ browserCase("simulator:controls.42", async ({ page, browser, context, runtimeErr
     }
     await page.keyboard.press("ArrowDown");
     await page.waitForTimeout(50);
-    assert.match(await page.locator("#throttleLabel").textContent(), /Arrière/);
+    assert.equal(await page.locator("#throttleLabel").textContent(), "AR ralenti");
 
 });
 
@@ -2802,6 +2889,11 @@ browserCase("simulator:controls.43", async ({ page, browser, context, runtimeErr
     await page.locator("#scene").focus();
     await page.keyboard.press("q");
     let snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.gearTarget, 1);
+    assert.equal(snapshot.controls.throttleTarget, 0);
+    await page.waitForFunction(() => document.querySelector("#throttleLabel")?.textContent === "AV ralenti");
+    await page.keyboard.press("Q");
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, .05);
     await page.waitForFunction(() => (
       document.querySelector("#throttleLabel")?.textContent === "Avant · 5 %"
@@ -2823,6 +2915,10 @@ browserCase("simulator:controls.43", async ({ page, browser, context, runtimeErr
     } finally {
       await page.keyboard.up("w");
     }
+    await page.keyboard.press("W");
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.gearTarget, -1);
+    assert.equal(snapshot.controls.throttleTarget, 0);
     await page.keyboard.press("W");
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, -.1);
@@ -2903,6 +2999,213 @@ browserCase("simulator:ports.46", async ({ page, browser, context, runtimeErrors
 
 });
 
+browserCase("simulator:controls.54", async ({ page }) => {
+  const scene = page.locator("#scene");
+  await scene.evaluate(node => node.addEventListener("keyup", event => {
+    if (event.key === "Alt") node.dataset.altKeyupSuppressed = String(event.defaultPrevented);
+  }));
+  const box = await scene.boundingBox();
+  const x = box.x + box.width * .45, y = box.y + box.height * .3;
+  await page.mouse.move(x, y);
+  await scene.focus();
+  const before = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await page.keyboard.down("Alt");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  await page.keyboard.down("Alt");
+  await page.keyboard.up("Alt");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  assert.equal(await scene.getAttribute("data-alt-keyup-suppressed"), "true");
+  await page.keyboard.press("Alt");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await scene.dispatchEvent("keydown", { key: "Alt", code: "AltRight", altKey: true });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  await scene.dispatchEvent("keydown", { key: "Alt", code: "AltRight", altKey: true, repeat: true });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  await scene.dispatchEvent("keyup", { key: "Alt", code: "AltRight" });
+  await page.mouse.click(x, y, { button: "right" });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await page.keyboard.press("Control+Alt");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await page.mouse.click(x, y, { button: "right" });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  await scene.dispatchEvent("contextmenu", { button: 2 });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot()), before);
+  await page.keyboard.press("Escape");
+  await page.mouse.down();
+  await page.mouse.move(x + 15, y + 10);
+  const camera = await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport());
+  await page.keyboard.press("Alt");
+  await page.mouse.up();
+  await page.mouse.move(x + 15, y + 30);
+  assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport()), camera,
+    "la bascule doit terminer le glisser caméra sans geste résiduel");
+});
+
+browserCase("simulator:controls.55", async ({ page }) => {
+  const scene = page.locator("#scene");
+  const box = await scene.boundingBox();
+  const x = box.x + box.width * .45, y = box.y + box.height * .3;
+  const angle = () => page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget);
+  const close = (actual, degrees) => assert.ok(Math.abs(actual - degrees * Math.PI / 180) < 1e-10);
+  await page.mouse.move(x, y);
+  await page.mouse.click(x, y, { button: "right" });
+  const camera = await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport());
+  await page.mouse.move(x + 100, y);
+  close(await angle(), -10);
+  await page.mouse.move(x + 100, y + 100);
+  close(await angle(), -10);
+  await page.mouse.move(x + 50, y + 100);
+  close(await angle(), -5);
+  await page.mouse.move(x + 50, y + 100);
+  close(await angle(), -5);
+  await page.evaluate(({ x, y }) => {
+    const scene = document.querySelector("#scene");
+    for (const nextX of [x + 1000, x + 990]) scene.dispatchEvent(new PointerEvent("pointermove", {
+      pointerType: "mouse", pointerId: 1, clientX: nextX, clientY: y
+    }));
+  }, { x, y });
+  close(await angle(), -34);
+  await scene.dispatchEvent("pointermove", { pointerType: "mouse", pointerId: 1, clientX: x - 1000, clientY: y });
+  close(await angle(), 35);
+  await scene.dispatchEvent("pointermove", { pointerType: "mouse", pointerId: 1, clientX: x - 990, clientY: y });
+  close(await angle(), 34);
+  await page.mouse.wheel(0, 100);
+  await page.mouse.dblclick(x + 50, y + 100);
+  await page.mouse.down();
+  await page.mouse.move(x + 75, y + 120);
+  await page.mouse.up();
+  assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport()), camera);
+  const lines = await page.evaluate(() => window.__PORTANCE_TEST__.mooringReport().lines);
+  const point = lines[0].projectedPoints[Math.floor(lines[0].projectedPoints.length / 2)];
+  await page.mouse.click(box.x + point.x, box.y + point.y);
+  assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.mooringReport().lines), lines,
+    "cliquer une aussière en mode barre ne doit pas la larguer");
+  const heldAngle = await angle();
+  await page.mouse.move(10, 10);
+  await page.mouse.move(x + 200, y);
+  assert.equal(await angle(), heldAngle, "revenir dans la scène ne doit pas faire sauter la barre");
+  await page.mouse.move(x + 190, y);
+  close(await angle(), heldAngle * 180 / Math.PI + 1);
+  for (const theme of ["dark", "chart"]) {
+    await page.evaluate(theme => window.__PORTANCE_TEST__.selectVisualTheme(theme), theme);
+    const cursor = await scene.evaluate(node => getComputedStyle(node).cursor);
+    assert.match(cursor, /data:image\/svg\+xml/);
+    assert.match(cursor, /16 16/);
+    const image = await scene.evaluate(async node => {
+      const src = getComputedStyle(node).cursor.match(/url\("([^\"]+)"\)/)[1];
+      const image = new Image(); image.src = src; await image.decode();
+      return [image.naturalWidth, image.naturalHeight];
+    });
+    assert.deepEqual(image, [32, 32]);
+  }
+  const finalAngle = await angle();
+  await page.keyboard.press("Escape");
+  assert.equal(await angle(), finalAngle);
+  await page.mouse.click(x + 200, y, { button: "middle" });
+  await page.mouse.down({ button: "middle" });
+  await page.mouse.move(x + 230, y + 20);
+  await page.mouse.up({ button: "middle" });
+  assert.notDeepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport()), camera);
+});
+
+browserCase("simulator:controls.56", async ({ page, context }) => {
+  const scene = page.locator("#scene");
+  const reopen = () => page.goto(page.url());
+  const box = await scene.boundingBox();
+  const x = box.x + box.width * .45, y = box.y + box.height * .3;
+  assert.equal(await page.locator("#mouseHelmSensitivity").inputValue(), "100");
+  await page.mouse.move(x, y);
+  await page.mouse.click(x, y, { button: "right" });
+  await page.mouse.move(x + 10, y);
+  const before = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget);
+  await page.locator("#advancedDetails summary").click();
+  await page.locator("#mouseHelmSensitivity").evaluate(input => {
+    input.value = "200"; input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "helm");
+  assert.equal(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget), before);
+  await page.mouse.move(x + 100, y);
+  assert.equal(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget), before);
+  await page.mouse.move(x + 110, y);
+  assert.ok(Math.abs((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget))
+    - before + 2 * Math.PI / 180) < 1e-10);
+  await reopen();
+  assert.equal(await page.locator("#mouseHelmSensitivity").inputValue(), "200");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  assert.equal(await page.locator('[data-value-for="mouseHelmSensitivity"]').textContent(), "200 %");
+  for (const value of ["NaN", "0", "301", "42", "Infinity"]) {
+    await page.evaluate(value => localStorage.setItem("kjp.mouseHelmSensitivity", value), value);
+    await reopen();
+    assert.equal(await page.locator("#mouseHelmSensitivity").inputValue(), "100", value);
+  }
+  await context.addInitScript(() => Object.defineProperty(window, "localStorage", {
+    get() { throw new DOMException("Storage unavailable", "SecurityError"); }
+  }));
+  await reopen();
+  assert.equal(await page.locator("#mouseHelmSensitivity").inputValue(), "100");
+  await page.locator("#mouseHelmSensitivity").evaluate(input => {
+    input.value = "300"; input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  assert.equal(await page.locator('[data-value-for="mouseHelmSensitivity"]').textContent(), "300 %");
+});
+
+browserCase("simulator:controls.57", async ({ page }) => {
+  const scene = page.locator("#scene");
+  const box = await scene.boundingBox();
+  const x = box.x + box.width * .45, y = box.y + box.height * .3;
+  const enable = async () => { await page.mouse.click(x, y, { button: "right" }); };
+  await enable();
+  await page.mouse.move(x + 20, y);
+  const held = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  assert.equal(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget), held);
+  await enable();
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    document.dispatchEvent(new Event("visibilitychange"));
+    delete document.hidden;
+  });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await enable();
+  await page.locator("#readmeHelpButton").click();
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await page.keyboard.press("Alt");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await page.locator("#closeReadmeHelp").click();
+  await enable();
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockReverse"));
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  await enable();
+  await scene.dispatchEvent("pointerdown", { pointerId: 77, pointerType: "touch", clientX: x, clientY: y, button: 0 });
+  await scene.dispatchEvent("pointermove", { pointerId: 77, pointerType: "touch", clientX: x + 30, clientY: y + 20 });
+  await scene.dispatchEvent("pointerup", { pointerId: 77, pointerType: "touch", clientX: x + 30, clientY: y + 20, button: 0 });
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  assert.equal(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget), 0);
+  await enable();
+  await page.selectOption("#scenarioSelect", "placement");
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  const placed = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  await scene.focus();
+  await page.keyboard.press("Alt");
+  await enable();
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  assert.deepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).core, placed.core);
+  await page.locator("#placementCancel").click();
+  await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text), mooringPreparationText());
+  await page.selectOption("#scenarioSelect", "placement");
+  await page.locator("#placementConfirm").click();
+  const mooring = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(mooring.phase, "mooring");
+  await scene.focus();
+  await page.keyboard.press("Alt");
+  await enable();
+  assert.equal(await scene.getAttribute("data-mouse-mode"), "normal");
+  assert.deepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).core, mooring.core);
+});
+
 browserCase("simulator:controls.47", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
     const wind = page.locator("#windSpeed");
@@ -2910,7 +3213,8 @@ browserCase("simulator:controls.47", async ({ page, browser, context, runtimeErr
     const windBefore = await wind.inputValue();
     await page.keyboard.press("ArrowUp");
     let snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.throttleTarget, .05);
+    assert.equal(snapshot.controls.throttleTarget, 0);
+    assert.equal(snapshot.controls.gearTarget, 1);
     assert.equal(await wind.inputValue(), windBefore, "la flèche a modifié le curseur de vent");
 
     assert.equal(await page.locator("#anatomyButton").count(), 0);
@@ -3047,8 +3351,9 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     await page.mouse.move(throttleX, throttleY - 14, { steps: 6 });
     await page.mouse.up();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.throttleTarget, .05,
-      "un déplacement de 14 px doit permettre de choisir 5 %");
+    assert.equal(snapshot.controls.throttleTarget, 0,
+      "un déplacement de 14 px doit choisir le cran de ralenti");
+    assert.equal(snapshot.controls.gearTarget, 1);
 
     const lowPowerHandle = await page.locator("#touchThrottleNeutral").boundingBox();
     await page.mouse.move(throttleX, lowPowerHandle.y + lowPowerHandle.height / 2);
@@ -3062,6 +3367,7 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     await page.mouse.move(throttleX, forwardHandle.y + forwardHandle.height / 2);
     await page.mouse.down();
     await page.mouse.move(throttleX, throttleY + 35, { steps: 10 });
+    await page.waitForTimeout(520);
     await page.mouse.up();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.equal(snapshot.controls.throttleTarget, 0, "le geste a traversé le neutre");
@@ -3070,6 +3376,7 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     await page.mouse.move(throttleX, neutralHandle.y + neutralHandle.height / 2);
     await page.mouse.down();
     await page.mouse.move(throttleX, throttleY + 30, { steps: 6 });
+    await page.waitForTimeout(520);
     await page.mouse.up();
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
     assert.ok(snapshot.controls.throttleTarget < -.2);
@@ -3090,6 +3397,147 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.waitForTimeout(100);
 
+});
+
+browserCase("simulator:controls.58", async ({ page }) => {
+  await page.clock.install({ time: 1000 });
+  await page.reload();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  const read = () => page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls);
+  for (const gear of [1, -1]) {
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+    await page.evaluate(gear => window.__PORTANCE_TEST__.selectTimeScale(gear > 0 ? 1 : 2), gear);
+    await page.locator("#scene").focus();
+    const key = gear > 0 ? "ArrowUp" : "ArrowDown";
+    const opposite = gear > 0 ? "ArrowDown" : "ArrowUp";
+    await page.keyboard.down(key);
+    assert.equal((await read()).gearTarget, gear);
+    assert.equal((await read()).throttleTarget, 0);
+    await page.clock.runFor(499);
+    assert.equal((await read()).throttleTarget, 0, "le cran doit durer au moins 500 ms");
+    assert.equal(await page.locator("#throttleLabel").textContent(), gear > 0 ? "AV ralenti" : "AR ralenti");
+    await page.clock.runFor(41);
+    assert.equal((await read()).throttleTarget, gear > 0 ? .05 : -.1,
+      "la reprise ne doit pas rattraper plusieurs crans d'un coup");
+    await page.clock.runFor(1200);
+    assert.equal((await read()).throttleTarget, gear, "un appui continu doit atteindre plein gaz");
+    await page.keyboard.up(key);
+    await page.clock.runFor(300);
+    assert.equal((await read()).throttleTarget, gear);
+
+    await page.evaluate(gear => window.__PORTANCE_TEST__.setControls({
+      gearTarget: gear, throttleTarget: gear > 0 ? .05 : -.1
+    }), gear);
+    await page.keyboard.down(opposite);
+    assert.equal((await read()).gearTarget, gear);
+    assert.equal((await read()).throttleTarget, 0);
+    await page.clock.runFor(499);
+    assert.equal((await read()).gearTarget, gear, "la réduction doit aussi marquer le cran");
+    await page.clock.runFor(41);
+    assert.equal((await read()).gearTarget, 0);
+    await page.clock.runFor(1200);
+    assert.equal((await read()).gearTarget, 0, "le neutre impose toujours un relâchement");
+    await page.keyboard.up(opposite);
+    await page.keyboard.press(opposite);
+    assert.equal((await read()).gearTarget, -gear);
+    assert.equal((await read()).throttleTarget, 0);
+    await page.clock.runFor(800);
+    assert.equal((await read()).throttleTarget, 0, "relâcher conserve le ralenti");
+  }
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+  await page.locator("#throttleUp").click();
+  assert.equal((await read()).gearTarget, 1);
+  assert.equal((await read()).throttleTarget, 0);
+  await page.locator("#throttleUp").click();
+  assert.equal((await read()).throttleTarget, .05, "un second clic distinct augmente immédiatement les gaz");
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+  await page.locator("#scene").focus();
+  await page.keyboard.down("ArrowUp");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await page.clock.runFor(800);
+  assert.equal((await read()).throttleTarget, 0, "perdre le focus annule les répétitions");
+  await page.keyboard.up("ArrowUp");
+});
+
+browserCase("simulator:controls.59", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.clock.install({ time: 1000 });
+  await page.reload();
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  const read = () => page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls);
+  const reset = () => page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
+  const pointer = (type, dy = 0) => page.evaluate(({ type, dy }) => {
+    const target = document.querySelector(type === "pointerdown" ? "#touchThrottleNeutral" : ".touch-engine");
+    target.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, pointerId: 91, pointerType: "touch", isPrimary: true,
+      clientX: 900, clientY: 300 + dy, button: 0
+    }));
+  }, { type, dy });
+  for (const gear of [1, -1]) {
+    await reset();
+    await pointer("pointerdown");
+    await pointer("pointermove", -52 * gear);
+    assert.equal((await read()).gearTarget, gear);
+    assert.equal((await read()).throttleTarget, 0, "un saut vers plein gaz doit passer par le ralenti");
+    await page.clock.runFor(499);
+    assert.equal((await read()).throttleTarget, 0);
+    assert.equal(await page.locator("#touchThrottleNeutral").getAttribute("aria-valuetext"),
+      gear > 0 ? "AV ralenti" : "AR ralenti");
+    assert.match(await page.locator(gear > 0 ? "#touchAheadIdleDetent" : "#touchAsternIdleDetent").getAttribute("class"), /active/);
+    await page.clock.runFor(1);
+    assert.equal((await read()).throttleTarget, gear);
+    await pointer("pointerup");
+
+    await pointer("pointerdown");
+    await pointer("pointermove", 104 * gear);
+    assert.equal((await read()).gearTarget, gear);
+    assert.equal((await read()).throttleTarget, 0);
+    await page.clock.runFor(499);
+    assert.equal((await read()).gearTarget, gear);
+    await page.clock.runFor(1);
+    assert.equal((await read()).gearTarget, 0);
+    await pointer("pointermove", 110 * gear);
+    assert.equal((await read()).gearTarget, 0, "le même geste ne doit pas inverser la marche");
+    await pointer("pointerup");
+
+    await pointer("pointerdown");
+    await pointer("pointermove", -14 * gear);
+    await pointer("pointerup");
+    await page.clock.runFor(800);
+    assert.equal((await read()).gearTarget, gear);
+    assert.equal((await read()).throttleTarget, 0);
+    for (const distance of [11, 14, 17]) {
+      await reset();
+      await pointer("pointerdown");
+      await pointer("pointermove", -distance * gear);
+      await page.clock.runFor(540);
+      assert.equal((await read()).gearTarget, gear);
+      assert.equal((await read()).throttleTarget, 0, "la zone 11–17 px doit conserver le ralenti");
+      await pointer("pointerup");
+    }
+  }
+
+  for (const ending of ["pointerup", "pointercancel", "lostpointercapture", "blur", "reset", "Home"]) {
+    await reset();
+    await pointer("pointerdown");
+    await pointer("pointermove", -52);
+    if (ending === "blur") await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    else if (ending === "reset") await reset();
+    else if (ending === "Home") await page.locator("#touchThrottleNeutral").dispatchEvent("keydown", { key: "Home" });
+    else await pointer(ending);
+    await page.clock.runFor(800);
+    assert.equal((await read()).throttleTarget, 0, `${ending} doit annuler la reprise différée`);
+    assert.equal((await read()).gearTarget, ending === "reset" || ending === "Home" ? 0 : 1);
+  }
+  await reset();
+  await page.locator("#touchThrottleNeutral").focus();
+  await page.keyboard.press("ArrowDown");
+  assert.equal((await read()).gearTarget, -1);
+  assert.equal((await read()).throttleTarget, 0, "la poignée accessible doit avancer d'un seul cran");
+  await page.keyboard.press("Home");
+  assert.equal((await read()).gearTarget, 0);
+  await page.clock.runFor(300);
+  assert.equal((await read()).gearTarget, 0);
 });
 
 browserCase("simulator:camera.50", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {

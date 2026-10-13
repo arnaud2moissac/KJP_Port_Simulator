@@ -1329,6 +1329,11 @@
     }
     const propulsorIds = new Set((rawProfile.propulsors || []).map(item => item.id));
     for (const propulsor of rawProfile.propulsors || []) {
+      if (!["right", "left"].includes(propulsor.rotation)) {
+        errors.push(
+          `Le sens de rotation du propulseur ${propulsor.id || "sans identifiant"} doit valoir right ou left.`
+        );
+      }
       const engine = propulsor.engine || {};
       const dynamics = engine.dynamics || {};
       const gearbox = propulsor.gearbox || {};

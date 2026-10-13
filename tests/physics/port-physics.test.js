@@ -375,6 +375,69 @@ test("chaîne mécanique: embrayage causal, puissance bornée et moulinet au neu
   assert.notEqual(free.shaftRps, 0, "l'arbre doit conserver un moulinet hydrodynamique au neutre");
 });
 
+test("chaîne mécanique: les deux crans embrayent au ralenti sur les trois tailles de bateau", () => {
+  for (const profile of [
+    Physics.COMPILED_PROFILES["synthetic-cruiser-7m"],
+    Physics.DEFAULT_PROFILE,
+    Physics.COMPILED_PROFILES["synthetic-cruiser-16m"]
+  ]) {
+    for (const gear of [-1, 1]) {
+      const simulator = Physics.createSimulator({ profile, environment: { propWalk: 0 } });
+      for (let index = 0; index < Math.round(5 / DT); index += 1) {
+        const { propulsion } = simulator.step({ gear, throttle: 0 }, DT);
+        assert.ok(Number.isFinite(propulsion.engineRpm));
+        assert.ok(Number.isFinite(propulsion.thrust));
+        assert.ok(propulsion.enginePower <= profile.propulsion.enginePowerKw * 1000 * 1.001);
+      }
+      const { propulsion, controls, velocity } = simulator.snapshot();
+      assert.equal(controls.gearTarget, gear);
+      assert.equal(controls.throttleTarget, 0);
+      assert.equal(propulsion.commandActual, 0);
+      assert.equal(propulsion.engagedGear, gear);
+      assert.equal(propulsion.clutchEngagement, 1);
+      assert.equal(Math.sign(propulsion.shaftRps), gear);
+      assert.equal(Math.sign(propulsion.thrust), gear);
+      assert.equal(Math.sign(velocity.u), gear);
+      assert.ok(Math.abs(propulsion.engineRpm - profile.propulsion.idleRpm) < profile.propulsion.idleRpm * .01,
+        `${profile.id} : le régime doit revenir au ralenti malgré la charge`);
+      for (let index = 0; index < Math.round(.5 / DT); index += 1) {
+        simulator.step({ gear: 0, throttle: 1 }, DT);
+      }
+      const neutral = simulator.snapshot().propulsion;
+      assert.equal(neutral.gearState, "neutral");
+      assert.equal(neutral.engagedGear, 0);
+      assert.equal(neutral.clutchTorque, 0);
+      assert.equal(neutral.shaftDriveTorque, 0);
+      assert.notEqual(neutral.shaftRps, 0, "le neutre conserve l'inertie de l'arbre");
+    }
+  }
+});
+
+test("chaîne mécanique: la marche explicite préserve les commandes signées et les inversions", () => {
+  const legacy = createCalmSimulator();
+  const explicit = createCalmSimulator();
+  for (const throttle of [.05, .2, 1, 0, -.1, -.5, -1, 0]) {
+    for (let index = 0; index < 120; index += 1) {
+      legacy.step({ throttle, rudder: .1 }, DT);
+      explicit.step({ gear: Math.sign(throttle), throttle: Math.abs(throttle), rudder: .1 }, DT);
+    }
+    assert.deepEqual(explicit.snapshot(), legacy.snapshot());
+  }
+  explicit.reset();
+  for (let index = 0; index < 120; index += 1) explicit.step({ gear: -1, throttle: .2 }, DT);
+  assert.equal(explicit.snapshot().propulsion.requestedGear, -1,
+    "la marche explicite détermine le sens, indépendamment du signe des gaz");
+});
+
+test("chaîne mécanique: une marche invalide ne modifie pas l'état", () => {
+  const simulator = createCalmSimulator();
+  const before = simulator.snapshot();
+  for (const gear of [2, -.5, "1", null, NaN, Infinity]) {
+    assert.throws(() => simulator.step({ gear, throttle: 1 }, DT), RangeError);
+    assert.deepEqual(simulator.snapshot(), before);
+  }
+});
+
 test("décélération naturelle: symétrie, force minimale et enveloppe de dérive", () => {
   const forceAt = speed => {
     const simulator = createCalmSimulator();

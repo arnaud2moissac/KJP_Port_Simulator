@@ -612,6 +612,8 @@
 
     #scene:active { cursor: grabbing; }
 
+    #scene[data-mouse-mode="helm"] { cursor: var(--mouse-helm-cursor) !important; }
+
     .stage-vignette {
       pointer-events: none;
       position: absolute;
@@ -1181,6 +1183,20 @@
 
     .throttle-track .track-indicator { background: var(--amber); }
 
+    .idle-detent {
+      position: absolute;
+      left: calc(50% + var(--detent-side) * 12.385%);
+      top: -4px;
+      width: 3px;
+      height: 14px;
+      border-radius: 2px;
+      background: var(--muted);
+      transform: translateX(-50%);
+    }
+    .idle-detent.ahead { --detent-side: 1; }
+    .idle-detent.astern { --detent-side: -1; }
+    .idle-detent.active { background: var(--amber); box-shadow: 0 0 0 2px var(--amber); }
+
     .neutral-gate {
       display: inline-flex;
       align-items: center;
@@ -1352,6 +1368,13 @@
       width: 40px; height: 2px;
       background: var(--ink);
     }
+    .touch-engine-track .idle-detent {
+      left: 50%;
+      top: calc(50% - var(--detent-side) * 14px);
+      width: 72px;
+      height: 2px;
+      transform: translate(-50%, -50%);
+    }
     .touch-engine .touch-pad-center {
       top: calc(50% - var(--throttle-shift, 0px));
       width: 58px; height: 42px;
@@ -1500,6 +1523,90 @@
     details[open] summary::after { content: "−"; }
 
     .expert-body { padding: 7px 0 12px; }
+
+    .advanced-group + .advanced-group {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .advanced-group-title {
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .propulsor-rotation-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .propeller-label-and-choice {
+      display: flex;
+      align-items: center;
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+      gap: 7px;
+      min-width: 0;
+    }
+
+    .propeller-control-meta {
+      align-items: center;
+    }
+
+    .propulsor-rotation-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 32px;
+      max-width: 100%;
+      padding: 5px 9px;
+      border: 1px solid color-mix(in srgb, var(--cyan) 58%, var(--line));
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--cyan) 10%, var(--surface));
+      color: var(--cyan);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .propulsor-rotation-button:hover {
+      border-color: var(--cyan);
+      background: color-mix(in srgb, var(--cyan) 16%, var(--surface));
+    }
+
+    .propulsor-rotation-button[aria-pressed="true"],
+    .propulsor-rotation-button[aria-pressed="true"]:hover {
+      border-color: var(--cyan);
+      background: color-mix(in srgb, var(--cyan) 16%, var(--surface));
+      color: var(--cyan);
+    }
+
+    .propulsor-rotation-button:disabled {
+      opacity: .48;
+      cursor: not-allowed;
+    }
+
+    .propulsor-rotation-id {
+      overflow: hidden;
+      max-width: 150px;
+      color: var(--ink);
+      font-weight: 560;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @media (pointer: coarse) {
+      .propulsor-rotation-button { min-height: 44px; }
+    }
 
     .legend {
       display: grid;
@@ -2065,6 +2172,8 @@
             <div class="control-center">
               <strong id="throttleLabel" data-i18n="ui.neutral">Neutre</strong>
               <div class="throttle-track" aria-hidden="true">
+                <span class="idle-detent astern" id="asternIdleDetent"></span>
+                <span class="idle-detent ahead" id="aheadIdleDetent"></span>
                 <span class="track-indicator" id="throttleIndicator"></span>
               </div>
               <span class="neutral-gate" id="neutralGate" data-i18n="ui.neutral.detent">cran neutre</span>
@@ -2086,7 +2195,10 @@
           <div class="touch-gamepad touch-engine" aria-label="Commande tactile du moteur" data-i18n-attr="aria-label:ui.touch.engine.control">
             <span class="touch-pad-title" data-i18n="ui.engine">Moteur</span>
             <span class="touch-engine-label forward" aria-hidden="true" data-i18n="ui.fwd">AV</span>
-            <div class="touch-engine-track" aria-hidden="true"></div>
+            <div class="touch-engine-track" aria-hidden="true">
+              <span class="idle-detent ahead" id="touchAheadIdleDetent"></span>
+              <span class="idle-detent astern" id="touchAsternIdleDetent"></span>
+            </div>
             <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Glisser verticalement pour régler le moteur, toucher pour le neutre" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" data-i18n-attr="aria-label:ui.drag.vertically.to.set.throttle.tap.for.neutral">
               <span id="touchThrottleValue">N</span>
             </button>
@@ -2230,33 +2342,50 @@
           </div>
         </section>
 
-        <details class="section" id="expertDetails">
-          <summary data-i18n="ui.expert.calibration">Calibration experte</summary>
+        <details class="section" id="advancedDetails">
+          <summary data-i18n="ui.advanced.settings">Réglages avancés</summary>
           <div class="expert-body">
-            <div class="control-row">
-              <div class="control-meta"><label for="boatMass" data-i18n="ui.loaded.mass">Masse en charge</label><span class="control-value" data-value-for="boatMass"></span></div>
-              <input id="boatMass" type="range" min="5700" max="7800" step="50" value="6500">
+            <div class="advanced-group">
+              <div class="advanced-group-title" data-i18n="ui.advanced.commands">Commandes</div>
+              <div class="control-row">
+                <div class="control-meta"><label for="mouseHelmSensitivity" data-i18n="ui.mouse.helm.sensitivity">Sensibilité de la barre à la souris</label><span class="control-value" data-value-for="mouseHelmSensitivity"></span></div>
+                <input id="mouseHelmSensitivity" type="range" min="25" max="300" step="5" value="100" aria-describedby="mouseHelmHelp">
+                <p class="sidebar-subtitle" id="mouseHelmHelp" data-i18n="ui.mouse.helm.help">Alt / Option ou clic droit dans la scène : basculer entre caméra et barre. En mode barre, déplacez la souris à gauche ou à droite sans maintenir de bouton. Échap revient au mode normal.</p>
+              </div>
             </div>
-            <div class="control-row">
-              <div class="control-meta"><label for="windage" data-i18n="ui.windage">Fardage</label><span class="control-value" data-value-for="windage"></span></div>
-              <input id="windage" type="range" min="60" max="140" step="1" value="100">
-            </div>
-            <div class="control-row">
-              <div class="control-meta"><label for="rudderEfficiency" data-i18n="ui.rudder.effectiveness">Efficacité du safran</label><span class="control-value" data-value-for="rudderEfficiency"></span></div>
-              <input id="rudderEfficiency" type="range" min="60" max="140" step="1" value="100">
-            </div>
-            <div class="control-row">
-              <div class="control-meta"><label for="lateralResistance" data-i18n="ui.lateral.resistance">Résistance latérale</label><span class="control-value" data-value-for="lateralResistance"></span></div>
-              <input id="lateralResistance" type="range" min="60" max="140" step="1" value="100">
-            </div>
-            <div class="control-row">
-              <div class="control-meta"><label for="propWalk" data-i18n="ui.prop.walk.right.handed.propeller">Effet de pas · hélice droitière</label><span id="propWalkSummary" class="control-value" data-value-for="propWalk">60 %</span></div>
-              <input id="propWalk" type="range" min="0" max="100" step="1" value="60" aria-describedby="propWalkDetails">
-              <p class="sidebar-subtitle" id="propWalkDetails" data-i18n="ui.astern.the.stern.tends.to.move.to.port">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
-            </div>
-            <div class="control-row">
-              <div class="control-meta"><label for="mooringAttachSpeed" data-i18n="ui.attach.a.line.below">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
-              <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.6">
+            <div class="advanced-group">
+              <div class="advanced-group-title" data-i18n="ui.advanced.boat">Bateau</div>
+              <div class="control-row">
+                <div class="control-meta"><label for="boatMass" data-i18n="ui.loaded.mass">Masse en charge</label><span class="control-value" data-value-for="boatMass"></span></div>
+                <input id="boatMass" type="range" min="5700" max="7800" step="50" value="6500">
+              </div>
+              <div class="control-row">
+                <div class="control-meta"><label for="windage" data-i18n="ui.windage">Fardage</label><span class="control-value" data-value-for="windage"></span></div>
+                <input id="windage" type="range" min="60" max="140" step="1" value="100">
+              </div>
+              <div class="control-row">
+                <div class="control-meta"><label for="rudderEfficiency" data-i18n="ui.rudder.effectiveness">Efficacité du safran</label><span class="control-value" data-value-for="rudderEfficiency"></span></div>
+                <input id="rudderEfficiency" type="range" min="60" max="140" step="1" value="100">
+              </div>
+              <div class="control-row">
+                <div class="control-meta"><label for="lateralResistance" data-i18n="ui.lateral.resistance">Résistance latérale</label><span class="control-value" data-value-for="lateralResistance"></span></div>
+                <input id="lateralResistance" type="range" min="60" max="140" step="1" value="100">
+              </div>
+              <div class="control-row">
+                <div class="control-meta propeller-control-meta">
+                  <div class="propeller-label-and-choice">
+                    <label for="propWalk" data-i18n="ui.prop.walk">Effet de pas · hélice</label>
+                    <div id="propulsorRotationControls" class="propulsor-rotation-controls" role="group" aria-label="Sens des hélices" data-i18n-attr="aria-label:ui.propeller.rotation.controls"></div>
+                  </div>
+                  <span id="propWalkSummary" class="control-value" data-value-for="propWalk">60 %</span>
+                </div>
+                <input id="propWalk" type="range" min="0" max="100" step="1" value="60" aria-describedby="propWalkDetails">
+                <p class="sidebar-subtitle" id="propWalkDetails" data-i18n="ui.astern.the.stern.tends.to.move.to.port">En marche arrière, la poupe tend à partir vers bâbord. L'effet augmente avec le régime.</p>
+              </div>
+              <div class="control-row">
+                <div class="control-meta"><label for="mooringAttachSpeed" data-i18n="ui.attach.a.line.below">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
+                <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.6">
+              </div>
             </div>
           </div>
         </details>
@@ -2277,6 +2406,7 @@
           <div class="section-title" data-i18n="ui.shortcuts">Raccourcis</div>
           <div class="keyboard-help">
             <span><kbd>←</kbd> <kbd>→</kbd></span><span data-i18n="ui.move.the.helm">déplacer la barre</span>
+            <span><kbd data-i18n="ui.alt.option">Alt / Option</kbd></span><span data-i18n="ui.mouse.helm.toggle">ou clic droit : basculer caméra / barre à la souris</span>
             <span><kbd>↑</kbd>/<kbd>Q</kbd> <kbd>↓</kbd>/<kbd>W</kbd></span><span data-i18n="ui.ahead.astern.with.a.stop.at.neutral">avant / arrière avec arrêt au neutre</span>
             <span><kbd data-i18n="ui.space">Espace</kbd>/<kbd>P</kbd></span><span data-i18n="ui.pause">mettre en pause</span>
             <span><kbd>R</kbd></span><span data-i18n="ui.restart">recommencer</span>
@@ -2349,9 +2479,15 @@
     const RAD = 180 / Math.PI;
     const KNOT = PortPhysics.KNOT;
     const FIXED_DT = 1 / 120;
+    const IDLE_DETENT_MS = 500;
     const THROTTLE_STOPS = Object.freeze([
-      -1, -.9, -.8, -.7, -.6, -.5, -.4, -.3, -.2, -.1,
-      0, .05, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1
+      ...[-1, -.9, -.8, -.7, -.6, -.5, -.4, -.3, -.2, -.1].map(
+        throttle => ({ gear: -1, throttle })
+      ),
+      { gear: -1, throttle: 0 }, { gear: 0, throttle: 0 }, { gear: 1, throttle: 0 },
+      ...[.05, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1].map(
+        throttle => ({ gear: 1, throttle })
+      )
     ]);
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const elementCache = new Map();
@@ -2754,11 +2890,27 @@
 
     const controls = {
       throttleTarget: 0,
+      gearTarget: 0,
       throttleActual: 0,
       rudderTarget: 0,
       rudderActual: 0,
       neutralGate: null,
       paused: false
+    };
+
+    const MOUSE_HELM_STORAGE_KEY = "kjp.mouseHelmSensitivity";
+    function validMouseHelmSensitivity(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 25 && number <= 300 && number % 5 === 0
+        ? number : 100;
+    }
+    function readMouseHelmSensitivity() {
+      try { return validMouseHelmSensitivity(localStorage.getItem(MOUSE_HELM_STORAGE_KEY)); }
+      catch { return 100; }
+    }
+    const mouseHelm = {
+      mode: "normal", inside: false, positionX: null, lastX: null, altConsumed: false,
+      sensitivity: readMouseHelmSensitivity()
     };
 
     const placement = { active: false, mooring: false, draft: null, controller: null, pointer: null,
@@ -4004,6 +4156,76 @@
       obstacles: physicsObstacles()
     });
 
+    function syncPropulsorRotationControls() {
+      const container = $("#propulsorRotationControls");
+      const propulsors = physicsSimulator.getProfile().propulsors;
+      const rotations = physicsSimulator.getPropulsorRotations();
+      const expectedIds = propulsors.map(propulsor => propulsor.id);
+      const currentIds = Array.from(container.children).map(button => button.dataset.propulsorId);
+      const multiple = propulsors.length > 1;
+      if (
+        currentIds.length !== expectedIds.length
+        || currentIds.some((id, index) => id !== expectedIds[index])
+      ) {
+        container.replaceChildren(...propulsors.map(propulsor => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "propulsor-rotation-button";
+          button.dataset.propulsorId = propulsor.id;
+          if (multiple) {
+            const id = document.createElement("span");
+            id.className = "propulsor-rotation-id";
+            id.textContent = propulsor.id;
+            button.append(id);
+          }
+          const state = document.createElement("span");
+          state.className = "propulsor-rotation-state";
+          button.append(state);
+          button.addEventListener("click", () => {
+            if (isPreparingDeparture()) return;
+            const current = physicsSimulator.getPropulsorRotations()[propulsor.id];
+            physicsSimulator.setPropulsorRotation(
+              propulsor.id,
+              current === "right" ? "left" : "right"
+            );
+            latestPhysicsSnapshot = physicsSimulator.snapshot();
+            syncPropulsorRotationControls();
+            understandingSourceRevision++;
+          });
+          return button;
+        }));
+      }
+
+      container.setAttribute("aria-label", t("ui.propeller.rotation.controls"));
+      for (const button of container.children) {
+        const id = button.dataset.propulsorId;
+        const rotation = rotations[id];
+        const next = rotation === "right" ? "left" : "right";
+        button.dataset.rotation = rotation;
+        button.setAttribute("aria-pressed", String(rotation === "left"));
+        button.setAttribute("aria-label", t("ui.propeller.rotation.toggle", {
+          value1: id,
+          value2: t(`ui.propeller.${rotation}`),
+          value3: t(`ui.propeller.${next}`)
+        }));
+        button.title = t("ui.propeller.switch.to", {
+          value1: t(`ui.propeller.${next}`)
+        });
+        button.querySelector(".propulsor-rotation-state").textContent = t(
+          `ui.propeller.${rotation}.button`
+        );
+      }
+      const effectiveRotations = Object.values(rotations);
+      const helpKey = effectiveRotations.length === 1
+        ? effectiveRotations[0] === "left"
+          ? "ui.astern.the.stern.tends.to.move.to.starboard"
+          : "ui.astern.the.stern.tends.to.move.to.port"
+        : "ui.propeller.multiple.help";
+      $("#propWalkDetails").textContent = t(helpKey);
+    }
+
+    syncPropulsorRotationControls();
+
     const canvas = $("#scene");
     const ctx = canvas.getContext("2d", { alpha: true });
     const waterRenderState = {
@@ -4272,6 +4494,7 @@
       previousPhysicsPose.heading = motion.heading;
       const snapshot = physicsSimulator.step({
         throttle: controls.throttleTarget,
+        gear: controls.gearTarget,
         rudder: controls.rudderTarget
       }, dt);
       latestPhysicsSnapshot = snapshot;
@@ -4350,7 +4573,7 @@
       if (initialRemaining) return "release-lines";
       if (!spring.taut && !progress.springTautEver) return "take-up";
       if (!progress.pivotAchieved) return "pivot";
-      if (Math.abs(controls.throttleActual) > .06) return "neutral";
+      if (!propulsionIsNeutral()) return "neutral";
       return "release-spring";
     }
 
@@ -4454,7 +4677,7 @@
       if (progress.springWasPresent && !spring) {
         if (
           progress.pivotAchieved
-          && Math.abs(controls.throttleActual) <= .06
+          && propulsionIsNeutral()
           && speedKn <= challenge.safeReleaseSpeedKn
         ) {
           progress.safeRelease = true;
@@ -4553,7 +4776,7 @@
         line.id === scenario.pendilleChallenge.leewardLineId
         || line.boatCleatId === scenario.pendilleChallenge.leewardBoatCleatId
       ));
-      if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger && Math.abs(controls.throttleActual) > .03) {
+      if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger && !propulsionIsNeutral()) {
         progress.propellerDangerSeconds += dt;
       }
       if (scenario.pendilleChallenge.type === "med-docking") {
@@ -4686,6 +4909,8 @@
     }
 
     function resetMotion(initial, initialMoorings = [], initialPendilles = []) {
+      clearHeldKeyboardControls();
+      cancelEngineGesture();
       motion.x = initial.x;
       motion.y = initial.y;
       motion.heading = initial.heading;
@@ -4693,6 +4918,7 @@
       motion.v = Number(initial.v) || 0;
       motion.r = Number(initial.r) || 0;
       controls.throttleTarget = 0;
+      controls.gearTarget = 0;
       controls.throttleActual = 0;
       controls.rudderTarget = 0;
       controls.rudderActual = 0;
@@ -4789,6 +5015,7 @@
     }
 
     function applyScenario(id) {
+      setMouseHelmMode("normal");
       if (id === "placement") { beginBoatPlacement(); return; }
       if (isPreparingDeparture()) cancelBoatPlacement();
       const scenario = scenarios[id] || scenarios.free;
@@ -4943,6 +5170,7 @@
 
     function beginBoatPlacement() {
       if (isPreparingDeparture()) return;
+      setMouseHelmMode("normal");
       placement.saved = { camera: structuredClone(camera), controls: { ...controls },
         mode: ui.mode, understandView: ui.understandView, scenarioId: ui.scenarioId,
         canvasLabel: canvas.getAttribute("aria-label") };
@@ -4963,7 +5191,7 @@
       setCameraView("top");
       camera.target = [initial.x, initial.y, 0];
       camera.follow = false;
-      placement.disabled = $$("#sidebar input:not([type='file']), #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
+      placement.disabled = $$("#sidebar input:not([type='file']), #propulsorRotationControls button, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
         .map(element => ({ element, disabled: element.disabled }));
       placement.disabled.forEach(({ element }) => element.disabled = true);
       document.querySelector(".app").classList.add("placing-boat");
@@ -5056,6 +5284,7 @@
       endPlacement();
       if (saved.live) {
         physicsSimulator = saved.live.physicsSimulator;
+        syncPropulsorRotationControls();
         latestPhysicsSnapshot = saved.live.latestPhysicsSnapshot;
         physicsCalibrationKey = saved.live.physicsCalibrationKey;
         physicsEnvironmentKey = saved.live.physicsEnvironmentKey;
@@ -5086,7 +5315,9 @@
         || !placement.controller.inspect(placementCorePose()).valid) return false;
       const initial = { ...placement.draft, u: 0, v: 0, r: 0 };
       const preparedPhysics = PortPhysics.createSimulator({
-        profile: physicsSimulator.getProfile(), obstacles: physicsObstacles()
+        profile: physicsSimulator.getProfile(),
+        propulsorRotations: physicsSimulator.getPropulsorRotations(),
+        obstacles: physicsObstacles()
       });
       // Keep the original simulator intact until starting, so cancelling the
       // mooring phase also restores its propulsion, contacts and line history.
@@ -5104,6 +5335,7 @@
       document.querySelector(".app").classList.add("preparing-moorings");
       $("#placementRose").hidden = true;
       physicsSimulator = preparedPhysics;
+      syncPropulsorRotationControls();
       ui.scenarioId = "free";
       resetMotion(initial);
       controls.paused = true;
@@ -5395,37 +5627,72 @@
       );
     }
 
+    function setMouseHelmMode(mode) {
+      const next = mode === "helm" && !isPreparingDeparture() ? "helm" : "normal";
+      mouseHelm.lastX = next === "helm" && mouseHelm.inside ? mouseHelm.positionX : null;
+      if (mouseHelm.mode === next) return;
+      const pointer = camera.pointer;
+      camera.pointer = null;
+      if (pointer && canvas.hasPointerCapture(pointer.id)) canvas.releasePointerCapture(pointer.id);
+      mouseHelm.mode = next;
+      canvas.dataset.mouseMode = next;
+      moorings.hover = null;
+      if (!moorings.gaugePointer) moorings.activeLineId = null;
+      understandingPointer = null;
+      understandingTouchSelection = false;
+      $("#forceTooltip").hidden = true;
+      canvas.style.cursor = "grab";
+    }
+
+    function stopMouseHelm() {
+      setMouseHelmMode("normal");
+      mouseHelm.inside = false;
+      mouseHelm.positionX = null;
+      mouseHelm.lastX = null;
+      mouseHelm.altConsumed = false;
+    }
+
     function centerRudder() {
       controls.rudderTarget = 0;
     }
 
+    function throttleIsIdle() {
+      return controls.gearTarget !== 0 && controls.throttleTarget === 0;
+    }
+
+    function propulsionIsNeutral() {
+      return controls.gearTarget === 0
+        && (!latestPhysicsSnapshot || latestPhysicsSnapshot.propulsion.gearState === "neutral");
+    }
+
+    function setThrottlePosition(gear, throttle = 0) {
+      controls.gearTarget = gear;
+      const magnitude = clamp(Math.abs(throttle), 0, 1);
+      controls.throttleTarget = magnitude === 0 || gear === 0 ? 0 : gear * magnitude;
+    }
+
+    function selectNeutralThrottle() {
+      cancelEngineGesture();
+      for (const key of heldKeyboardControls) {
+        if (keyboardControlBindings[key].axis === "throttle") heldKeyboardControls.delete(key);
+      }
+      keyboardRepeatAt.throttle = Infinity;
+      setThrottlePosition(0);
+      controls.neutralGate = null;
+    }
+
     function adjustThrottle(direction) {
-      if (controls.neutralGate === direction) return;
-      const current = controls.throttleTarget;
-      let next = direction > 0 ? 1 : -1;
-      if (direction > 0) {
-        for (const stop of THROTTLE_STOPS) {
-          if (stop > current + 1e-6) {
-            next = stop;
-            break;
-          }
-        }
-      } else {
-        for (let index = THROTTLE_STOPS.length - 1; index >= 0; index -= 1) {
-          if (THROTTLE_STOPS[index] < current - 1e-6) {
-            next = THROTTLE_STOPS[index];
-            break;
-          }
-        }
-      }
-      if (
-        (current < 0 && next >= 0)
-        || (current > 0 && next <= 0)
-      ) {
-        next = 0;
-        controls.neutralGate = direction;
-      }
-      controls.throttleTarget = next;
+      cancelEngineGesture();
+      if (controls.neutralGate === direction) return false;
+      const current = controls.gearTarget * (1 + Math.abs(controls.throttleTarget));
+      const stops = direction > 0 ? THROTTLE_STOPS : [...THROTTLE_STOPS].reverse();
+      const next = stops.find(stop => (
+        direction * (stop.gear * (1 + Math.abs(stop.throttle)) - current) > 1e-6
+      ));
+      if (!next) return false;
+      if (controls.gearTarget !== 0 && next.gear === 0) controls.neutralGate = direction;
+      setThrottlePosition(next.gear, next.throttle);
+      return throttleIsIdle();
     }
 
     function releaseThrottleGate(direction) {
@@ -5463,7 +5730,8 @@
 
     function applyHeldKeyboardControl(axis, direction) {
       if (axis === "rudder") adjustRudder(direction);
-      else adjustThrottle(direction);
+      else return adjustThrottle(direction);
+      return false;
     }
 
     function setKeyboardControlHeld(key, held, now = performance.now()) {
@@ -5480,7 +5748,9 @@
       }
       if (nextDirection) {
         applyHeldKeyboardControl(axis, nextDirection);
-        keyboardRepeatAt[axis] = now + KEYBOARD_INITIAL_REPEAT_MS;
+        keyboardRepeatAt[axis] = now + (
+          axis === "throttle" && throttleIsIdle() ? IDLE_DETENT_MS : KEYBOARD_INITIAL_REPEAT_MS
+        );
       } else {
         keyboardRepeatAt[axis] = Infinity;
       }
@@ -5497,9 +5767,14 @@
           now >= keyboardRepeatAt[axis]
           && steps < KEYBOARD_MAX_CATCH_UP_STEPS
         ) {
-          applyHeldKeyboardControl(axis, direction);
-          keyboardRepeatAt[axis] += KEYBOARD_REPEAT_MS;
+          const leavingIdle = axis === "throttle" && throttleIsIdle();
+          const enteredIdle = applyHeldKeyboardControl(axis, direction);
           steps += 1;
+          if (enteredIdle || leavingIdle) {
+            keyboardRepeatAt[axis] = now + (enteredIdle ? IDLE_DETENT_MS : KEYBOARD_REPEAT_MS);
+            break;
+          }
+          keyboardRepeatAt[axis] += KEYBOARD_REPEAT_MS;
         }
         if (now >= keyboardRepeatAt[axis]) {
           keyboardRepeatAt[axis] = now + KEYBOARD_REPEAT_MS;
@@ -8758,7 +9033,7 @@
       if (contacts.maxImpact > .4 && contacts.current.length) return { level: "danger", text: msg("diagnostic.severe.impact.return.to.neutral.and.let.the") };
       if (latestPhysicsSnapshot?.diagnostics?.pendillePropellerDanger) {
         return {
-          level: Math.abs(controls.throttleActual) > .03 ? "danger" : "warn",
+          level: !propulsionIsNeutral() ? "danger" : "warn",
           text: msg("diagnostic.laid.mooring.near.the.propeller.stay.in.neutral")
         };
       }
@@ -8849,7 +9124,7 @@
       if (rudderDeg > 10 && controls.throttleActual > .16 && stw < .7) {
         return { level: "ok", text: msg("diagnostic.propeller.wash.hits.the.rudder.the.boat.can") };
       }
-      if (Math.abs(controls.throttleTarget) < .02 && sog > .45) {
+      if (propulsionIsNeutral() && sog > .45) {
         return { level: "warn", text: msg("diagnostic.throttle.is.neutral.but.inertia.preserves.headway.anticipate") };
       }
       if (environment.currentSpeedKn > .55 && stw < .45) {
@@ -9064,16 +9339,23 @@
       let throttleLabel = t("ui.neutral");
       if (throttle > 0) throttleLabel = t("ui.ahead", { value1: Math.round(throttle * 100) });
       if (throttle < 0) throttleLabel = t("ui.astern", { value1: Math.round(Math.abs(throttle) * 100) });
+      if (throttleIsIdle()) throttleLabel = t(controls.gearTarget > 0 ? "ui.ahead.idle" : "ui.astern.idle");
       setText("#throttleLabel", throttleLabel);
-      setText("#touchThrottleValue", throttle > 0
+      setText("#touchThrottleValue", throttleIsIdle() ? throttleLabel : throttle > 0
         ? t("ui.fwd.2", { value1: Math.round(throttle * 100) })
         : throttle < 0
           ? t("ui.rev", { value1: Math.round(Math.abs(throttle) * 100) })
           : "N");
       setStyleProperty("#touchThrottleNeutral", "--throttle-shift",
-        `${Math.sign(throttle) * touchThrottleDistanceFor(Math.abs(throttle))}px`);
+        `${controls.gearTarget * touchThrottleDistanceFor(Math.abs(throttle))}px`);
       $("#touchThrottleNeutral").setAttribute("aria-valuenow", String(Math.round(throttle * 100)));
-      setStyleProperty("#throttleIndicator", "--position", `${50 + throttle * 46}%`);
+      $("#touchThrottleNeutral").setAttribute("aria-valuetext", throttleLabel);
+      setStyleProperty("#throttleIndicator", "--position",
+        `${50 + controls.gearTarget * touchThrottleDistanceFor(Math.abs(throttle)) / 52 * 46}%`);
+      for (const prefix of ["", "touch"]) {
+        toggleClass(`#${prefix ? "touchAhead" : "ahead"}IdleDetent`, "active", throttleIsIdle() && controls.gearTarget === 1);
+        toggleClass(`#${prefix ? "touchAstern" : "astern"}IdleDetent`, "active", throttleIsIdle() && controls.gearTarget === -1);
+      }
       toggleClass("#neutralGate", "locked", controls.neutralGate !== null);
       setText("#neutralGate", controls.neutralGate !== null ? t("ui.release.to.reverse") : t("ui.neutral.detent"));
 
@@ -9128,6 +9410,7 @@
         windage: `${Math.round(calibration.windage * 100)} %`,
         rudderEfficiency: `${Math.round(calibration.rudder * 100)} %`,
         lateralResistance: `${Math.round(calibration.lateral * 100)} %`,
+        mouseHelmSensitivity: `${mouseHelm.sensitivity} %`,
         mooringAttachSpeed: t("ui.kn", { value1: fmt(calibration.mooringAttachSpeedKn, 1) })
       };
       Object.entries(values).forEach(([id, value]) => {
@@ -9348,6 +9631,11 @@
     }
 
     const inputs = {
+      mouseHelmSensitivity: value => {
+        mouseHelm.sensitivity = validMouseHelmSensitivity(value);
+        $("#mouseHelmSensitivity").value = mouseHelm.sensitivity;
+        try { localStorage.setItem(MOUSE_HELM_STORAGE_KEY, String(mouseHelm.sensitivity)); } catch {}
+      },
       windSpeed: value => environment.windSpeedKn = Number(value),
       windDirection: value => environment.windFromDeg = flowDirection(value),
       currentSpeed: value => environment.currentSpeedKn = Number(value),
@@ -9468,7 +9756,10 @@
       void setEngineSound(!engineAudio.enabled);
     });
     const readmeDialog = $("#readmeDialog");
-    $("#readmeHelpButton").addEventListener("click", () => readmeDialog.showModal());
+    $("#readmeHelpButton").addEventListener("click", () => {
+      setMouseHelmMode("normal");
+      readmeDialog.showModal();
+    });
     $("#closeReadmeHelp").addEventListener("click", () => readmeDialog.close());
     readmeDialog.addEventListener("click", event => {
       if (event.target === readmeDialog) readmeDialog.close();
@@ -9525,12 +9816,13 @@
 
     const touchEngine = $(".touch-engine");
     const throttleHandle = $("#touchThrottleNeutral");
-    // Une plage stable autour de 5 % facilite les manoeuvres à très faible puissance.
+    // Le cran d'embrayage occupe 11–17 px ; le moteur y reste au ralenti.
     const TOUCH_THROTTLE_CURVE = [
-      [0, 0], [11, .05], [17, .05], [29, .2], [39, .5], [52, 1]
+      [17, 0], [29, .2], [39, .5], [52, 1]
     ];
     function touchThrottlePowerAt(distance) {
       const travel = clamp(Math.abs(distance), 0, 52);
+      if (travel <= 17) return 0;
       for (let index = 1; index < TOUCH_THROTTLE_CURVE.length; index++) {
         const [endDistance, endPower] = TOUCH_THROTTLE_CURVE[index];
         if (travel > endDistance) continue;
@@ -9542,7 +9834,7 @@
     }
     function touchThrottleDistanceFor(power) {
       const value = clamp(Math.abs(power), 0, 1);
-      if (value === .05) return 14;
+      if (value === 0) return controls.gearTarget === 0 ? 0 : 14;
       for (let index = 1; index < TOUCH_THROTTLE_CURVE.length; index++) {
         const [endDistance, endPower] = TOUCH_THROTTLE_CURVE[index];
         if (value > endPower || endPower === TOUCH_THROTTLE_CURVE[index - 1][1]) continue;
@@ -9553,18 +9845,60 @@
       return 52;
     }
     let engineGesture = null;
+    function cancelEngineGesture() {
+      if (!engineGesture) return;
+      const { id, timer } = engineGesture;
+      window.clearTimeout(timer);
+      engineGesture = null;
+      try { touchEngine.releasePointerCapture(id); } catch {}
+    }
+
+    function applyEngineGesture(gesture) {
+      if (engineGesture !== gesture || gesture.blocked || performance.now() < gesture.holdUntil) return;
+      const distance = gesture.distance;
+      const gear = Math.abs(distance) >= 11 ? Math.sign(distance) : 0;
+      const currentGear = controls.gearTarget;
+      const crossingIdle = currentGear === 0
+        ? gear !== 0
+        : controls.throttleTarget !== 0 && distance * currentGear <= 17;
+      if (crossingIdle) {
+        const side = currentGear || gear;
+        gesture.gear = side;
+        setThrottlePosition(side);
+        controls.neutralGate = null;
+        gesture.holdUntil = performance.now() + IDLE_DETENT_MS;
+        gesture.timer = window.setTimeout(() => {
+          gesture.timer = null;
+          gesture.holdUntil = 0;
+          applyEngineGesture(gesture);
+        }, IDLE_DETENT_MS);
+        return;
+      }
+      if (gesture.gear !== 0 && gear !== gesture.gear) {
+        setThrottlePosition(0);
+        controls.neutralGate = -gesture.gear;
+        gesture.blocked = true;
+        return;
+      }
+      setThrottlePosition(gear, Math.round(touchThrottlePowerAt(distance) * 100) / 100);
+      controls.neutralGate = null;
+    }
+
     touchEngine.addEventListener("pointerdown", event => {
       if (engineGesture) return;
       event.preventDefault();
       engineGesture = {
         id: event.pointerId,
         startY: event.clientY,
-        startValue: controls.throttleTarget,
-        startDistance: Math.sign(controls.throttleTarget)
+        gear: controls.gearTarget,
+        startDistance: controls.gearTarget
           * touchThrottleDistanceFor(Math.abs(controls.throttleTarget)),
         fromHandle: throttleHandle.contains(event.target),
         blocked: false,
-        moved: false
+        moved: false,
+        distance: 0,
+        holdUntil: 0,
+        timer: null
       };
       try { touchEngine.setPointerCapture(event.pointerId); } catch {}
     });
@@ -9574,42 +9908,34 @@
       const dy = event.clientY - gesture.startY;
       if (Math.abs(dy) < 5 && !gesture.moved) return;
       gesture.moved = true;
-      if (gesture.blocked) return;
-      const distance = clamp(gesture.startDistance - dy, -52, 52);
-      let next = Math.sign(distance) * touchThrottlePowerAt(distance);
-      if (gesture.startValue !== 0 && distance * gesture.startValue < 0) {
-        next = 0;
-        gesture.blocked = true;
-      }
-      controls.throttleTarget = Math.round(next * 100) / 100;
-      controls.neutralGate = null;
+      gesture.distance = clamp(gesture.startDistance - dy, -52, 52);
+      applyEngineGesture(gesture);
     });
     const endEngineGesture = event => {
       if (engineGesture?.id !== event.pointerId) return;
       if (!engineGesture.moved && engineGesture.fromHandle && event.type === "pointerup") {
-        controls.throttleTarget = 0;
-        controls.neutralGate = null;
+        selectNeutralThrottle();
       }
-      engineGesture = null;
+      cancelEngineGesture();
     };
     touchEngine.addEventListener("pointerup", endEngineGesture);
     touchEngine.addEventListener("pointercancel", endEngineGesture);
+    touchEngine.addEventListener("lostpointercapture", endEngineGesture);
     throttleHandle.addEventListener("keydown", event => {
+      if (event.defaultPrevented) return;
       if (event.key === "ArrowUp" || event.key === "ArrowDown") {
         event.preventDefault();
         adjustThrottle(event.key === "ArrowUp" ? 1 : -1);
         controls.neutralGate = null;
       } else if (event.key === "Home") {
         event.preventDefault();
-        controls.throttleTarget = 0;
-        controls.neutralGate = null;
+        selectNeutralThrottle();
       }
     });
     $("#touchCenterRudder").addEventListener("click", centerRudder);
     throttleHandle.addEventListener("click", event => {
       if (event.detail !== 0) return;
-      controls.throttleTarget = 0;
-      controls.neutralGate = null;
+      selectNeutralThrottle();
     });
 
     $("#pauseButton").addEventListener("click", togglePause);
@@ -9671,6 +9997,19 @@
         return;
       }
       const key = event.key;
+      if (key === "Escape" && mouseHelm.mode === "helm") {
+        event.preventDefault();
+        setMouseHelmMode("normal");
+        return;
+      }
+      if (key === "Alt" && !event.ctrlKey && !event.metaKey && !event.shiftKey
+        && !event.getModifierState("AltGraph") && matchMedia("(any-pointer: fine)").matches
+        && !canvasTouches.size && (mouseHelm.inside || document.activeElement === canvas)) {
+        event.preventDefault();
+        mouseHelm.altConsumed = true;
+        if (!event.repeat) setMouseHelmMode(mouseHelm.mode === "normal" ? "helm" : "normal");
+        return;
+      }
       if (keyboardControlKey(key)) {
         event.preventDefault();
         setKeyboardControlHeld(key, true);
@@ -9696,6 +10035,11 @@
     }, { capture: true });
 
     window.addEventListener("keyup", event => {
+      if (event.key === "Alt" && mouseHelm.altConsumed) {
+        event.preventDefault();
+        mouseHelm.altConsumed = false;
+        return;
+      }
       if (isPreparingDeparture()) return;
       if (keyboardControlKey(event.key)) {
         event.preventDefault();
@@ -9703,6 +10047,8 @@
       }
     }, { capture: true });
     window.addEventListener("blur", clearHeldKeyboardControls);
+    window.addEventListener("blur", cancelEngineGesture);
+    window.addEventListener("blur", stopMouseHelm);
     function stopPlacementPointers() {
       if (!isPreparingDeparture()) return;
       placement.pointer = null; placement.armed = false;
@@ -9713,6 +10059,8 @@
     window.addEventListener("blur", stopPlacementPointers);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) clearHeldKeyboardControls();
+      if (document.hidden) cancelEngineGesture();
+      if (document.hidden) stopMouseHelm();
       if (document.hidden) stopPlacementPointers();
     });
 
@@ -9970,7 +10318,35 @@
       }
     }
 
+    const mouseHelmWheel = '<circle cx="12" cy="12" r="8"/><path d="M12 2v7.5 M19 5l-5.23 5.23 M22 12h-7.5 M19 19l-5.23-5.23 M12 14.5V22 M10.23 13.77L5 19 M9.5 12H2 M10.23 10.23L5 5"/><circle cx="12" cy="12" r="2.5"/>';
+    const mouseHelmCursor = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">'
+      + [["#10232d", 4.6], ["#f6fbfc", 2.5]].map(([stroke, width]) => (
+        `<svg x="2" y="2" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round">${mouseHelmWheel}</svg>`
+      )).join("") + "</svg>";
+    canvas.style.setProperty("--mouse-helm-cursor", `url("data:image/svg+xml,${encodeURIComponent(mouseHelmCursor)}") 16 16, ew-resize`);
+    canvas.dataset.mouseMode = "normal";
+    $("#mouseHelmSensitivity").value = mouseHelm.sensitivity;
+
+    canvas.addEventListener("pointerenter", event => {
+      if (event.pointerType !== "mouse") return;
+      mouseHelm.inside = true;
+      mouseHelm.positionX = event.clientX;
+      mouseHelm.lastX = event.clientX;
+    });
+
     canvas.addEventListener("pointerdown", event => {
+      if (event.pointerType === "touch") setMouseHelmMode("normal");
+      if (event.pointerType === "mouse" && !isPreparingDeparture()) {
+        mouseHelm.inside = true;
+        mouseHelm.positionX = event.clientX;
+        if (event.button === 2 || mouseHelm.mode === "helm") {
+          event.preventDefault();
+          canvas.focus();
+          if (event.button === 2) setMouseHelmMode(mouseHelm.mode === "normal" ? "helm" : "normal");
+          else mouseHelm.lastX = event.clientX;
+          return;
+        }
+      }
       if (placementPointerDown(event)) return;
       event.preventDefault();
       canvas.focus();
@@ -10033,6 +10409,18 @@
     });
 
     canvas.addEventListener("pointermove", event => {
+      if (event.pointerType === "mouse") {
+        mouseHelm.inside = true;
+        mouseHelm.positionX = event.clientX;
+        if (mouseHelm.mode === "helm") {
+          if (mouseHelm.lastX !== null) controls.rudderTarget = clamp(
+            controls.rudderTarget - (event.clientX - mouseHelm.lastX) * .1 * DEG * mouseHelm.sensitivity / 100,
+            -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder
+          );
+          mouseHelm.lastX = event.clientX;
+          return;
+        }
+      }
       if (placementPointerMove(event)) return;
       if (event.pointerType === "touch" && canvasTouches.has(event.pointerId)) {
         canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -10123,6 +10511,7 @@
     });
 
     canvas.addEventListener("pointerup", event => {
+      if (event.pointerType === "mouse" && mouseHelm.mode === "helm") return;
       if (placementPointerUp(event)) return;
       if (event.pointerType === "touch") {
         canvasTouches.delete(event.pointerId);
@@ -10180,6 +10569,11 @@
       canvas.style.cursor = cursorForMooringHit(moorings.hover);
     });
     canvas.addEventListener("pointercancel", event => {
+      if (event.pointerType === "mouse") {
+        mouseHelm.lastX = null;
+        mouseHelm.positionX = null;
+        mouseHelm.inside = false;
+      }
       if (placementPointerUp(event)) return;
       canvasTouches.delete(event.pointerId);
       canvasGesture = null;
@@ -10192,6 +10586,9 @@
     });
     canvas.addEventListener("lostpointercapture", placementPointerUp);
     canvas.addEventListener("pointerleave", () => {
+      mouseHelm.inside = false;
+      mouseHelm.positionX = null;
+      mouseHelm.lastX = null;
       if (!camera.pointer && !understandingTouchSelection) {
         moorings.hover = null;
         understandingPointer = null;
@@ -10201,11 +10598,13 @@
     });
     canvas.addEventListener("contextmenu", event => event.preventDefault());
     canvas.addEventListener("dblclick", event => {
+      if (mouseHelm.mode === "helm") return;
       if (placement.active) return;
       if (!findMooringHit(event.clientX, event.clientY, event.pointerType)) resetCamera();
     });
     canvas.addEventListener("wheel", event => {
       event.preventDefault();
+      if (mouseHelm.mode === "helm") return;
       if (camera.view === "skipper") {
         camera.skipperFocalScale = clamp(
           camera.skipperFocalScale - event.deltaY * .0008,
@@ -10241,6 +10640,7 @@
         environment: { ...environment },
         controls: {
           throttleTarget: controls.throttleTarget,
+          gearTarget: controls.gearTarget,
           throttleActual: controls.throttleActual,
           rudderTarget: controls.rudderTarget,
           rudderActual: controls.rudderActual,
@@ -10934,7 +11334,15 @@
           return testSnapshot();
         },
         setControls(nextControls = {}) {
-          if ("throttleTarget" in nextControls) controls.throttleTarget = clamp(Number(nextControls.throttleTarget), -1, 1);
+          if ("throttleTarget" in nextControls || "gearTarget" in nextControls) {
+            const throttle = "throttleTarget" in nextControls
+              ? clamp(Number(nextControls.throttleTarget), -1, 1) : controls.throttleTarget;
+            const gear = "gearTarget" in nextControls ? nextControls.gearTarget : Math.sign(throttle);
+            if (![-1, 0, 1].includes(gear)) throw new RangeError("gearTarget doit valoir -1, 0 ou 1.");
+            cancelEngineGesture();
+            setThrottlePosition(gear, throttle);
+            controls.neutralGate = null;
+          }
           if ("throttleActual" in nextControls) controls.throttleActual = clamp(Number(nextControls.throttleActual), -1, 1);
           if ("rudderTarget" in nextControls) controls.rudderTarget = clamp(Number(nextControls.rudderTarget), -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
           if ("rudderActual" in nextControls) controls.rudderActual = clamp(Number(nextControls.rudderActual), -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
@@ -11003,6 +11411,7 @@
         canvas.setAttribute("aria-label", t(placement.mooring ? "placement.mooring.help" : "placement.help"));
       }
       renderScenarioLesson();
+      syncPropulsorRotationControls();
       updateControlReadouts();
       setVisualTheme(ui.visualTheme);
       setTimeScale(ui.timeScale);

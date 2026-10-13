@@ -21,16 +21,20 @@ The `FR / EN / Bzh` selector in the top bar changes the whole interface and this
 **On a computer:**
 
 - `←` and `→` move the helm. It keeps its angle; **Centre** returns it to the centreline.
+- `Alt` on Windows, `Option` on Mac or a right-click in the scene switches between normal mode and **mouse helm mode**. The cursor becomes a white ship's wheel with a dark outline. Without holding a button, move right to command starboard or left to command port; vertical movement does nothing. The helm keeps the angle reached. Switch back to use the camera, lines and cleats, or press `Escape` to return to normal mode.
+- **Advanced settings → Mouse helm sensitivity** adjusts the response from 25% to 300%. At 100%, 100 horizontal pixels command 10° of helm. This choice is remembered in the browser. Steering stops outside the scene and returning causes no jump. Opening the guide, changing scenario or losing focus restores normal mode. Mouse steering is disabled during **Place** and **Moor**.
 - `↑` or `Q` increase ahead throttle. `↓` or `W` increase astern throttle. You can hold throttle and helm keys together.
+- From neutral, the first press selects **FWD idle** or **REV idle**: the transmission engages without increasing the engine speed target. Release to stay at the detent; another press increases throttle. Holding the key pauses for **0.5 s** at the detent, then continues. The same pause occurs when reducing throttle.
 - To reverse gear, first return to neutral, release the key, then press again in the opposite direction.
 - `Space` or `P` pauses or resumes. Lines can be handled while paused to represent a crew member's actions.
 - `R` restarts the scenario.
-- The wheel zooms. Drag to rotate the viewpoint; `Shift` + drag pans around the boat. Double-click the scene or use the centring button to restore the camera.
+- In normal mode, the wheel zooms. Drag to rotate the viewpoint; `Shift` + drag or holding the middle mouse button pans around the boat. Double-click the scene or use the centring button to restore the camera.
 
 **On a tablet or phone:**
 
 - Turn the **Helm** wheel at the bottom left. Tap `0` to centre it.
 - Drag the **Engine** handle towards **FWD** or **REV**. Tap `N` for neutral.
+- The two marks near neutral select **FWD idle** and **REV idle**. A small capture zone and a **0.5 s** pause help you find them. Release at the detent to stay there; continue beyond it to accelerate. Reducing throttle pauses at the same detent before neutral. Neutral stops the gesture: release before reversing. Tapping the handle requests neutral directly, without waiting.
 - Pinch with two fingers to zoom. Move the same gesture to pan.
 - Open settings with `☰`. Landscape orientation gives the best visibility on a phone.
 
@@ -115,17 +119,19 @@ Wind and current are set by speed and their **direction of travel**. The on-scre
 
 Wind appears as thin filaments with fading trails; current appears as translucent tapered shapes with open arrowheads, below the wind. Each field is uniform across the water. Particles travel at the flow speed and follow simulation time: pause freezes them and ×2 speeds up their movement. Their length is adjusted for readability. In the light theme, wind has stronger contrast and current uses a softer blue; Understand dims both to keep forces readable. These displays do not change the physics engine.
 
-**Right-handed propeller** adjusts prop walk: astern it tends to push the stern to port. **Expert calibration** adjusts loaded mass, windage, rudder effectiveness, lateral resistance and the maximum speed allowed for line attachment. Keep defaults while learning, then change one setting at a time to represent another boat or situation.
+The single **Advanced settings** section groups control sensitivity under **Controls**, then loaded mass, windage, rudder effectiveness, lateral resistance, prop walk and the maximum speed allowed for line attachment under **Boat**. Keep the defaults while learning, then change one setting at a time to represent another boat or situation.
 
-## Understanding Expert calibration
+The compact button above the prop-walk slider selects a **Right-handed** or **Left-handed** propeller without changing the percentage. Astern, a right-handed propeller tends to push the stern to port and a left-handed one to starboard. Handedness belongs to each propulsor: on a multi-propeller boat, each identified button controls the prop walk and tangential wash rotation of its associated propeller. Longitudinal thrust and signed shaft speed remain unchanged.
 
-**Expert calibration** studies the boat's sensitivity to important quantities. It does not change the stored profile or replace measurements on board: settings apply to the current simulation. For a fair comparison, change one slider only, restart the same scenario and keep the same wind, current, helm and engine command.
+## Understanding Advanced settings
+
+The **Boat** settings study sensitivity to important quantities. They do not change the stored profile or replace measurements on board: choices apply to the current simulation and persist when restarting or changing scenario. For a fair comparison, change one slider only, restart the same scenario and keep the same wind, current, helm and engine command.
 
 - **Loaded mass** — **5,700 to 7,800 kg**, default **6,500 kg**. Higher mass reduces acceleration from a given force and increases translational and rotational inertia.
 - **Windage** — **60 to 140 %**, reference **100 %**. Multiplies wind forces and moments on exposed panels; it has no effect without wind.
 - **Rudder effectiveness** — **60 to 140 %**, reference **100 %**. Multiplies hydrodynamic rudder action. The rudder still needs flow from headway or propeller wash to act.
 - **Lateral resistance** — **60 to 140 %**, reference **100 %**. Higher values strengthen hull and keel resistance to sideways drift; they do not directly change current speed.
-- **Prop walk · right-handed propeller** — **0 to 100 %**, default **60 %**. Adjusts the component mainly pushing the stern to port under astern power. Zero reduces this effect without removing the model's minimum transverse propeller component.
+- **Prop walk · propeller** — **0 to 100 %**, default **60 %**. Adjusts the component mainly pushing the stern to port with a right-handed propeller, or to starboard with a left-handed one, under astern power. Zero reduces this effect without removing the model's minimum transverse propeller component.
 - **Attach a line below** — **0.1 to 1.0 kn**, default **0.6 kn**. This interaction threshold uses speed over ground to allow or refuse attachment; it does not physically slow the boat.
 
 The extremes help understand trends or bracket uncertainty. They do not imply that a real boat corresponds to that combination. For the exact model, open [Explore the Sun Odyssey 36i physical model — French content](../output/modeles-physiques/explorer-les-modeles.html). It details the **Sun Odyssey 36i** windage panels, submerged hull and appendages, propeller, rudder wash, axes, positions and force conventions.

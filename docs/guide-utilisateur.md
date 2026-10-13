@@ -19,16 +19,20 @@ Le sélecteur `FR / EN / Bzh` du bandeau supérieur change immédiatement la lan
 **Sur ordinateur :**
 
 - `←` et `→` déplacent la barre. Elle conserve son angle ; le bouton **Recentrer** la remet dans l'axe.
+- `Alt` sur Windows, `Option` sur Mac ou un clic droit dans la scène bascule entre le mode normal et la **barre à la souris**. Le curseur devient une roue blanche à contour sombre. Sans maintenir de bouton, déplacez la souris à droite pour commander tribord ou à gauche pour commander bâbord ; les mouvements verticaux ne font rien. La barre conserve l'angle atteint. Rebasculez pour utiliser la caméra, les aussières et les taquets, ou appuyez sur `Échap` pour revenir au mode normal.
+- **Réglages avancés → Sensibilité de la barre à la souris** dose la réponse de 25 % à 300 %. À 100 %, 100 pixels horizontaux correspondent à 10° de barre. Ce choix est mémorisé dans le navigateur. Le pilotage s'arrête hors de la scène ; y revenir ne provoque aucun saut. L'ouverture du guide, un changement de situation ou la perte de focus rétablit le mode normal. La barre à la souris est désactivée pendant **Placer** et **Amarrer**.
 - `↑` ou `Q` augmentent la marche avant. `↓` ou `W` augmentent la marche arrière.
+- Depuis le neutre, le premier appui sélectionne **AV ralenti** ou **AR ralenti** : le moteur embraye sans augmenter sa consigne de régime. Relâchez pour rester au cran ; un nouvel appui augmente les gaz. Une touche maintenue marque une pause de **0,5 s** au cran, puis poursuit le réglage. Ce cran se ressent également lorsqu'on réduit les gaz.
 - Pour inverser la marche, revenez d'abord au neutre, relâchez la touche, puis appuyez de nouveau dans l'autre sens.
 - `Espace` ou `P` met la simulation en pause ou la reprend. On peut manipuler les aussières pendant la pause pour "simuler" un équipier.
 - `R` recommence la situation.
-- La molette zoome. Un glisser fait pivoter le point de vue ; `Maj` + glisser déplace la carte autour du bateau. Un double-clic dans la scène ou le bouton de recentrage rétablit la caméra.
+- En mode normal, la molette zoome. Un glisser fait pivoter le point de vue ; `Maj` + glisser ou le bouton central maintenu déplace la carte autour du bateau. Un double-clic dans la scène ou le bouton de recentrage rétablit la caméra.
 
 **Sur tablette ou téléphone :**
 
 - Faites tourner la roue **Barre** en bas à gauche. Touchez `0` pour recentrer.
 - Faites glisser la poignée **Moteur** vers **AV** ou **AR**. Touchez `N` pour revenir au neutre.
+- Les deux repères près du neutre correspondent à **AV ralenti** et **AR ralenti**. Une petite zone d'accroche et une pause de **0,5 s** facilitent leur sélection. Relâchez au cran pour le conserver ; poursuivez le geste au-delà pour accélérer. En réduisant les gaz, la poignée marque la même pause avant le neutre. Le neutre arrête le geste : relâchez avant d'inverser. Toucher la poignée demande directement le neutre, sans attendre.
 - Pincez avec deux doigts pour zoomer. Le même geste déplacé fait glisser la vue.
 - Ouvrez les réglages avec `☰`. Sur un téléphone, le mode paysage offre la meilleure visibilité.
 
@@ -113,17 +117,19 @@ Le vent et le courant se règlent par leur force et par leur **direction de dép
 
 Le vent apparaît sous forme de filaments avec une traînée progressive ; le courant, sous forme de fuseaux translucides à pointe ouverte, sous le vent. Chaque champ est uniforme sur tout le plan d'eau. Les particules se déplacent à la vitesse du flux et suivent le temps de simulation : la pause les fige et ×2 accélère leur déplacement. Leur longueur est adaptée à la lisibilité. En thème clair, le vent est plus contrasté et le courant bleu adouci ; dans Comprendre, les deux sont atténués pour laisser les forces lisibles. Ces représentations ne changent pas le moteur physique.
 
-Le réglage **Hélice droitière** dose l'effet de pas : en marche arrière, il tend à chasser la poupe vers bâbord. La section **Calibration experte** permet d'adapter la masse en charge, le fardage, l'efficacité du safran, la résistance latérale et la vitesse maximale autorisée pour frapper une aussière. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
+La section unique **Réglages avancés** rassemble la sensibilité des commandes sous **Commandes**, puis la masse en charge, le fardage, l'efficacité du safran, la résistance latérale, l'effet de pas et la vitesse maximale autorisée pour frapper une aussière sous **Bateau**. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
 
-## Comprendre la « Calibration experte »
+Le bouton compact placé au-dessus du réglage d'effet de pas choisit une hélice **Droitière** ou **Gauchère** sans modifier le pourcentage. En marche arrière, une hélice droitière tend à chasser la poupe vers bâbord et une gauchère vers tribord. Ce sens est propre à chaque propulseur : sur un bateau à plusieurs hélices, chaque bouton identifié commande l'effet de pas et la rotation tangentielle du jet de l'hélice correspondante. La poussée longitudinale et le régime signé restent inchangés.
 
-La **Calibration experte** sert à étudier la sensibilité du bateau à quelques grandeurs importantes. Elle ne change pas le profil enregistré et ne remplace pas une mesure à bord : les réglages s'appliquent à la simulation en cours. Pour comparer proprement deux valeurs, ne déplacez qu'un curseur à la fois, recommencez la même situation et conservez le même vent, le même courant, la même barre et la même commande moteur.
+## Comprendre les « Réglages avancés »
+
+Les réglages du groupe **Bateau** servent à étudier la sensibilité du bateau à quelques grandeurs importantes. Ils ne changent pas le profil enregistré et ne remplacent pas une mesure à bord : les choix s'appliquent à la simulation en cours et sont conservés lorsque vous recommencez ou changez de situation. Pour comparer proprement deux valeurs, ne déplacez qu'un curseur à la fois, recommencez la même situation et conservez le même vent, le même courant, la même barre et la même commande moteur.
 
 - **Masse en charge** — de **5 700 à 7 800 kg**, avec **6 500 kg** comme valeur proposée. Une masse plus élevée réduit l'accélération produite par une même force et augmente l'inertie en translation comme en rotation.
 - **Fardage** — de **60 à 140 %**, avec **100 %** comme référence. Ce coefficient multiplie les forces et les moments produits par le vent sur les panneaux exposés ; il n'a donc pas d'effet lorsqu'il n'y a pas de vent.
 - **Efficacité du safran** — de **60 à 140 %**, avec **100 %** comme référence. Elle multiplie l'action hydrodynamique du safran. Le safran doit toujours recevoir un écoulement dû à l'erre ou au jet d'hélice pour agir.
 - **Résistance latérale** — de **60 à 140 %**, avec **100 %** comme référence. Une valeur élevée renforce l'opposition de la coque et de la quille à la dérive ; elle ne modifie pas directement la vitesse du courant.
-- **Effet de pas · hélice droitière** — de **0 à 100 %**, avec **60 %** comme valeur proposée. Il dose la composante réglable qui chasse surtout la poupe vers bâbord en marche arrière. La valeur 0 % réduit cet effet sans supprimer la composante transversale minimale du modèle d'hélice.
+- **Effet de pas · hélice** — de **0 à 100 %**, avec **60 %** comme valeur proposée. Il dose la composante réglable qui chasse surtout la poupe vers bâbord avec une hélice droitière, ou vers tribord avec une hélice gauchère, en marche arrière. La valeur 0 % réduit cet effet sans supprimer la composante transversale minimale du modèle d'hélice.
 - **Frapper une aussière sous** — de **0,1 à 1,0 nd**, avec **0,6 nd** comme valeur proposée. C'est un seuil d'interaction fondé sur la vitesse fond : il autorise ou refuse la prise d'une aussière, mais ne ralentit pas physiquement le bateau.
 
 Les extrêmes servent surtout à comprendre une tendance ou à encadrer une incertitude. Ils ne signifient pas qu'un bateau réel correspond nécessairement à cette combinaison de valeurs. Pour voir précisément ce que ces coefficients modulent, ouvrez [Explorer le modèle physique du Sun Odyssey 36i](../output/modeles-physiques/explorer-les-modeles.html). Cette page détaille le modèle utilisé pour le **Sun Odyssey 36i** : panneaux de fardage, coque et appendices immergés, hélice, jet sur le safran, axes, positions et conventions de forces.

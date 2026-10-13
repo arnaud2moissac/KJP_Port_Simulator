@@ -139,7 +139,7 @@
     "product": "simulator",
     "id": "calibration.23",
     "group": "calibration",
-    "name": "la calibration experte règle effectivement le seuil de pose des aussières"
+    "name": "les réglages avancés réunissent les calibrages et pilotent un sens d’hélice générique"
   },
   {
     "product": "simulator",
@@ -324,6 +324,44 @@
     "group": "controls",
     "name": "vent et courant affichent et règlent leur direction de déplacement sans changer la convention physique",
     "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.54",
+    "group": "controls",
+    "name": "Alt, Option et clic droit basculent une seule fois entre caméra et barre"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.55",
+    "group": "controls",
+    "name": "la souris commande la barre horizontalement avec un curseur contrasté et isole la caméra et les amarres",
+    "renderer": "native"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.56",
+    "group": "controls",
+    "name": "la sensibilité de barre est immédiate, mémorisée et tolère un stockage invalide ou indisponible"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.57",
+    "group": "controls",
+    "name": "les sorties du mode barre protègent le guide, le focus, le tactile et la préparation du départ"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.58",
+    "group": "controls",
+    "name": "les crans de ralenti marquent 500 ms au clavier sans bloquer les gaz ni traverser le neutre"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.59",
+    "group": "controls",
+    "hasTouch": true,
+    "name": "les crans tactiles accrochent au ralenti et annulent toute reprise après la fin du geste"
   },
   {
     "product": "generator",

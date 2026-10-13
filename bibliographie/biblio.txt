@@ -332,3 +332,18 @@ Exclusions : métadonnées PyPI (https://pypi.org/pypi/graphifyy/json), dépôt
              références techniques de version et de distribution, exclues des
              sources bibliographiques. L'ancien alias safishamsi/graphify
              redirige vers Graphify-Labs/graphify.
+
+COMMANDES MOTEUR AU RALENTI — 12 OCTOBRE 2026
+-------------------------------------------
+
+[archivé] dometic-seastar-i7700-i7800-commandes-monolevier-2020.pdf
+Document : Dometic SeaStar i7700/i7800, manuel utilisateur,
+           Book 79, Form 710465, révision C, 2020
+URL canonique : https://media.dometic.com/externalassets/dometic-seastar-i7800-dual_75047.pdf
+Usage : sections 3.3.2–3.3.3 et figure 3-8, distinction des positions neutre,
+        marche avant au ralenti et marche arrière au ralenti, ainsi que des
+        crans de sélection de marche. Source du plan utilisateur d'ajout des
+        deux crans KJP. Aucun coefficient de propulsion ni délai mécanique
+        n'est calibré depuis ce document ; la pause de 0,5 s est un choix UX.
+Archive : PDF original public téléchargé le 13 octobre 2026, après résolution
+          de l'échec DNS des premières tentatives.

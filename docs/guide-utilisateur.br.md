@@ -19,16 +19,20 @@ Ar dibaber `FR / EN / Bzh` er vandenn en nec'h a cheñch diouzhtu yezh an etrefa
 **War urzhiataer :**
 
 - `←` ha `→` a zilec'h ar stur. Mirout a ra e gorn ; ar bouton **Adkreizañ** a laka anezhañ en ahel en-dro.
+- `Alt` war Windows, `Option` war Mac pe ur c'hlik dehou er gwel a cheñch etre ar mod normal hag ar **stur gant al logodenn**. Ar reti a zeu da vezañ ur rod-stur wenn gant ur c'hontour teñval. Hep derc'hel ur bouton, dilec'hiit al logodenn a-zehou evit sturiañ da dribourzh pe a-gleiz evit sturiañ da vabourzh ; dilec'hiañ a-serzh ne ra netra. Mirout a ra ar stur ar c'horn tizhet. Cheñchit mod en-dro evit implijout ar c'hamera, an oserioù hag ar c'hlampoù, pe pouezit war `Escape` evit distreiñ d'ar mod normal.
+- **Arventennoù araokaet → Sensidigezh ar stur gant al logodenn** a reol ar respont etre 25 % ha 300 %. Gant 100 %, 100 piksel a-blaen a glot gant 10° stur. Miret eo an dibab er merdeer. Harz a ra ar sturiañ er-maez eus ar gwel ; distreiñ ne ra lamm ebet. Digoriñ ar sturlevr, cheñch degouezh pe koll ar fokus a adlaka ar mod normal. Diweredekaet eo ar stur gant al logodenn e-pad **Lec'hiañ** hag **Amarrañ**.
 - `↑` pe `Q` a gresk ar gaz war-raok. `↓` pe `W` a gresk ar gaz a-dreñv.
+- Eus an neptu, ar pouez kentañ a zibab **RA gorrek** pe **DR gorrek** : gweredekaet eo an treuzkas hep kreskiñ tizh troiñ al lusker. Lezit an alc'hwez da vont evit chom en harz ; ur pouez all a gresk ar gaz. Derc'hel an alc'hwez a verk ur paouez a **0,5 s** en harz a-raok kenderc'hel. Ar memes paouez a vez pa zigresker ar gaz.
 - Evit cheñch tu, distroit da gentañ d'an neptu, lezit an alc'hwez da vont ha pouezit en-dro en tu all.
 - `Esaouenn` pe `P` a laka an drevezadur e paouez pe a laka anezhañ da genderc'hel. Gallout a rit reoliñ an oserioù e-pad ar paouez evit drevezañ ur skipad.
 - `R` a adkrog an degouezh.
-- Ar rodig a gresk pe a zigresk ar gwel. Riklañ a laka ar gwel da dreiñ ; `Shift` + riklañ a zilec'h ar gartenn en-dro d'ar vag. Ur c'hlik doubl er gwel pe ar bouton adkreizañ a adlaka ar c'hamera.
+- Er mod normal, ar rodig a gresk pe a zigresk ar gwel. Riklañ a laka ar gwel da dreiñ ; `Shift` + riklañ pe derc'hel bouton kreiz al logodenn a zilec'h ar gartenn en-dro d'ar vag. Ur c'hlik doubl er gwel pe ar bouton adkreizañ a adlaka ar c'hamera.
 
 **War dabletezenn pe bellgomzer :**
 
 - Troit ar rod **Stur** en traoñ a-gleiz. Stekit ouzh `0` evit adkreizañ.
 - Riklit dornell al **Lusker** war-du **RA** (war-raok) pe **DR** (a-dreñv). Stekit ouzh `N` evit distreiñ d'an neptu.
+- An daou verk tost d'an neptu a glot gant **RA gorrek** ha **DR gorrek**. Ur zonenn vihan hag ur paouez a **0,5 s** a sikour da chom en harz. Lezit an dornell da vont evit chom eno ; kendalc'hit ar jest en tu-hont evit kreskiñ ar gaz. Pa zigresker ar gaz e vez ar memes paouez a-raok an neptu. An neptu a harz ar jest : lezit da vont a-raok cheñch tu. Stekiñ ouzh an dornell a c'houlenn an neptu diouzhtu, hep gortoz.
 - Pincit gant daou viz da greskiñ pe da zigreskiñ ar gwel. Dilec'hiañ an daou viz asambles a zilec'h ar gwel.
 - Digorit an arventennoù gant `☰`. War ur pellgomzer eo sklaeroc'h ar gwel gant ar skramm a-led.
 
@@ -113,17 +117,19 @@ An avel hag ar redenn a vez reoliet dre o nerzh ha dre an tu **ma'z eont**. An t
 
 An avel a vez diskouezet gant neudennigoù ha roudoù o vont da get ; ar redenn gant stummoù hir ha treuzwelus gant ur beg digor, dindan an avel. Unvan eo pep hini war an holl gorread dour. An elfennoù a zilec'h gant tizh an avel pe ar redenn ha gant amzer an drevezadur : ar pausa a baouez anezho ha ×2 a buana o dilec'hiadur. Azasaet eo o hirder evit ma vo aes o lenn. En tem sklaer e weler gwelloc'h an avel hag ur glas dousoc'h a vez implijet evit ar redenn ; e Kompren e vez diskretoc'h an daou evit lezel an nerzhioù lennus. Ne cheñch ket ar c'heflusker fizik gant an diskouezadurioù-se.
 
-An arventenn **Rod-viñs dehou** a reol efed ar paz : a-dreñv, tennañ a ra da gas penn a-dreñv ar vag da vabourzh. Ar rann **Kalibradur arbennik** a ro tro da azasaat ar mas karget, ar fardellad, efedusted al lev, ar rezistañs a-gostez hag an tizh uhelañ aotreet da stagañ un oser. Mirit an talvoudoù kinniget evit dizoleiñ an drevezer ; goude cheñchit anezho unan hag unan da ziskouez ur vag pe un degouezh disheñvel.
+Ar rann nemeti **Arventennoù araokaet** a stroll sensidigezh an urzhioù dindan **Urzhioù**, ha goude ar mas karget, ar fardellad, efedusted al lev, ar rezistañs a-gostez, efed ar paz hag an tizh uhelañ aotreet da stagañ un oser dindan **Bag**. Mirit an talvoudoù kinniget evit dizoleiñ an drevezer ; goude cheñchit anezho unan hag unan da ziskouez ur vag pe un degouezh disheñvel.
 
-## Kompren ar « Kalibradur arbennik »
+Ar bouton bihan a-us da rikler efed ar paz a zibab ur rod-viñs **Dehou** pe **Kleiz** hep cheñch an dregantad. A-dreñv, ur rod-viñs dehou a denn da gas penn a-dreñv ar vag da vabourzh hag unan gleiz da dribourzh. Pep lusker en deus e du dezhañ : war ur vag gant meur a rod-viñs, pep bouton anavezet a reol efed ar paz ha troiadur a-dreuz jet ar rod-viñs stag outañ. Ne cheñch ket ar bount a-hed nag an tizh ahel sinet.
 
-Ar **Kalibradur arbennik** a servij da studiañ kizidigezh ar vag ouzh un nebeud mentoù pouezus. Ne cheñch ket ar profil kadavet ha ne gemer ket plas ur muzul war ar vag : an arventennoù a dalvez evit an drevezadur o vont en-dro. Evit keñveriañ daou dalvoud en un doare reizh, dilec'hiit ur rikler hepken, adkrogit ar memes degouezh ha mirit an hevelep avel, redenn, stur ha reolerezh lusker.
+## Kompren an « Arventennoù araokaet »
+
+Arventennoù ar stroll **Bag** a servij da studiañ kizidigezh ar vag ouzh un nebeud mentoù pouezus. Ne cheñchont ket ar profil kadavet ha ne gemeront ket plas ur muzul war ar vag : an dibaboù a dalvez evit an drevezadur o vont en-dro hag a chom pa adkroger pe pa cheñcher degouezh. Evit keñveriañ daou dalvoud en un doare reizh, dilec'hiit ur rikler hepken, adkrogit ar memes degouezh ha mirit an hevelep avel, redenn, stur ha reolerezh lusker.
 
 - **Mas karget** — etre **5 700 ha 7 800 kg**, gant **6 500 kg** evel talvoud kinniget. Ur mas brasoc'h a zigresk ar buanaat roet gant an hevelep nerzh hag a gresk an inertiezh en treuzlec'hiadur hag en troiadur.
 - **Fardellad** — etre **60 ha 140 %**, gant **100 %** evel dave. Ar gwezhiader-mañ a liesk an nerzhioù hag ar momentoù roet gant an avel war ar panelloù digor dezhañ ; n'en deus ket a efed pa n'eus ket a avel.
 - **Efedusted al lev** — etre **60 ha 140 %**, gant **100 %** evel dave. Lieskiñ a ra gwered hidrodinamek al lev. Ret eo c'hoazh d'al lev resev red dour eus al lañs pe eus jet ar rod-viñs evit gwerediñ.
 - **Rezistañs a-gostez** — etre **60 ha 140 %**, gant **100 %** evel dave. Un talvoud uhel a greñva rezistañs ar c'houc'h hag ar c'hein ouzh an driv ; ne cheñch ket tizh ar redenn war-eeun.
-- **Efed ar paz · rod-viñs dehou** — etre **0 ha 100 %**, gant **60 %** evel talvoud kinniget. Reoliñ a ra ar c'homponant a gas dreist-holl penn a-dreñv ar vag da vabourzh pa'z aer a-dreñv. An talvoud 0 % a zigresk an efed hep dilemel ar c'homponant a-dreuz bihanañ eus patrom ar rod-viñs.
+- **Efed ar paz · rod-viñs** — etre **0 ha 100 %**, gant **60 %** evel talvoud kinniget. Reoliñ a ra ar c'homponant a gas dreist-holl penn a-dreñv ar vag da vabourzh gant ur rod-viñs dehou, pe da dribourzh gant unan gleiz, pa'z aer a-dreñv. An talvoud 0 % a zigresk an efed hep dilemel ar c'homponant a-dreuz bihanañ eus patrom ar rod-viñs.
 - **Stagañ un oser dindan** — etre **0,1 ha 1,0 sk**, gant **0,6 sk** evel talvoud kinniget. Un treuzell etregwerediñ eo, diazezet war an tizh war ar foñs : aotren pe nac'hañ a ra stagañ un oser, met ne frein ket ar vag en un doare fizikel.
 
 An talvoudoù penn-da-benn a servij dreist-holl da gompren un tu pe da enc'hiañ un ansurentez. Ne dalvezont ket e klot ur vag wirion gant an holl dalvoudoù-se asambles. Evit gwelet resis pezh a reol ar gwezhiaderioù, digorit [Dizoleiñ patrom fizikel ar Sun Odyssey 36i — endalc'had e galleg](../output/modeles-physiques/explorer-les-modeles.html). Ar bajenn-mañ a zispleg patrom ar **Sun Odyssey 36i** : panelloù fardellad, kouc'h ha stagadennoù dindan an dour, rod-viñs, jet war al lev, ahelioù, lec'hioù ha emglevioù an nerzhioù. E galleg eo an endalc'had-se, n'eo ket troet gant dibaber yezh an drevezer.

@@ -763,6 +763,65 @@
     const profile = VesselProfiles.compileVesselProfile(
       options.profile === undefined ? DEFAULT_PROFILE : options.profile
     );
+    const invalidRotation = profile.propulsors.find(
+      propulsor => propulsor.rotation !== "right" && propulsor.rotation !== "left"
+    );
+    if (invalidRotation) {
+      throw new Error(
+        `Profil bateau invalide : le sens de rotation du propulseur ${invalidRotation.id || "sans identifiant"} doit valoir right ou left.`
+      );
+    }
+    const propulsorById = new Map(
+      profile.propulsors.map(propulsor => [propulsor.id, propulsor])
+    );
+    const propulsorRotations = new Map(
+      profile.propulsors.map(propulsor => [propulsor.id, propulsor.rotation])
+    );
+
+    function validatePropulsorRotation(id, rotation) {
+      if (!propulsorById.has(id)) {
+        throw new RangeError(`Propulseur inconnu : ${String(id)}.`);
+      }
+      if (rotation !== "right" && rotation !== "left") {
+        throw new TypeError(
+          `Sens de rotation invalide pour ${id} : right ou left attendu.`
+        );
+      }
+    }
+
+    function applyPropulsorRotationOverrides(overrides) {
+      if (overrides === undefined) return;
+      if (
+        !overrides
+        || typeof overrides !== "object"
+        || Array.isArray(overrides)
+      ) {
+        throw new TypeError("propulsorRotations doit être un objet indexé par identifiant.");
+      }
+      const entries = Object.entries(overrides);
+      for (const [id, rotation] of entries) validatePropulsorRotation(id, rotation);
+      for (const [id, rotation] of entries) propulsorRotations.set(id, rotation);
+    }
+
+    function resolvedPropulsorRotation(id) {
+      const rotation = propulsorRotations.get(id);
+      return {
+        rotation,
+        sign: rotation === "left" ? 1 : -1
+      };
+    }
+
+    function getPropulsorRotations() {
+      return Object.fromEntries(propulsorRotations);
+    }
+
+    function setPropulsorRotation(id, rotation) {
+      validatePropulsorRotation(id, rotation);
+      propulsorRotations.set(id, rotation);
+      return getPropulsorRotations();
+    }
+
+    applyPropulsorRotationOverrides(options.propulsorRotations);
     const initialCalibration = VesselProfiles.applyCalibrationPatch(
       profile,
       options.calibrationPatch || {}
@@ -886,7 +945,7 @@
           units: propulsionUnits,
           slipstreams
         },
-        controls: { throttleTarget: 0, rudderTarget: 0, rudderActual: 0 },
+        controls: { throttleTarget: 0, gearTarget: 0, rudderTarget: 0, rudderActual: 0 },
         moorings: [],
         pendilles: [],
         contacts: {
@@ -1634,7 +1693,7 @@
           );
           const speedFade = 1 - 0.68 * smoothstep(0.2, 1.8, Math.abs(localU));
           const build = smoothstep(0.5, 4, Math.abs(actuator.shaftRps));
-          const handedness = propulsor.rotation === "left" ? 1 : -1;
+          const handedness = resolvedPropulsorRotation(propulsor.id).sign;
           const walk = Math.abs(model.thrust) * walkRatio * speedFade * build;
           accumulator.add(
             profile.propulsors.length === 1
@@ -2318,13 +2377,22 @@
     }
 
     function advanceActuators(input, dt) {
-      const throttleTarget = clamp(finite(input.throttle), -1, 1);
+      const signedThrottle = clamp(finite(input.throttle), -1, 1);
+      // L'entrée historique reste signée. La marche explicite permet d'embrayer
+      // au ralenti sans ajouter de gaz ni changer les lois moteur/hélice.
+      const requestedGear = input.gear === undefined
+        ? (Math.abs(signedThrottle) > 0.012 ? Math.sign(signedThrottle) : 0)
+        : input.gear;
+      const throttleTarget = input.gear === undefined
+        ? signedThrottle
+        : (requestedGear === 0 || signedThrottle === 0 ? 0 : requestedGear * Math.abs(signedThrottle));
       const rudderTarget = clamp(
         finite(input.rudder),
         -profile.rudder.maxAngle,
         profile.rudder.maxAngle
       );
       state.controls.throttleTarget = throttleTarget;
+      state.controls.gearTarget = requestedGear;
       state.controls.rudderTarget = rudderTarget;
       const rudderDelta = rudderTarget - state.controls.rudderActual;
       state.controls.rudderActual += clamp(
@@ -2346,9 +2414,6 @@
         ) {
           actuator.commandActual = 0;
         }
-        const requestedGear = Math.abs(throttleTarget) > 0.012
-          ? Math.sign(throttleTarget)
-          : 0;
         advanceGearState(actuator, propulsor, requestedGear, dt);
 
         const transmissionActive = (
@@ -2587,7 +2652,7 @@
           ? rudder.slipstream.downstreamVelocityFactor
           : rudder.slipstream.upstreamVelocityFactor;
         const targetAxialVelocity = model.inducedVelocity * velocityFactor;
-        const rotationSign = propulsor.rotation === "left" ? 1 : -1;
+        const rotationSign = resolvedPropulsorRotation(propulsor.id).sign;
         const targetTangentialVelocity = (
           rotationSign
           * Math.sign(actuator.shaftRps)
@@ -2914,6 +2979,9 @@
     }
 
     function step(input = {}, dt = MAX_STEP) {
+      if (input.gear !== undefined && ![-1, 0, 1].includes(input.gear)) {
+        throw new RangeError("gear doit valoir -1, 0 ou 1.");
+      }
       const duration = clamp(finite(dt), 0, 1);
       const count = Math.max(1, Math.ceil(duration / MAX_STEP));
       const substep = duration / count;
@@ -2923,6 +2991,14 @@
 
     function snapshot() {
       const water = waterKinematics(state);
+      const propulsion = {
+        ...state.propulsion,
+        rotation: resolvedPropulsorRotation(state.propulsion.units[0].id).rotation,
+        units: state.propulsion.units.map(unit => ({
+          ...unit,
+          rotation: resolvedPropulsorRotation(unit.id).rotation
+        }))
+      };
       const groundWorld = bodyToWorld(
         state.velocity.u,
         state.velocity.v,
@@ -2946,7 +3022,7 @@
         pose: state.pose,
         velocity: state.velocity,
         waterRelative: water.relative,
-        propulsion: state.propulsion,
+        propulsion,
         controls: state.controls,
         environment,
         contacts: state.contacts,
@@ -3028,6 +3104,8 @@
       setEnvironment,
       setObstacles,
       setCalibration,
+      setPropulsorRotation,
+      getPropulsorRotations,
       attachMooring,
       setMooringLength,
       detachMooring,
