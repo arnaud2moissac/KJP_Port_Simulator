@@ -347,3 +347,65 @@ Usage : sections 3.3.2–3.3.3 et figure 3-8, distinction des positions neutre,
         n'est calibré depuis ce document ; la pause de 0,5 s est un choix UX.
 Archive : PDF original public téléchargé le 13 octobre 2026, après résolution
           de l'échec DNS des premières tentatives.
+
+CONTACTS COQUE–PARE-BATTAGES — ÉTUDE DU 13 OCTOBRE 2026
+------------------------------------------------------
+
+Rapport : docs/validation/etude-contacts-pare-battages-2026-10-13.md.
+Étude bibliographique et de sens marin, couplée à des essais du cœur KJP
+inchangé. Aucune calibration de restitution réelle n'est déduite des catalogues.
+Les valeurs de flottabilité ne sont pas des capacités d'absorption d'impact.
+
+[archivé] polyform-us-f-series-size-chart.html
+URL canonique : https://polyformus.com/products/f-series-boat-fender-f-1-standard-blue-ropehold
+Usage : tableau fabricant F-Series, notamment les F-5/F-6 indiqués pour des
+        longueurs de bateau comprenant 36 pieds. Vérification de l'échelle et
+        de l'absence d'identification d'un produit exact depuis le diamètre KJP.
+        Les avis clients, prix et slogans ne servent pas de preuves physiques.
+Archive : réponse HTML originale publique du 13 octobre 2026.
+
+[archivé] dan-fender-catalogue-2016.pdf
+URL canonique : https://danfender.com/f/pdfer/dan-fender-catalogue.pdf
+Document : catalogue DAN-FENDER, édition 2016, V.09, 14 pages PDF.
+Usage : pages PDF 3, 13 et 14 vérifiées visuellement : dimensions, échelle
+        plaisance, PVC flexible, gonflage à température de référence, sélection
+        indicative et distinction flottabilité/impact. Ni boucle dynamique
+        de charge/décharge ni coefficient de restitution utilisable du SO36i.
+Archive : PDF original public du 13 octobre 2026 ; ce n'est pas une affirmation
+          que l'édition 2016 est le catalogue le plus récent.
+
+[archivé] dan-fender-heavy-duty.html
+URL canonique : https://danfender.com/c/products/heavy-duty-fenders
+Usage : nature explicite du contrôle fabricant de chaque produit : étanchéité
+        en bassin, à ne pas confondre avec un essai de restitution mécanique.
+Archive : réponse HTML originale publique du 13 octobre 2026.
+
+[archivé] rya-coaching-from-a-powerboat.pdf
+URL canonique : https://www.rya.org.uk/media/cz4lagjp/a2a_coaching_from_a_powerboat.pdf
+Document : RYA, Coaching from a Powerboat, 30 pages PDF ; métadonnées de 2016.
+Usage : pages imprimées 10–12 : maîtrise des approches, vitesse lente, neutre
+        et prise en compte des éléments. Guide de sens marin pour petites
+        embarcations, pas un essai d'accostage ni une calibration de contacts
+        sur un Sun Odyssey 36i de 6,5 t. Original préservé, non modifié.
+Archive : PDF public du 13 octobre 2026.
+
+[URL seule — accès éditeur HTTP 403] Hunt et Crossley, 1975
+URL canonique : https://doi.org/10.1115/1.3423596
+Document : Coefficient of Restitution Interpreted as Damping in Vibroimpact,
+           Journal of Applied Mechanics, 42(2), 440–445.
+Usage : repère méthodologique identifié par les notices et le résumé indexé
+        pendant la recherche. Texte intégral non consulté, non retenu comme
+        preuve de calibration ni comme justification d'une nouvelle loi KJP.
+        Aucun coefficient de sphère/plaque n'est transféré à la plaisance.
+Archive : téléchargement du PDF éditeur refusé (HTTP 403) le 13 octobre 2026.
+          Les notices secondaires ne sont pas traitées comme des essais.
+
+Références déjà enregistrées réutilisées, sans duplication d'URL :
+- polyform-fender-inflation.html : état de gonflage, sans restitution mesurée ;
+- fossen-marine-craft-model.html : matrice d'inertie rigide/ajoutée et couplages.
+
+Non retenus comme calibration : défenses de cargos, grands pneumatiques de
+quai, balles légères/plaques, forums, slogans d'absorption et références dont
+le texte complet est inaccessible. Ces éléments ne fondent aucune nouvelle
+valeur numérique dans le profil. Les masses effectives et rapports de rebond
+du rapport sont calculés/mesurés dans KJP, non mesurés sur un bateau réel.
