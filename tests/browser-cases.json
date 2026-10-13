@@ -1,6 +1,30 @@
 [
   {
     "product": "simulator",
+    "id": "ports.library-list",
+    "group": "ports",
+    "name": "la bibliothèque liste les métadonnées, limite les téléchargements et adapte sa présentation"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.library-sort",
+    "group": "ports",
+    "name": "les quatre colonnes de la bibliothèque se trient dans les deux sens"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.library-load",
+    "group": "ports",
+    "name": "la bibliothèque charge le port choisi et restitue la pause lors des fermetures"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.library-errors",
+    "group": "ports",
+    "name": "les erreurs et réponses tardives de la bibliothèque préservent le port actif"
+  },
+  {
+    "product": "simulator",
     "id": "smoke.01",
     "group": "smoke",
     "name": "Three.js r186 pilote le renderer natif hors ligne",

@@ -1703,6 +1703,37 @@
       backdrop-filter: blur(5px);
     }
 
+    .port-library-dialog { width: min(1000px, calc(100vw - 32px)); }
+    .port-library-content { max-height: calc(100dvh - 110px); overflow: auto; padding: 16px 18px 22px; }
+    .port-library-status { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+    .port-library-status[data-error="true"], .port-library-row-status[data-error="true"] { color: var(--red); }
+    .port-library-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .port-library-table th, .port-library-table td { padding: 12px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .port-library-table th { color: var(--muted); font-weight: 600; }
+    .port-library-table th button { display: flex; align-items: center; gap: 6px; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
+    .port-library-table th[aria-sort="ascending"], .port-library-table th[aria-sort="descending"] { color: var(--cyan); }
+    .port-library-table td:first-child { width: 32%; overflow-wrap: anywhere; }
+    .port-library-table td:nth-child(2) { overflow-wrap: anywhere; }
+    .port-library-table td:last-child { text-align: right; }
+    .port-library-row-status { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .port-library-mobile-sort, .port-library-cards { display: none; }
+    .port-library-retry { margin-bottom: 12px; }
+
+    @media (max-width: 640px) {
+      .port-library-table { display: none; }
+      .port-library-mobile-sort { display: flex; align-items: end; gap: 8px; margin-bottom: 16px; }
+      .port-library-mobile-sort .field { flex: 1; min-width: 0; }
+      .port-library-mobile-sort select { width: 100%; }
+      .port-library-mobile-sort > button { min-height: 40px; }
+      .port-library-cards { display: grid; gap: 12px; }
+      .port-library-card { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); overflow-wrap: anywhere; }
+      .port-library-card strong { display: block; margin-bottom: 10px; }
+      .port-library-card dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 0 0 14px; font-size: 12px; }
+      .port-library-card dt { color: var(--muted); }
+      .port-library-card dd { margin: 0; }
+      .port-library-card > button { width: 100%; }
+    }
+
     .project-help-header {
       position: sticky;
       z-index: 1;
@@ -2237,6 +2268,7 @@
               <div class="port-select-row">
                 <select id="portSourceSelect">
                   <option value="builtIn" data-i18n="ui.training.harbour">Port pédagogique</option>
+                  <option value="portLibrary" data-i18n="library.title">Bibliothèque de ports</option>
                   <option value="loadTrinite" data-i18n="ui.load.la.trinite">Charger la Trinité</option>
                   <option value="buildPort" data-i18n="ui.build.a.harbour">Construire un port</option>
                 </select>
@@ -2426,6 +2458,40 @@
     <article class="project-help-content">
 <!--__README_HTML__-->
     </article>
+  </dialog>
+
+  <dialog class="project-help-dialog port-library-dialog" id="portLibraryDialog" aria-labelledby="portLibraryTitle">
+    <div class="project-help-header">
+      <strong id="portLibraryTitle" data-i18n="library.title">Bibliothèque de ports</strong>
+      <button type="button" class="project-help-close" id="closePortLibrary" aria-label="Fermer la bibliothèque de ports" data-i18n-attr="aria-label:library.close" data-i18n="ui.value" autofocus>×</button>
+    </div>
+    <div class="port-library-content">
+      <p class="port-library-status" id="portLibraryStatus" role="status" aria-live="polite"></p>
+      <button type="button" class="port-library-retry" id="retryPortLibrary" data-i18n="library.retry" hidden>Réessayer</button>
+      <div class="port-library-mobile-sort">
+        <div class="field">
+          <label for="portLibrarySortSelect" data-i18n="library.sort.by">Trier par</label>
+          <select id="portLibrarySortSelect">
+            <option value="name" data-i18n="library.name">Nom du port</option>
+            <option value="author" data-i18n="ui.author">Auteur</option>
+            <option value="createdAt" data-i18n="library.created">Date de création</option>
+            <option value="updatedAt" data-i18n="library.updated">Date de mise à jour</option>
+          </select>
+        </div>
+        <button type="button" id="portLibrarySortDirection"></button>
+      </div>
+      <table class="port-library-table" aria-label="Ports disponibles" data-i18n-attr="aria-label:library.available">
+        <thead><tr>
+          <th scope="col" aria-sort="ascending"><button type="button" data-library-sort="name"><span data-i18n="library.name">Nom du port</span><span data-sort-indicator aria-hidden="true">↑</span></button></th>
+          <th scope="col" aria-sort="none"><button type="button" data-library-sort="author"><span data-i18n="ui.author">Auteur</span><span data-sort-indicator aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button type="button" data-library-sort="createdAt"><span data-i18n="library.created">Date de création</span><span data-sort-indicator aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button type="button" data-library-sort="updatedAt"><span data-i18n="library.updated">Date de mise à jour</span><span data-sort-indicator aria-hidden="true"></span></button></th>
+          <th scope="col" data-i18n="ui.load">Charger</th>
+        </tr></thead>
+        <tbody id="portLibraryRows"></tbody>
+      </table>
+      <div class="port-library-cards" id="portLibraryCards" role="list" aria-label="Ports disponibles" data-i18n-attr="aria-label:library.available"></div>
+    </div>
   </dialog>
 
   <script>
@@ -9431,6 +9497,296 @@
     const builtInScenarioMarkup = $("#scenarioSelect").innerHTML;
     const LA_TRINITE_KJP_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp";
     const PORT_GENERATOR_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html";
+    const PORT_LIBRARY_API_URL = "https://api.github.com/repos/arnaud2moissac/KJP_Port_Simulator/contents/ports";
+    const portLibraryDialog = $("#portLibraryDialog");
+    const portLibrary = {
+      sortKey: "name", descending: false, rows: [], state: "loading",
+      error: null, loadingPath: null, session: null, request: null
+    };
+    const portLibraryColumns = [
+      ["name", "library.name"], ["author", "ui.author"],
+      ["createdAt", "library.created"], ["updatedAt", "library.updated"]
+    ];
+
+    function libraryMetadataValue(row, key) {
+      const value = row.metadata?.[key];
+      return typeof value === "string" && value.trim() ? value.trim() : null;
+    }
+
+    function libraryPortName(row) {
+      return libraryMetadataValue(row, "name") || row.name.replace(/\.kjp$/i, "");
+    }
+
+    function librarySortValue(row, key) {
+      const value = libraryMetadataValue(row, key);
+      if (key === "createdAt" || key === "updatedAt") {
+        const timestamp = value ? Date.parse(value) : NaN;
+        return Number.isFinite(timestamp) ? timestamp : null;
+      }
+      return value;
+    }
+
+    function libraryErrorText(error) {
+      if (error.libraryKey) return t(error.libraryKey);
+      if (error.rateLimited) return t("library.rate.limit");
+      return resolveMessage(errorMessage(error, "network"));
+    }
+
+    function renderPortLibrary() {
+      const collator = new Intl.Collator([i18n.getLocale(), "fr"], { numeric: true, sensitivity: "base" });
+      const rows = [...portLibrary.rows].sort((a, b) => {
+        const first = librarySortValue(a, portLibrary.sortKey);
+        const second = librarySortValue(b, portLibrary.sortKey);
+        if (first === null && second !== null) return 1;
+        if (second === null && first !== null) return -1;
+        const comparison = first === null ? 0 : typeof first === "number"
+          ? first - second : collator.compare(first, second);
+        return comparison * (portLibrary.descending ? -1 : 1)
+          || collator.compare(libraryPortName(a), libraryPortName(b))
+          || collator.compare(a.name, b.name) || a.name.localeCompare(b.name);
+      });
+      const arrow = portLibrary.descending ? "↓" : "↑";
+      for (const button of $$("[data-library-sort]")) {
+        const active = button.dataset.librarySort === portLibrary.sortKey;
+        button.closest("th").setAttribute("aria-sort", active
+          ? portLibrary.descending ? "descending" : "ascending" : "none");
+        button.querySelector("[data-sort-indicator]").textContent = active ? arrow : "";
+      }
+      $("#portLibrarySortSelect").value = portLibrary.sortKey;
+      $("#portLibrarySortDirection").textContent = portLibrary.descending
+        ? t("library.descending") : t("library.ascending");
+      const focused = document.activeElement;
+      const focusedPath = focused?.dataset.libraryLoad;
+      const focusedContainer = focused?.closest("#portLibraryRows, #portLibraryCards");
+      const tableRows = [], cards = [];
+      for (const row of rows) {
+        const values = portLibraryColumns.map(([key]) => key === "name" ? libraryPortName(row)
+          : key === "createdAt" || key === "updatedAt"
+            ? librarySortValue(row, key) === null ? "—" : i18n.formatDate(libraryMetadataValue(row, key))
+            : libraryMetadataValue(row, key) || "—");
+        const tr = document.createElement("tr");
+        const card = document.createElement("article");
+        tr.dataset.libraryFile = card.dataset.libraryFile = row.name;
+        card.className = "port-library-card";
+        card.setAttribute("role", "listitem");
+        const name = document.createElement("strong");
+        name.textContent = values[0];
+        card.append(name);
+        const details = document.createElement("dl");
+        for (let index = 0; index < values.length; index++) {
+          const cell = document.createElement("td");
+          cell.textContent = values[index];
+          tr.append(cell);
+          if (index > 0) {
+            const term = document.createElement("dt");
+            term.textContent = t(portLibraryColumns[index][1]);
+            const description = document.createElement("dd");
+            description.textContent = values[index];
+            details.append(term, description);
+          }
+        }
+        card.append(details);
+        if (row.error || !row.ready) {
+          for (const parent of [tr.firstElementChild, card]) {
+            const status = document.createElement("small");
+            status.className = "port-library-row-status";
+            status.dataset.error = String(Boolean(row.error));
+            status.textContent = row.error ? libraryErrorText(row.error) : t("library.loading.metadata");
+            parent.append(status);
+          }
+        }
+        const action = document.createElement("td");
+        tr.append(action);
+        for (const parent of [action, card]) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.dataset.libraryLoad = row.name;
+          button.textContent = portLibrary.loadingPath === row.name ? t("library.loading.port") : t("ui.load");
+          button.setAttribute("aria-label", t("library.load.named", { name: values[0] }));
+          button.disabled = !row.ready || Boolean(portLibrary.loadingPath);
+          parent.append(button);
+        }
+        tableRows.push(tr);
+        cards.push(card);
+      }
+      $("#portLibraryRows").replaceChildren(...tableRows);
+      $("#portLibraryCards").replaceChildren(...cards);
+      if (focusedPath && focusedContainer) {
+        [...focusedContainer.querySelectorAll("[data-library-load]")]
+          .find(button => button.dataset.libraryLoad === focusedPath)?.focus({ preventScroll: true });
+      }
+      const status = $("#portLibraryStatus");
+      status.dataset.error = String(Boolean(portLibrary.error));
+      status.textContent = portLibrary.loadingPath ? t("library.loading.port")
+        : portLibrary.error ? t("library.error", { detail: libraryErrorText(portLibrary.error) })
+        : portLibrary.state === "loading" ? t("library.loading")
+        : rows.length ? t("library.count", { count: rows.length }) : t("library.empty");
+      $("#retryPortLibrary").hidden = !portLibrary.error && !rows.some(row => row.error);
+      $("#retryPortLibrary").disabled = Boolean(portLibrary.loadingPath);
+    }
+
+    function isCurrentLibraryRequest(request) {
+      return portLibraryDialog.open && portLibrary.request === request && !request.controller.signal.aborted;
+    }
+
+    async function libraryResponse(url, request, accept = "application/vnd.github+json") {
+      const response = await fetch(url, { signal: request.controller.signal, cache: "no-store", headers: { Accept: accept } });
+      if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), {
+        status: response.status,
+        rateLimited: response.status === 429 || (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0")
+      });
+      return response;
+    }
+
+    async function libraryKjpText(url, request, size, accept) {
+      const tooLarge = () => Object.assign(new Error(), { libraryKey: "library.too.large" });
+      if (size > KJPCodec.LIMITS.fileBytes) throw tooLarge();
+      const response = await libraryResponse(url, request, accept);
+      if (Number(response.headers.get("content-length")) > KJPCodec.LIMITS.fileBytes) throw tooLarge();
+      const contents = await response.blob();
+      if (contents.size > KJPCodec.LIMITS.fileBytes) throw tooLarge();
+      return contents.text();
+    }
+
+    async function refreshPortLibrary() {
+      portLibrary.request?.controller.abort();
+      const request = { controller: new AbortController() };
+      portLibrary.request = request;
+      portLibrary.rows = [];
+      portLibrary.state = "loading";
+      portLibrary.error = null;
+      portLibrary.loadingPath = null;
+      renderPortLibrary();
+      try {
+        const response = await libraryResponse(`${PORT_LIBRARY_API_URL}?ref=main`, request);
+        const entries = await response.json();
+        if (!Array.isArray(entries)) throw Object.assign(new Error(), { libraryKey: "library.invalid.list" });
+        if (!isCurrentLibraryRequest(request)) return;
+        const rows = entries.filter(entry => entry.type === "file" && !entry.submodule_git_url
+          && typeof entry.name === "string" && !entry.name.includes("/") && /\.kjp$/i.test(entry.name)
+          && entry.path === `ports/${entry.name}`).map(entry => ({
+            name: entry.name, size: entry.size, downloadUrl: entry.download_url,
+            url: `${PORT_LIBRARY_API_URL}/${encodeURIComponent(entry.name)}?ref=main`,
+            metadata: null, ready: false, error: null
+          }));
+        portLibrary.rows = rows;
+        renderPortLibrary();
+        let next = 0;
+        async function readMetadata() {
+          while (next < rows.length && isCurrentLibraryRequest(request)) {
+            const row = rows[next++];
+            try {
+              if (typeof row.downloadUrl !== "string" || !row.downloadUrl.startsWith(
+                "https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/ports/"
+              )) throw Object.assign(new Error(), { libraryKey: "library.invalid.file" });
+              const text = await libraryKjpText(row.downloadUrl, request, row.size);
+              let preview;
+              try { preview = JSON.parse(text); }
+              catch { throw Object.assign(new Error(), { libraryKey: "library.invalid.file" }); }
+              if (!preview || typeof preview !== "object" || Array.isArray(preview)) {
+                throw Object.assign(new Error(), { libraryKey: "library.invalid.file" });
+              }
+              if (!isCurrentLibraryRequest(request)) return;
+              row.metadata = preview.metadata;
+              row.ready = true;
+            } catch (error) {
+              if (!isCurrentLibraryRequest(request)) return;
+              row.error = error;
+            }
+            renderPortLibrary();
+          }
+        }
+        await Promise.all(Array.from({ length: Math.min(3, rows.length) }, () => readMetadata()));
+        if (!isCurrentLibraryRequest(request)) return;
+        portLibrary.state = "ready";
+        renderPortLibrary();
+      } catch (error) {
+        if (!isCurrentLibraryRequest(request)) return;
+        portLibrary.state = "error";
+        portLibrary.error = error;
+        renderPortLibrary();
+      }
+    }
+
+    function finishPortLibrary() {
+      const session = portLibrary.session;
+      if (!session) return;
+      portLibrary.request?.controller.abort();
+      portLibrary.request = null;
+      portLibrary.session = null;
+      controls.paused = session.installed ? false : session.paused;
+      syncPauseButton();
+    }
+
+    function closePortLibrary() {
+      finishPortLibrary();
+      portLibraryDialog.close();
+      $("#portSourceSelect").focus({ preventScroll: true });
+    }
+
+    function openPortLibrary() {
+      if (portLibraryDialog.open) return;
+      portLibrary.session = { paused: controls.paused, installed: false };
+      clearHeldKeyboardControls();
+      cancelEngineGesture();
+      setMouseHelmMode("normal");
+      controls.paused = true;
+      syncPauseButton();
+      $("#portInfoPopover").hidden = true;
+      $("#portInfoButton").setAttribute("aria-expanded", "false");
+      portLibraryDialog.showModal();
+      void refreshPortLibrary();
+    }
+
+    async function loadLibraryPort(row) {
+      const request = portLibrary.request;
+      if (!row?.ready || portLibrary.loadingPath || !request || !isCurrentLibraryRequest(request)) return;
+      portLibrary.loadingPath = row.name;
+      portLibrary.error = null;
+      renderPortLibrary();
+      try {
+        const text = await libraryKjpText(row.url, request, row.size, "application/vnd.github.raw+json");
+        if (!isCurrentLibraryRequest(request)) return;
+        const document = KJPCodec.parse(text);
+        if (isPreparingDeparture()) cancelBoatPlacement();
+        installCommunityDocument(document);
+        portLibrary.session.installed = true;
+        closePortLibrary();
+      } catch (error) {
+        if (!isCurrentLibraryRequest(request)) return;
+        controls.paused = true;
+        syncPauseButton();
+        portLibrary.error = error;
+      } finally {
+        if (isCurrentLibraryRequest(request)) {
+          portLibrary.loadingPath = null;
+          renderPortLibrary();
+        }
+      }
+    }
+
+    function sortPortLibrary(key) {
+      portLibrary.descending = key === portLibrary.sortKey ? !portLibrary.descending : false;
+      portLibrary.sortKey = key;
+      renderPortLibrary();
+    }
+
+    $$("[data-library-sort]").forEach(button => button.addEventListener("click", () => sortPortLibrary(button.dataset.librarySort)));
+    $("#portLibrarySortSelect").addEventListener("change", event => sortPortLibrary(event.target.value));
+    $("#portLibrarySortDirection").addEventListener("click", () => sortPortLibrary(portLibrary.sortKey));
+    $("#closePortLibrary").addEventListener("click", closePortLibrary);
+    $("#retryPortLibrary").addEventListener("click", () => { void refreshPortLibrary(); });
+    portLibraryDialog.addEventListener("cancel", event => { event.preventDefault(); closePortLibrary(); });
+    portLibraryDialog.addEventListener("close", () => {
+      if (portLibraryDialog.open) return;
+      finishPortLibrary();
+      $("#portSourceSelect").focus({ preventScroll: true });
+    });
+    portLibraryDialog.addEventListener("click", event => {
+      if (event.target === portLibraryDialog) { closePortLibrary(); return; }
+      const button = event.target.closest("[data-library-load]");
+      if (button && !button.disabled) void loadLibraryPort(portLibrary.rows.find(row => row.name === button.dataset.libraryLoad));
+    });
 
     function activePortMetadata() {
       if (communityPort) {
@@ -9508,6 +9864,7 @@
       if (loadedCommunityDocument) {
         sourceSelect.add(new Option(loadedName, "community"));
       }
+      sourceSelect.add(new Option(t("library.title"), "portLibrary"));
       sourceSelect.add(new Option(t("ui.load.la.trinite"), "loadTrinite"));
       sourceSelect.add(new Option(t("ui.build.a.harbour"), "buildPort"));
       sourceSelect.value = communityPort ? "community" : "builtIn";
@@ -9705,8 +10062,13 @@
       readSelectedPortFile(event.target.files?.[0]);
     });
     $("#portSourceSelect").addEventListener("change", event => {
-      if (isPreparingDeparture()) cancelBoatPlacement();
       const choice = event.target.value;
+      if (choice === "portLibrary") {
+        event.target.value = communityPort ? "community" : "builtIn";
+        openPortLibrary();
+        return;
+      }
+      if (isPreparingDeparture()) cancelBoatPlacement();
       if (choice === "loadTrinite" || choice === "buildPort") {
         event.target.value = communityPort ? "community" : "builtIn";
         if (choice === "loadTrinite") void loadLaTrinitePort();
@@ -9978,7 +10340,7 @@
     });
 
     window.addEventListener("keydown", event => {
-      if (readmeDialog.open) return;
+      if (readmeDialog.open || portLibraryDialog.open) return;
       if (event.target === $("#languageSelect")) return;
       if (isPreparingDeparture()) {
         if (event.key === "Escape") { event.preventDefault(); cancelBoatPlacement(); return; }
@@ -10035,6 +10397,7 @@
     }, { capture: true });
 
     window.addEventListener("keyup", event => {
+      if (portLibraryDialog.open) return;
       if (event.key === "Alt" && mouseHelm.altConsumed) {
         event.preventDefault();
         mouseHelm.altConsumed = false;
@@ -11401,6 +11764,7 @@
     }));
     function refreshLocale() {
       i18n.apply();
+      if (portLibraryDialog.open) renderPortLibrary();
       languageSelect.value = i18n.getLocale();
       localizeBuiltInScenarios();
       updatePortChrome();

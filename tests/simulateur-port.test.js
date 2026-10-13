@@ -45,6 +45,288 @@ function createPortInformationText() {
   return KJPCodec.serialize(document);
 }
 
+const libraryApiUrl = "https://api.github.com/repos/arnaud2moissac/KJP_Port_Simulator/contents/ports";
+const libraryRawUrl = "https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/ports/";
+
+function libraryRecord(name, metadata = {}) {
+  const document = KJPCodec.createEmpty({ id: `test-${name}`, name: "Port test" });
+  Object.assign(document.metadata, metadata);
+  document.navigation.entries.push({ id: "entry-test", name: "Entrée", position: { east: 0, north: 0 }, heading: 0 });
+  return { name, text: JSON.stringify(document) };
+}
+
+async function stubPortLibrary(page, records) {
+  const state = { records, listStatus: 200, extraEntries: [], beforeList: null,
+    beforePreview: null, beforeLoad: null, active: 0, peak: 0, requests: [] };
+  await page.route(`${libraryApiUrl}**`, async route => {
+    const url = new URL(route.request().url());
+    state.requests.push(url.href);
+    if (url.pathname.endsWith("/ports")) {
+      if (state.beforeList) await state.beforeList();
+      return route.fulfill({ status: state.listStatus, contentType: "application/json",
+        headers: state.listStatus === 403 ? { "x-ratelimit-remaining": "0", "access-control-expose-headers": "X-RateLimit-Remaining" } : {},
+        body: JSON.stringify(state.records.map(record => ({ type: "file", name: record.name,
+          path: `ports/${record.name}`, size: record.size ?? Buffer.byteLength(record.text),
+          download_url: `${libraryRawUrl}${encodeURIComponent(record.name)}`
+        })).concat(state.extraEntries)) });
+    }
+    const record = state.records.find(item => item.name === decodeURIComponent(url.pathname.split("/").at(-1)));
+    assert.equal(route.request().headers().accept, "application/vnd.github.raw+json");
+    if (state.beforeLoad) await state.beforeLoad();
+    return route.fulfill({ status: record.loadStatus || 200, contentType: "application/json",
+      body: record.loadText ?? record.text });
+  });
+  await page.route(`${libraryRawUrl}**`, async route => {
+    const record = state.records.find(item => item.name === decodeURIComponent(new URL(route.request().url()).pathname.split("/").at(-1)));
+    state.requests.push(route.request().url());
+    state.peak = Math.max(state.peak, ++state.active);
+    try {
+      if (state.beforePreview) await state.beforePreview();
+      await route.fulfill({ status: record.previewStatus || 200, contentType: "application/json", body: record.text });
+    } finally { state.active--; }
+  });
+  return state;
+}
+
+async function openReadyPortLibrary(page) {
+  await page.selectOption("#portSourceSelect", "portLibrary");
+  await page.waitForFunction(() => document.querySelector("#portLibraryStatus").textContent.includes("disponible"));
+}
+
+async function libraryOrder(page) {
+  return page.locator("#portLibraryRows tr").evaluateAll(rows => rows.map(row => row.dataset.libraryFile));
+}
+
+function consumeLibraryHttpError(runtimeErrors, status) {
+  // Chromium logs failed HTTP resources even when the application handles them.
+  // Consume only the exact status deliberately returned by the network fixture.
+  assert.match(runtimeErrors.shift() || "", new RegExp(`^Failed to load resource: the server responded with a status of ${status} \\(`));
+}
+
+browserCase("simulator:ports.library-list", async ({ page }, t) => {
+  const records = [
+    libraryRecord("treguier.kjp", { name: "Tréguier", author: "Glep", createdAt: "2026-10-04T16:26:09.398Z", updatedAt: "2026-10-05T19:19:22.602Z" }),
+    libraryRecord("trinite.kjp", { name: "La Trinité sur mer", author: "A de Moissac" }),
+    libraryRecord("sans-nom.KJP", { name: "", author: "", createdAt: "", updatedAt: "incorrect" }),
+    libraryRecord("test.kjp", { name: "Port <script>test</script>", author: "<img src=x onerror=alert(1)>" }),
+    libraryRecord("port-2.kjp", { name: "Port 2", author: "Équipage" })
+  ];
+  const state = await stubPortLibrary(page, records);
+  state.extraEntries = [
+    { type: "dir", name: "sous-dossier.kjp", path: "ports/sous-dossier.kjp" },
+    { type: "file", name: "README.md", path: "ports/README.md" },
+    { type: "file", name: "autre.kjp", path: "autre/autre.kjp" }
+  ];
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  t.after(release);
+  state.beforePreview = () => pending;
+  assert.equal(state.requests.length, 0);
+  await page.selectOption("#portSourceSelect", "portLibrary");
+  await page.waitForFunction(() => document.querySelectorAll("#portLibraryRows tr").length === 5);
+  await page.locator('[data-library-sort="author"]').click();
+  assert.equal(state.peak, 3);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, true);
+  release();
+  await page.waitForFunction(() => document.querySelector("#portLibraryStatus").textContent === "5 ports disponibles");
+  assert.equal(state.peak, 3);
+  assert.equal(await page.locator('[data-library-sort="author"]').locator("..").getAttribute("aria-sort"), "ascending");
+  const treguier = page.locator('#portLibraryRows tr[data-library-file="treguier.kjp"]');
+  assert.deepEqual(await treguier.locator("td").allTextContents(), ["Tréguier", "Glep", "04/10/2026", "05/10/2026", "Charger"]);
+  assert.deepEqual((await page.locator('#portLibraryRows tr[data-library-file="sans-nom.KJP"] td').allTextContents()).slice(0, 4), ["sans-nom", "—", "—", "—"]);
+  assert.equal(await page.locator("#portLibraryRows script, #portLibraryRows img").count(), 0);
+  const captureDir = process.env.KJP_LIBRARY_CAPTURE_DIR;
+  if (captureDir) {
+    fs.mkdirSync(captureDir, { recursive: true });
+    await page.screenshot({ path: path.join(captureDir, "desktop.png") });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.locator(".port-library-table").isVisible(), false);
+  assert.equal(await page.locator(".port-library-mobile-sort").isVisible(), true);
+  assert.equal(await page.locator("#portLibraryCards article").count(), 5);
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(element => element.scrollWidth <= element.clientWidth), true);
+  if (captureDir) await page.screenshot({ path: path.join(captureDir, "mobile.png") });
+  await page.locator("#closePortLibrary").click();
+  for (const [locale, title] of [["en", "Harbour library"], ["br", "Levraoueg ar porzhioù"]]) {
+    await page.selectOption("#languageSelect", locale);
+    await page.selectOption("#portSourceSelect", "portLibrary");
+    await page.waitForFunction(() => document.querySelector("#portLibraryRows button") && !document.querySelector("#portLibraryRows button").disabled);
+    assert.equal(await page.locator("#portLibraryTitle").textContent(), title);
+    assert.equal(await page.locator("#portLibrarySortSelect").inputValue(), "author");
+    await page.locator("#closePortLibrary").click();
+  }
+});
+
+browserCase("simulator:ports.library-sort", async ({ page, runtimeErrors }) => {
+  const records = [
+    libraryRecord("z.kjp", { name: "Écluse 10", author: "Zoé", createdAt: "2026-01-02T00:00:00Z", updatedAt: "2025-12-01T00:00:00Z" }),
+    libraryRecord("a.kjp", { name: "Port 2", author: "Anne", createdAt: "2025-12-31T00:00:00Z", updatedAt: "2026-01-03T00:00:00Z" }),
+    libraryRecord("b.kjp", { name: "Port 10", author: "Anne", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-03T00:00:00Z" }),
+    libraryRecord("missing.kjp", { name: "Sans dates", author: "", createdAt: "", updatedAt: "incorrect" }),
+    libraryRecord("tie.kjp", { name: "Port 2", author: "Anne", createdAt: "2025-12-31T00:00:00Z", updatedAt: "2026-01-03T00:00:00Z" }),
+    libraryRecord("no-name.kjp", { name: "", author: "", createdAt: "incorrect", updatedAt: "" })
+  ];
+  const state = await stubPortLibrary(page, records);
+  await openReadyPortLibrary(page);
+  assert.deepEqual(await libraryOrder(page), ["z.kjp", "a.kjp", "tie.kjp", "b.kjp", "missing.kjp", "no-name.kjp"]);
+  const expectations = {
+    name: [["z.kjp", "a.kjp", "tie.kjp", "b.kjp", "missing.kjp", "no-name.kjp"], ["missing.kjp", "b.kjp", "a.kjp", "tie.kjp", "z.kjp", "no-name.kjp"]],
+    author: [["a.kjp", "tie.kjp", "b.kjp", "z.kjp", "no-name.kjp", "missing.kjp"], ["z.kjp", "a.kjp", "tie.kjp", "b.kjp", "no-name.kjp", "missing.kjp"]],
+    createdAt: [["a.kjp", "tie.kjp", "b.kjp", "z.kjp", "no-name.kjp", "missing.kjp"], ["z.kjp", "b.kjp", "a.kjp", "tie.kjp", "no-name.kjp", "missing.kjp"]],
+    updatedAt: [["z.kjp", "a.kjp", "tie.kjp", "b.kjp", "no-name.kjp", "missing.kjp"], ["a.kjp", "tie.kjp", "b.kjp", "z.kjp", "no-name.kjp", "missing.kjp"]]
+  };
+  for (const [key, [ascending, descending]] of Object.entries(expectations)) {
+    const button = page.locator(`[data-library-sort="${key}"]`);
+    if (key !== "name") await button.click();
+    assert.deepEqual(await libraryOrder(page), ascending, `${key} ascending`);
+    assert.equal(await button.locator("..").getAttribute("aria-sort"), "ascending");
+    await button.click();
+    assert.deepEqual(await libraryOrder(page), descending, `${key} descending`);
+    assert.equal(await button.locator("..").getAttribute("aria-sort"), "descending");
+  }
+  await page.locator('[data-library-sort="author"]').focus();
+  await page.keyboard.press("Enter");
+  assert.deepEqual(await libraryOrder(page), expectations.author[0]);
+  await page.keyboard.press("Enter");
+  assert.deepEqual(await libraryOrder(page), expectations.author[1]);
+  await page.locator("#closePortLibrary").click();
+  state.listStatus = 503;
+  await page.selectOption("#portSourceSelect", "portLibrary");
+  await page.waitForFunction(() => !document.querySelector("#retryPortLibrary").hidden);
+  consumeLibraryHttpError(runtimeErrors, 503);
+  state.listStatus = 200;
+  await page.locator("#retryPortLibrary").click();
+  await page.waitForFunction(() => document.querySelector("#portLibraryStatus").textContent === "6 ports disponibles");
+  assert.deepEqual(await libraryOrder(page), expectations.author[1]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.selectOption("#portLibrarySortSelect", "updatedAt");
+  assert.deepEqual(await libraryOrder(page), expectations.updatedAt[0]);
+  await page.locator("#portLibrarySortDirection").click();
+  assert.deepEqual(await libraryOrder(page), expectations.updatedAt[1]);
+  assert.deepEqual(await page.locator("#portLibraryCards article").evaluateAll(cards => cards.map(card => card.dataset.libraryFile)), expectations.updatedAt[1]);
+});
+
+browserCase("simulator:ports.library-load", async ({ page }, t) => {
+  const state = await stubPortLibrary(page, [libraryRecord("chosen.kjp", { name: "Port choisi", author: "Équipage" })]);
+  await page.locator("#pauseButton").click();
+  const before = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  await openReadyPortLibrary(page);
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.press("p");
+  const paused = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  assert.equal(paused.controls.paused, true);
+  assert.equal(paused.controls.throttleTarget, before.controls.throttleTarget);
+  assert.equal(paused.controls.rudderTarget, before.controls.rudderTarget);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(dialog => dialog.open), false);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
+  assert.equal(await page.locator("#portSourceSelect").evaluate(element => element === document.activeElement), true);
+  await page.locator("#pauseButton").click();
+  await openReadyPortLibrary(page);
+  await page.locator("#closePortLibrary").click();
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, true);
+  await openReadyPortLibrary(page);
+  const box = await page.locator("#portLibraryDialog").boundingBox();
+  await page.mouse.click(box.x - 5, box.y + 20);
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(dialog => dialog.open), false);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, true);
+  await page.selectOption("#scenarioSelect", "placement");
+  const preparation = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  await openReadyPortLibrary(page);
+  await page.keyboard.press("Escape");
+  const restored = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  assert.equal(restored.active, true);
+  assert.deepEqual(restored.draft, preparation.draft);
+  let release;
+  const loading = new Promise(resolve => { release = resolve; });
+  t.after(release);
+  state.beforeLoad = () => loading;
+  await openReadyPortLibrary(page);
+  await page.locator("#portLibraryRows [data-library-load]").click();
+  assert.equal(await page.locator("#portLibraryRows [data-library-load]").isDisabled(), true);
+  release();
+  await page.waitForFunction(() => !document.querySelector("#portLibraryDialog").open
+    || document.querySelector("#portLibraryStatus").dataset.error === "true");
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(dialog => dialog.open), false,
+    await page.locator("#portLibraryStatus").textContent());
+  const report = await page.evaluate(() => window.__PORTANCE_TEST__.portInformationReport());
+  assert.equal(report.metadata.name, "Port choisi");
+  assert.equal(await page.locator("#portSourceSelect").inputValue(), "community");
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).active, false);
+});
+
+browserCase("simulator:ports.library-errors", async ({ page, runtimeErrors }, t) => {
+  const good = libraryRecord("good.kjp", { name: "Port disponible" });
+  const state = await stubPortLibrary(page, []);
+  const original = await page.evaluate(() => window.__PORTANCE_TEST__.portInformationReport());
+  await openReadyPortLibrary(page);
+  assert.equal(await page.locator("#portLibraryStatus").textContent(), "Aucun port disponible dans la bibliothèque.");
+  await page.locator("#closePortLibrary").click();
+  for (const status of [503, 403]) {
+    state.listStatus = status;
+    await page.selectOption("#portSourceSelect", "portLibrary");
+    await page.waitForFunction(() => document.querySelector("#portLibraryStatus").dataset.error === "true");
+    consumeLibraryHttpError(runtimeErrors, status);
+    if (status === 403) assert.match(await page.locator("#portLibraryStatus").textContent(), /limite d’accès à GitHub/);
+    await page.locator("#closePortLibrary").click();
+  }
+  state.listStatus = 200;
+  state.records = [good, { name: "invalid.kjp", text: "{" },
+    { ...libraryRecord("large.kjp"), size: KJPCodec.LIMITS.fileBytes + 1 }];
+  await openReadyPortLibrary(page);
+  assert.equal(await page.locator('#portLibraryRows [data-library-load="good.kjp"]').isDisabled(), false);
+  assert.equal(await page.locator('#portLibraryRows [data-library-load="invalid.kjp"]').isDisabled(), true);
+  assert.equal(await page.locator('#portLibraryRows [data-library-load="large.kjp"]').isDisabled(), true);
+  assert.equal(state.requests.some(url => url === `${libraryRawUrl}large.kjp`), false);
+  await page.locator("#closePortLibrary").click();
+  state.records = [good];
+  const invalid = JSON.parse(good.text);
+  invalid.schemaVersion = 999;
+  good.loadText = JSON.stringify(invalid);
+  await page.selectOption("#scenarioSelect", "placement");
+  const preparation = await page.evaluate(() => window.__PORTANCE_TEST__.placementReport());
+  await openReadyPortLibrary(page);
+  await page.locator("#portLibraryRows [data-library-load]").click();
+  await page.waitForFunction(() => document.querySelector("#portLibraryStatus").dataset.error === "true");
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).active, true);
+  assert.deepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.placementReport())).draft, preparation.draft);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.portInformationReport())).metadata.name, original.metadata.name);
+  good.loadText = " ".repeat(KJPCodec.LIMITS.fileBytes + 1);
+  await page.locator("#portLibraryRows [data-library-load]").click();
+  await page.waitForFunction(() => document.querySelector("#portLibraryStatus").textContent.includes("10 Mo"));
+  await page.locator("#closePortLibrary").click();
+  delete good.loadText;
+  let releaseLoad;
+  const pendingLoad = new Promise(resolve => { releaseLoad = resolve; });
+  t.after(releaseLoad);
+  state.beforeLoad = () => pendingLoad;
+  await openReadyPortLibrary(page);
+  await page.locator("#portLibraryRows [data-library-load]").click();
+  await page.keyboard.press("Escape");
+  state.beforeLoad = null;
+  await openReadyPortLibrary(page);
+  releaseLoad();
+  await page.waitForTimeout(50);
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(dialog => dialog.open), true);
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.portInformationReport())).metadata.name, original.metadata.name);
+  await page.locator("#closePortLibrary").click();
+  let releaseList;
+  const pendingList = new Promise(resolve => { releaseList = resolve; });
+  t.after(releaseList);
+  state.beforeList = () => pendingList;
+  await page.selectOption("#portSourceSelect", "portLibrary");
+  await page.keyboard.press("Escape");
+  state.beforeList = null;
+  state.records = [];
+  await openReadyPortLibrary(page);
+  releaseList();
+  await page.waitForTimeout(50);
+  assert.equal(await page.locator("#portLibraryRows tr").count(), 0);
+  assert.equal(await page.locator("#portLibraryDialog").evaluate(dialog => dialog.open), true);
+});
+
 function relativeLuminance(hex) {
   const channels = hex.match(/[0-9a-f]{2}/gi).map(value => parseInt(value, 16) / 255);
   const linear = channels.map(value => (
@@ -837,7 +1119,7 @@ browserCase("simulator:ports.07", async ({ page, browser, context, runtimeErrors
     await page.evaluate(text => window.__PORTANCE_TEST__.importPort(text),
       createPortInformationText());
     assert.deepEqual(await select.locator("option").allTextContents(), [
-      "Port pédagogique", "Port des informations", "Charger la Trinité", "Construire un port"
+      "Port pédagogique", "Port des informations", "Bibliothèque de ports", "Charger la Trinité", "Construire un port"
     ]);
     assert.equal(await select.inputValue(), "community");
 
@@ -856,7 +1138,7 @@ browserCase("simulator:ports.07", async ({ page, browser, context, runtimeErrors
     assert.equal(await page.locator("#impactToast").textContent(), "Fichier chargé · La Trinité sur mer");
     assert.equal(await select.inputValue(), "community");
     assert.deepEqual(await select.locator("option").allTextContents(), [
-      "Port pédagogique", "La Trinité sur mer", "Charger la Trinité", "Construire un port"
+      "Port pédagogique", "La Trinité sur mer", "Bibliothèque de ports", "Charger la Trinité", "Construire un port"
     ]);
     await page.unroute(triniteUrl);
 
