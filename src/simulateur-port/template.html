@@ -3950,6 +3950,9 @@
     let shoreCleatRenderGeometryById = new Map();
     let staticWorldGeometryCache = new Map();
     const worldRendererParameters = new URLSearchParams(location.search);
+    // Eau de jour par défaut ; ?water=simple conserve le retour au fond historique.
+    // Sans persistance ni panneau utilisateur.
+    let waterStyle = (worldRendererParameters.get("water") ?? "daylight") === "daylight" ? "daylight" : "simple";
     const DEFAULT_WORLD_RENDERER = "native";
     const requestedWorldRenderer = ["canvas", "native"].includes(worldRendererParameters.get("renderer"))
       ? worldRendererParameters.get("renderer") : null;
@@ -4086,6 +4089,7 @@
           nativePlayerEnabled = false;
           activeWorldRenderer = "canvas";
           document.body.dataset.worldRenderer = "canvas";
+          resetWaterBackground();
         }
       }
     }
@@ -4481,7 +4485,14 @@
 
     const canvas = $("#scene");
     const ctx = canvas.getContext("2d", { alpha: true });
+    const DAYLIGHT_BACKGROUND = Object.freeze({
+      water: "#19434f",
+      horizonRgb: "65,100,113",
+      skyTop: "#88b6c4",
+      skyHorizon: "#b4d0d6"
+    });
     const waterRenderState = {
+      style: "simple",
       themeId: "",
       background: "",
       owner: "stage"
@@ -7604,7 +7615,31 @@
       return Math.round(horizon * 10) / 10;
     }
 
+    function daylightWaterActive() {
+      return waterStyle === "daylight" && activeWorldRenderer === "native"
+        && ui.mode === "navigation" && ui.visualTheme === "dark";
+    }
+
+    function resetWaterBackground() {
+      if (!waterRenderState.background && waterRenderState.style === "simple") return;
+      canvas.parentElement.style.removeProperty("background");
+      canvas.parentElement.style.removeProperty("--stage-vignette");
+      waterRenderState.style = "simple";
+      waterRenderState.themeId = "";
+      waterRenderState.background = "";
+    }
+
     function sceneBackgroundCss(palette, horizonY) {
+      if (daylightWaterActive()) {
+        const day = DAYLIGHT_BACKGROUND;
+        // Sans horizon : une couleur unie, sans motif ni direction apparente.
+        if (horizonY <= 0) return day.water;
+        // Le raccord apparaît progressivement avec l'horizon KJP, sans saut à
+        // son entrée dans le champ. Aucune horloge ni donnée de vent/courant.
+        const strength = clamp(horizonY / (canvasHeight * .18), 0, 1);
+        const fadeY = horizonY + (canvasHeight - horizonY) * .78;
+        return `linear-gradient(180deg, ${day.skyTop} 0px, ${day.skyHorizon} ${horizonY}px, rgba(${day.horizonRgb},${strength}) ${horizonY}px, rgba(${day.horizonRgb},0) ${fadeY}px), ${day.water}`;
+      }
       const water = palette.water;
       const waterMiddleY = horizonY + (canvasHeight - horizonY) * .52;
       return `linear-gradient(180deg, ${palette.sky.top} 0px, ${palette.sky.horizon} ${horizonY}px, ${water.top} ${horizonY}px, ${water.middle} ${waterMiddleY}px, ${water.bottom} 100%)`;
@@ -7614,6 +7649,12 @@
       const palette = visualPalette();
       const water = palette.water;
       const horizonY = sceneHorizonY();
+      const style = daylightWaterActive() ? "daylight" : "simple";
+      if (waterRenderState.style !== style) {
+        // La vignette nocturne rendrait l'eau unie plus sombre aux bords.
+        canvas.parentElement.style.setProperty("--stage-vignette", style === "daylight" ? "none" : "");
+        waterRenderState.style = style;
+      }
       if (activeWorldRenderer === "native") {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         const background = sceneBackgroundCss(palette, horizonY);
@@ -8329,6 +8370,7 @@
       activeWorldRenderer = "canvas";
       document.body.dataset.worldRenderer = "canvas";
       nativeChartGridSignature = null;
+      resetWaterBackground();
     }
 
     function activateInitialWorldRenderer() {
@@ -11373,6 +11415,7 @@
 
     function visualThemeReport() {
       const palette = visualPalette();
+      const daylight = daylightWaterActive();
       const toggle = $("#themeToggle");
       const gridBounds = chartGridBounds();
       return {
@@ -11382,9 +11425,13 @@
         colorScheme: getComputedStyle(document.body).colorScheme,
         bathymetry: palette.bathymetry,
         water: {
-          mode: palette.water.mode,
-          base: palette.water.top,
-          sky: { ...palette.sky },
+          requestedStyle: waterStyle,
+          activeStyle: daylight ? "daylight" : "simple",
+          mode: daylight ? "daylight-calm" : palette.water.mode,
+          base: daylight ? DAYLIGHT_BACKGROUND.water : palette.water.top,
+          sky: daylight
+            ? { top: DAYLIGHT_BACKGROUND.skyTop, horizon: DAYLIGHT_BACKGROUND.skyHorizon }
+            : { ...palette.sky },
           horizonY: sceneHorizonY(),
           depthContours: false
         },
@@ -11837,6 +11884,11 @@
         },
         selectVisualTheme(theme) {
           setVisualTheme(theme);
+          return visualThemeReport();
+        },
+        selectWaterStyle(style) {
+          if (!["simple", "daylight"].includes(style)) throw new TypeError("Style d'eau invalide");
+          waterStyle = style;
           return visualThemeReport();
         },
         selectTimeScale(scale) {

@@ -115,13 +115,129 @@ par champ. Le profil CPU apparié sur Apple M1 n'a pas montré de dégradation d
 temps de rendu ; les snapshots physiques et les caméras comparés étaient identiques.
 Ce contrôle ciblé ne constitue pas une qualification complète de release.
 
-La suite `test:renderer:quick` brute reste à 2/9 : cinq assertions de fonctionnement
-sans requête externe rencontrent le script Analytics et deux tests recherchent des
+Lors de l'intégration du 9 octobre, la suite `test:renderer:quick` brute était
+à 2/9 : cinq assertions de fonctionnement sans requête externe rencontraient le
+script Analytics et deux tests recherchaient des
 libellés français dans un navigateur en anglais. Sur une copie temporaire sans
-le script Analytics et avec `fr-FR`, 8/9 passent. L'échec restant concerne le clic
+le script Analytics et avec `fr-FR`, 8/9 passaient. L'échec restant concernait le clic
 à l'origine commune « Moteur / Pas d'hélice » dans Comprendre ; il a été reproduit
 à l'identique sur le HTML de `main` avant intégration. Les assertions et les
 références visuelles historiques n'ont pas été modifiées pour obtenir un succès.
+
+## Fond d'eau de jour
+
+Le fond d'eau de jour est actif par défaut en Navigation sombre avec le renderer
+natif, après validation explicite de l'utilisateur sur la branche
+`codex/daylight-water`. La palette retenue est la variante 2, plus sombre.
+`?water=daylight` demande explicitement ce rendu ; `?water=simple` ou une valeur
+inconnue permettent de retrouver le fond historique. Aucun réglage utilisateur
+ni choix persistant n'est ajouté. Carte clair, Comprendre et Canvas conservent
+leur fond simple.
+
+Le fond existant suffit : `drawWater()` et `sceneBackgroundCss()` utilisent
+toujours le CSS derrière le canvas Three transparent. Aucun plan d'eau, matériau,
+shader, texture, appel de dessin Three ou horloge n'est ajouté. Le monde reste
+XY avec Z vertical ; le niveau de flottaison visuel `z=0,02 m` et les plans
+de courant/vent `z=0,01/0,03 m` restent inchangés.
+
+- Sans horizon visible : couleur unie bleu-vert `#19434f`.
+- Avec horizon : éclaircissement large vers `rgb(65,100,113)`, raccordé à un
+  ciel `#88b6c4` / `#b4d0d6`. L'horizon vient du calcul KJP existant ; le dégradé
+  apparaît progressivement lorsqu'il entre dans le champ et s'estompe sur
+  78 % de la hauteur d'eau visible. Il n'encode ni courant, ni vent, ni profondeur.
+- La vignette nocturne est neutralisée uniquement lorsque cette option est
+  éligible, pour éviter d'assombrir les bords d'une eau qui doit rester uniforme.
+- Le fond est indépendant du temps. Son CSS n'est réappliqué que si son contenu
+  change. Les ressources, le picking et les palettes des indicateurs restent
+  inchangés. Carte clair, Comprendre et Canvas conservent leur chemin simple.
+- Le passage à Canvas, y compris après une erreur de reconstruction, nettoie
+  le fond CSS et la surcharge de vignette. La perte de contexte suit le secours
+  global existant ; aucun état physique n'est écrit par ce nettoyage.
+
+Le diagnostic `visualThemeReport().water` expose `requestedStyle` et `activeStyle`.
+Le hook `selectWaterStyle()` est réservé à `?test` pour comparer les fonds sans
+recréer le renderer. La comparaison reproductible utilise un HTML sauvegardé
+**avant** modification :
+
+```sh
+node scripts/capture-simulator-water-comparison.js --reference /chemin/avant.html --output /chemin/captures
+```
+
+Le script capture huit scènes appariées (port pédagogique et grand port, dessus
+et skipper, calme, vent, courant, amarres et axe de barre). Il vérifie l'identité
+du chemin simple avec la référence, des pixels Three et des overlays, des états
+physiques, des caméras et des cibles d'amarres, ainsi que la console et l'absence
+de requête inattendue. Il conserve les captures candidates et leur provenance
+dans `comparison.json` sans actualiser les références visuelles. `--scene <id>`
+limite la capture à un cas.
+
+Les quatre tests de `tests/native-water.test.js` font partie des suites
+`test:renderer:quick` et `test:renderer:qualification`. Ils contrôlent les thèmes,
+Navigation/Comprendre Translation/Rotation, les bascules répétées, le défaut et
+les paramètres inconnus, la stabilité temporelle, la pause, ×2, la réinitialisation
+et le mouvement réduit. À DPR 2, les bascules d'eau conservent les géométries,
+matériaux, pixels Three, overlays et états ; les sondes WebGL vérifient l'absence
+d'allocation, transfert de buffer/texture ou compilation supplémentaire après
+chauffe. Trois cycles native/Canvas vérifient la destruction des contextes et
+canvases précédents et le retour du fond. Les échecs WebGL2, GLB, démarrage,
+reconstruction et perte de contexte conservent le chemin Canvas simple.
+
+Le 15 octobre, le build et son contrôle de cohérence, `test:rendering` (6/6)
+et `test:renderer:quick` (16/16, dont les quatre tests d'eau) passent. Aucun
+fichier physique ni référence raster n'a été modifié pour ces contrôles.
+
+Le profileur existant accepte `--reference-water simple|daylight`,
+`--candidate-water simple|daylight`, `--frame-timing` et `--output <JSON>`.
+Une comparaison d'eau emploie les vues dessus et skipper du grand port en thème
+sombre, à DPR 1 et 2. Le protocole complet conserve 30 images de chauffe,
+120 images mesurées, trois répétitions et l'ordre alterné. Une image en pause
+aligne d'abord l'horloge KJP et mesure séparément l'amorçage du port.
+
+```sh
+# Avant/après complet : HTML initial contre la branche avec eau de jour.
+npm run profile:renderer:native -- --reference /chemin/avant.html --reference-water simple --candidate-water daylight --frame-timing --output /chemin/avant-apres.json
+# Isolation de l'option : même HTML et mêmes scènes, simple contre jour.
+npm run profile:renderer:native -- --reference ./simulateur-port.html --reference-water simple --candidate-water daylight --frame-timing --output /chemin/simple-jour.json
+```
+
+Les durées CPU couvrent le callback KJP complet. `--frame-timing` laisse ensuite
+le RAF natif piloter une image par rafraîchissement, avec une horloge de simulation
+toujours appariée, et rapporte les intervalles RAF. Ce sont des mesures de cadence,
+pas des durées GPU ni une garantie de présentation de chaque image à l'écran.
+Lorsque disponible, `EXT_disjoint_timer_query_webgl2` mesure le travail WebGL
+par requêtes asynchrones ; les résultats disjoints, invalides ou non disponibles
+dans le délai sont écartés et les requêtes libérées, conformément à la
+[spécification Khronos](https://registry.khronos.org/webgl/extensions/EXT_disjoint_timer_query_webgl2/).
+Cette sonde **ne mesure pas la composition CSS de l'eau**. En son absence, le
+rapport indique explicitement qu'aucune durée GPU n'a été mesurée. Le CPU et les
+intervalles RAF seuls ne prouvent pas un budget GPU de composition.
+
+Les deux profils complets du 15 octobre ont terminé sur Apple M1, Chromium
+149.0.7827.55, ANGLE Metal, sans renderer logiciel. Les ratios ci-dessous sont
+les médianes des rapports p95 jour/référence des 12 paires de chaque comparaison :
+
+| Comparaison | Callback KJP | Intervalle RAF | GPU WebGL natif, hors CSS |
+| --- | ---: | ---: | ---: |
+| HTML initial → version qualifiée avec eau de jour | 0,994 | 1,003 | 1,016 |
+| Même version qualifiée : simple → jour | 0,984 | 1,000 | 1,003 |
+
+Le seuil p95 médian existant de +15 % est respecté dans les deux comparaisons.
+Des valeurs isolées fluctuent jusqu'à +36 % ; ces résultats ne garantissent pas
+chaque image ni les autres machines. Les états et caméras appariés sont identiques,
+et aucun transfert de buffer/texture ni compilation de shader ne survient après
+chauffe. Le viewport de 1280 × 800 utilise un canvas de 954 × 734 pixels CSS,
+soit 1908 × 1468 pixels à DPR 2, sans diminution de résolution. L'amorçage du
+port, exclu du régime établi, est consigné séparément dans les rapports.
+Le coût GPU propre à la composition CSS reste non mesuré.
+
+Les rapports `profile-before-after.json` et `profile-simple-daylight.json` sont
+livrés avec la galerie locale de comparaison. Le premier identifie l'HTML initial
+par SHA-256 `9ff15614…` et le candidat par `0aa87564…` ; le second utilise ce même
+candidat des deux côtés. Ces profils précèdent l'assombrissement ultérieur de la
+palette demandé par l'utilisateur ; cet ajustement de couleurs conserve le ciel
+et la structure du fond et suit uniquement un contrôle visuel ciblé.
+Aucun profil supplémentaire ni qualification de release
+n'est nécessaire pour cette évolution locale.
 
 ## Joueur et mode Comprendre
 
