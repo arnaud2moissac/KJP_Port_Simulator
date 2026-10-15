@@ -694,6 +694,227 @@ test("safran compensé: mèche générique fixe, géométrie tournée et symétr
   assert.ok(balancedPort.rudder.meanChord > 0);
 });
 
+test("Dufour 310 bi-safran: profil complet, indépendant et sans jet direct", () => {
+  const id = "dufour-310-gl-2014-deep-keel-experimental";
+  const profile = Physics.COMPILED_PROFILES[id];
+  assert.ok(profile);
+  assert.equal(profile.version, "1.0.0");
+  assert.deepEqual(profile.configuration, {
+    propellers: 1,
+    rudders: 2,
+    bowThruster: false,
+    sternThruster: false
+  });
+  assert.equal(profile.inertia.loadedMass, 5400);
+  assert.equal(profile.dimensions.draft, 1.90);
+  assert.deepEqual(profile.rudders.map(rudder => rudder.slipstreamSources), [[], []]);
+  assert.deepEqual(Physics.COMMERCIAL_PROFILE_IDS, [
+    "sun-odyssey-36i-pedagogical",
+    id
+  ]);
+
+  for (const candidate of Object.values(Physics.COMPILED_PROFILES)) {
+    const mass = Physics.computeMassMatrix(candidate);
+    assert.equal(Physics.massMatrixIsPositiveDefinite(mass.matrix), true, candidate.id);
+    const rest = run({ seconds: 2, profile: candidate }).snapshot;
+    assert.deepEqual(rest.pose, initial.pose, candidate.id);
+    assert.deepEqual(rest.velocity, initial.velocity, candidate.id);
+  }
+
+  const driven = run({
+    seconds: 5,
+    throttle: 1,
+    rudderDeg: 15,
+    environment: { propWalk: 0 },
+    profile
+  });
+  const rudders = driven.simulator.inspectForces().rudder.units;
+  assert.equal(rudders.length, 2);
+  for (const rudder of rudders) {
+    assert.equal(rudder.wash, 0);
+    assert.equal(rudder.overlap, 0);
+    assert.deepEqual(rudder.inducedFlow, { axial: 0, tangential: 0 });
+    assert.deepEqual(rudder.propellerIncrement, { X: 0, Y: 0 });
+    assert.ok(Math.hypot(rudder.force.X, rudder.force.Y) > 1);
+  }
+  const contributions = driven.simulator.forceBreakdown()
+    .filter(force => force.sourceKey === "force.rudder.unit");
+  assert.deepEqual(contributions.map(force => force.sourceParams.id).sort(), [
+    "rudder-port",
+    "rudder-starboard"
+  ]);
+});
+
+test("Dufour 310 bi-safran: effort nul au repos et réponse continue avec l'erre", () => {
+  const profile = Physics.COMPILED_PROFILES[
+    "dufour-310-gl-2014-deep-keel-experimental"
+  ];
+  const still = Physics.createSimulator({ profile, environment: { propWalk: 0 } });
+  for (let index = 0; index < Math.round(1 / DT); index += 1) {
+    still.step({ throttle: 0, rudder: 20 * DEG }, DT);
+  }
+  for (const rudder of still.inspectForces().rudder.units) {
+    assert.deepEqual(rudder.force, { X: 0, Y: 0 });
+  }
+
+  const response = speed => {
+    const simulator = Physics.createSimulator({ profile, environment: { propWalk: 0 } });
+    simulator.reset({ pose: initial.pose, velocity: { u: speed, v: 0, r: 0 } });
+    for (let index = 0; index < Math.round(.8 / DT); index += 1) {
+      simulator.step({ throttle: 0, rudder: 20 * DEG }, DT);
+    }
+    return simulator.inspectForces().rudder.units.reduce(
+      (sum, rudder) => sum + rudder.force.Y,
+      0
+    );
+  };
+  const samples = [-1, -.25, -.01, .01, .25, 1].map(speed => ({
+    speed,
+    force: response(speed)
+  }));
+  assert.ok(samples.every(sample => Number.isFinite(sample.force)));
+  assert.ok(samples.every(sample => Math.abs(sample.force) > 0));
+  assert.ok(Math.abs(samples[1].force) > Math.abs(samples[2].force));
+  assert.ok(Math.abs(samples[4].force) > Math.abs(samples[3].force));
+  assert.ok(Math.abs(samples[0].force) > Math.abs(samples[1].force));
+  assert.ok(Math.abs(samples[5].force) > Math.abs(samples[4].force));
+});
+
+test("Dufour 310 bi-safran: symétrie, convergence et sensibilité documentée", () => {
+  const id = "dufour-310-gl-2014-deep-keel-experimental";
+  const profile = Physics.COMPILED_PROFILES[id];
+  const port = run({
+    seconds: 12, throttle: .6, rudderDeg: 20,
+    environment: { propWalk: 0 }, profile
+  }).snapshot;
+  const starboard = run({
+    seconds: 12, throttle: .6, rudderDeg: -20,
+    environment: { propWalk: 0 }, profile
+  }).snapshot;
+  assert.ok(Math.abs(port.velocity.u - starboard.velocity.u) < 1e-10);
+  assert.ok(Math.abs(port.velocity.v + starboard.velocity.v) < 1e-10);
+  assert.ok(Math.abs(port.velocity.r + starboard.velocity.r) < 1e-10);
+
+  const rates = [60, 120, 240].map(hz => run({
+    seconds: 20,
+    throttle: .55,
+    rudderDeg: 17,
+    environment: { propWalk: 0 },
+    profile,
+    dt: 1 / hz
+  }).snapshot);
+  assert.ok(Math.hypot(
+    rates[0].pose.east - rates[2].pose.east,
+    rates[0].pose.north - rates[2].pose.north
+  ) < .12);
+  assert.ok(Math.abs(Physics.wrapAngle(
+    rates[0].pose.heading - rates[2].pose.heading
+  )) < 1.2 * DEG);
+
+  for (const scale of [.8, 1.2]) {
+    const raw = structuredClone(Physics.RAW_PROFILES[id]);
+    raw.version = `sensitivity-${scale}`;
+    raw.mass.yawRadius *= scale;
+    raw.mass.addedMassModel.sectionalScale *= scale;
+    raw.hull.axialResistance.surgeLinear *= scale;
+    raw.hull.axialResistance.surgeQuadratic *= scale;
+    raw.hull.crossFlow.cd *= scale;
+    raw.appendages[0].area *= scale;
+    raw.rudders.forEach(rudder => { rudder.area *= scale; });
+    const result = run({
+      seconds: 8,
+      throttle: .55,
+      rudderDeg: 17,
+      environment: { propWalk: 0 },
+      profile: raw
+    }).snapshot;
+    assert.ok(result.velocity.u > 0);
+    assert.ok(result.velocity.r < 0);
+    assert.ok(Object.values(result.velocity).every(Number.isFinite));
+  }
+});
+
+test("Dufour 310 bi-safran: accélération, arrêt, inversion, giration et aussières", () => {
+  const profile = Physics.COMPILED_PROFILES[
+    "dufour-310-gl-2014-deep-keel-experimental"
+  ];
+  const calm = { windSpeedKn: 0, currentSpeedKn: 0, propWalk: 0 };
+
+  const acceleration = run({
+    seconds: 12,
+    throttle: .5,
+    environment: calm,
+    profile
+  }).snapshot;
+  assert.ok(acceleration.velocity.u > .5);
+  assert.ok(acceleration.velocity.u < 4 * Physics.KNOT);
+
+  const coast = Physics.createSimulator({ profile, environment: calm });
+  coast.reset({ pose: initial.pose, velocity: { u: 1, v: 0, r: 0 } });
+  const coastStartEnergy = kineticEnergy(coast.snapshot());
+  for (let index = 0; index < Math.round(60 / DT); index += 1) {
+    coast.step({ throttle: 0, rudder: 0 }, DT);
+  }
+  const coastEnd = coast.snapshot();
+  assert.ok(coastEnd.velocity.u > 0 && coastEnd.velocity.u < .35);
+  assert.ok(kineticEnergy(coastEnd) < coastStartEnergy);
+
+  const reversal = Physics.createSimulator({ profile, environment: calm });
+  reversal.reset(initial);
+  for (let index = 0; index < Math.round(15 / DT); index += 1) {
+    reversal.step({ throttle: .6, rudder: 0 }, DT);
+  }
+  assert.ok(reversal.snapshot().velocity.u > 0);
+  let reversedAt = null;
+  for (let index = 0; index < Math.round(30 / DT); index += 1) {
+    const snapshot = reversal.step({ throttle: -.8, rudder: 0 }, DT);
+    if (snapshot.velocity.u < 0 && reversedAt === null) reversedAt = (index + 1) * DT;
+  }
+  assert.ok(reversedAt !== null && reversedAt < 20);
+  assert.ok(reversal.snapshot().velocity.u < 0);
+
+  const turn = run({
+    seconds: 20,
+    throttle: .5,
+    rudderDeg: 18,
+    environment: calm,
+    profile
+  }).snapshot;
+  assert.ok(Math.abs(turn.velocity.r) > .03);
+  assert.ok(Math.abs(Physics.wrapAngle(turn.pose.heading - initial.pose.heading)) > 20 * DEG);
+
+  const moored = Physics.createSimulator({ profile, environment: calm });
+  moored.reset(initial);
+  for (const id of ["bow-port", "bow-starboard", "stern-port", "stern-starboard"]) {
+    const cleat = profile.mooring.cleats.find(candidate => candidate.id === id);
+    const ahead = id.startsWith("bow") ? 2.5 : -2.5;
+    const attached = moored.attachMooring({
+      id: `line-${id}`,
+      boatCleatId: id,
+      shoreCleatId: `shore-${id}`,
+      shorePoint: {
+        east: cleat.x + ahead,
+        north: -cleat.y,
+        z: cleat.z
+      },
+      length: 2.5
+    });
+    assert.equal(attached.ok, true, id);
+  }
+  let peakTension = 0;
+  for (let index = 0; index < Math.round(10 / DT); index += 1) {
+    const snapshot = moored.step({ throttle: .5, rudder: 12 * DEG }, DT);
+    peakTension = Math.max(peakTension, ...snapshot.moorings.map(line => line.tension));
+  }
+  const held = moored.snapshot();
+  assert.ok(peakTension > 100);
+  assert.ok(Math.hypot(held.velocity.u, held.velocity.v) < .02);
+  assert.ok(held.moorings.every(line => (
+    Number.isFinite(line.tension)
+    && line.strain <= profile.mooring.elasticity.maximumStrain
+  )));
+});
+
 test("safran: convection continue du jet pendant un crash-stop", () => {
   const simulator = createCalmSimulator();
   for (let index = 0; index < 6 / DT; index += 1) {

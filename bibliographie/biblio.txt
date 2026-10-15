@@ -26,6 +26,52 @@ Le lien reste donc la référence de reproduction.
 PHYSIQUE, MANOEUVRE ET CALIBRATION
 ----------------------------------
 
+[URL seule] dufour-310-owner-manual-2014
+URL canonique : https://www.manualslib.fr/manual/672851/Dufour-Yachts-310-Grand-Large.html
+Pages utilisées : 11, 23, 60 et 72.
+Usage : dimensions et masses officielles de la variante à quille fixe de 1,90 m,
+        architecture de gouverne et implantation moteur/sail-drive. La mention
+        « 20 CV / 28 kW » est signalée comme incohérente et n'est pas utilisée.
+Archive : refus HTTP 403 de ManualsLib le 13 octobre 2026 ; URL conservée.
+
+[URL seule] dufour-310-voile-magazine-2014.pdf
+URL : https://www.dufour-yachts.com/wp-content/uploads/2020/10/58760ed6355cb_2014_06_%20voile%20mag_dufour%20310.pdf
+Usage : longueur de flottaison, déplacement publié, D1-20 sail-drive, vitesses
+        et régimes rapportés, et constat qualitatif d'absence de « coup de fouet »
+        sur le bi-safran. La bipale repliable du bateau essayé est une option et
+        ne calibre pas l'hélice fixe du profil KJP.
+Archive : serveur Dufour en erreur HTTP 500 le 13 octobre 2026 ; extraits
+          indexés consultés, URL conservée.
+
+[URL seule] dufour-310-yacht-2014.pdf
+URL : https://www.dufour-yachts.com/wp-content/uploads/2020/10/58760309a6461_2014_03_yacht_310.pdf
+Usage : déplacement, moteur Volvo 13,8 kW / 19 PS et appréciation qualitative de
+        la manœuvrabilité du double safran.
+Archive : serveur Dufour en erreur HTTP 500 le 13 octobre 2026 ; extraits
+          indexés consultés, URL conservée.
+
+[archivé] dufour-310-twin-rudder-manoeuvring-yacht-2024.html
+URL : https://www.yacht.de/en/sailing-knowledge/manoeuvre/technology-special-travelling-with-twin-rudders-what-you-need-to-know/
+Usage : mécanisme du bi-safran en manœuvre portuaire : absence de soufflage
+        direct au point fixe, gouverne rétablie avec l'erre, essais qualitatifs
+        incluant le Dufour 310. Aucun coefficient propre au bateau n'en est tiré.
+
+[archivé] volvo-penta-d1-saildrive.html
+URL : https://www.volvopenta.com/marine/all-marine-engines/d1-saildrive/
+Usage : puissance officielle 13,8 kW / 18,8 hp du D1-20 et identification du
+        groupe D1-20/130S.
+
+[archivé] dufour-310-grand-large-drawing.jpg
+URL : https://sailboatlab.com/media/photos/dufour_310_grand_large_drawing.jpg
+Usage : estimation géométrique de la silhouette, de la quille et des deux
+        safrans après recalage sur les dimensions constructeur. Le plan n'est pas
+        traité comme une mesure cotée.
+
+[archivé] dufour-310-owner-testimonials-1a-yachtcharter.html
+URL : https://www.1a-yachtcharter.de/charter/dufour-310
+Usage : contrôle qualitatif du comportement sous moteur et de l'absence de jet
+        direct sur les safrans ; témoignages non instrumentés, sans calibration.
+
 [archivé] uscg-boat-crew-handbook.pdf
 URL : https://rdept.cgaux.org/documents/BoatCrewHandbooks/BoatCrewBCH16114.4.pdf
 Usage : référence qualitative de manoeuvre, notamment séparation effet de pas /

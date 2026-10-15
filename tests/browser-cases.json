@@ -388,6 +388,13 @@
     "name": "les crans tactiles accrochent au ralenti et annulent toute reprise après la fin du geste"
   },
   {
+    "product": "simulator",
+    "id": "controls.60",
+    "group": "controls",
+    "name": "le sélecteur de bateau mémorise le profil et remplace le joueur sans reconstruire le port",
+    "renderer": "native"
+  },
+  {
     "product": "generator",
     "id": "guide.01",
     "group": "guide",

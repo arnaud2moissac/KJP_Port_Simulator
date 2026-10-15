@@ -56,7 +56,11 @@ export function createNativeWorldRenderer(definition, {
   const identities = new WeakMap();
   let nextId = 1, frames = 0, lastCamera = null, disposed = false, compilePending = true;
   let asynchronousResourceError = null;
-  playerResources?.ready?.catch(error => { asynchronousResourceError = error; });
+  let playerResourceRevision = 0;
+  const watchPlayerReady = (candidate, revision) => candidate?.ready?.catch(error => {
+    if (revision === playerResourceRevision) asynchronousResourceError = error;
+  });
+  watchPlayerReady(playerResources, playerResourceRevision);
   canvas.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     asynchronousResourceError = new Error("Renderer Three natif : contexte WebGL perdu");
@@ -151,6 +155,24 @@ export function createNativeWorldRenderer(definition, {
     scene.remove(resources.group); resources.dispose();
     resources = next; scene.add(resources.group); compilePending = true;
   }
+  function replacePlayer(definition) {
+    ensureActive();
+    if (typeof playerFactory !== "function") {
+      throw new TypeError("Renderer Three natif : fabrique joueur absente");
+    }
+    const next = definition ? playerFactory(definition) : null;
+    const previous = playerResources;
+    playerResources = next;
+    playerResourceRevision++;
+    asynchronousResourceError = null;
+    watchPlayerReady(next, playerResourceRevision);
+    if (next) scene.add(next.group);
+    if (previous) {
+      scene.remove(previous.group);
+      previous.dispose();
+    }
+    compilePending = true;
+  }
   function replaceLayer(name, definition) {
     ensureActive();
     if (typeof name !== "string" || !name) throw new TypeError("Renderer Three natif : nom de couche invalide");
@@ -190,7 +212,7 @@ export function createNativeWorldRenderer(definition, {
     canvas.width = 0; canvas.height = 0;
   }
   // Les ressources sont accessibles au hook de mutation du banc, jamais au moteur.
-  return Object.freeze({ render, report, dispose, replaceResources, replaceLayer, removeLayer, attach, detach,
+  return Object.freeze({ render, report, dispose, replaceResources, replacePlayer, replaceLayer, removeLayer, attach, detach,
     updatePalette: (palette, options) => resources.updatePalette?.(palette, options),
     updateFamily: (family, presentation) => resources.updateFamily?.(family, presentation),
     get resources() { return resources; },

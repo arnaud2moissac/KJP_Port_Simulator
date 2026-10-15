@@ -275,9 +275,9 @@ test("renderer natif — persistance, caméra, composition 2D et flux", async t 
     linesBeforePicking + 1, "le picking Canvas 2D frappe encore une aussière");
 
   await page.mouse.move(stageBox.x + stageBox.width * .65, stageBox.y + stageBox.height * .45);
-  await page.mouse.down({ button: "right" });
+  await page.mouse.down({ button: "middle" });
   await page.mouse.move(stageBox.x + stageBox.width * .65 + 35, stageBox.y + stageBox.height * .45 + 18);
-  await page.mouse.up({ button: "right" });
+  await page.mouse.up({ button: "middle" });
   await settle(page, 5);
   const gestured = await page.evaluate(() => ({
     report: window.__PORTANCE_TEST__.worldRendererReport(),

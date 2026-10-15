@@ -35,8 +35,11 @@
     return value;
   }
 
-  function scaledHullSections(lwl, canoeDraft) {
-    const shapes = [0.28, 0.51, 0.73, 0.88, 0.97, 1, 0.96, 0.86, 0.70, 0.48, 0.22];
+  function scaledHullSections(
+    lwl,
+    canoeDraft,
+    shapes = [0.28, 0.51, 0.73, 0.88, 0.97, 1, 0.96, 0.86, 0.70, 0.48, 0.22]
+  ) {
     const dx = lwl / shapes.length;
     return shapes.map((shape, index) => ({
       x: -lwl / 2 + dx * (index + 0.5),
@@ -140,7 +143,8 @@
     gunwale = REFERENCE_GUNWALE,
     scaleLength = 1,
     scaleBeam = scaleLength,
-    scaleArea = scaleLength * scaleLength
+    scaleArea = scaleLength * scaleLength,
+    superstructure = null
   ) {
     const point = (x, y, z) => ({
       // Chaque centre reste celui du composant décrit. Le bilan de lacet doit
@@ -217,19 +221,25 @@
       exposure: 0.96,
       twoSided: false
     };
+    const fittings = superstructure || {
+      sides: [
+        ["coachroof-aft-starboard", 2.5, -0.08, 0.997, -1.00, 0.82, 1.82],
+        ["coachroof-aft-port", 2.5, -0.08, -0.997, -1.00, -0.82, 1.82],
+        ["coachroof-fore-starboard", 1.5, 0.12, 0.993, 1.20, 0.70, 1.88],
+        ["coachroof-fore-port", 1.5, 0.12, -0.993, 1.20, -0.70, 1.88],
+        ["boom-starboard", 1.0, 0, 1, -0.20, 0.18, 3.05, 0.92],
+        ["boom-port", 1.0, 0, -1, -0.20, -0.18, 3.05, 0.92]
+      ],
+      rig: { area: 2.15, x: 0.35, z: 5.10 }
+    };
     return [
       ...freeboard,
-      side("coachroof-aft-starboard", 2.5, -0.08, 0.997, -1.00, 0.82, 1.82),
-      side("coachroof-aft-port", 2.5, -0.08, -0.997, -1.00, -0.82, 1.82),
-      side("coachroof-fore-starboard", 1.5, 0.12, 0.993, 1.20, 0.70, 1.88),
-      side("coachroof-fore-port", 1.5, 0.12, -0.993, 1.20, -0.70, 1.88),
-      side("boom-starboard", 1.0, 0, 1, -0.20, 0.18, 3.05, 0.92),
-      side("boom-port", 1.0, 0, -1, -0.20, -0.18, 3.05, 0.92),
+      ...fittings.sides.map(args => side(...args)),
       {
         id: "mast-rigging",
-        area: 2.15 * scaleArea,
+        area: fittings.rig.area * scaleArea,
         normalBody: { x: 0, y: 1 },
-        center: point(0.35, 0, 5.10),
+        center: point(fittings.rig.x, 0, fittings.rig.z),
         cdNormal: 1.08,
         cdTangential: 1.08,
         exposure: 0.95,
@@ -296,12 +306,25 @@
     };
   }
 
-  function referenceDeckEquipment(kind, station, x, side) {
-    const rail = offsetFromGunwale(x, side, kind === "fender" ? 0.165 : -0.07);
+  function deckEquipment(
+    kind,
+    station,
+    x,
+    side,
+    gunwale = REFERENCE_GUNWALE,
+    fenderOffset = 0.165,
+    fenderZ = 0.5
+  ) {
+    const rail = offsetFromGunwale(
+      x,
+      side,
+      kind === "fender" ? fenderOffset : -0.07,
+      gunwale
+    );
     if (kind === "fender") {
       return {
         id: `fender-${station}-${side}`,
-        position: { ...rail.position, z: 0.5 },
+        position: { ...rail.position, z: fenderZ },
         attachment: rail.attachment,
         side,
         preload: 0.01
@@ -317,15 +340,60 @@
   }
 
   const REFERENCE_CLEATS = ["port", "starboard"].flatMap(side => [
-    referenceDeckEquipment("cleat", "bow", 4.25, side),
-    referenceDeckEquipment("cleat", "mid", 0, side),
-    referenceDeckEquipment("cleat", "stern", -4.2, side)
+    deckEquipment("cleat", "bow", 4.25, side),
+    deckEquipment("cleat", "mid", 0, side),
+    deckEquipment("cleat", "stern", -4.2, side)
   ]);
 
   const REFERENCE_FENDERS = ["port", "starboard"].flatMap(side => [
-    referenceDeckEquipment("fender", "bow", 3.55, side),
-    referenceDeckEquipment("fender", "mid", 0, side),
-    referenceDeckEquipment("fender", "stern", -3.55, side)
+    deckEquipment("fender", "bow", 3.55, side),
+    deckEquipment("fender", "mid", 0, side),
+    deckEquipment("fender", "stern", -3.55, side)
+  ]);
+
+  // Plan public du Dufour 310 recalé sur LOA 9,67 m et largeur 3,31 m.
+  // Il s'agit d'une géométrie 2D estimée et versionnée, jamais d'une lecture du
+  // maillage Three à l'exécution.
+  const DUFOUR_310_GUNWALE = [
+    { x: -4.585, halfBeam: 1.475, z: 1.040 },
+    { x: -4.250, halfBeam: 1.545, z: 1.025 },
+    { x: -3.600, halfBeam: 1.615, z: 1.005 },
+    { x: -2.750, halfBeam: 1.650, z: 0.990 },
+    { x: -1.750, halfBeam: 1.655, z: 0.980 },
+    { x: -0.650, halfBeam: 1.635, z: 0.980 },
+    { x: 0.500, halfBeam: 1.560, z: 0.990 },
+    { x: 1.550, halfBeam: 1.405, z: 1.010 },
+    { x: 2.500, halfBeam: 1.165, z: 1.035 },
+    { x: 3.300, halfBeam: 0.860, z: 1.065 },
+    { x: 3.950, halfBeam: 0.520, z: 1.095 },
+    { x: 4.430, halfBeam: 0.230, z: 1.125 },
+    { x: 4.750, halfBeam: 0, z: 1.150 }
+  ];
+  const DUFOUR_310_HULL_SECTION_SHAPES = [
+    0.72, 0.88, 0.97, 1, 0.98, 0.94, 0.86, 0.73, 0.57, 0.38, 0.17
+  ];
+  const DUFOUR_310_SUPERSTRUCTURE = {
+    sides: [
+      ["coachroof-aft-starboard", 2.05, -0.08, 0.997, -0.90, 0.76, 1.62],
+      ["coachroof-aft-port", 2.05, -0.08, -0.997, -0.90, -0.76, 1.62],
+      ["coachroof-fore-starboard", 1.25, 0.12, 0.993, 1.10, 0.65, 1.68],
+      ["coachroof-fore-port", 1.25, 0.12, -0.993, 1.10, -0.65, 1.68],
+      ["boom-starboard", 0.80, 0, 1, -0.15, 0.16, 2.70, 0.92],
+      ["boom-port", 0.80, 0, -1, -0.15, -0.16, 2.70, 0.92]
+    ],
+    rig: { area: 1.75, x: 0.30, z: 4.50 }
+  };
+
+  const DUFOUR_310_CLEATS = ["port", "starboard"].flatMap(side => [
+    deckEquipment("cleat", "bow", 3.88, side, DUFOUR_310_GUNWALE),
+    deckEquipment("cleat", "mid", 0.10, side, DUFOUR_310_GUNWALE),
+    deckEquipment("cleat", "stern", -3.92, side, DUFOUR_310_GUNWALE)
+  ]);
+
+  const DUFOUR_310_FENDERS = ["port", "starboard"].flatMap(side => [
+    deckEquipment("fender", "bow", 3.25, side, DUFOUR_310_GUNWALE, 0.155, 0.46),
+    deckEquipment("fender", "mid", 0.05, side, DUFOUR_310_GUNWALE, 0.155, 0.46),
+    deckEquipment("fender", "stern", -3.35, side, DUFOUR_310_GUNWALE, 0.155, 0.46)
   ]);
 
   function contactEnvelopeFromGunwale(gunwale, radius) {
@@ -379,6 +447,28 @@
     powerKw: 21.3,
     maxRpm: 3200,
     diameter: REFERENCE_PROPELLER_SPEC.diameter
+  });
+
+  const DUFOUR_310_PROPELLER_SPEC = {
+    diameter: 0.38,
+    pitch: 0.27,
+    blades: 2,
+    expandedAreaRatio: 0.38,
+    ktAhead: 0.17,
+    ktAstern: 0.12,
+    ktAdvanceAhead: 0.095,
+    ktAdvanceAstern: 0.050,
+    ktWindmill: 0.032,
+    cqAhead: 0.0158,
+    cqAstern: 0.0175,
+    cqWindmill: 0.0105,
+    source: "Bipale fixe D1-20/130S : prior quatre quadrants non calibré",
+    uncertainty: 0.25
+  };
+  const DUFOUR_310_MECHANICS = propulsionMechanics({
+    powerKw: 13.8,
+    maxRpm: 3200,
+    diameter: DUFOUR_310_PROPELLER_SPEC.diameter
   });
 
   const SUN_ODYSSEY_36I = {
@@ -662,6 +752,281 @@
           unit: "strain,N",
           uncertainty: 0.25,
           domain: "cruising-yacht mooring at low speed; no rupture or chafe"
+        }
+      }
+    }
+  };
+
+  const DUFOUR_310_GL_2014 = {
+    schemaVersion: SCHEMA_VERSION,
+    id: "dufour-310-gl-2014-deep-keel-experimental",
+    version: "1.0.0",
+    name: "Dufour 310 Grand Large 2014",
+    modelClass: MODEL_CLASS,
+    validity: {
+      speedThroughWaterKn: [0, 4],
+      minimumDepthToDraftRatio: 4,
+      supportedPhysics: [
+        "deep-water",
+        "low-speed",
+        "single-fixed-propeller",
+        "twin-spade-rudder"
+      ],
+      excludedEffects: [
+        "waves",
+        "shallow-water",
+        "squat",
+        "bank-effect",
+        "heel",
+        "rudder-emergence"
+      ]
+    },
+    geometry: {
+      loa: 9.67,
+      lwl: 8.70,
+      lpp: 8.45,
+      beam: 3.31,
+      draft: 1.90,
+      canoeDraft: 0.58,
+      wettedArea: 24.5,
+      gunwale: DUFOUR_310_GUNWALE,
+      hullSections: scaledHullSections(
+        8.70,
+        0.58,
+        DUFOUR_310_HULL_SECTION_SHAPES
+      )
+    },
+    mass: {
+      lightDisplacement: 4917,
+      displacement: 5400,
+      centerOfGravity: { x: 0, y: 0 },
+      yawRadius: 2.18,
+      addedMassModel: {
+        type: "sectional-cross-flow",
+        surgeMassRatio: 0.070,
+        sectionalScale: 0.35
+      }
+    },
+    hull: {
+      axialResistance: {
+        type: "linear-quadratic-wave-rise",
+        surgeLinear: 82,
+        surgeQuadratic: 78,
+        waveRise: 30,
+        waveOnset: 1.95
+      },
+      crossFlow: {
+        type: "distributed-sections",
+        cd: 1.08,
+        areaFactor: 0.70,
+        linearDampingFroude: 0.020
+      }
+    },
+    appendages: [{
+      id: "deep-fin-keel",
+      type: "keel",
+      position: { x: -0.05, y: 0, z: -1.16 },
+      area: 2.65,
+      span: 1.32,
+      aspectRatio: 1.55,
+      coefficients: {
+        efficiency: 0.75,
+        cd0: 0.018,
+        normalCd90: 1.18,
+        stallStartDeg: 24,
+        stallEndDeg: 52
+      }
+    }],
+    propulsors: [{
+      id: "saildrive-propeller",
+      type: "fixed-pitch-propeller",
+      position: { x: -2.82, y: 0, z: -0.68 },
+      axis: { x: 1, y: 0 },
+      rotation: "right",
+      engine: {
+        model: "Volvo Penta D1-20",
+        powerKw: 13.8,
+        idleRpm: 850,
+        maxRpm: 3200,
+        dynamics: DUFOUR_310_MECHANICS.engine
+      },
+      gearbox: {
+        model: "Volvo Penta 130S",
+        ratioAhead: 2.19,
+        ratioAstern: 2.19,
+        efficiency: 0.94,
+        clutch: DUFOUR_310_MECHANICS.clutch
+      },
+      propeller: {
+        diameter: DUFOUR_310_PROPELLER_SPEC.diameter,
+        pitch: DUFOUR_310_PROPELLER_SPEC.pitch,
+        blades: DUFOUR_310_PROPELLER_SPEC.blades,
+        expandedAreaRatio: DUFOUR_310_PROPELLER_SPEC.expandedAreaRatio,
+        shaft: DUFOUR_310_MECHANICS.shaft,
+        fourQuadrant: createFourQuadrantTable(DUFOUR_310_PROPELLER_SPEC),
+        safety: {
+          maximumThrustCoefficient: 2.2,
+          maximumTorqueCoefficient: 0.12
+        }
+      },
+      transverseWalk: { base: 0.035, gain: 0.13 }
+    }],
+    rudders: ["port", "starboard"].map(side => ({
+      id: `rudder-${side}`,
+      position: { x: -3.92, y: side === "port" ? -1.03 : 1.03, z: -0.76 },
+      axis: { x: 0, y: 0, z: 1 },
+      stock: { chordFraction: 0.24 },
+      area: 0.31,
+      span: 0.82,
+      aspectRatio: 2.17,
+      maxAngleDeg: 35,
+      rateDegS: 50,
+      coefficients: {
+        efficiency: 0.74,
+        cd0: 0.022,
+        normalCd90: 1.12,
+        stallStartDeg: 24,
+        stallEndDeg: 52
+      },
+      slipstreamSources: [],
+      slipstream: {
+        stripCount: 5,
+        contractionRatio: 0.86,
+        downstreamVelocityFactor: 0.55,
+        upstreamVelocityFactor: 0.24,
+        swirlFraction: 0.055,
+        convectionTimeBoundsS: [0.05, 0.55],
+        flowStraightening: 0.92,
+        momentumSafetyFactor: 1.18
+      }
+    })),
+    aerodynamics: {
+      referenceWindHeight: 10,
+      verticalProfile: {
+        type: "bounded-power-law",
+        exponent: 0.08,
+        minimumVelocityFactor: 0.82,
+        maximumVelocityFactor: 1.05
+      },
+      panels: aerodynamicPanels(DUFOUR_310_GUNWALE, 1, 1, 1, DUFOUR_310_SUPERSTRUCTURE)
+    },
+    contacts: {
+      fenderRadius: 0.16,
+      hullRadius: 0.20,
+      fenderStiffness: 40000,
+      hullStiffness: 81000,
+      dampingRatio: 0.82,
+      friction: 0.30,
+      hullFriction: 0.30,
+      fenderFriction: 0.03,
+      forceLimit: 75000,
+      fenders: DUFOUR_310_FENDERS,
+      hullEnvelope: contactEnvelopeFromGunwale(DUFOUR_310_GUNWALE, 0.20)
+    },
+    deckHardware: { cleats: DUFOUR_310_CLEATS },
+    mooring: {
+      maxLength: 18,
+      maximumLinesPerBoatCleat: 2,
+      maximumHaulInducedSpeed: 0.2 * KNOT,
+      humanPullForce: 200,
+      haulInRate: 1,
+      payOutRate: 1.2,
+      tautTolerance: 0.02,
+      solverTolerance: 0.001,
+      solverIterations: 8,
+      elasticity: {
+        workingStrain: 0.15,
+        workingLoadN: 10000,
+        dampingRatio: 0.35,
+        hardeningGain: 8,
+        maximumStrain: 0.20
+      }
+    },
+    provenance: {
+      values: {
+        "geometry.loa-beam-draft": {
+          sourceType: "official",
+          source: "Dufour 310 Grand Large owner manual (2014), p. 11",
+          unit: "m",
+          uncertainty: 0.01,
+          domain: "deep-keel production version"
+        },
+        "geometry.lwl": {
+          sourceType: "measured",
+          source: "Voile Magazine, Dufour 310 Grand Large test, June 2014",
+          unit: "m",
+          uncertainty: 0.01
+        },
+        "geometry.gunwale-appendages": {
+          sourceType: "estimated",
+          source: "SailboatLab drawing digitised and rescaled to official LOA and beam",
+          unit: "m,m2",
+          uncertainty: 0.25,
+          domain: "planar 3-DOF equivalent, upright vessel"
+        },
+        "mass.lightDisplacement": {
+          sourceType: "official",
+          source: "Dufour 310 Grand Large owner manual (2014), p. 11",
+          unit: "kg",
+          uncertainty: 0.03
+        },
+        "mass.displacement": {
+          sourceType: "estimated",
+          source: "4917 kg light + 150 kg crew + 160 kg water + 76 kg fuel + 100 kg equipment",
+          unit: "kg",
+          uncertainty: 0.08,
+          domain: "light cruising load"
+        },
+        "mass.inertia-added-mass": {
+          sourceType: "literature",
+          source: "Independent low-speed sectional cross-flow estimates documented in docs/physics/dufour-310-gl-2014.md",
+          unit: "mixed",
+          uncertainty: 0.20
+        },
+        "hull.resistance": {
+          sourceType: "estimated",
+          source: "Independent displacement-hull harbour-speed prior documented for this profile",
+          unit: "mixed",
+          uncertainty: 0.25
+        },
+        "hull.crossFlow.linearDampingFroude": {
+          sourceType: "literature",
+          source: "Fossen linear/nonlinear damping structure with a profile-specific low-speed Froude prior",
+          unit: "dimensionless Froude prior",
+          uncertainty: 0.20,
+          domain: "deep-water harbour manoeuvring at low sway and yaw velocities"
+        },
+        "propulsors.0.engine-gearbox": {
+          sourceType: "official",
+          source: "Volvo Penta D1-20/130S specifications; 13.8 kW confirmed by YACHT 7/2014",
+          unit: "mixed",
+          uncertainty: 0.02
+        },
+        "propulsors.0.propeller": {
+          sourceType: "estimated",
+          source: "Fixed two-blade D1-20/130S compatible geometry and four-quadrant literature prior",
+          unit: "mixed",
+          uncertainty: 0.25,
+          domain: "not the folding propeller tested by Voile Magazine"
+        },
+        "rudders": {
+          sourceType: "estimated",
+          source: "SailboatLab drawing geometry; qualitative no-wash mechanism from YACHT twin-rudder special (2024)",
+          unit: "mixed",
+          uncertainty: 0.25,
+          domain: "two independent planar rudders; no direct propeller slipstream"
+        },
+        "aerodynamics": {
+          sourceType: "estimated",
+          source: "Dufour-specific freeboard, coachroof and rig panels digitised from the rescaled drawing with bluff-body literature coefficients",
+          unit: "mixed",
+          uncertainty: 0.25
+        },
+        "contacts-deck-mooring": {
+          sourceType: "calibrated",
+          source: "Profile-specific planar geometry with KJP low-speed contact and polyester-line laws",
+          unit: "mixed",
+          uncertainty: 0.25
         }
       }
     }
@@ -1695,6 +2060,7 @@
 
   const RAW_PROFILES = deepFreeze({
     [SUN_ODYSSEY_36I.id]: SUN_ODYSSEY_36I,
+    [DUFOUR_310_GL_2014.id]: DUFOUR_310_GL_2014,
     [SYNTHETIC_SMALL.id]: SYNTHETIC_SMALL,
     [SYNTHETIC_LARGE.id]: SYNTHETIC_LARGE
   });
@@ -1702,6 +2068,10 @@
     Object.entries(RAW_PROFILES).map(([id, profile]) => [id, compileVesselProfile(profile)])
   ));
   const DEFAULT_PROFILE = COMPILED_PROFILES[SUN_ODYSSEY_36I.id];
+  const COMMERCIAL_PROFILE_IDS = deepFreeze([
+    SUN_ODYSSEY_36I.id,
+    DUFOUR_310_GL_2014.id
+  ]);
 
   return deepFreeze({
     SCHEMA_VERSION,
@@ -1709,6 +2079,7 @@
     RAW_PROFILES,
     COMPILED_PROFILES,
     DEFAULT_PROFILE,
+    COMMERCIAL_PROFILE_IDS,
     upgradeLegacyProfile,
     validateVesselProfile,
     compileVesselProfile,

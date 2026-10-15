@@ -826,6 +826,10 @@
       profile,
       options.calibrationPatch || {}
     );
+    const rudderCommandLimits = {
+      maxAngle: Math.min(...profile.rudders.map(rudder => rudder.maxAngle)),
+      rate: Math.min(...profile.rudders.map(rudder => rudder.rate))
+    };
     let calibration = {
       mass: initialCalibration.massKg,
       windage: initialCalibration.multipliers.windage,
@@ -2388,8 +2392,8 @@
         : (requestedGear === 0 || signedThrottle === 0 ? 0 : requestedGear * Math.abs(signedThrottle));
       const rudderTarget = clamp(
         finite(input.rudder),
-        -profile.rudder.maxAngle,
-        profile.rudder.maxAngle
+        -rudderCommandLimits.maxAngle,
+        rudderCommandLimits.maxAngle
       );
       state.controls.throttleTarget = throttleTarget;
       state.controls.gearTarget = requestedGear;
@@ -2397,8 +2401,8 @@
       const rudderDelta = rudderTarget - state.controls.rudderActual;
       state.controls.rudderActual += clamp(
         rudderDelta,
-        -profile.rudder.rate * dt,
-        profile.rudder.rate * dt
+        -rudderCommandLimits.rate * dt,
+        rudderCommandLimits.rate * dt
       );
       const water = waterKinematics(state);
       for (let index = 0; index < profile.propulsors.length; index += 1) {
@@ -3137,6 +3141,7 @@
     DEFAULT_PROFILE,
     RAW_PROFILES: VesselProfiles.RAW_PROFILES,
     COMPILED_PROFILES: VesselProfiles.COMPILED_PROFILES,
+    COMMERCIAL_PROFILE_IDS: VesselProfiles.COMMERCIAL_PROFILE_IDS,
     validateVesselProfile: VesselProfiles.validateVesselProfile,
     compileVesselProfile: VesselProfiles.compileVesselProfile,
     applyCalibrationPatch: VesselProfiles.applyCalibrationPatch,

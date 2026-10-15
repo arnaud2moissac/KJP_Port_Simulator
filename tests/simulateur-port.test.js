@@ -3822,6 +3822,133 @@ browserCase("simulator:controls.59", async ({ page }) => {
   assert.equal((await read()).gearTarget, 0);
 });
 
+browserCase("simulator:controls.60", async ({ page, context }) => {
+  const dufourId = "dufour-310-gl-2014-deep-keel-experimental";
+  const sunId = "sun-odyssey-36i-pedagogical";
+  const infrastructure = report => report.resources
+    .filter(resource => !String(resource.family || "").startsWith("player"))
+    .map(resource => ({
+      owner: resource.owner,
+      role: resource.role,
+      geometry: resource.geometry
+    }));
+  await page.locator("#advancedDetails summary").click();
+  await page.evaluate(() => window.__PORTANCE_TEST__.reset(
+    { x: 32, y: -32, heading: -Math.PI / 2 },
+    { windSpeedKn: 9, windFromDeg: 215, currentSpeedKn: .8, currentFromDeg: 35 }
+  ));
+  const before = await page.evaluate(() => ({
+    world: window.__PORTANCE_TEST__.worldRendererReport(),
+    topology: window.__PORTANCE_TEST__.topologyReport(),
+    snapshot: window.__PORTANCE_TEST__.snapshot()
+  }));
+  await page.selectOption("#boatProfileSelect", dufourId);
+  await page.waitForFunction(id => window.__PORTANCE_TEST__.snapshot().vesselProfileId === id
+    && window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready, dufourId);
+  const dufour = await page.evaluate(() => ({
+    world: window.__PORTANCE_TEST__.worldRendererReport(),
+    topology: window.__PORTANCE_TEST__.topologyReport(),
+    snapshot: window.__PORTANCE_TEST__.snapshot(),
+    profile: window.__PORTANCE_TEST__.physicsReport().profile,
+    selector: window.__PORTANCE_TEST__.vesselProfileReport(),
+    axes: window.__PORTANCE_TEST__.rudderAxisReport(),
+    playerSource: window.__PORTANCE_TEST__.nativePlayerSourceReport()
+  }));
+  assert.equal(dufour.snapshot.controls.paused, true);
+  assert.equal(dufour.snapshot.controls.throttleTarget, 0);
+  assert.equal(dufour.snapshot.controls.rudderTarget, 0);
+  assert.deepEqual(dufour.snapshot.environment, before.snapshot.environment);
+  assert.equal(dufour.snapshot.scenario.complete, false);
+  assert.equal(dufour.snapshot.moorings.current.length, 2);
+  assert.equal(dufour.profile.inertia.loadedMass, 5400);
+  assert.equal(dufour.profile.rudders.length, 2);
+  assert.deepEqual(dufour.profile.rudders.map(rudder => rudder.slipstreamSources), [[], []]);
+  assert.equal(dufour.selector.storedId, dufourId);
+  assert.deepEqual(dufour.selector.commercialIds, [sunId, dufourId]);
+  assert.equal(dufour.topology.id, before.topology.id);
+  assert.deepEqual(infrastructure(dufour.world), infrastructure(before.world));
+  assert.equal(dufour.world.player.model.asset.name, "kjp_dufour_310_gl_2014_dimfix_rudders.glb");
+  assert.equal(dufour.axes.axes.length, 2);
+  assert.equal(dufour.playerSource.some(owner => owner.id === "profile-silhouette"), false);
+  assert.equal(await page.locator("#boatMass").getAttribute("min"), "4900");
+  assert.equal(await page.locator("#boatMass").getAttribute("max"), "6500");
+  assert.match(await page.locator("#boatProfileStatus").textContent(), /plausible mais non calibré/i);
+
+  await page.selectOption("#boatProfileSelect", sunId);
+  await page.waitForFunction(() => window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready);
+  const sun = await page.evaluate(() => ({
+    snapshot: window.__PORTANCE_TEST__.snapshot(),
+    world: window.__PORTANCE_TEST__.worldRendererReport()
+  }));
+  assert.equal(sun.snapshot.vesselProfileId, sunId);
+  assert.equal(sun.world.player.model.loadCount, 1);
+
+  const importedPort = await page.evaluate(
+    text => window.__PORTANCE_TEST__.importPort(text),
+    createPortInformationText()
+  );
+  const importedPaused = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.paused);
+  await page.selectOption("#boatProfileSelect", dufourId);
+  assert.equal(
+    (await page.evaluate(() => window.__PORTANCE_TEST__.topologyReport())).id,
+    importedPort.id
+  );
+  assert.equal(
+    (await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused,
+    importedPaused
+  );
+  await page.reload();
+  await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, dufourId);
+  assert.equal(await page.locator("#boatProfileSelect").inputValue(), dufourId);
+
+  await page.evaluate(() => localStorage.setItem("kjp.vesselProfile.v1", "profil-inconnu"));
+  await page.reload();
+  await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, sunId);
+  assert.equal(await page.locator("#boatProfileSelect").inputValue(), sunId);
+
+  await context.addInitScript(() => {
+    const originalGet = Storage.prototype.getItem;
+    const originalSet = Storage.prototype.setItem;
+    Storage.prototype.getItem = function (key) {
+      if (key === "kjp.vesselProfile.v1") throw new DOMException("storage disabled");
+      return originalGet.call(this, key);
+    };
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "kjp.vesselProfile.v1") throw new DOMException("storage disabled");
+      return originalSet.call(this, key, value);
+    };
+  });
+  await page.reload();
+  await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, sunId);
+  assert.equal(await page.locator("#boatProfileSelect").inputValue(), sunId);
+  const switches = await page.evaluate(({ dufourId, sunId }) => {
+    const api = window.__PORTANCE_TEST__;
+    const initial = api.loadScenario("dockForward");
+    api.setControls({ throttleTarget: .5, rudderTarget: .2 });
+    api.advance(2);
+    document.querySelector("#pauseButton").click();
+    const running = api.snapshot();
+    const switchedRunning = api.selectVesselProfile(dufourId);
+    document.querySelector("#pauseButton").click();
+    const switchedPaused = api.selectVesselProfile(sunId);
+    return { initial, running, switchedRunning, switchedPaused };
+  }, { dufourId, sunId });
+  assert.equal(switches.running.controls.paused, false);
+  assert.ok(switches.running.timing.simulatedSeconds > 0);
+  for (const [state, paused] of [
+    [switches.switchedRunning, false],
+    [switches.switchedPaused, true]
+  ]) {
+    assert.equal(state.controls.paused, paused);
+    assert.equal(state.scenario.id, switches.initial.scenario.id);
+    assert.equal(state.scenario.complete, false);
+    assert.equal(state.timing.simulatedSeconds, 0);
+    assert.equal(state.controls.throttleTarget, 0);
+    assert.equal(state.controls.rudderTarget, 0);
+    assert.equal(state.moorings.current.length, 2);
+  }
+});
+
 browserCase("simulator:camera.50", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.evaluate(() => window.__PORTANCE_TEST__.selectCameraView("top"));

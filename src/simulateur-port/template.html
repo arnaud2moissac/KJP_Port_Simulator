@@ -1490,6 +1490,17 @@
       cursor: pointer;
     }
 
+    .control-select {
+      width: 100%;
+      min-height: 34px;
+      padding: 7px 30px 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      color: var(--ink);
+      font-size: 11px;
+    }
+
     .dual-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -2388,6 +2399,11 @@
             <div class="advanced-group">
               <div class="advanced-group-title" data-i18n="ui.advanced.boat">Bateau</div>
               <div class="control-row">
+                <div class="control-meta"><label for="boatProfileSelect" data-i18n="ui.boat.profile">Profil du bateau</label></div>
+                <select id="boatProfileSelect" class="control-select" aria-describedby="boatProfileStatus"></select>
+                <p class="sidebar-subtitle" id="boatProfileStatus"></p>
+              </div>
+              <div class="control-row">
                 <div class="control-meta"><label for="boatMass" data-i18n="ui.loaded.mass">Masse en charge</label><span class="control-value" data-value-for="boatMass"></span></div>
                 <input id="boatMass" type="range" min="5700" max="7800" step="50" value="6500">
               </div>
@@ -2639,35 +2655,50 @@
       return [object.x + rotated[0], object.y + rotated[1], z];
     };
 
-    const BOAT_PROFILE = {
-      name: "Sun Odyssey 36i",
-      length: 10.94,
-      waterline: 9.84,
-      beam: 3.59,
-      draft: 1.94,
-      lightMass: 5700,
-      mass: 6500,
-      keelMass: 1571,
-      enginePowerKw: 21.3,
-      yawRadius: 2.78,
-      propellerX: -3.45,
-      rudderX: -4.35,
-      keelX: -0.25,
-      rudderArea: 0.82,
-      keelArea: 3.15,
-      maxRudder: 35 * DEG,
-      maxForwardThrust: 2350,
-      reverseRatio: 0.62,
-      // Ces cotes ne servent qu'au rendu. La physique immergée reste décrite
-      // séparément dans PortPhysics.DEFAULT_PROFILE.dimensions.
-      visual: {
+    const VESSEL_PROFILE_STORAGE_KEY = "kjp.vesselProfile.v1";
+    const DEFAULT_VESSEL_PROFILE_ID = PortPhysics.DEFAULT_PROFILE.id;
+    const DUFOUR_310_PROFILE_ID = "dufour-310-gl-2014-deep-keel-experimental";
+
+    function storedVesselProfileId() {
+      try {
+        const id = localStorage.getItem(VESSEL_PROFILE_STORAGE_KEY);
+        return PortPhysics.COMMERCIAL_PROFILE_IDS.includes(id)
+          ? id
+          : DEFAULT_VESSEL_PROFILE_ID;
+      } catch {
+        return DEFAULT_VESSEL_PROFILE_ID;
+      }
+    }
+
+    function boatPresentation(profile) {
+      const dufour = profile.id === DUFOUR_310_PROFILE_ID;
+      const visual = dufour ? {
+        waterlineZ: .02,
+        playerDeckZ: .99,
+        playerCabinRoofZ: 1.54,
+        playerMastTopZ: 12.4,
+        staticDeckZ: .92,
+        staticCabinRoofZ: 1.42,
+        bowMarkerX: 3.48,
+        rudderAxisLengthFactor: 1.0,
+        usePlayerModel: false,
+        collision: {
+          fenderRadius: profile.contacts.fenderRadius,
+          fenderHeight: .64,
+          fenderBottomZ: .14,
+          hullVisible: false,
+          reference: "gunwale"
+        }
+      } : {
         waterlineZ: .02,
         playerDeckZ: 1.08,
         playerCabinRoofZ: 1.68,
+        playerMastTopZ: 13.8,
         staticDeckZ: .92,
         staticCabinRoofZ: 1.42,
         bowMarkerX: 3.92,
         rudderAxisLengthFactor: 1.2,
+        usePlayerModel: true,
         collision: {
           fenderRadius: .175,
           fenderHeight: .70,
@@ -2675,25 +2706,52 @@
           hullVisible: false,
           reference: "gunwale"
         }
-      },
-      gunwale: PortPhysics.DEFAULT_PROFILE.geometry.gunwale.map(point => ({ ...point })),
-      fenders: PortPhysics.DEFAULT_PROFILE.contacts.fenders.map(fender => ({
-        ...fender,
-        y: -fender.y,
-        attachment: {
-          ...fender.attachment,
-          y: -fender.attachment.y
-        }
-      })),
-      cleats: PortPhysics.DEFAULT_PROFILE.mooring.cleats.map(cleat => ({
-        ...cleat,
-        y: -cleat.y,
-        attachment: {
-          ...cleat.attachment,
-          y: -cleat.attachment.y
-        }
-      }))
-    };
+      };
+      return {
+        id: profile.id,
+        version: profile.version,
+        experimental: dufour,
+        name: profile.name,
+        length: profile.dimensions.lengthOverall,
+        waterline: profile.dimensions.waterline,
+        beam: profile.dimensions.beam,
+        draft: profile.dimensions.draft,
+        lightMass: profile.inertia.lightMass,
+        mass: profile.inertia.loadedMass,
+        keelMass: dufour ? 1300 : 1571,
+        enginePowerKw: profile.propulsion.enginePowerKw,
+        yawRadius: profile.inertia.yawRadius,
+        propellerX: profile.propulsion.x,
+        propellerZ: profile.propulsion.z,
+        propellerRadius: profile.propulsion.diameter / 2,
+        propellerBlades: profile.propulsion.blades,
+        rudderX: Math.min(...profile.rudders.map(rudder => rudder.x)),
+        rudders: profile.rudders.map(rudder => ({ ...rudder, y: -rudder.y })),
+        keelX: profile.keel.x,
+        rudderArea: profile.rudders.reduce((sum, rudder) => sum + rudder.area, 0),
+        keelArea: profile.keel.area,
+        maxRudder: Math.min(...profile.rudders.map(rudder => rudder.maxAngle)),
+        maxForwardThrust: dufour ? 1750 : 2350,
+        reverseRatio: dufour ? .60 : .62,
+        visual,
+        gunwale: profile.geometry.gunwale.map(point => ({ ...point })),
+        fenders: profile.contacts.fenders.map(fender => ({
+          ...fender,
+          y: -fender.y,
+          attachment: { ...fender.attachment, y: -fender.attachment.y }
+        })),
+        cleats: profile.mooring.cleats.map(cleat => ({
+          ...cleat,
+          y: -cleat.y,
+          attachment: { ...cleat.attachment, y: -cleat.attachment.y }
+        }))
+      };
+    }
+
+    const REFERENCE_BOAT_PROFILE = boatPresentation(PortPhysics.DEFAULT_PROFILE);
+    let activeVesselProfileId = storedVesselProfileId();
+    let activeVesselProfile = PortPhysics.COMPILED_PROFILES[activeVesselProfileId];
+    let BOAT_PROFILE = boatPresentation(activeVesselProfile);
 
     const VISUAL_THEMES = Object.freeze({
       dark: Object.freeze({
@@ -2947,7 +3005,7 @@
     };
 
     const calibration = {
-      mass: 6500,
+      mass: BOAT_PROFILE.mass,
       windage: 1,
       rudder: 1,
       lateral: 1,
@@ -3003,8 +3061,10 @@
     };
 
     const MOORING_POLICY = Object.freeze({
-      maximumLength: 20,
-      maximumLinesPerBoatCleat: PortPhysics.DEFAULT_PROFILE.mooring.maximumLinesPerBoatCleat,
+      get maximumLength() { return activeVesselProfile.mooring.maxLength; },
+      get maximumLinesPerBoatCleat() {
+        return activeVesselProfile.mooring.maximumLinesPerBoatCleat;
+      },
       defaultAttachSpeedKn: 0.6,
       detachSpeedKn: 3,
       tautTolerance: 0.02,
@@ -3787,10 +3847,10 @@
         ))) {
           errors.push("chaque bateau statique doit référencer une place et son catway");
         }
-        if (Math.abs(topology.referenceBoat?.length - BOAT_PROFILE.length) > .01) {
+        if (Math.abs(topology.referenceBoat?.length - REFERENCE_BOAT_PROFILE.length) > .01) {
           errors.push("longueur du bateau de référence incohérente");
         }
-        if (Math.abs(topology.referenceBoat?.beam - BOAT_PROFILE.beam) > .01) {
+        if (Math.abs(topology.referenceBoat?.beam - REFERENCE_BOAT_PROFILE.beam) > .01) {
           errors.push("largeur du bateau de référence incohérente");
         }
         const structures = [
@@ -3827,7 +3887,7 @@
         for (const scenario of Object.values(topology.scenarios || {})) {
           for (const line of scenario.initialMoorings || []) {
             if (
-              !BOAT_PROFILE.cleats.some(cleat => cleat.id === line.boatCleatId)
+              !REFERENCE_BOAT_PROFILE.cleats.some(cleat => cleat.id === line.boatCleatId)
               || !cleatIds.has(line.shoreCleatId)
             ) {
               errors.push(`aussière initiale ${line.id || "sans identifiant"} invalide`);
@@ -4219,6 +4279,7 @@
     }
 
     physicsSimulator = PortPhysics.createSimulator({
+      profile: activeVesselProfile,
       obstacles: physicsObstacles()
     });
 
@@ -4290,7 +4351,115 @@
       $("#propWalkDetails").textContent = t(helpKey);
     }
 
+    function syncVesselProfileControls() {
+      const select = $("#boatProfileSelect");
+      select.replaceChildren(...PortPhysics.COMMERCIAL_PROFILE_IDS.map(id => {
+        const profile = PortPhysics.COMPILED_PROFILES[id];
+        const label = id === DUFOUR_310_PROFILE_ID
+          ? `${profile.name} — ${t("ui.experimental")}`
+          : profile.name;
+        return new Option(label, id);
+      }));
+      select.value = activeVesselProfileId;
+      $("#boatProfileStatus").textContent = BOAT_PROFILE.experimental
+        ? t("ui.boat.profile.experimental.status")
+        : t("ui.boat.profile.reference.status");
+      const mass = $("#boatMass");
+      mass.min = String(Math.floor(BOAT_PROFILE.lightMass / 50) * 50);
+      mass.max = String(Math.ceil(Math.max(
+        BOAT_PROFILE.mass * 1.2,
+        BOAT_PROFILE.lightMass + 1200
+      ) / 50) * 50);
+      mass.step = "50";
+      mass.value = String(calibration.mass);
+    }
+
+    function resetProfileCalibration() {
+      calibration.mass = BOAT_PROFILE.mass;
+      calibration.windage = 1;
+      calibration.rudder = 1;
+      calibration.lateral = 1;
+      calibration.mooringAttachSpeedKn = .6;
+      environment.propWalk = .6;
+      $("#boatMass").value = String(calibration.mass);
+      $("#windage").value = "100";
+      $("#rudderEfficiency").value = "100";
+      $("#lateralResistance").value = "100";
+      $("#mooringAttachSpeed").value = "0.6";
+      $("#propWalk").value = "60";
+    }
+
+    function selectVesselProfile(id, { remember = true } = {}) {
+      const resolvedId = PortPhysics.COMMERCIAL_PROFILE_IDS.includes(id)
+        ? id
+        : DEFAULT_VESSEL_PROFILE_ID;
+      if (resolvedId === activeVesselProfileId) {
+        syncVesselProfileControls();
+        return false;
+      }
+      const wasPaused = controls.paused;
+      if (isPreparingDeparture()) cancelBoatPlacement();
+      activeVesselProfileId = resolvedId;
+      activeVesselProfile = PortPhysics.COMPILED_PROFILES[resolvedId];
+      BOAT_PROFILE = boatPresentation(activeVesselProfile);
+      resetProfileCalibration();
+      physicsSimulator = PortPhysics.createSimulator({
+        profile: activeVesselProfile,
+        obstacles: physicsObstacles()
+      });
+      syncPropulsorRotationControls();
+      syncVesselProfileControls();
+      const scenario = scenarios[ui.scenarioId] || scenarios.free;
+      let initialMoorings = scenario.initialMoorings || [];
+      let initialPendilles = scenario.initialPendilles || [];
+      let requiresPlacement = false;
+      try {
+        resetMotion(scenario.initial, initialMoorings, initialPendilles);
+      } catch {
+        initialMoorings = [];
+        initialPendilles = [];
+        resetMotion(scenario.initial);
+        requiresPlacement = true;
+      }
+      controls.paused = wasPaused;
+      syncPauseButton();
+      renderScenarioLesson();
+      updateControlReadouts();
+      understandingSourceRevision++;
+      frameBasis = null;
+      if (activeWorldRenderer === "native" && nativeWorldRenderer) {
+        try {
+          nativeWorldRenderer.replacePlayer(nativePlayerDefinition());
+          nativePlayerEnabled = true;
+        } catch (error) {
+          nativeInfrastructureError = String(error.message || error);
+          selectCanvasWorldRenderer();
+        }
+      }
+      const placementCheck = KJPBoatPlacement.createController({
+        physics: PortPhysics,
+        profile: physicsSimulator.getProfile(),
+        obstacles: physicsObstacles()
+      });
+      requiresPlacement ||= !placementCheck.inspect({
+        east: scenario.initial.x,
+        north: scenario.initial.y,
+        heading: coreHeadingFromScene(scenario.initial.heading)
+      }).valid;
+      if (remember) {
+        try { localStorage.setItem(VESSEL_PROFILE_STORAGE_KEY, resolvedId); } catch {}
+      }
+      if (requiresPlacement) {
+        showStageToast(msg("toast.boat.profile.incompatible"), "danger", 4200);
+        beginBoatPlacement();
+      } else {
+        showStageToast(msg("toast.boat.profile.selected", { value1: BOAT_PROFILE.name }), "ok", 2200);
+      }
+      return true;
+    }
+
     syncPropulsorRotationControls();
+    syncVesselProfileControls();
 
     const canvas = $("#scene");
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -5257,7 +5426,7 @@
       setCameraView("top");
       camera.target = [initial.x, initial.y, 0];
       camera.follow = false;
-      placement.disabled = $$("#sidebar input:not([type='file']), #propulsorRotationControls button, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
+      placement.disabled = $$("#sidebar input:not([type='file']), #sidebar select, #propulsorRotationControls button, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
         .map(element => ({ element, disabled: element.disabled }));
       placement.disabled.forEach(({ element }) => element.disabled = true);
       document.querySelector(".app").classList.add("placing-boat");
@@ -6549,19 +6718,19 @@
       const berthOpening = catwayPitch - Number(PORT_TOPOLOGY.layout.catwayWidth);
       const referenceTwoBoatClearance = (
         berthOpening
-        - 2 * BOAT_PROFILE.beam
+        - 2 * REFERENCE_BOAT_PROFILE.beam
         - 2 * expectedGap
       );
       const minimumBetweenBoats = Number(
         PORT_TOPOLOGY.layout.minimumBetweenBoats
       );
-      const thirdReferenceBoatFits = berthOpening >= 3 * BOAT_PROFILE.beam;
+      const thirdReferenceBoatFits = berthOpening >= 3 * REFERENCE_BOAT_PROFILE.beam;
       const catwayRows = PORT_TOPOLOGY.layout.catwayRows;
       const berthRows = PORT_TOPOLOGY.layout.berthRows;
 
       if (
         !Number.isFinite(catwayPitch)
-        || catwayPitch <= BOAT_PROFILE.beam * 2
+        || catwayPitch <= REFERENCE_BOAT_PROFILE.beam * 2
       ) {
         failures.push("entraxe des catways insuffisant pour deux bateaux");
       }
@@ -6663,8 +6832,8 @@
       for (const berth of harborNavigationConfig.trainingBerths) {
         inspectBerth({
           ...berth,
-          length: BOAT_PROFILE.length,
-          beam: BOAT_PROFILE.beam
+          length: REFERENCE_BOAT_PROFILE.length,
+          beam: REFERENCE_BOAT_PROFILE.beam
         }, "place pédagogique");
       }
 
@@ -6735,7 +6904,7 @@
     function harborNavigationReport() {
       const fairways = clonePortData(harborNavigationConfig.fairways);
       const designTurningDiameter = (
-        BOAT_PROFILE.length
+        REFERENCE_BOAT_PROFILE.length
         * harborNavigationConfig.designTurningDiameterFactor
       );
       const requiredFairway = (
@@ -6745,7 +6914,7 @@
       const minimumFairway = Math.min(...fairways.map(fairway => fairway.width));
       const berthOpening = harborNavigationConfig.berthOpening;
       const requiredBerthOpening = (
-        BOAT_PROFILE.beam
+        REFERENCE_BOAT_PROFILE.beam
         * harborNavigationConfig.requiredBerthBeamFactor
       );
       const outerTurningDepth = harborNavigationConfig.outerTurningDepth;
@@ -6770,8 +6939,8 @@
             x: lane.x,
             y: berth.y,
             heading: berth.heading,
-            length: BOAT_PROFILE.length,
-            beam: BOAT_PROFILE.beam
+            length: REFERENCE_BOAT_PROFILE.length,
+            beam: REFERENCE_BOAT_PROFILE.beam
           },
           { x: lane.exitX, y: berth.y, heading: berth.heading }
         ));
@@ -6782,8 +6951,8 @@
           lane.id,
           {
             ...lane.start,
-            length: BOAT_PROFILE.length,
-            beam: BOAT_PROFILE.beam
+            length: REFERENCE_BOAT_PROFILE.length,
+            beam: REFERENCE_BOAT_PROFILE.beam
           },
           lane.target
         )
@@ -6802,7 +6971,7 @@
       }
       if (
         outerTurningDepth
-        < BOAT_PROFILE.length * harborNavigationConfig.requiredTurningDepthLengthFactor
+        < REFERENCE_BOAT_PROFILE.length * harborNavigationConfig.requiredTurningDepthLengthFactor
       ) {
         failures.push(`bassin de retournement trop court: ${outerTurningDepth.toFixed(2)} m`);
       }
@@ -7089,16 +7258,24 @@
         * BOAT_PROFILE.visual.rudderAxisLengthFactor
       );
       const angle = controls.rudderActual;
-      const startLocal = [BOAT_PROFILE.rudderX, 0];
-      const endLocal = [
-        startLocal[0] + Math.cos(angle) * length,
-        startLocal[1] + Math.sin(angle) * length
-      ];
+      const axes = BOAT_PROFILE.rudders.map(rudder => {
+        const startLocal = [rudder.x, rudder.y];
+        const endLocal = [
+          startLocal[0] + Math.cos(angle) * length,
+          startLocal[1] + Math.sin(angle) * length
+        ];
+        return {
+          id: rudder.id,
+          start: localPoint(boatMotion, startLocal[0], startLocal[1], .16),
+          end: localPoint(boatMotion, endLocal[0], endLocal[1], .16),
+          startLocal,
+          endLocal
+        };
+      });
+      const primary = axes[0];
       return {
-        start: localPoint(boatMotion, startLocal[0], startLocal[1], .16),
-        end: localPoint(boatMotion, endLocal[0], endLocal[1], .16),
-        startLocal,
-        endLocal,
+        ...primary,
+        axes,
         length,
         angle
       };
@@ -7107,13 +7284,15 @@
     function addRudderAxis() {
       const axis = rudderAxisGeometry();
       const palette = visualPalette();
-      addWorldLine(
-        [axis.start, axis.end],
-        ui.mode === "understand" ? palette.semantic.rudderGuide : palette.semantic.rudder,
-        ui.mode === "understand" ? 1.2 : 2.6,
-        [11, 6],
-        12
-      );
+      for (const item of axis.axes) {
+        addWorldLine(
+          [item.start, item.end],
+          ui.mode === "understand" ? palette.semantic.rudderGuide : palette.semantic.rudder,
+          ui.mode === "understand" ? 1.2 : 2.6,
+          [11, 6],
+          12
+        );
+      }
     }
 
     function addBoatMesh(boat, player = false, palette = visualPalette(), options = {}) {
@@ -7169,7 +7348,12 @@
         if (radiograph) addWorldLine([...deck, deck[0]], boatOutline, 1.8, [], 8);
         if (!radiograph && boat.vesselType !== "motorboat") {
           const mastBase = pointFor(boat, .55, 0, deckZ + .02);
-          const mastTop = pointFor(boat, .55, 0, player ? 13.8 : 10.5);
+          const mastTop = pointFor(
+            boat,
+            .55,
+            0,
+            player ? BOAT_PROFILE.visual.playerMastTopZ : 10.5
+          );
           addWorldLine(
             [mastBase, mastTop],
             player ? boatPalette.mastPlayer : boatPalette.mastStatic,
@@ -7237,47 +7421,74 @@
             addWorldLine([bottom[index], top[index]], fenderOutline, contact ? 2.2 : 1, [], 7);
           }
         }
-        if (radiograph && includes("hull")) {
-          // Reprendre les deux faces des appendices de l'ancienne vue anatomie
-          // uniquement pour le secours Canvas ; le natif utilise le GLB réel.
+        if ((radiograph || !BOAT_PROFILE.visual.usePlayerModel) && includes("hull")) {
+          // Les appendices sont des silhouettes de présentation dérivées du
+          // profil actif. La physique reste exclusivement dans PortPhysics.
+          const organColor = palette.understand?.organ || boatPalette.playerSidePort;
+          const organOutline = palette.understand?.silhouetteStroke || boatOutline;
+          const propellerColor = palette.understand?.propeller || boatPalette.outline;
+          const keelChord = BOAT_PROFILE.visual.usePlayerModel
+            ? 2
+            : BOAT_PROFILE.keelArea / physicsSimulator.getProfile().keel.span;
           const keelSide = side => [
-            pointFor(boat, 1.05, side * .2, -.15),
-            pointFor(boat, -.95, side * .2, -.15),
-            pointFor(boat, -1.15, side * .14, -1.78),
-            pointFor(boat, .35, side * .14, -1.92)
+            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? 1.05 : BOAT_PROFILE.keelX + keelChord * .48, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
+            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -.95 : BOAT_PROFILE.keelX - keelChord * .52, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
+            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -1.15 : BOAT_PROFILE.keelX - keelChord * .42, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.78 : -BOAT_PROFILE.draft),
+            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? .35 : BOAT_PROFILE.keelX + keelChord * .30, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.92 : -BOAT_PROFILE.draft)
           ];
           const keelPort = keelSide(1), keelStarboard = keelSide(-1);
-          addPolygon(keelPort, palette.understand.organ, palette.understand.silhouetteStroke, 1.2, .03);
-          addPolygon(keelStarboard, palette.understand.organ, palette.understand.silhouetteStroke, 1.2, .03);
+          addPolygon(keelPort, organColor, organOutline, 1.2, .03);
+          addPolygon(keelStarboard, organColor, organOutline, 1.2, .03);
           addPolygon([keelPort[2], keelStarboard[2], keelStarboard[3], keelPort[3]],
-            palette.understand.organ, false);
-          const rudderSide = side => [
-            pointFor(boat, -3.8, side * .12, -.2),
-            pointFor(boat, -4.72, side * .12, -.35),
-            pointFor(boat, -4.55, side * .1, -1.55),
-            pointFor(boat, -3.95, side * .1, -1.35)
-          ];
-          addPolygon(rudderSide(1), palette.understand.organ, palette.understand.silhouetteStroke, 1.2, .04);
-          addPolygon(rudderSide(-1), palette.understand.organ, palette.understand.silhouetteStroke, 1.2, .04);
+            organColor, false);
+          for (const rudder of BOAT_PROFILE.rudders) {
+            if (BOAT_PROFILE.visual.usePlayerModel) {
+              const rudderSide = side => [
+                pointFor(boat, -3.8, side * .12, -.2),
+                pointFor(boat, -4.72, side * .12, -.35),
+                pointFor(boat, -4.55, side * .1, -1.55),
+                pointFor(boat, -3.95, side * .1, -1.35)
+              ];
+              addPolygon(rudderSide(1), organColor, organOutline, 1.2, .04);
+              addPolygon(rudderSide(-1), organColor, organOutline, 1.2, .04);
+              continue;
+            }
+            const halfThickness = BOAT_PROFILE.rudders.length > 1 ? .055 : .12;
+            const leading = rudder.x + rudder.meanChord * rudder.stockChordFraction;
+            const trailing = leading - rudder.meanChord;
+            const rootZ = -.20;
+            const tipZ = rootZ - rudder.span;
+            const rudderSide = side => [
+              pointFor(boat, leading, rudder.y + side * halfThickness, rootZ),
+              pointFor(boat, trailing, rudder.y + side * halfThickness, rootZ - .08),
+              pointFor(boat, trailing + rudder.meanChord * .16, rudder.y + side * halfThickness * .8, tipZ),
+              pointFor(boat, leading - rudder.meanChord * .12, rudder.y + side * halfThickness * .8, tipZ + .08)
+            ];
+            addPolygon(rudderSide(1), organColor, organOutline, 1.2, .04);
+            addPolygon(rudderSide(-1), organColor, organOutline, 1.2, .04);
+          }
           addWorldLine([
             pointFor(boat, -2.35, 0, -.34),
-            pointFor(boat, BOAT_PROFILE.propellerX, 0, -.55)
-          ], palette.understand.propeller, 2, [], 14);
+            pointFor(boat, BOAT_PROFILE.propellerX, 0,
+              BOAT_PROFILE.visual.usePlayerModel ? -.55 : BOAT_PROFILE.propellerZ)
+          ], propellerColor, 2, [], 14);
           const bladeOutline = [
             [.16, -.14], [.43, -.34], [.82, -.25], [1, .02],
             [.87, .26], [.53, .34], [.20, .20]
           ];
-          for (let blade = 0; blade < 3; blade++) {
-            const angle = blade * Math.PI * 2 / 3;
+          const bladeCount = BOAT_PROFILE.visual.usePlayerModel ? 3 : BOAT_PROFILE.propellerBlades;
+          const propellerRadius = BOAT_PROFILE.visual.usePlayerModel ? .34 : BOAT_PROFILE.propellerRadius;
+          const propellerZ = BOAT_PROFILE.visual.usePlayerModel ? -.55 : BOAT_PROFILE.propellerZ;
+          for (let blade = 0; blade < bladeCount; blade++) {
+            const angle = blade * Math.PI * 2 / bladeCount;
             const c = Math.cos(angle), s = Math.sin(angle);
             const shape = bladeOutline.map(([radial, tangent]) => pointFor(
               boat,
               BOAT_PROFILE.propellerX,
-              .34 * (radial * c - tangent * s),
-              -.55 + .34 * (radial * s + tangent * c)
+              propellerRadius * (radial * c - tangent * s),
+              propellerZ + propellerRadius * (radial * s + tangent * c)
             ));
-            addPolygon(shape, palette.understand.propeller,
-              palette.understand.silhouetteStroke, 1, .05);
+            addPolygon(shape, propellerColor, organOutline, 1, .05);
           }
         }
       }
@@ -7849,6 +8060,8 @@
     }
 
     function nativePlayerDefinition() {
+      const dufourModel = BOAT_PROFILE.id === DUFOUR_310_PROFILE_ID;
+      const useModel = BOAT_PROFILE.visual.usePlayerModel || dufourModel;
       const owners = [];
       const collect = (family, id, palette, parts) => {
         const previous = worldGeometryCapture;
@@ -7876,13 +8089,19 @@
       for (const [index] of BOAT_PROFILE.fenders.entries()) {
         collect("player-fender", String(index), nativePlayerPaletteRoles(index), [`fender:${index}`]);
       }
+      if (!useModel) {
+        collect("player", "profile-silhouette", nativePlayerPaletteRoles(), ["hull"]);
+      }
       return {
         owners,
         palette: nativePlayerPalette([]),
         player: {
-          model: {
+          model: useModel ? {
+            asset: dufourModel ? "dufour-310-gl-2014-dimfix-rudders" : "sun-odyssey-36i",
             role: "boat.playerHull",
-            position: [0, 0, BOAT_PROFILE.visual.waterlineZ],
+            // Recentrage du milieu de coque mesuré (-0,125 m dans le GLB)
+            // sur le milieu du rail KJP (+0,0825 m), sans toucher à la pose.
+            position: [dufourModel ? .2075 : 0, 0, BOAT_PROFILE.visual.waterlineZ],
             rotation: [Math.PI / 2, Math.PI / 2, 0],
             scale: 1,
             clipBelowZ: BOAT_PROFILE.visual.waterlineZ,
@@ -7895,22 +8114,25 @@
             failLoad: worldRendererParameters.has("test")
               && worldRendererParameters.has("failNativePlayerModel"),
             reference: { length: BOAT_PROFILE.length, beam: BOAT_PROFILE.beam }
-          },
+          } : null,
           understanding: {
-            propellerPosition: [BOAT_PROFILE.propellerX, 0, -.55],
-            propellerRadius: .34,
+            propellerPosition: [BOAT_PROFILE.propellerX, 0, BOAT_PROFILE.propellerZ],
+            propellerRadius: BOAT_PROFILE.propellerRadius,
             propellerColor: visualPalette().understand.propeller,
             forceOutlineColor: visualPalette().understand.forceOutline,
             centerOfMassColor: visualPalette().understand.centerOfMass,
             pivotWaterColor: visualPalette().semantic.pivotWater,
             pivotGroundColor: visualPalette().semantic.pivotGround
           },
-          fenderWidths: [
+          fenderWidths: BOAT_PROFILE.visual.usePlayerModel ? [
             { regular: 1.7, contact: 2.8 },
             { regular: 1.3, contact: 2.4 },
             { regular: 1, contact: 2.2 },
             { regular: 1.1, contact: 2.2 }
-          ]
+          ] : BOAT_PROFILE.fenders.map((_, index) => ({
+            regular: Math.max(1, 1.7 - index * .17),
+            contact: Math.max(2.2, 2.8 - index * .14)
+          }))
         }
       };
     }
@@ -8936,9 +9158,12 @@
 
       if (physicsView.propulsion.inducedVelocity > .08) {
         const jetLength = clamp(physicsView.propulsion.inducedVelocity * .75, .5, 3.2);
+        const washEndX = BOAT_PROFILE.experimental
+          ? BOAT_PROFILE.propellerX - jetLength
+          : BOAT_PROFILE.rudderX - jetLength;
         for (const offset of [-.32, 0, .32]) {
           const start = localPoint(boatMotion, BOAT_PROFILE.propellerX, offset, -.45);
-          const end = localPoint(boatMotion, BOAT_PROFILE.rudderX - jetLength, offset * 1.6, -.45);
+          const end = localPoint(boatMotion, washEndX, offset * 1.6, -.45);
           const a = project(start);
           const b = project(end);
           if (!a || !b) continue;
@@ -10056,6 +10281,9 @@
     }));
 
     $("#scenarioSelect").addEventListener("change", event => applyScenario(event.target.value));
+    $("#boatProfileSelect").addEventListener("change", event => {
+      selectVesselProfile(event.target.value);
+    });
     $("#strongWindReplay").addEventListener("click", replayStrongWind);
     $("#loadPortButton").addEventListener("click", () => $("#portFileInput").click());
     $("#portFileInput").addEventListener("change", event => {
@@ -11037,6 +11265,7 @@
         diagnostics: { ...core.diagnostics },
         massMatrix: core.massMatrix.map(row => [...row]),
         physicsVersion: PortPhysics.VERSION,
+        vesselProfileId: activeVesselProfileId,
         forceParts: forceAccumulator.parts.map(part => ({ ...part }))
       };
     }
@@ -11102,7 +11331,14 @@
         start: [...axis.start],
         end: [...axis.end],
         startLocal: [...axis.startLocal],
-        endLocal: [...axis.endLocal]
+        endLocal: [...axis.endLocal],
+        axes: axis.axes.map(item => ({
+          id: item.id,
+          start: [...item.start],
+          end: [...item.end],
+          startLocal: [...item.startLocal],
+          endLocal: [...item.endLocal]
+        }))
       };
     }
 
@@ -11513,6 +11749,19 @@
             communityPort
           };
         },
+        selectVesselProfile(id) {
+          selectVesselProfile(String(id));
+          return testSnapshot();
+        },
+        vesselProfileReport: () => ({
+          activeId: activeVesselProfileId,
+          commercialIds: [...PortPhysics.COMMERCIAL_PROFILE_IDS],
+          presentation: structuredClone(BOAT_PROFILE),
+          storedId: (() => {
+            try { return localStorage.getItem(VESSEL_PROFILE_STORAGE_KEY); }
+            catch { return null; }
+          })()
+        }),
         displayScaleReport,
         unitCoherenceReport,
         cameraReport,
@@ -11776,6 +12025,7 @@
       }
       renderScenarioLesson();
       syncPropulsorRotationControls();
+      syncVesselProfileControls();
       updateControlReadouts();
       setVisualTheme(ui.visualTheme);
       setTimeScale(ui.timeScale);

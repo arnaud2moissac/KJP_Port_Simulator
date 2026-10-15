@@ -97,7 +97,7 @@ test("French and English are complete offline and language switches preserve sta
         assert.notEqual(tooltipSwitch.french, tooltipSwitch.before);
         assert.equal(tooltipSwitch.after, tooltipSwitch.before);
         await assertEnglish();
-        await page.evaluate(() => document.querySelector("#expertDetails").open = true);
+        await page.evaluate(() => document.querySelector("#advancedDetails").open = true);
         await assertEnglish();
         await page.locator("#portInfoButton").click();
         await assertEnglish();
@@ -111,7 +111,7 @@ test("French and English are complete offline and language switches preserve sta
         await assertEnglish();
         await page.locator("#readmeHelpButton").click();
         const guide = await page.locator(".project-help-content").textContent();
-        assert.match(guide, /Understanding Expert calibration/);
+        assert.match(guide, /Understanding Advanced settings/);
         assert.match(guide, /French content/);
         assert.equal(await page.locator(".project-help-content img").count(), 4);
         await assertEnglish();
@@ -254,7 +254,7 @@ test("Breton localizes scenarios, live messages and the offline guide without ch
     });
     assert.notEqual(tooltip.french, tooltip.before);
     assert.equal(tooltip.after, tooltip.before);
-    await page.evaluate(() => document.querySelector("#expertDetails").open = true);
+    await page.evaluate(() => document.querySelector("#advancedDetails").open = true);
     await assertBreton();
     await page.locator("#portInfoButton").click();
     assert.equal(await page.locator("#portInfoName").textContent(), breton["port.builtIn.name"]);
@@ -266,7 +266,7 @@ test("Breton localizes scenarios, live messages and the offline guide without ch
     await assertBreton();
     await page.locator("#readmeHelpButton").click();
     const guide = await page.locator(".project-help-content").textContent();
-    assert.match(guide, /Kompren ar « Kalibradur arbennik »/);
+    assert.match(guide, /Kompren an « Arventennoù araokaet »/);
     assert.match(guide, /endalc'had e galleg/);
     assert.match(guide, /Babourzh \/ Tribourzh/);
     assert.equal(await page.locator(".project-help-content img").count(), 4);

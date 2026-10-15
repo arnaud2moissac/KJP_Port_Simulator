@@ -125,6 +125,14 @@ références visuelles historiques n'ont pas été modifiées pour obtenir un su
 
 ## Joueur et mode Comprendre
 
+L'intégration visuelle du Dufour 310 fournie le 15 octobre 2026 réutilise ce
+chemin. Le dérivé `kjp_dufour_310_gl_2014_dimfix_rudders.glb` est embarqué et
+chargé une fois par ressource, avec un calage rigide propre au visuel. Il est
+actif lorsque le profil Dufour est sélectionné. Seuls ses deux safrans ont été
+réduits hors ligne à 0,82 m / 0,31 m² sur demande de l'utilisateur. Le fichier
+dimfix fourni est conservé intact. Les mesures et limites sont dans la
+[recette Dufour](dufour-310-glb.md). La physique reste indépendante.
+
 Le GLB joueur est chargé une fois, sa géométrie reste partagée et son calage local
 est conservé. Les équipements et cibles interactives utilisent les positions KJP.
 Le rail de fargue du profil reste la référence du contour affiché et des

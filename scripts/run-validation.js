@@ -74,7 +74,7 @@ function plan(argv) {
     const stages = [];
     if (product !== "generator") stages.push(check("simulator"), { label: "i18n:catalogs", command: [process.execPath, "scripts/check-simulator-i18n.js"] }, physics, i18n, browserSelectionStage());
     if (product !== "simulator") stages.push(check("generator"), ports, { label: "generator:all", files: ["tests/port-generator.test.js"], expected: browserSelection("generator").map(r => `[${r.product}:${r.id}] ${r.name}`) });
-    if (product !== "generator") stages.push(tests("renderer:qualification", ["tests/native-rendering.test.js", "tests/native-world-renderer.test.js", "tests/native-player.test.js", "tests/native-renderer-activation.test.js", "tests/native-renderer-qualification.test.js", "tests/understanding-rotation.test.js"]));
+    if (product !== "generator") stages.push(tests("renderer:qualification", ["tests/native-rendering.test.js", "tests/native-world-renderer.test.js", "tests/native-player.test.js", "tests/dufour-player.test.js", "tests/native-renderer-activation.test.js", "tests/native-renderer-qualification.test.js", "tests/understanding-rotation.test.js"]));
     return stages;
   }
   throw new Error("Choose --route patch-local|ui-check|physics-check|release-check, or --suite");
