@@ -228,13 +228,29 @@
     }
 
     .brand-title {
+      display: block;
+      max-width: 100%;
+      min-height: 0;
       margin-top: 2px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
       overflow: hidden;
       font-size: 15px;
       font-weight: 650;
       letter-spacing: .015em;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .brand-title:hover {
+      border: 0;
+      background: transparent;
+      color: var(--cyan);
+      text-decoration: underline;
+      text-underline-offset: 3px;
     }
 
     .mode-tabs,
@@ -2057,7 +2073,7 @@
         <img class="brand-mark" src="__KJP_LOGO_DATA_URI__" alt="">
         <div class="brand-copy">
           <div class="brand-kicker">KJP Port Simulator</div>
-          <div class="brand-title" data-i18n="ui.understand.your.boat.in.harbour">comprendre son bateau au port</div>
+          <button type="button" class="brand-title" id="boatProfileShortcut" aria-controls="advancedDetails" title="Profil du bateau" data-i18n-attr="title:ui.boat.profile"></button>
         </div>
       </div>
 
@@ -2712,6 +2728,7 @@
         version: profile.version,
         experimental: dufour,
         name: profile.name,
+        descriptionKey: dufour ? "ui.boat.description.dufour310" : "ui.boat.description.sun36",
         length: profile.dimensions.lengthOverall,
         waterline: profile.dimensions.waterline,
         beam: profile.dimensions.beam,
@@ -4361,6 +4378,7 @@
         return new Option(label, id);
       }));
       select.value = activeVesselProfileId;
+      $("#boatProfileShortcut").textContent = t(BOAT_PROFILE.descriptionKey);
       $("#boatProfileStatus").textContent = BOAT_PROFILE.experimental
         ? t("ui.boat.profile.experimental.status")
         : t("ui.boat.profile.reference.status");
@@ -10283,6 +10301,17 @@
     $("#scenarioSelect").addEventListener("change", event => applyScenario(event.target.value));
     $("#boatProfileSelect").addEventListener("change", event => {
       selectVesselProfile(event.target.value);
+    });
+    $("#boatProfileShortcut").addEventListener("click", () => {
+      if ($("#sidebarToggle").getAttribute("aria-expanded") !== "true") {
+        $("#sidebarToggle").click();
+      }
+      $("#advancedDetails").open = true;
+      requestAnimationFrame(() => {
+        const select = $("#boatProfileSelect");
+        select.closest(".control-row").scrollIntoView({ block: "start", inline: "nearest" });
+        select.focus({ preventScroll: true });
+      });
     });
     $("#strongWindReplay").addEventListener("click", replayStrongWind);
     $("#loadPortButton").addEventListener("click", () => $("#portFileInput").click());

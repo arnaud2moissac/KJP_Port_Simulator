@@ -3825,6 +3825,14 @@ browserCase("simulator:controls.59", async ({ page }) => {
 browserCase("simulator:controls.60", async ({ page, context }) => {
   const dufourId = "dufour-310-gl-2014-deep-keel-experimental";
   const sunId = "sun-odyssey-36i-pedagogical";
+  const assertHeaderDescription = async (key, name) => {
+    for (const locale of ["en", "br", "fr"]) {
+      await page.evaluate(code => window.__PORTANCE_TEST__.selectLocale(code), locale);
+      const catalog = require(`../src/simulateur-port/locales/${locale}.json`).messages;
+      assert.equal(await page.locator("#boatProfileShortcut").textContent(), catalog[key]);
+      assert.match(await page.locator("#boatProfileSelect option:checked").textContent(), new RegExp(name));
+    }
+  };
   const infrastructure = report => report.resources
     .filter(resource => !String(resource.family || "").startsWith("player"))
     .map(resource => ({
@@ -3832,7 +3840,18 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
       role: resource.role,
       geometry: resource.geometry
     }));
-  await page.locator("#advancedDetails summary").click();
+  await assertHeaderDescription("ui.boat.description.sun36", "Sun Odyssey 36i");
+  await page.locator("#sidebarToggle").click();
+  await page.locator("#boatProfileShortcut").click();
+  await page.waitForFunction(() => {
+    const sidebar = document.querySelector("#sidebar").getBoundingClientRect();
+    const select = document.querySelector("#boatProfileSelect");
+    const bounds = select.getBoundingClientRect();
+    return document.querySelector("#advancedDetails").open
+      && document.querySelector("#sidebarToggle").getAttribute("aria-expanded") === "true"
+      && document.activeElement === select
+      && bounds.top >= sidebar.top && bounds.bottom <= sidebar.bottom;
+  });
   await page.evaluate(() => window.__PORTANCE_TEST__.reset(
     { x: 32, y: -32, heading: -Math.PI / 2 },
     { windSpeedKn: 9, windFromDeg: 215, currentSpeedKn: .8, currentFromDeg: 35 }
@@ -3873,6 +3892,12 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   assert.equal(await page.locator("#boatMass").getAttribute("min"), "4900");
   assert.equal(await page.locator("#boatMass").getAttribute("max"), "6500");
   assert.match(await page.locator("#boatProfileStatus").textContent(), /plausible mais non calibré/i);
+  await assertHeaderDescription("ui.boat.description.dufour310", "Dufour 310 Grand Large 2014");
+  await page.locator("#advancedDetails summary").click();
+  await page.locator("#boatProfileShortcut").focus();
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(() => document.querySelector("#advancedDetails").open
+    && document.activeElement === document.querySelector("#boatProfileSelect"));
 
   await page.selectOption("#boatProfileSelect", sunId);
   await page.waitForFunction(() => window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready);
@@ -3900,6 +3925,7 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   await page.reload();
   await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, dufourId);
   assert.equal(await page.locator("#boatProfileSelect").inputValue(), dufourId);
+  assert.equal(await page.locator("#boatProfileShortcut").textContent(), "monocoque 32', bi-safran, mono-quille");
 
   await page.evaluate(() => localStorage.setItem("kjp.vesselProfile.v1", "profil-inconnu"));
   await page.reload();

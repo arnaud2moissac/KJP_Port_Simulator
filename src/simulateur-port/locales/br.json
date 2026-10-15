@@ -259,6 +259,8 @@
     "ui.advanced.commands": "Urzhioù",
     "ui.advanced.boat": "Bag",
     "ui.boat.profile": "Profil ar vag",
+    "ui.boat.description.sun36": "unskoueg 36', ur stur, ur c'hil",
+    "ui.boat.description.dufour310": "unskoueg 32', daou stur, ur c'hil",
     "ui.boat.profile.experimental.status": "Profil arnodel · gwirheñvel met nann-kalibret · Dufour 310 GL 2014, kil 1,90 m, daou stur.",
     "ui.boat.profile.reference.status": "Profil dave kadarnaet · Sun Odyssey 36i.",
     "ui.experimental": "arnodel",

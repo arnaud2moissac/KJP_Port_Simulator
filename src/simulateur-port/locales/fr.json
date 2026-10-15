@@ -259,6 +259,8 @@
     "ui.advanced.commands": "Commandes",
     "ui.advanced.boat": "Bateau",
     "ui.boat.profile": "Profil du bateau",
+    "ui.boat.description.sun36": "monocoque 36', mono-safran, mono-quille",
+    "ui.boat.description.dufour310": "monocoque 32', bi-safran, mono-quille",
     "ui.boat.profile.experimental.status": "Profil expérimental · plausible mais non calibré · Dufour 310 GL 2014, quille 1,90 m, bi-safran.",
     "ui.boat.profile.reference.status": "Profil de référence validé · Sun Odyssey 36i.",
     "ui.experimental": "expérimental",

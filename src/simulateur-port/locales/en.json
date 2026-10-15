@@ -259,6 +259,8 @@
     "ui.advanced.commands": "Controls",
     "ui.advanced.boat": "Boat",
     "ui.boat.profile": "Boat profile",
+    "ui.boat.description.sun36": "36' monohull, single rudder, single keel",
+    "ui.boat.description.dufour310": "32' monohull, twin rudders, single keel",
     "ui.boat.profile.experimental.status": "Experimental profile · plausible but uncalibrated · 2014 Dufour 310 GL, 1.90 m keel, twin rudders.",
     "ui.boat.profile.reference.status": "Validated reference profile · Sun Odyssey 36i.",
     "ui.experimental": "experimental",
