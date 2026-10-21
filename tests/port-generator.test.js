@@ -803,6 +803,97 @@ browserCase("generator:editing.18", async ({ page, browser, context, runtimeErro
 
 });
 
+browserCase("generator:measurement.01", async ({ page }) => {
+    await page.route(/^https?:\/\//, route => route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64")
+    }));
+    await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      api.loadDemonstration();
+      api.select("pontoon-main");
+    });
+    await page.waitForTimeout(350);
+    await page.locator("#orthoLayerToggle").check();
+    await page.locator("#enableMapsButton").click();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.layers().orthophoto), true);
+    const before = await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        handles: api.rectangleHandleReport() };
+    });
+    const box = await page.locator("#map").boundingBox();
+    const [first, last] = [-1, 1].map(sign => before.handles.handles.find(h => h.sign === sign).pixel);
+    const along = fraction => ({
+      x: box.x + first[0] + fraction * (last[0] - first[0]),
+      y: box.y + first[1] + fraction * (last[1] - first[1])
+    });
+    const start = along(0.25), end = along(0.375);
+    await page.locator('[data-tool="measure"]').click();
+    await page.mouse.click(start.x, start.y);
+    await page.mouse.move(end.x, end.y, { steps: 3 });
+    let measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, false);
+    assert.ok(Math.abs(measurement.distance - 10) < 0.2, "aperçu en mètres terrain, sans facteur Mercator");
+    await page.mouse.click(end.x, end.y);
+    await page.waitForTimeout(300);
+    measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true);
+    assert.equal(measurement.features, 1);
+    assert.ok(Math.abs(measurement.distance - 10) < 0.2);
+    assert.match(await page.locator("#measurementDistance").textContent(), /m$/);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), true);
+    assert.equal(await page.locator("#useMeasurementSpacing").isEnabled(), true);
+    await page.locator("#useMeasurementSpacing").click();
+    assert.equal(await page.locator("#catwayMode").inputValue(), "spacing");
+    assert.equal(Number(await page.locator("#catwaySpacing").inputValue()), Math.round(measurement.distance * 10) / 10);
+    const after = await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        selected: api.renderReport().selected, exported: api.exportText() };
+    });
+    assert.deepEqual(after.document, before.document);
+    assert.deepEqual(after.camera, before.camera);
+    assert.deepEqual(after.history, before.history);
+    assert.equal(after.selected, "pontoon-main");
+    assert.doesNotMatch(after.exported, /measurement/);
+    await page.locator("#clearMeasurement").click();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), false);
+});
+
+browserCase("generator:measurement.02", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.locator("#collapseLeft").tap();
+    await page.locator("#collapseRight").tap();
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+    await page.waitForTimeout(350);
+    const box = await page.locator("#map").boundingBox();
+    const start = { x: box.x + box.width * 0.25, y: box.y + box.height * 0.25 };
+    const end = { x: box.x + box.width * 0.65, y: box.y + box.height * 0.35 };
+    await page.locator('[data-tool="measure"]').tap();
+    await page.touchscreen.tap(start.x, start.y);
+    await page.touchscreen.tap(end.x, end.y);
+    let measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true, JSON.stringify({ measurement, box, start, end }));
+    assert.ok(measurement.distance > 2);
+    await page.locator('[data-tool="measure"]').tap();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    await page.touchscreen.tap(start.x, start.y);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), false);
+    await page.locator('[data-tool="measure"]').tap();
+    await page.touchscreen.tap(start.x, start.y);
+    await page.touchscreen.tap(start.x, start.y);
+    measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true);
+    assert.ok(measurement.distance < 0.01);
+    assert.equal(await page.locator("#useMeasurementSpacing").isEnabled(), false);
+    await page.locator("#clearMeasurement").tap();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+});
+
 browserCase("generator:maps.19", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#orthoLayerToggle").check();
     await page.locator("#orthoOpacity").fill("31");

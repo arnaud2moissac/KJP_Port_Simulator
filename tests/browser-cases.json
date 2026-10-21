@@ -601,5 +601,18 @@
     "group": "placement",
     "id": "placement.10",
     "name": "Annuler pendant Amarrer retrouve exactement le simulateur précédent"
+  },
+  {
+    "product": "generator",
+    "id": "measurement.01",
+    "group": "measurement",
+    "name": "la mesure métrique sur satellite renseigne l’entraxe sans modifier le port"
+  },
+  {
+    "product": "generator",
+    "id": "measurement.02",
+    "group": "measurement",
+    "name": "la mesure tactile peut être recommencée, annulée et effacée",
+    "hasTouch": true
   }
 ]

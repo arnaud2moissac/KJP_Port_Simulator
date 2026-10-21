@@ -261,6 +261,26 @@ input[type="range"] { min-height: 22px; padding: 0; border: 0; background: trans
 }
 .map-scale-note { left: 12px; }
 .selection-metrics { right: 12px; max-width: 300px; }
+.measurement-panel {
+  position: absolute;
+  z-index: 7;
+  bottom: 58px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(250,249,244,.96);
+  box-shadow: var(--shadow);
+}
+.measurement-panel strong { display: block; color: var(--accent-dark); font-size: 20px; }
+.measurement-panel span { color: var(--ink-soft); font-size: 11px; }
+.measurement-panel .button { min-height: 44px; }
+.map.measuring { cursor: crosshair; }
 .ol-zoom { top: 10px; left: 10px; }
 .ol-control button { color: var(--ink); background: rgba(250,249,244,.9); }
 .ol-attribution { font-size: 9px; }

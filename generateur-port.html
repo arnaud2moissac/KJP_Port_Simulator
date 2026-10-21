@@ -820,6 +820,37 @@ input[type=range] {
   right: 12px;
   max-width: 300px;
 }
+.measurement-panel {
+  position: absolute;
+  z-index: 7;
+  bottom: 58px;
+  left: 12px;
+  max-width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(250, 249, 244, .96);
+  box-shadow: var(--shadow);
+}
+.measurement-panel strong {
+  display: block;
+  color: var(--accent-dark);
+  font-size: 20px;
+}
+.measurement-panel span {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+.measurement-panel .button {
+  min-height: 44px;
+}
+.map.measuring {
+  cursor: crosshair;
+}
 .ol-zoom {
   top: 10px;
   left: 10px;
@@ -1240,6 +1271,9 @@ input[type=range] {
       <button type="button" class="tool active" data-tool="select" title="Sélectionner (V)">
         <span aria-hidden="true">↖</span><small>Sélection</small>
       </button>
+      <button type="button" class="tool" data-tool="measure" title="Mesurer la distance entre deux points">
+        <span aria-hidden="true">↔</span><small>Mesurer</small>
+      </button>
       <button type="button" class="tool" data-tool="pontoon" title="Placer un ponton en cliquant ses deux extrémités">
         <span aria-hidden="true">▬</span><small>Ponton</small>
       </button>
@@ -1335,6 +1369,14 @@ input[type=range] {
       <div id="map" class="map" role="application" aria-label="Carte d’édition métrique du port"></div>
       <div class="map-scale-note" id="mapScaleNote">Repère local · 1 unité = 1 m</div>
       <div class="selection-metrics" id="selectionMetrics" hidden></div>
+      <div class="measurement-panel" id="measurementPanel" hidden>
+        <div role="status" aria-live="polite">
+          <strong id="measurementDistance"></strong>
+          <span id="measurementHint"></span>
+        </div>
+        <button type="button" class="button ghost" id="useMeasurementSpacing" hidden>Utiliser comme entraxe</button>
+        <button type="button" class="button ghost" id="clearMeasurement">Effacer</button>
+      </div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <button type="button" class="panel-reopen panel-reopen-left" id="expandLeft"
         aria-label="Afficher le panneau de localisation" aria-controls="locationPanel">›</button>
@@ -1478,7 +1520,7 @@ input[type=range] {
         </div>
         <div class="two-columns">
           <label id="catwayCountField"><span>Nombre</span><input id="catwayCount" type="number" min="1" max="80" value="8"></label>
-          <label id="catwaySpacingField"><span>Entraxe (m)</span><input id="catwaySpacing" type="number" min="2" step="0.5" value="10"></label>
+          <label id="catwaySpacingField"><span>Entraxe (m)</span><input id="catwaySpacing" type="number" min="2" step="0.1" value="10"></label>
         </div>
         <div class="two-columns">
           <label><span>Marge début</span><input id="catwayMarginStart" type="number" min="0" step="0.5" value="4"></label>
@@ -42173,6 +42215,7 @@ out tags geom;`;
   }));
   var activeTool = "select";
   var drawInteraction = null;
+  var measurement = null;
   var mapsEnabled = false;
   var analyzedResponses = [];
   var candidates = [];
@@ -42302,6 +42345,7 @@ out tags geom;`;
   var decompositionSource = new Vector_default2();
   var entryDraftSource = new Vector_default2();
   var editHandleSource = new Vector_default2();
+  var measurementSource = new Vector_default2();
   var palette = Object.freeze({
     pontoon: { fill: "rgba(250,248,239,.94)", stroke: "#53676c" },
     catway: { fill: "rgba(239,236,222,.96)", stroke: "#66787c" },
@@ -42623,6 +42667,57 @@ out tags geom;`;
     },
     zIndex: 35
   });
+  function measurementLength(coordinates2) {
+    const start = mapToLocal(coordinates2[0]);
+    const end = mapToLocal(coordinates2[coordinates2.length - 1]);
+    return Math.hypot(end.east - start.east, end.north - start.north);
+  }
+  function measurementStyles(feature) {
+    const geometry = feature.getGeometry();
+    const marker = (point) => new Style_default({
+      geometry: point,
+      image: new Circle_default({
+        radius: 5,
+        fill: new Fill_default({ color: "#fff" }),
+        stroke: new Stroke_default({ color: "#08758a", width: 2 })
+      })
+    });
+    if (!(geometry instanceof LineString_default)) return marker(geometry);
+    const coordinates2 = geometry.getCoordinates();
+    return [
+      new Style_default({ stroke: new Stroke_default({ color: "#fff", width: 6 }) }),
+      new Style_default({
+        stroke: new Stroke_default({ color: "#08758a", width: 3, lineDash: [8, 5] }),
+        text: new Text_default({
+          text: `${format(measurementLength(coordinates2))} m`,
+          offsetY: -22,
+          font: "700 13px sans-serif",
+          padding: [5, 7, 5, 7],
+          fill: new Fill_default({ color: "#173238" }),
+          backgroundFill: new Fill_default({ color: "rgba(255,255,255,.96)" })
+        })
+      }),
+      marker(new Point_default(coordinates2[0])),
+      marker(new Point_default(coordinates2[coordinates2.length - 1]))
+    ];
+  }
+  var measurementLayer = new Vector_default({
+    source: measurementSource,
+    style: measurementStyles,
+    zIndex: 36
+  });
+  function renderMeasurement() {
+    $("#measurementPanel").hidden = activeTool !== "measure" && !measurement?.complete;
+    $("#measurementDistance").textContent = measurement ? `${format(measurement.distance)} m` : "";
+    $("#measurementHint").textContent = measurement?.complete ? "Distance entre les deux points" : measurement ? "Cliquez sur le second point." : "Cliquez sur le premier point.";
+    $("#useMeasurementSpacing").hidden = !measurement?.complete;
+    $("#useMeasurementSpacing").disabled = !selectedPontoon() || measurement?.distance < 2;
+  }
+  function clearMeasurement() {
+    measurement = null;
+    measurementSource.clear();
+    renderMeasurement();
+  }
   var map = new Map_default2({
     target: "map",
     layers: [
@@ -42634,7 +42729,8 @@ out tags geom;`;
       analysisLayer,
       decompositionLayer,
       entryDraftLayer,
-      editHandleLayer
+      editHandleLayer,
+      measurementLayer
     ],
     view: new View_default({
       center: fromLonLat2([-3.03, 47.586]),
@@ -43010,6 +43106,7 @@ out tags geom;`;
     return select.value;
   }
   function updateInspector() {
+    renderMeasurement();
     const found = selectedObject();
     $("#emptyInspector").hidden = Boolean(found);
     $("#objectInspector").hidden = !found;
@@ -43118,6 +43215,7 @@ out tags geom;`;
     if (fit) fitDocument();
   }
   function setEditorDocument(document2, { fit = true, autosave = true } = {}) {
+    clearMeasurement();
     const compatible = clone2(document2);
     if (!Array.isArray(compatible.structures.buoys)) compatible.structures.buoys = [];
     if (!Array.isArray(compatible.structures.pendilles)) compatible.structures.pendilles = [];
@@ -43144,16 +43242,47 @@ out tags geom;`;
   function setActiveTool(tool) {
     map.getView().cancelAnimations();
     activeTool = tool;
+    $("#map").classList.toggle("measuring", tool === "measure");
+    if (tool === "measure" || !measurement?.complete) clearMeasurement();
+    renderMeasurement();
     $$("[data-tool]").forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
     selectInteraction.setActive(tool === "select");
     translateInteraction.setActive(tool === "select");
+    modifyInteraction.setActive(tool === "select" && ["entries", "pendilles"].includes(selectedObject()?.collection));
+    snapInteraction.setActive(tool !== "measure");
     if (drawInteraction) {
       map.removeInteraction(drawInteraction);
       drawInteraction = null;
     }
     entryDraftSource.clear();
     renderEditHandles();
-    if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
+    if (tool === "measure") {
+      const updateMeasurement = (geometry, complete = false) => {
+        measurement = {
+          coordinates: geometry.getCoordinates(),
+          distance: measurementLength(geometry.getCoordinates()),
+          complete
+        };
+        renderMeasurement();
+      };
+      drawInteraction = new Draw_default({
+        source: measurementSource,
+        type: "LineString",
+        maxPoints: 2,
+        stopClick: true,
+        style: measurementStyles
+      });
+      drawInteraction.on("drawstart", (event) => {
+        const geometry = event.feature.getGeometry();
+        updateMeasurement(geometry);
+        geometry.on("change", () => updateMeasurement(geometry));
+      });
+      drawInteraction.on("drawend", (event) => {
+        updateMeasurement(event.feature.getGeometry(), true);
+        setActiveTool("select");
+      });
+      map.addInteraction(drawInteraction);
+    } else if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
       drawInteraction = new Draw_default({
         source: new Vector_default2(),
         type: tool === "land" ? "Polygon" : "LineString",
@@ -43528,7 +43657,7 @@ out tags geom;`;
         return;
       }
     }
-    if (!["select", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
+    if (!["select", "measure", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
   });
   map.on("pointermove", (event) => {
     const point = mapToLocal(event.coordinate);
@@ -43911,6 +44040,18 @@ out tags geom;`;
     $("#catwaySpacing").disabled = !spacingMode;
   }
   $("#catwayMode").addEventListener("change", syncCatwayModeFields);
+  $("#useMeasurementSpacing").addEventListener("click", () => {
+    if (!measurement?.complete || measurement.distance < 2 || !selectedPontoon()) return;
+    $("#catwayMode").value = "spacing";
+    $("#catwaySpacing").value = (Math.round(measurement.distance * 10) / 10).toFixed(1);
+    syncCatwayModeFields();
+    setPanelCollapsed("right", false);
+    $("#catwaySpacing").focus();
+  });
+  $("#clearMeasurement").addEventListener("click", () => {
+    setActiveTool("select");
+    clearMeasurement();
+  });
   function syncPendilleModeFields() {
     const spacingMode = $("#pendilleMode").value === "spacing";
     $("#pendilleCountField").hidden = spacingMode;
@@ -44922,6 +45063,14 @@ out tags geom;`;
         orthophotoOpacity: orthoLayer.getOpacity()
       }),
       cameraReport: () => ({ center: map.getView().getCenter(), resolution: map.getView().getResolution(), rotation: map.getView().getRotation() }),
+      measurementReport: () => measurement && {
+        distance: measurement.distance,
+        complete: measurement.complete,
+        points: measurement.coordinates.map((point) => mapToLocal(point)),
+        pixels: measurement.coordinates.map((point) => map.getPixelFromCoordinate(point)),
+        features: measurementSource.getFeatures().length
+      },
+      historyReport: () => ({ past: editor.past.length, future: editor.future.length }),
       networkRequests: () => clone2(networkRequests),
       classifyOverpass(response) {
         return OSMPortImport.classifyOverpass(response, editor.document.georeference);

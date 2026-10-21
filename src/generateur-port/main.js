@@ -72,6 +72,7 @@ let editor = new EditorCore.PortEditor(KJPCodec.createEmpty({
 }));
 let activeTool = "select";
 let drawInteraction = null;
+let measurement = null;
 let mapsEnabled = false;
 let analyzedResponses = [];
 let candidates = [];
@@ -221,6 +222,7 @@ const analysisSource = new VectorSource();
 const decompositionSource = new VectorSource();
 const entryDraftSource = new VectorSource();
 const editHandleSource = new VectorSource();
+const measurementSource = new VectorSource();
 
 const palette = Object.freeze({
   pontoon: { fill: "rgba(250,248,239,.94)", stroke: "#53676c" },
@@ -614,6 +616,63 @@ const editHandleLayer = new VectorLayer({
   zIndex: 35
 });
 
+function measurementLength(coordinates) {
+  const start = mapToLocal(coordinates[0]);
+  const end = mapToLocal(coordinates[coordinates.length - 1]);
+  return Math.hypot(end.east - start.east, end.north - start.north);
+}
+
+function measurementStyles(feature) {
+  const geometry = feature.getGeometry();
+  const marker = point => new Style({
+    geometry: point,
+    image: new CircleStyle({
+      radius: 5,
+      fill: new Fill({ color: "#fff" }),
+      stroke: new Stroke({ color: "#08758a", width: 2 })
+    })
+  });
+  if (!(geometry instanceof LineString)) return marker(geometry);
+  const coordinates = geometry.getCoordinates();
+  return [
+    new Style({ stroke: new Stroke({ color: "#fff", width: 6 }) }),
+    new Style({
+      stroke: new Stroke({ color: "#08758a", width: 3, lineDash: [8, 5] }),
+      text: new Text({
+        text: `${format(measurementLength(coordinates))} m`,
+        offsetY: -22,
+        font: "700 13px sans-serif",
+        padding: [5, 7, 5, 7],
+        fill: new Fill({ color: "#173238" }),
+        backgroundFill: new Fill({ color: "rgba(255,255,255,.96)" })
+      })
+    }),
+    marker(new Point(coordinates[0])),
+    marker(new Point(coordinates[coordinates.length - 1]))
+  ];
+}
+
+const measurementLayer = new VectorLayer({
+  source: measurementSource,
+  style: measurementStyles,
+  zIndex: 36
+});
+
+function renderMeasurement() {
+  $("#measurementPanel").hidden = activeTool !== "measure" && !measurement?.complete;
+  $("#measurementDistance").textContent = measurement ? `${format(measurement.distance)} m` : "";
+  $("#measurementHint").textContent = measurement?.complete ? "Distance entre les deux points"
+    : measurement ? "Cliquez sur le second point." : "Cliquez sur le premier point.";
+  $("#useMeasurementSpacing").hidden = !measurement?.complete;
+  $("#useMeasurementSpacing").disabled = !selectedPontoon() || measurement?.distance < 2;
+}
+
+function clearMeasurement() {
+  measurement = null;
+  measurementSource.clear();
+  renderMeasurement();
+}
+
 const map = new Map({
   target: "map",
   layers: [
@@ -625,7 +684,8 @@ const map = new Map({
     analysisLayer,
     decompositionLayer,
     entryDraftLayer,
-    editHandleLayer
+    editHandleLayer,
+    measurementLayer
   ],
   view: new View({
     center: fromLonLat([-3.03, 47.586]),
@@ -1067,6 +1127,7 @@ function configureBuoyCategorySelect(seamarkType, requestedCategory = "") {
 }
 
 function updateInspector() {
+  renderMeasurement();
   const found = selectedObject();
   $("#emptyInspector").hidden = Boolean(found);
   $("#objectInspector").hidden = !found;
@@ -1234,6 +1295,7 @@ function afterEdit({ selectId = editor.selection, fit = false } = {}) {
 }
 
 function setEditorDocument(document, { fit = true, autosave = true } = {}) {
+  clearMeasurement();
   const compatible = clone(document);
   if (!Array.isArray(compatible.structures.buoys)) compatible.structures.buoys = [];
   if (!Array.isArray(compatible.structures.pendilles)) compatible.structures.pendilles = [];
@@ -1262,16 +1324,47 @@ function fitDocument() {
 function setActiveTool(tool) {
   map.getView().cancelAnimations();
   activeTool = tool;
+  $("#map").classList.toggle("measuring", tool === "measure");
+  if (tool === "measure" || !measurement?.complete) clearMeasurement();
+  renderMeasurement();
   $$("[data-tool]").forEach(button => button.classList.toggle("active", button.dataset.tool === tool));
   selectInteraction.setActive(tool === "select");
   translateInteraction.setActive(tool === "select");
+  modifyInteraction.setActive(tool === "select" && ["entries", "pendilles"].includes(selectedObject()?.collection));
+  snapInteraction.setActive(tool !== "measure");
   if (drawInteraction) {
     map.removeInteraction(drawInteraction);
     drawInteraction = null;
   }
   entryDraftSource.clear();
   renderEditHandles();
-  if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
+  if (tool === "measure") {
+    const updateMeasurement = (geometry, complete = false) => {
+      measurement = {
+        coordinates: geometry.getCoordinates(),
+        distance: measurementLength(geometry.getCoordinates()),
+        complete
+      };
+      renderMeasurement();
+    };
+    drawInteraction = new Draw({
+      source: measurementSource,
+      type: "LineString",
+      maxPoints: 2,
+      stopClick: true,
+      style: measurementStyles
+    });
+    drawInteraction.on("drawstart", event => {
+      const geometry = event.feature.getGeometry();
+      updateMeasurement(geometry);
+      geometry.on("change", () => updateMeasurement(geometry));
+    });
+    drawInteraction.on("drawend", event => {
+      updateMeasurement(event.feature.getGeometry(), true);
+      setActiveTool("select");
+    });
+    map.addInteraction(drawInteraction);
+  } else if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
     drawInteraction = new Draw({
       source: new VectorSource(),
       type: tool === "land" ? "Polygon" : "LineString",
@@ -1660,7 +1753,7 @@ map.on("singleclick", event => {
       return;
     }
   }
-  if (!["select", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
+  if (!["select", "measure", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
 });
 
 map.on("pointermove", event => {
@@ -2078,6 +2171,19 @@ function syncCatwayModeFields() {
 }
 
 $("#catwayMode").addEventListener("change", syncCatwayModeFields);
+
+$("#useMeasurementSpacing").addEventListener("click", () => {
+  if (!measurement?.complete || measurement.distance < 2 || !selectedPontoon()) return;
+  $("#catwayMode").value = "spacing";
+  $("#catwaySpacing").value = (Math.round(measurement.distance * 10) / 10).toFixed(1);
+  syncCatwayModeFields();
+  setPanelCollapsed("right", false);
+  $("#catwaySpacing").focus();
+});
+$("#clearMeasurement").addEventListener("click", () => {
+  setActiveTool("select");
+  clearMeasurement();
+});
 
 function syncPendilleModeFields() {
   const spacingMode = $("#pendilleMode").value === "spacing";
@@ -3193,6 +3299,14 @@ function installTestApi() {
       orthophotoOpacity: orthoLayer.getOpacity()
     }),
     cameraReport: () => ({ center: map.getView().getCenter(), resolution: map.getView().getResolution(), rotation: map.getView().getRotation() }),
+    measurementReport: () => measurement && ({
+      distance: measurement.distance,
+      complete: measurement.complete,
+      points: measurement.coordinates.map(point => mapToLocal(point)),
+      pixels: measurement.coordinates.map(point => map.getPixelFromCoordinate(point)),
+      features: measurementSource.getFeatures().length
+    }),
+    historyReport: () => ({ past: editor.past.length, future: editor.future.length }),
     networkRequests: () => clone(networkRequests),
     classifyOverpass(response) {
       return OSMPortImport.classifyOverpass(response, editor.document.georeference);
