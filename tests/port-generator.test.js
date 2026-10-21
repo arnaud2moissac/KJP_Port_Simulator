@@ -495,8 +495,15 @@ browserCase("generator:editing.14", async ({ page, browser, context, runtimeErro
     await page.waitForTimeout(320);
     await page.locator('[data-tool="pontoon"]').click();
     const box = await page.locator("#map").boundingBox();
+    const cameraBefore = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.cameraReport());
     await page.locator("#map").click({
       position: { x: box.width * 0.62, y: box.height * 0.54 }
+    });
+    assert.equal(await page.evaluate(() => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length
+    )), before, "le premier clic ne crée pas encore de ponton");
+    await page.locator("#map").click({
+      position: { x: box.width * 0.78, y: box.height * 0.38 }
     });
     await page.waitForFunction(count => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length === count + 1
@@ -508,6 +515,19 @@ browserCase("generator:editing.14", async ({ page, browser, context, runtimeErro
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.at(-1)
     ));
     assert.equal(createdPontoon.width, 2);
+    assert.ok(createdPontoon.length > 0.2);
+    assert.ok(Math.abs(createdPontoon.heading - Math.PI / 4) < 0.25,
+      "les deux clics déterminent l’orientation");
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.cameraReport()), cameraBefore,
+      "les deux clics de placement ne doivent pas déclencher le zoom");
+    const createdHandles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
+    for (const [sign, expected] of [[-1, [box.width * 0.62, box.height * 0.54]],
+      [1, [box.width * 0.78, box.height * 0.38]]]) {
+      const endpoint = createdHandles.handles.find(handle => handle.sign === sign);
+      assert.ok(Math.hypot(endpoint.pixel[0] - expected[0], endpoint.pixel[1] - expected[1]) < 2,
+        `les extrémités doivent coïncider avec les clics : ${JSON.stringify({ actual: endpoint.pixel, expected, box })}`);
+    }
 
     const buoyBefore = await page.evaluate(() => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.buoys.length
@@ -575,7 +595,7 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
       const document = api.loadDemonstration();
       const pontoon = document.structures.pontoons[0];
       api.select(pontoon.id);
-      return { id: pontoon.id, length: pontoon.length };
+      return pontoon;
     });
     await page.waitForTimeout(350);
     const mapBox = await page.locator("#map").boundingBox();
@@ -583,11 +603,11 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
 
     let handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
     assert.equal(handles.objectId, selected.id);
-    assert.equal(handles.handles.filter(handle => handle.kind === "length").length, 2);
-    assert.equal(handles.handles.filter(handle => handle.kind === "rotate").length, 1);
+    assert.equal(handles.handles.filter(handle => handle.kind === "endpoint").length, 2);
+    assert.equal(handles.handles.filter(handle => handle.kind === "rotate").length, 0);
 
-    const positive = handles.handles.find(handle => handle.kind === "length" && handle.sign === 1);
-    const negative = handles.handles.find(handle => handle.kind === "length" && handle.sign === -1);
+    const positive = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === 1);
+    const negative = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === -1);
     const direction = {
       x: positive.pixel[0] - negative.pixel[0],
       y: positive.pixel[1] - negative.pixel[1]
@@ -606,17 +626,38 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
     ), selected.id);
     assert.ok(object.length > selected.length, "la poignée d'extrémité doit allonger le ponton");
 
+    const endpoint = (rectangle, sign) => ({
+      east: rectangle.center.east + sign * Math.cos(rectangle.heading) * rectangle.length / 2,
+      north: rectangle.center.north + sign * Math.sin(rectangle.heading) * rectangle.length / 2
+    });
+    const closePoint = (actual, expected) => assert.ok(
+      Math.hypot(actual.east - expected.east, actual.north - expected.north) < 1e-6,
+      "l’extrémité opposée doit rester fixe"
+    );
+    closePoint(endpoint(object, -1), endpoint(selected, -1));
     handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
-    const rotation = handles.handles.find(handle => handle.kind === "rotate");
-    const center = handles.centerPixel;
-    await page.mouse.move(...Object.values(absolute(rotation.pixel)));
+    const moving = handles.handles.find(handle => handle.sign === -1);
+    const beforeTurn = object;
+    await page.mouse.move(...Object.values(absolute(moving.pixel)));
     await page.mouse.down();
-    await page.mouse.move(mapBox.x + center[0] + 85, mapBox.y + center[1], { steps: 6 });
+    await page.mouse.move(mapBox.x + moving.pixel[0] + 15, mapBox.y + moving.pixel[1] - 65, { steps: 6 });
     await page.mouse.up();
     object = await page.evaluate(id => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
     ), selected.id);
-    assert.ok(Math.abs(object.heading) > 0.2, "la poignée de rotation doit modifier le cap");
+    assert.ok(Math.abs(object.heading - beforeTurn.heading) > 0.05,
+      "déplacer une extrémité hors de l’axe doit orienter le ponton");
+    closePoint(endpoint(object, 1), endpoint(beforeTurn, 1));
+    const turned = object;
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.undo());
+    assert.deepEqual(await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id), beforeTurn);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.redo());
+    assert.deepEqual(await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id), turned);
+    await page.evaluate(id => window.__KJP_GENERATOR_TEST__.select(id), selected.id);
 
     await page.locator('[data-property="headingDeg"]').fill("37");
     await page.locator('[data-property="headingDeg"]').dispatchEvent("change");
@@ -629,13 +670,13 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
     assert.deepEqual(synchronized.render.mapSelected, [selected.id]);
 
     handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
-    const lengthHandle = handles.handles.find(handle => handle.kind === "length" && handle.sign === 1);
+    const lengthHandle = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === 1);
     const beforeSecondDrag = synchronized.object.length;
     await page.mouse.move(...Object.values(absolute(lengthHandle.pixel)));
     await page.mouse.down();
     await page.mouse.move(
       mapBox.x + lengthHandle.pixel[0] + 24,
-      mapBox.y + lengthHandle.pixel[1] - 18,
+      mapBox.y + lengthHandle.pixel[1] + 24,
       { steps: 5 }
     );
     await page.mouse.up();
@@ -645,8 +686,25 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
       return { object, render: api.renderReport() };
     }, selected.id);
     assert.notEqual(synchronized.object.length, beforeSecondDrag);
-    assert.ok(Math.abs(synchronized.object.heading * 180 / Math.PI - 37) < 1e-9);
+    assert.ok(Math.abs(synchronized.object.heading * 180 / Math.PI - 37) > 0.1,
+      "la poignée doit encore orienter le ponton après une saisie dans les champs");
     assert.deepEqual(synchronized.render.mapSelected, [selected.id]);
+
+    handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
+    const beforeTranslation = synchronized.object;
+    await page.mouse.move(...Object.values(absolute(handles.centerPixel)));
+    await page.mouse.down();
+    await page.mouse.move(mapBox.x + handles.centerPixel[0] + 45,
+      mapBox.y + handles.centerPixel[1] + 30, { steps: 6 });
+    await page.mouse.up();
+    const translated = await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id);
+    assert.equal(translated.length, beforeTranslation.length);
+    assert.equal(translated.heading, beforeTranslation.heading);
+    assert.ok(Math.hypot(translated.center.east - beforeTranslation.center.east,
+      translated.center.north - beforeTranslation.center.north) > 1,
+    "glisser le corps doit déplacer tout le ponton");
 
     const emptyPixel = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.emptyMapPixel());
     assert.ok(emptyPixel, "une zone vide de la carte doit être disponible");
@@ -834,6 +892,10 @@ browserCase("generator:interface.21", async ({ page, browser, context, runtimeEr
     await tablet.touchscreen.tap(
       mapBox.x + mapBox.width * 0.68,
       mapBox.y + mapBox.height * 0.52
+    );
+    await tablet.touchscreen.tap(
+      mapBox.x + mapBox.width * 0.82,
+      mapBox.y + mapBox.height * 0.38
     );
     await tablet.waitForFunction(count => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length === count + 1

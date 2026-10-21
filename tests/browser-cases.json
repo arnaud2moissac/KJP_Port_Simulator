@@ -484,7 +484,7 @@
     "product": "generator",
     "id": "editing.15",
     "group": "editing",
-    "name": "les poignées de longueur et d'angle restent synchronisées avec les champs"
+    "name": "les extrémités libres des pontons et leur déplacement restent synchronisés avec les champs"
   },
   {
     "product": "generator",

@@ -601,7 +601,8 @@ const editHandleLayer = new VectorLayer({
           stroke: new Stroke({ color: palette.selected, width: 3 })
         }),
       text: new Text({
-        text: kind === "rotate" ? "Rotation" : "Longueur",
+        text: kind === "rotate" ? "Rotation"
+          : kind === "endpoint" ? "Extrémité" : "Longueur",
         offsetY: kind === "rotate" ? -17 : 17,
         padding: [3, 4, 3, 4],
         fill: new Fill({ color: "#173238" }),
@@ -848,14 +849,14 @@ function handleFeatureAtPixel(pixel) {
 function rectangleHandleGeometry(rectangle, collection) {
   const resizeSigns = collection === "catways" && rectangle.attachment ? [1] : [-1, 1];
   const resize = resizeSigns.map(sign => ({
-    kind: "length",
+    kind: collection === "pontoons" ? "endpoint" : "length",
     sign,
     point: KJPCodec.localToWorld(rectangle, {
       longitudinal: sign * rectangle.length / 2,
       transverse: 0
     })
   }));
-  if (collection === "catways" && rectangle.attachment) {
+  if (collection === "pontoons" || rectangle.attachment) {
     return { resize, rotation: null, guideStart: null };
   }
   const rotationOffset = rectangle.width / 2 + clamp(rectangle.length * 0.12, 3, 7);
@@ -950,7 +951,7 @@ const rectangleHandleInteraction = new PointerInteraction({
     };
     map.getTargetElement().style.cursor = rectangleHandleDrag.kind === "rotate"
       ? "grabbing"
-      : "ew-resize";
+      : rectangleHandleDrag.kind === "endpoint" ? "move" : "ew-resize";
     return true;
   },
   handleDragEvent(event) {
@@ -958,7 +959,23 @@ const rectangleHandleInteraction = new PointerInteraction({
     const cursor = mapToLocal(event.coordinate);
     const { found, original, kind, sign } = rectangleHandleDrag;
     const next = clone(original);
-    if (kind === "length") {
+    if (kind === "endpoint") {
+      const opposite = KJPCodec.localToWorld(original, {
+        longitudinal: -sign * original.length / 2,
+        transverse: 0
+      });
+      const east = cursor.east - opposite.east;
+      const north = cursor.north - opposite.north;
+      const distance = Math.hypot(east, north);
+      next.length = Math.max(0.2, distance);
+      next.heading = distance > 1e-9
+        ? Math.atan2(sign * north, sign * east)
+        : original.heading;
+      next.center = {
+        east: opposite.east + sign * Math.cos(next.heading) * next.length / 2,
+        north: opposite.north + sign * Math.sin(next.heading) * next.length / 2
+      };
+    } else if (kind === "length") {
       const axis = { east: Math.cos(original.heading), north: Math.sin(original.heading) };
       const opposite = {
         east: original.center.east - sign * axis.east * original.length / 2,
@@ -1026,7 +1043,8 @@ const rectangleHandleInteraction = new PointerInteraction({
     if (rectangleHandleDrag) return;
     const handle = activeTool === "select" ? handleFeatureAtPixel(event.pixel) : null;
     map.getTargetElement().style.cursor = handle
-      ? handle.get("handleKind") === "rotate" ? "grab" : "ew-resize"
+      ? handle.get("handleKind") === "rotate" ? "grab"
+        : handle.get("handleKind") === "endpoint" ? "move" : "ew-resize"
       : "";
   }
 });
@@ -1253,14 +1271,31 @@ function setActiveTool(tool) {
   }
   entryDraftSource.clear();
   renderEditHandles();
-  if (tool === "obstacle" || tool === "land") {
+  if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
     drawInteraction = new Draw({
       source: new VectorSource(),
-      type: tool === "obstacle" ? "LineString" : "Polygon"
+      type: tool === "land" ? "Polygon" : "LineString",
+      ...(tool === "pontoon" ? { maxPoints: 2, stopClick: true } : {})
     });
     drawInteraction.on("drawend", event => {
       const geometry = event.feature.getGeometry();
-      if (tool === "obstacle") {
+      if (tool === "pontoon") {
+        const [start, end] = geometry.getCoordinates().map(point => mapToLocal(point));
+        const length = Math.hypot(end.east - start.east, end.north - start.north);
+        if (length < 0.2) return;
+        const object = {
+          id: EditorCore.createId("pontoon", editor.document),
+          type: "pontoon",
+          center: { east: (start.east + end.east) / 2, north: (start.north + end.north) / 2 },
+          length,
+          width: 2,
+          heading: Math.atan2(end.north - start.north, end.east - start.east),
+          height: 0.5,
+          vertical: EditorCore.verticalWithDeck(0.5, 0.5)
+        };
+        editor.add("pontoons", object, "Ajouter un ponton");
+        afterEdit({ selectId: object.id });
+      } else if (tool === "obstacle") {
         const object = {
           id: EditorCore.createId("obstacle", editor.document),
           type: "breakwater",
@@ -1385,11 +1420,8 @@ function nearestPolylineStation(point, points = []) {
 
 function addObjectAt(coordinate) {
   const point = mapToLocal(coordinate);
-  if (activeTool === "pontoon" || activeTool === "catway") {
-    const isCatway = activeTool === "catway";
-    const parentCandidate = isCatway
-      ? nearestRectangle(point, editor.document.structures.pontoons, 30)
-      : null;
+  if (activeTool === "catway") {
+    const parentCandidate = nearestRectangle(point, editor.document.structures.pontoons, 30);
     let center = point;
     let heading = 0;
     let attachment = null;
@@ -1432,14 +1464,14 @@ function addObjectAt(coordinate) {
       id: EditorCore.createId(activeTool, editor.document),
       type: activeTool,
       center,
-      length: isCatway ? 10 : 60,
-      width: isCatway ? 0.6 : 2,
+      length: 10,
+      width: 0.6,
       heading,
       height: 0.5,
       vertical,
       ...(parentId ? { parentId, attachment } : {})
     };
-    editor.add(activeTool === "pontoon" ? "pontoons" : "catways", object, `Ajouter ${activeTool}`);
+    editor.add("catways", object, `Ajouter ${activeTool}`);
     afterEdit({ selectId: object.id });
   } else if (activeTool === "cleat") {
     const parentFound = selectedObject();
@@ -1628,7 +1660,7 @@ map.on("singleclick", event => {
       return;
     }
   }
-  if (!["select", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
+  if (!["select", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
 });
 
 map.on("pointermove", event => {
@@ -3160,6 +3192,7 @@ function installTestApi() {
       orthophoto: orthoLayer.getVisible(),
       orthophotoOpacity: orthoLayer.getOpacity()
     }),
+    cameraReport: () => ({ center: map.getView().getCenter(), resolution: map.getView().getResolution(), rotation: map.getView().getRotation() }),
     networkRequests: () => clone(networkRequests),
     classifyOverpass(response) {
       return OSMPortImport.classifyOverpass(response, editor.document.georeference);
