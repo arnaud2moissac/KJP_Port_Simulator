@@ -70,6 +70,16 @@ button { cursor: pointer; }
   text-transform: uppercase;
 }
 .header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.language-select {
+  flex: 0 0 auto;
+  width: 64px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 11px;
+  padding-inline: 6px;
+}
 .header-edit-actions { display: flex; align-items: center; gap: 5px; }
 .header-edit-button { display: inline-flex; align-items: center; gap: 5px; }
 .header-edit-button.danger { color: var(--danger); }
@@ -139,12 +149,10 @@ button { cursor: pointer; }
 .project-help-content img {
   display: block;
   width: 100%;
-  max-height: 360px;
+  height: auto;
   margin: 14px 0;
   border: 1px solid var(--line);
   border-radius: 12px;
-  object-fit: cover;
-  object-position: top;
 }
 
 .tool-rail {
@@ -483,12 +491,21 @@ input[type="range"] { min-height: 22px; padding: 0; border: 0; background: trans
 }
 
 @media (max-width: 700px) {
+  .app-shell { grid-template-rows: 104px minmax(0, 1fr) 28px; }
+  .app-header { position: relative; flex-wrap: wrap; gap: 4px; padding: 6px 10px; }
+  .brand { flex: 1 0 100%; padding-inline-end: 72px; }
   .brand h1 { font-size: 14px; }
   .brand .eyebrow { display: none; }
+  .header-actions { width: 100%; gap: 4px; justify-content: space-between; }
+  .header-actions .language-select { position: absolute; top: 8px; right: 10px; }
+  .header-edit-actions { flex-shrink: 0; }
   .header-actions .button { padding: 7px 8px; font-size: 9px; }
+  #importButton, #exportButton { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  #newPortButton, #readmeHelpButton { flex: 0 0 36px; }
   .new-port-label { display: none; }
   .new-port-short { display: inline; font-size: 16px; }
   #newPortButton { width: 36px; padding-inline: 0; }
+  .left-panel, .right-panel, .candidate-drawer { top: 104px; }
   .status-bar span:last-child { display: none; }
 }
 

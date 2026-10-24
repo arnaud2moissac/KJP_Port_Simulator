@@ -1,0 +1,1362 @@
+{
+  "berths": [
+    {
+      "center": {
+        "east": -110.73181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-1",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-1",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -106.13181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-2",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-1",
+      "side": "port",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -94.73181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-3",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-2",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -90.13181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-4",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-2",
+      "side": "port",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -78.73181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-5",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-3",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -74.13181627822115,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "berth-6",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-3",
+      "side": "port",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -106.13181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-7",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-4",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -110.73181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-8",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-4",
+      "side": "port",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -90.13181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-9",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-5",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -94.73181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-10",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-5",
+      "side": "port",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -74.13181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-11",
+      "isVisitor": true,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "Visiteurs du guide",
+      "parentId": "catway-6",
+      "side": "starboard",
+      "width": 4
+    },
+    {
+      "center": {
+        "east": -78.73181627822115,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "berth-12",
+      "isVisitor": false,
+      "length": 7.2,
+      "maxBeam": 3.45,
+      "maxLength": 7.2,
+      "name": "",
+      "parentId": "catway-6",
+      "side": "port",
+      "width": 4
+    }
+  ],
+  "bounds": {
+    "maxEast": 285.34819921026354,
+    "maxNorth": 132.61947322633594,
+    "minEast": -253.19628946165193,
+    "minNorth": -282.1206388351031
+  },
+  "editor": {
+    "analyzedZones": [
+      {
+        "bounds": {
+          "east": -3.443960502624512,
+          "north": 47.64563842497236,
+          "south": 47.64263864967205,
+          "west": -3.449539497375488
+        },
+        "polygon": [
+          {
+            "latitude": 47.64563842497236,
+            "longitude": -3.449539497375488
+          },
+          {
+            "latitude": 47.64563842497236,
+            "longitude": -3.443960502624512
+          },
+          {
+            "latitude": 47.64263864967205,
+            "longitude": -3.443960502624512
+          },
+          {
+            "latitude": 47.64263864967205,
+            "longitude": -3.449539497375488
+          }
+        ],
+        "retrievedAt": "2026-10-16T11:20:33.818Z"
+      }
+    ],
+    "catwayGroups": [
+      {
+        "id": "catway-group-1",
+        "memberIds": [
+          "catway-1",
+          "catway-2",
+          "catway-3",
+          "catway-4",
+          "catway-5",
+          "catway-6"
+        ],
+        "parameters": {
+          "cleats": true,
+          "count": 3,
+          "height": 0.5,
+          "length": 8,
+          "marginEnd": 4,
+          "marginStart": 4,
+          "mode": "count",
+          "rootOverlap": 0.15,
+          "side": "both",
+          "spacing": 10,
+          "width": 0.6
+        },
+        "parentId": "pontoon-7"
+      }
+    ],
+    "defaultBerthWidth": 4,
+    "occupancyRate": 0.35,
+    "occupancySeed": 20260730,
+    "pendilleGroups": []
+  },
+  "format": "KJP",
+  "generatorVersion": "1.1.0",
+  "georeference": {
+    "angleUnit": "rad",
+    "coordinateSystem": "local-ENU",
+    "distanceUnit": "m",
+    "origin": {
+      "latitude": 47.6442,
+      "longitude": -3.44675
+    }
+  },
+  "metadata": {
+    "author": "Exemple du guide KJP",
+    "comment": "Exercice du guide français KJP, 16 octobre 2026. Six pontons sont issus de l’analyse OSM. Les limites terrestres et ouvrages sont simplifiés ; le ponton à catways est un ajout pédagogique. L’atelier pendilles n’est pas conservé. Ce fichier ne décrit pas un aménagement réel vérifié.",
+    "coordinates": {
+      "latitude": 47.6442,
+      "longitude": -3.44675
+    },
+    "createdAt": "2026-10-16T11:13:48.308Z",
+    "currentAdvice": "",
+    "harborMasterUrl": "",
+    "id": "port-7kmyri",
+    "name": "Port Tudy – exercice du guide",
+    "openingHours": "",
+    "revision": 1,
+    "source": "OpenStreetMap / OpenSeaMap ; tracés pédagogiques",
+    "updatedAt": "2026-10-16T11:28:50.728Z"
+  },
+  "navigation": {
+    "entries": [
+      {
+        "heading": -2.356194490192345,
+        "id": "entry-main",
+        "name": "Entrée principale",
+        "position": {
+          "east": 84.39344956866839,
+          "north": 83.59091701077669
+        }
+      }
+    ]
+  },
+  "schemaVersion": 3,
+  "sources": [
+    {
+      "attribution": "© les contributeurs OpenStreetMap, données ODbL ; signalisation © OpenSeaMap",
+      "bounds": {
+        "east": -3.443960502624512,
+        "north": 47.64563842497236,
+        "south": 47.64263864967205,
+        "west": -3.449539497375488
+      },
+      "kind": "vector",
+      "license": "ODbL 1.0",
+      "osmElementIds": [
+        "way/176427684",
+        "way/230915998",
+        "way/230915999",
+        "way/230916000",
+        "way/230916001",
+        "way/23606562",
+        "way/453044121",
+        "way/453044122",
+        "way/453044123",
+        "way/739630581",
+        "way/739630582"
+      ],
+      "provider": "OpenStreetMap / OpenSeaMap",
+      "retrievedAt": "2026-10-16T11:21:19.475Z",
+      "url": "https://www.openstreetmap.org/copyright"
+    }
+  ],
+  "staticBoats": [
+    {
+      "beam": 1.5424111352279537,
+      "berthId": "berth-1",
+      "center": {
+        "east": -109.68302184583513,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "boat-1",
+      "length": 5.545190090104938,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.6193211507224237,
+      "berthId": "berth-12",
+      "center": {
+        "east": -77.72147685358236,
+        "north": 32.178467155848935
+      },
+      "heading": 1.5707963267948966,
+      "id": "boat-2",
+      "length": 5.956176710218191,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.6299580126381459,
+      "berthId": "berth-2",
+      "center": {
+        "east": -107.13683727190208,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "boat-3",
+      "length": 5.217750071078538,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.8402036480472574,
+      "berthId": "berth-5",
+      "center": {
+        "east": -77.83191810224477,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "boat-4",
+      "length": 5.814166733823717,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.7985209229942518,
+      "berthId": "berth-6",
+      "center": {
+        "east": -75.05255581672402,
+        "north": 22.478467155848932
+      },
+      "heading": -1.5707963267948966,
+      "id": "boat-5",
+      "length": 6.31512738210708,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.826548680964713,
+      "berthId": "berth-7",
+      "center": {
+        "east": -107.0385419377388,
+        "north": 32.178467155848935
+      },
+      "heading": 4.71238898038469,
+      "id": "boat-6",
+      "length": 6.145770209781825,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.9778421960533454,
+      "berthId": "berth-8",
+      "center": {
+        "east": -109.90073737624782,
+        "north": 32.178467155848935
+      },
+      "heading": 4.71238898038469,
+      "id": "boat-7",
+      "length": 6.321952447347344,
+      "vesselType": "sailboat"
+    },
+    {
+      "beam": 1.9791675315159163,
+      "berthId": "berth-9",
+      "center": {
+        "east": -90.96223251246319,
+        "north": 32.178467155848935
+      },
+      "heading": 4.71238898038469,
+      "id": "boat-8",
+      "length": 6.490232183687389,
+      "vesselType": "sailboat"
+    }
+  ],
+  "structures": {
+    "buoys": [],
+    "catways": [
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "starboard",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": -16
+        },
+        "attachmentLongitudinal": -16,
+        "center": {
+          "east": -108.43181627822115,
+          "north": 22.478467155848932
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": -1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-1",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "starboard",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      },
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "starboard",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": 0
+        },
+        "attachmentLongitudinal": 0,
+        "center": {
+          "east": -92.43181627822115,
+          "north": 22.478467155848932
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": -1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-2",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "starboard",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      },
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "starboard",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": 16
+        },
+        "attachmentLongitudinal": 16,
+        "center": {
+          "east": -76.43181627822115,
+          "north": 22.478467155848932
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": -1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-3",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "starboard",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      },
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "port",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": -16
+        },
+        "attachmentLongitudinal": -16,
+        "center": {
+          "east": -108.43181627822115,
+          "north": 32.178467155848935
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": 1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-4",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "port",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      },
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "port",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": 0
+        },
+        "attachmentLongitudinal": 0,
+        "center": {
+          "east": -92.43181627822115,
+          "north": 32.178467155848935
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": 1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-5",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "port",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      },
+      {
+        "attachment": {
+          "connector": "flush",
+          "connectorLength": 0,
+          "deckZ": 0.5,
+          "parentEdge": "port",
+          "parentId": "pontoon-7",
+          "rootOverlap": 0.15,
+          "station": 16
+        },
+        "attachmentLongitudinal": 16,
+        "center": {
+          "east": -76.43181627822115,
+          "north": 32.178467155848935
+        },
+        "endShape": "rounded",
+        "groupId": "catway-group-1",
+        "heading": 1.5707963267948966,
+        "height": 0.5,
+        "id": "catway-6",
+        "length": 8,
+        "parentId": "pontoon-7",
+        "side": "port",
+        "type": "catway",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 0.6
+      }
+    ],
+    "cleats": [
+      {
+        "id": "cleat-1",
+        "localPosition": {
+          "longitudinal": -19.55,
+          "transverse": -1
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-2",
+        "localPosition": {
+          "longitudinal": -3.552713678800501e-15,
+          "transverse": -1
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-3",
+        "localPosition": {
+          "longitudinal": 19.549999999999994,
+          "transverse": -1
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-4",
+        "localPosition": {
+          "longitudinal": -19.55,
+          "transverse": 1
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-5",
+        "localPosition": {
+          "longitudinal": -3.552713678800501e-15,
+          "transverse": 1
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-6",
+        "localPosition": {
+          "longitudinal": 19.549999999999994,
+          "transverse": 1
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "pontoon-7",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-7",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-8",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-9",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-10",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-11",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-12",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-1",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-13",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-14",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-15",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-16",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-17",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-18",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-2",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-19",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-20",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-21",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-22",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-23",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-24",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-3",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-25",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-26",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-27",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-28",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-29",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-30",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-4",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-31",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-32",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-33",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-34",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-35",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-36",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-5",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-37",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-38",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-39",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": -0.3
+        },
+        "orientation": -1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-40",
+        "localPosition": {
+          "longitudinal": -3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-41",
+        "localPosition": {
+          "longitudinal": 0,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      },
+      {
+        "id": "cleat-42",
+        "localPosition": {
+          "longitudinal": 3.55,
+          "transverse": 0.3
+        },
+        "orientation": 1.5707963267948966,
+        "parentId": "catway-6",
+        "z": 0.5
+      }
+    ],
+    "landAreas": [
+      {
+        "id": "land-1",
+        "points": [
+          {
+            "east": -253.18490311097128,
+            "north": -20.89224598767055
+          },
+          {
+            "east": -152.7144921749187,
+            "north": -12.858145987185907
+          },
+          {
+            "east": -110.1158264343669,
+            "north": -46.617148245862154
+          },
+          {
+            "east": -65.90987373224196,
+            "north": -146.2855525446056
+          },
+          {
+            "east": 29.73961119942056,
+            "north": -105.29326864568671
+          },
+          {
+            "east": 84.39636911559725,
+            "north": -117.34934330732797
+          },
+          {
+            "east": 106.90196399679569,
+            "north": -111.72255083147799
+          },
+          {
+            "east": 152.7160348110227,
+            "north": -71.53295774455218
+          },
+          {
+            "east": 188.88645837655443,
+            "north": -97.25254646031715
+          },
+          {
+            "east": 285.33714372964187,
+            "north": -57.06014008936172
+          },
+          {
+            "east": 285.34819921026354,
+            "north": -282.1191484257418
+          },
+          {
+            "east": -253.19628946165193,
+            "north": -282.1206388351031
+          }
+        ],
+        "type": "land"
+      }
+    ],
+    "obstacles": [
+      {
+        "height": 3,
+        "id": "obstacle-1",
+        "points": [
+          {
+            "east": -152.87638356406566,
+            "north": -20.049713747139396
+          },
+          {
+            "east": -167.1800757220568,
+            "north": 60.28399602824594
+          },
+          {
+            "east": -16.878666558056118,
+            "north": 91.62779426488119
+          },
+          {
+            "east": 96.44884252017208,
+            "north": 132.61947322633594
+          }
+        ],
+        "type": "breakwater",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 3,
+          "mode": "fixed",
+          "topZ": 3
+        },
+        "width": 4
+      },
+      {
+        "height": 3,
+        "id": "obstacle-2",
+        "points": [
+          {
+            "east": 32.15004125913518,
+            "north": 55.45917490805271
+          },
+          {
+            "east": 152.7160348110227,
+            "north": -71.53295774455218
+          },
+          {
+            "east": 106.90196399679569,
+            "north": -111.72255083147799
+          },
+          {
+            "east": 84.39636911559725,
+            "north": -117.34934330732797
+          },
+          {
+            "east": 29.73961119942056,
+            "north": -105.29326864568671
+          },
+          {
+            "east": -65.90987373224196,
+            "north": -146.2855525446056
+          },
+          {
+            "east": -110.1158264343669,
+            "north": -46.617148245862154
+          }
+        ],
+        "type": "breakwater",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 3,
+          "mode": "fixed",
+          "topZ": 3
+        },
+        "width": 4
+      }
+    ],
+    "pendilles": [],
+    "pontoons": [
+      {
+        "center": {
+          "east": 31.015257527178516,
+          "north": -41.5479164236754
+        },
+        "confidence": 0.63,
+        "heading": 0.7624207520964266,
+        "height": 0.5,
+        "id": "pontoon-1",
+        "length": 61.45213939252035,
+        "source": {
+          "id": 230915998,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": 71.56255500358594,
+          "north": -84.23947211860802
+        },
+        "confidence": 0.63,
+        "heading": 0.31228125891902486,
+        "height": 0.5,
+        "id": "pontoon-2",
+        "length": 72.21294400564847,
+        "source": {
+          "id": 230915999,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": 55.955978815641004,
+          "north": -65.53670385765088
+        },
+        "confidence": 0.63,
+        "heading": 0.7706569898992308,
+        "height": 0.5,
+        "id": "pontoon-3",
+        "length": 59.24062828417583,
+        "source": {
+          "id": 230916001,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": -69.46645647282831,
+          "north": -104.89159148940524
+        },
+        "confidence": 0.63,
+        "heading": -1.0069838107540996,
+        "height": 0.5,
+        "id": "pontoon-4",
+        "length": 79.74781678505201,
+        "source": {
+          "id": 453044121,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": -38.935702743133135,
+          "north": -102.0514245122756
+        },
+        "confidence": 0.63,
+        "heading": -1.0262195135225733,
+        "height": 0.5,
+        "id": "pontoon-5",
+        "length": 59.62396753833648,
+        "source": {
+          "id": 453044122,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": -4.772167825018048,
+          "north": -92.78672075598432
+        },
+        "confidence": 0.6103435321054693,
+        "heading": -1.043055829235949,
+        "height": 0.5,
+        "id": "pontoon-6",
+        "length": 46.86183577898448,
+        "source": {
+          "id": 453044123,
+          "provider": "OpenStreetMap",
+          "type": "way"
+        },
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      },
+      {
+        "center": {
+          "east": -92.43181627822115,
+          "north": 27.328467155848934
+        },
+        "heading": 0,
+        "height": 0.5,
+        "id": "pontoon-7",
+        "length": 40,
+        "type": "pontoon",
+        "vertical": {
+          "baseZ": 0,
+          "datum": "waterline",
+          "deckZ": 0.5,
+          "mode": "floating",
+          "topZ": 0.5
+        },
+        "width": 2
+      }
+    ]
+  }
+}

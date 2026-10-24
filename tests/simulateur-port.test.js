@@ -1290,15 +1290,19 @@ browserCase("simulator:camera.09", async ({ page, browser, context, runtimeError
         clientY: 280
       });
       const afterPan = api.cameraReport();
-      return { initial, afterTurn, afterOrbit, afterPan, moorings };
+      const restored = api.selectCameraView("skipper");
+      return { initial, afterTurn, afterOrbit, afterPan, restored, moorings };
     });
 
-    for (const report of [result.initial, result.afterTurn]) {
+    for (const report of [result.initial, result.afterTurn, result.restored]) {
       assert.equal(report.view, "skipper");
       assert.ok(Math.abs(report.headingRelativeToBoat) < 1e-12);
-      assert.ok(Math.abs(report.eyeLocal[0] + 8.2) < 1e-12);
+      assert.ok(Math.abs(report.eyeLocal[0] + 6.3) < 1e-12);
       assert.ok(Math.abs(report.eyeLocal[1]) < 1e-12);
-      assert.ok(Math.abs(report.eyeLocal[2] - 5.1) < 1e-12);
+      assert.ok(Math.abs(report.eyeLocal[2] - 3.2) < 1e-12);
+      assert.ok(Math.abs(report.skipperPitch + 16 * Math.PI / 180) < 1e-12);
+      assert.equal(report.focalScale, .9);
+      assert.deepEqual(report.skipperPan, [0, 0, 0]);
       assert.ok(report.forward[2] < 0, "le skipper ne regarde pas légèrement vers le pont");
       assert.ok(report.nearClipMeters <= .05, "le plan proche reste trop agressif");
       assert.ok(report.skipperRenderDistanceMeters >= 600, "la scène lointaine est encore tronquée");
@@ -2989,8 +2993,8 @@ browserCase("simulator:physics.35", async ({ page, browser, context, runtimeErro
     assert.ok(matrix[0][0] * matrix[1][1] > 0);
     assert.ok(matrix[1][1] * matrix[2][2] - matrix[1][2] ** 2 > 0);
     assert.equal(report.profile.id, "sun-odyssey-36i-pedagogical");
-    assert.equal(report.profile.version, "6.0.1");
-    assert.equal(report.profile.schemaVersion, 4);
+    assert.equal(report.profile.version, "6.1.0");
+    assert.equal(report.profile.schemaVersion, 5);
 
 });
 
@@ -3599,6 +3603,112 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     assert.ok(layout.wheel.width >= 80 && layout.wheel.height >= 80);
     assert.ok(layout.handle.width >= 52 && layout.handle.height >= 40);
 
+    const wheelPresentation = await page.evaluate(() => {
+      const helm = document.querySelector(".touch-helm");
+      const control = document.querySelector("#touchHelmWheel");
+      return {
+        type: helm.dataset.steeringType,
+        label: control.getAttribute("aria-label")
+      };
+    });
+    assert.equal(wheelPresentation.type, "wheel");
+    assert.match(wheelPresentation.label, /roue/i);
+
+    await page.evaluate(() => window.__PORTANCE_TEST__.selectVesselProfile(
+      "sun-odyssey-24-2-fixed-keel-experimental"
+    ));
+    await page.waitForFunction(() => (
+      document.querySelector(".touch-helm")?.dataset.steeringType === "tiller"
+    ));
+    const tillerPresentation = await page.evaluate(() => {
+      const helm = document.querySelector(".touch-helm");
+      const control = document.querySelector("#touchHelmWheel");
+      const handle = getComputedStyle(control, "::before");
+      return {
+        type: helm.dataset.steeringType,
+        label: control.getAttribute("aria-label"),
+        handleWidth: handle.width,
+        handleHeight: handle.height
+      };
+    });
+    assert.equal(tillerPresentation.type, "tiller");
+    assert.match(tillerPresentation.label, /barre franche/i);
+    assert.equal(await page.locator("#touchCenterRudder").isVisible(), false);
+    assert.deepEqual(await page.locator("#touchHelmWheel").evaluate(control => [
+      getComputedStyle(control, "::after").display,
+      getComputedStyle(control.querySelector(".touch-wheel-hub")).display
+    ]), ["none", "none"]);
+    assert.ok(parseFloat(tillerPresentation.handleWidth) > 0);
+    assert.ok(parseFloat(tillerPresentation.handleWidth) <= 8);
+    assert.ok(parseFloat(tillerPresentation.handleHeight) >= 30);
+    assert.ok(parseFloat(tillerPresentation.handleHeight) > parseFloat(tillerPresentation.handleWidth) * 8);
+
+    const tiller = await page.locator("#touchHelmWheel").evaluate(control => {
+      const rect = control.getBoundingClientRect();
+      const frame = getComputedStyle(control);
+      const shaft = getComputedStyle(control, "::before");
+      const scale = rect.height / control.offsetHeight;
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.bottom - (parseFloat(frame.borderBottomWidth) + parseFloat(shaft.bottom)) * scale,
+        radius: parseFloat(shaft.height) * scale * .85
+      };
+    });
+    const tillerPoint = degrees => ({
+      x: tiller.x + Math.sin(degrees * Math.PI / 180) * tiller.radius,
+      y: tiller.y - Math.cos(degrees * Math.PI / 180) * tiller.radius
+    });
+    const moveTiller = async degrees => {
+      const point = tillerPoint(degrees);
+      await page.mouse.move(point.x, point.y);
+    };
+    await moveTiller(0);
+    await page.mouse.down();
+    assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.rudderTarget, 0);
+    for (const angle of [5, 10, 15, 20]) await moveTiller(angle);
+    await page.mouse.up();
+    let snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.ok(Math.abs(snapshot.controls.rudderTarget - 20 * Math.PI / 180) < .001,
+      "20° de déplacement du doigt doivent commander 20° de barre franche");
+    const heldRudder = snapshot.controls.rudderTarget;
+    await page.waitForTimeout(180);
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(
+      snapshot.controls.rudderTarget,
+      heldRudder,
+      "la barre s'est recentrée après relâchement"
+    );
+
+    await moveTiller(0);
+    await page.mouse.down();
+    await page.mouse.up();
+    assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.rudderTarget,
+      heldRudder, "une nouvelle prise décalée ne doit pas faire sauter la consigne");
+
+    await moveTiller(20);
+    await page.mouse.down();
+    for (const angle of [10, 0, -10, -20]) await moveTiller(angle);
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.ok(Math.abs(snapshot.controls.rudderTarget + 20 * Math.PI / 180) < .001);
+    await moveTiller(-60);
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.rudderTarget, -35 * Math.PI / 180);
+    await moveTiller(-55);
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.ok(Math.abs(snapshot.controls.rudderTarget + 30 * Math.PI / 180) < .001,
+      "revenir depuis la butée doit déplacer immédiatement la barre");
+    await page.mouse.up();
+
+    await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      api.selectVesselProfile("sun-odyssey-36i-pedagogical");
+      api.setControls({ rudderTarget: .2 });
+    });
+    await page.waitForFunction(() => document.querySelector(".touch-helm").dataset.steeringType === "wheel");
+    await page.locator("#touchCenterRudder").click();
+    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+    assert.equal(snapshot.controls.rudderTarget, 0);
+
     const helmBox = await page.locator("#touchHelmWheel").boundingBox();
     const helmX = helmBox.x + helmBox.width / 2;
     const helmY = helmBox.y + helmBox.height / 2;
@@ -3610,20 +3720,9 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
         helmY + Math.sin(angle * Math.PI / 180) * radius);
     }
     await page.mouse.up();
-    let snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.ok(Math.abs(snapshot.controls.rudderTarget) >= 15 * Math.PI / 180);
-    const heldRudder = snapshot.controls.rudderTarget;
-    await page.waitForTimeout(180);
     snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(
-      snapshot.controls.rudderTarget,
-      heldRudder,
-      "la barre s'est recentrée après relâchement"
-    );
-
-    await page.locator("#touchCenterRudder").click();
-    snapshot = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
-    assert.equal(snapshot.controls.rudderTarget, 0);
+    assert.ok(Math.abs(snapshot.controls.rudderTarget - 180 * .14 * Math.PI / 180) < .001,
+      "la roue conserve sa démultiplication : 180° de geste commandent 25,2° de barre");
 
     const throttleBox = await page.locator("#touchThrottleNeutral").boundingBox();
     const throttleX = throttleBox.x + throttleBox.width / 2;
@@ -3679,6 +3778,90 @@ browserCase("simulator:controls.49", async ({ page, browser, context, runtimeErr
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.waitForTimeout(100);
 
+});
+
+browserCase("simulator:controls.61", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const size = page.locator("#tabletControlsSize");
+  const geometry = () => page.evaluate(() => {
+    const box = selector => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
+        width: rect.width, height: rect.height };
+    };
+    return { helm: box(".touch-helm"), wheel: box("#touchHelmWheel"), engine: box(".touch-engine"),
+      handle: box("#touchThrottleNeutral"), stage: box(".stage") };
+  });
+  assert.equal(await size.inputValue(), "175");
+  assert.deepEqual(await page.locator("#advancedDetails .advanced-group-title").allTextContents(), ["Bateau", "Commandes"]);
+  const order = await page.evaluate(() => [
+    ...document.querySelectorAll('#advancedDetails .advanced-group:last-child input')
+  ].map(input => input.id));
+  assert.deepEqual(order, ["mouseHelmSensitivity", "tabletControlsSize"]);
+  let layout = await geometry();
+  assert.equal(layout.helm.width, 238);
+  assert.equal(layout.engine.width, 189);
+  assert.ok(layout.handle.width > layout.engine.width * .8, "la poignée doit couvrir la largeur du panneau");
+  const visibleIdleLabels = await page.evaluate(() => {
+    const handle = document.querySelector('#touchThrottleNeutral').getBoundingClientRect();
+    return [...document.querySelectorAll('.touch-idle-label')].every(label => {
+      const box = label.getBoundingClientRect();
+      return box.height > 0 && (box.bottom < handle.top || box.top > handle.bottom);
+    });
+  });
+  assert.equal(visibleIdleLabels, true, "les crans doivent être lisibles au neutre");
+  assert.ok(layout.wheel.width / layout.helm.width > .85);
+  await page.locator("#advancedDetails summary").click();
+
+  for (const [key, percent] of [["Home", 100], ["End", 200], ["ArrowLeft", 175]]) {
+    await size.focus();
+    await page.keyboard.press(key);
+    assert.equal(await size.inputValue(), String(percent));
+    assert.equal(await page.locator('[data-value-for="tabletControlsSize"]').textContent(), `${percent} %`);
+    layout = await geometry();
+    assert.equal(layout.helm.width, 136 * percent / 100);
+    assert.equal(layout.engine.width, 108 * percent / 100);
+    assert.ok(layout.helm.right < layout.engine.left);
+    await page.evaluate(() => {
+      window.__PORTANCE_TEST__.loadScenario("dockForward");
+      window.__PORTANCE_TEST__.setControls({ gearTarget: 1, throttleTarget: 0 });
+      if (document.querySelector('#sidebarToggle').getAttribute('aria-expanded') === 'true') {
+        document.querySelector('#sidebarToggle').click();
+      }
+    });
+    const handle = await page.locator("#touchThrottleNeutral").boundingBox();
+    const x = handle.x + handle.width * .85, y = handle.y + handle.height / 2;
+    const travel = 25 * percent / 100 * 1.2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y - travel, { steps: 6 });
+    await page.mouse.up();
+    assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.throttleTarget, .5);
+    const moved = await page.locator("#touchThrottleNeutral").boundingBox();
+    assert.ok(Math.abs(moved.y + moved.height / 2 - (y - travel)) < 1,
+      "la poignée doit suivre le doigt à chaque taille");
+    await page.locator("#sidebarToggle").click();
+  }
+
+  await size.focus();
+  await page.keyboard.press("End");
+  await page.reload();
+  assert.equal(await size.inputValue(), "200");
+  assert.equal((await geometry()).helm.width, 272);
+  await page.locator("#advancedDetails summary").click();
+  await size.focus();
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await size.inputValue(), "175");
+  await page.setViewportSize({ width: 768, height: 1024 });
+  layout = await geometry();
+  assert.equal(layout.helm.width, 238);
+  assert.ok(layout.engine.right <= layout.stage.right);
+  assert.ok(layout.helm.bottom <= layout.stage.bottom);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal((await geometry()).helm.width, 136, "le téléphone conserve sa taille");
+  await page.evaluate(() => localStorage.setItem("kjp.tabletControlsSize", "invalid"));
+  await page.reload();
+  assert.equal(await size.inputValue(), "175");
 });
 
 browserCase("simulator:controls.58", async ({ page }) => {
@@ -3750,9 +3933,12 @@ browserCase("simulator:controls.59", async ({ page }) => {
   const reset = () => page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
   const pointer = (type, dy = 0) => page.evaluate(({ type, dy }) => {
     const target = document.querySelector(type === "pointerdown" ? "#touchThrottleNeutral" : ".touch-engine");
+    const engine = document.querySelector(".touch-engine");
+    const scale = engine.getBoundingClientRect().height / engine.offsetHeight
+      * (Number(getComputedStyle(engine).getPropertyValue('--touch-engine-travel-scale')) || 1);
     target.dispatchEvent(new PointerEvent(type, {
       bubbles: true, pointerId: 91, pointerType: "touch", isPrimary: true,
-      clientX: 900, clientY: 300 + dy, button: 0
+      clientX: 900, clientY: 300 + dy * scale, button: 0
     }));
   }, { type, dy });
   for (const gear of [1, -1]) {
@@ -3883,7 +4069,7 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   assert.equal(dufour.profile.rudders.length, 2);
   assert.deepEqual(dufour.profile.rudders.map(rudder => rudder.slipstreamSources), [[], []]);
   assert.equal(dufour.selector.storedId, dufourId);
-  assert.deepEqual(dufour.selector.commercialIds, [sunId, dufourId]);
+  assert.deepEqual(dufour.selector.commercialIds, require("../src/simulateur-port/vessel-profiles.js").COMMERCIAL_PROFILE_IDS);
   assert.equal(dufour.topology.id, before.topology.id);
   assert.deepEqual(infrastructure(dufour.world), infrastructure(before.world));
   assert.equal(dufour.world.player.model.asset.name, "kjp_dufour_310_gl_2014_dimfix_rudders.glb");
@@ -3908,11 +4094,72 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   assert.equal(sun.snapshot.vesselProfileId, sunId);
   assert.equal(sun.world.player.model.loadCount, 1);
 
+  const additional = [
+    ["sun-odyssey-24-2-fixed-keel-experimental", "so242", 1, "KJP_SunOdyssey242.glb"],
+    ["contessa-26-long-keel-experimental", "contessa26", 1, "KJP_Contessa26_rouge_lazybag.glb"],
+    ["pogo-40-s4-twin-rudder-experimental", "pogo40s4", 2, "KJP_Class40_lazybag.glb"],
+    ["oceanis-48-fixed-keel-experimental", "oceanis48", 1, "KJP_Oceanis48_lazybag.glb"]
+  ];
+  const driveAdditionalProfile = () => page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    api.loadScenario("free");
+    api.reset({ x: 25, y: 48, heading: 0 });
+    api.setControls({ gearTarget: 1, throttleTarget: .30, rudderTarget: .20 });
+    return api.advance(3);
+  });
+  for (const [id, description, rudders, assetName] of additional) {
+    const nativeUrl = new URL(page.url());
+    if (nativeUrl.searchParams.get("renderer") !== "native") {
+      nativeUrl.searchParams.set("renderer", "native");
+      await page.goto(nativeUrl.href);
+      await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+    }
+    const infrastructureBeforeSwitch = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
+    await page.locator("#boatProfileShortcut").click();
+    await page.selectOption("#boatProfileSelect", id);
+    await page.waitForFunction(id => window.__PORTANCE_TEST__.snapshot().vesselProfileId === id
+      && window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready, id);
+    const state = await page.evaluate(() => ({
+      snapshot: window.__PORTANCE_TEST__.snapshot(),
+      profile: window.__PORTANCE_TEST__.physicsReport().profile,
+      world: window.__PORTANCE_TEST__.worldRendererReport(),
+      source: window.__PORTANCE_TEST__.nativePlayerSourceReport(),
+      topology: window.__PORTANCE_TEST__.topologyReport(),
+      selector: window.__PORTANCE_TEST__.vesselProfileReport()
+    }));
+    assert.equal(state.selector.storedId, id);
+    assert.equal(state.profile.rudders.length, rudders);
+    assert.equal(state.snapshot.controls.throttleTarget, 0);
+    assert.equal(state.snapshot.controls.rudderTarget, 0);
+    assert.equal(state.topology.id, before.topology.id);
+    assert.deepEqual(infrastructure(state.world), infrastructure(infrastructureBeforeSwitch));
+    assert.equal(state.world.player.model.asset.name, assetName, "GLB propre au profil : " + id);
+    assert.equal(state.world.player.model.loadCount, 1);
+    assert.equal(state.source.some(owner => owner.id === "profile-silhouette"), false);
+    await assertHeaderDescription("ui.boat.description." + description, state.profile.name);
+    assert.match(await page.locator("#boatProfileStatus").textContent(), /modèle 3D spécifique/i);
+    const drivenNative = await driveAdditionalProfile();
+    assert.ok(drivenNative.waterSpeed > 0, "profil pilotable : " + id);
+    assert.equal(drivenNative.controls.gearTarget, 1);
+    assert.equal(drivenNative.controls.rudderTarget, .20);
+    await page.reload();
+    await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, id);
+    assert.equal(await page.locator("#boatProfileSelect").inputValue(), id);
+    // Vérifier aussi le secours Canvas, sans attendre de ressource GLB.
+    await page.goto(page.url().replace(/([?&])renderer=[^&]*/, "$1renderer=canvas"));
+    await page.waitForFunction(id => window.__PORTANCE_TEST__?.snapshot().vesselProfileId === id, id);
+    const drivenCanvas = await driveAdditionalProfile();
+    assert.deepEqual(drivenCanvas.motion, drivenNative.motion, "pose et vitesses identiques natif/Canvas : " + id);
+  }
+  await page.goto(page.url().replace(/([?&])renderer=canvas/, "$1renderer=native"));
+  await page.waitForFunction(() => Boolean(window.__PORTANCE_TEST__));
+
   const importedPort = await page.evaluate(
     text => window.__PORTANCE_TEST__.importPort(text),
     createPortInformationText()
   );
   const importedPaused = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.paused);
+  await page.locator("#boatProfileShortcut").click();
   await page.selectOption("#boatProfileSelect", dufourId);
   assert.equal(
     (await page.evaluate(() => window.__PORTANCE_TEST__.topologyReport())).id,

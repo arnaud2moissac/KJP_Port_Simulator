@@ -27,6 +27,15 @@ sont décrits dans [la documentation du renderer](docs/renderer-three.md).
 
 Pour créer un port, ouvrez `generateur-port.html`, dessinez ou analysez une zone OpenStreetMap, définissez son entrée, puis exportez un fichier `.kjp`. La structure du format est décrite dans [ports/KJP.md](ports/KJP.md).
 
+Le [guide illustré du générateur](docs/guide-generateur.fr.md) décrit la création
+d’un port de A à Z sur PC ou tablette en paysage, avec Port Tudy à Groix comme
+fil conducteur. Son [fichier d’exercice KJP](docs/exemples/port-tudy-exercice.kjp)
+comprend des aménagements pédagogiques explicitement signalés.
+
+Le générateur propose le français, l’anglais et le breton (FR / EN / Bzh), avec
+une aide embarquée dans chaque langue. Ses dictionnaires et la procédure pour
+ajouter une langue sont décrits dans [la documentation de localisation](docs/localisation-generateur.md).
+
 https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html
 
 

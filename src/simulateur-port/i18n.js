@@ -5,7 +5,7 @@
 })(globalThis, function () {
   "use strict";
   const STORAGE_KEY = "kjp.simulator.locale";
-  function create(catalogs, host = {}) {
+  function create(catalogs, host = {}, { storageKey = STORAGE_KEY } = {}) {
     catalogs = catalogs.map(catalog => ({ ...catalog, code: catalog.code.toLowerCase() }));
     const byCode = new Map(catalogs.map(catalog => [catalog.code, catalog]));
     if (!byCode.has("fr")) throw new Error("French reference catalog required");
@@ -20,7 +20,7 @@
         ? normalized.split("-")[0] : null;
     };
     let locale;
-    try { locale = match(host.localStorage?.getItem(STORAGE_KEY)); } catch {}
+    try { locale = match(host.localStorage?.getItem(storageKey)); } catch {}
     if (locale) source = "storage";
     else {
       try { locale = (host.navigator?.languages || [host.navigator?.language]).map(match).find(Boolean); } catch {}
@@ -78,7 +78,7 @@
       if (!next) return false;
       source = options.source || "manual";
       if (options.persist !== false) {
-        try { host.localStorage?.setItem(STORAGE_KEY, next); } catch {}
+        try { host.localStorage?.setItem(storageKey, next); } catch {}
       }
       if (next === locale) return true;
       locale = next;

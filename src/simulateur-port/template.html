@@ -1364,6 +1364,36 @@
       background: var(--cyan);
       transform: translate(-50%, -50%);
     }
+    .touch-helm[data-steering-type="tiller"] .touch-wheel {
+      border-color: transparent;
+      border-radius: 0;
+      box-shadow: none;
+      transform: none;
+    }
+    .touch-helm[data-steering-type="tiller"] .touch-wheel::before {
+      top: auto;
+      bottom: 6%;
+      left: 50%;
+      width: 6px;
+      height: 72px;
+      border: 0;
+      border-radius: 3px 3px 0 0;
+      clip-path: polygon(35% 0, 65% 0, 80% 3%, 100% 100%, 0 100%, 20% 3%);
+      background:
+        linear-gradient(90deg, #66787c, #dce4e1 45%, #f6f5e9 65%, #7d8c8f) bottom / 100% 8px no-repeat,
+        linear-gradient(90deg, #85522d, #d8a165 45%, #e7b77a 65%, #925b31);
+      box-shadow: none;
+      transform: translateX(-50%) rotate(var(--tiller-angle, 0deg));
+      transform-origin: 50% 100%;
+    }
+    .touch-helm[data-steering-type="tiller"] .touch-helm-value {
+      top: 12px;
+    }
+    .touch-helm[data-steering-type="tiller"] .touch-wheel::after,
+    .touch-helm[data-steering-type="tiller"] .touch-wheel-hub,
+    .touch-helm[data-steering-type="tiller"] .touch-pad-center {
+      display: none;
+    }
     .touch-helm { cursor: grab; }
     .touch-helm:active { cursor: grabbing; }
     .touch-helm .touch-pad-center { top: auto; bottom: 2px; width: 30px; height: 26px; min-width: 30px; min-height: 26px; transform: translateX(-50%); }
@@ -1403,6 +1433,7 @@
     .touch-engine-label { position: absolute; left: 14px; color: var(--muted); font-size: 10px; font-weight: 700; }
     .touch-engine-label.forward { top: 38px; }
     .touch-engine-label.reverse { bottom: 14px; }
+    .touch-engine-grip, .touch-tablet-throttle-value, .touch-idle-label { display: none; }
 
     .sidebar {
       min-height: 0;
@@ -2037,6 +2068,50 @@
       .touch-controls { display: flex; }
     }
 
+    @media (pointer: coarse) and (min-width: 641px) {
+      .touch-gamepad { zoom: var(--tablet-controls-scale, 1.75); }
+      .touch-engine { --touch-engine-travel-scale: 1.2; width: 108px; height: 154px; border-radius: 18px; }
+      .touch-engine .touch-pad-title { top: -16px; }
+      .touch-engine-track { top: 14px; bottom: 14px; left: 25px; width: 6px; }
+      .touch-engine-track::after { display: none; }
+      .touch-engine-track .idle-detent {
+        top: calc(50% - var(--detent-side) * 14px * var(--touch-engine-travel-scale));
+        width: 18px; height: 4px; border: 1px solid var(--amber); border-radius: 4px; background: var(--navy-0);
+      }
+      .touch-engine-track .idle-detent.active { background: var(--amber); box-shadow: 0 0 0 1px var(--amber); }
+      .touch-engine-label { left: 44px; font-size: 9px; }
+      .touch-engine-label.forward { top: 23px; }
+      .touch-engine-label.reverse { bottom: 15px; }
+      .touch-idle-label {
+        position: absolute; display: block; left: 44px;
+        top: calc(50% - var(--detent-side) * 14px * var(--touch-engine-travel-scale));
+        transform: translateY(-50%); font-size: 7px; line-height: 1.2; font-weight: 650;
+        color: var(--amber); text-transform: uppercase; white-space: nowrap; pointer-events: none;
+      }
+      .touch-idle-label.ahead { --detent-side: 1; }
+      .touch-idle-label.astern { --detent-side: -1; }
+      .touch-engine .touch-pad-center {
+        top: calc(50% - var(--throttle-shift, 0px) * var(--touch-engine-travel-scale));
+        left: 8px; width: calc(100% - 16px); height: 22px; min-width: 0; min-height: 22px;
+        transform: translateY(-50%); border-radius: 7px; font-size: 8px; text-align: left;
+        display: flex; align-items: center; gap: 13px; padding: 0 8px;
+      }
+      .touch-engine #touchThrottleValue { display: none; }
+      .touch-tablet-throttle-value { display: block; white-space: nowrap; }
+      .touch-engine-grip {
+        display: block; flex: 0 0 15px; height: 2px; border-radius: 1px; background: var(--amber);
+        box-shadow: 0 -4px 0 var(--amber), 0 4px 0 var(--amber);
+      }
+      .touch-wheel { inset: 8px; border-width: 8px; }
+      .touch-wheel::before, .touch-wheel::after { width: 46px; }
+      .touch-helm-value { top: 27px; z-index: 1; }
+      .touch-helm .touch-pad-center {
+        top: 50%; bottom: auto; width: 32px; height: 32px;
+        min-width: 32px; min-height: 32px; transform: translate(-50%, -50%);
+        border-color: var(--cyan); color: var(--cyan);
+      }
+    }
+
     @media (max-width: 480px) {
       .header-tools { flex-wrap: wrap; row-gap: 6px; }
       .topbar { grid-template-columns: 1fr; }
@@ -2241,7 +2316,7 @@
         </div>
 
         <div class="touch-controls" aria-label="Commandes tactiles du bateau" data-i18n-attr="aria-label:ui.touch.boat.controls">
-          <div class="touch-gamepad touch-helm" aria-label="Commande tactile de barre" data-i18n-attr="aria-label:ui.touch.helm.control">
+          <div class="touch-gamepad touch-helm" data-steering-type="wheel" aria-label="Commande tactile de barre" data-i18n-attr="aria-label:ui.touch.helm.control">
             <span class="touch-pad-title" data-i18n="ui.helm.2">Barre</span>
             <output class="touch-helm-value" id="touchRudderValue">0°</output>
             <div class="touch-wheel" id="touchHelmWheel" role="slider" tabindex="0" aria-label="Roue de barre, tourner pour régler l'angle" aria-valuemin="-35" aria-valuemax="35" aria-valuenow="0" data-i18n-attr="aria-label:ui.helm.wheel.turn.to.adjust.angle"><span class="touch-wheel-hub"></span></div>
@@ -2257,7 +2332,11 @@
               <span class="idle-detent ahead" id="touchAheadIdleDetent"></span>
               <span class="idle-detent astern" id="touchAsternIdleDetent"></span>
             </div>
+            <span class="touch-idle-label ahead" aria-hidden="true" data-i18n="ui.ahead.idle">AV ralenti</span>
+            <span class="touch-idle-label astern" aria-hidden="true" data-i18n="ui.astern.idle">AR ralenti</span>
             <button type="button" class="touch-pad-center" id="touchThrottleNeutral" aria-label="Glisser verticalement pour régler le moteur, toucher pour le neutre" role="slider" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0" data-i18n-attr="aria-label:ui.drag.vertically.to.set.throttle.tap.for.neutral">
+              <span class="touch-engine-grip" aria-hidden="true"></span>
+              <span class="touch-tablet-throttle-value" id="touchTabletThrottleValue" aria-hidden="true"></span>
               <span id="touchThrottleValue">N</span>
             </button>
             <span class="touch-engine-label reverse" aria-hidden="true" data-i18n="ui.gear.reverse">AR</span>
@@ -2405,14 +2484,6 @@
           <summary data-i18n="ui.advanced.settings">Réglages avancés</summary>
           <div class="expert-body">
             <div class="advanced-group">
-              <div class="advanced-group-title" data-i18n="ui.advanced.commands">Commandes</div>
-              <div class="control-row">
-                <div class="control-meta"><label for="mouseHelmSensitivity" data-i18n="ui.mouse.helm.sensitivity">Sensibilité de la barre à la souris</label><span class="control-value" data-value-for="mouseHelmSensitivity"></span></div>
-                <input id="mouseHelmSensitivity" type="range" min="25" max="300" step="5" value="100" aria-describedby="mouseHelmHelp">
-                <p class="sidebar-subtitle" id="mouseHelmHelp" data-i18n="ui.mouse.helm.help">Alt / Option ou clic droit dans la scène : basculer entre caméra et barre. En mode barre, déplacez la souris à gauche ou à droite sans maintenir de bouton. Échap revient au mode normal.</p>
-              </div>
-            </div>
-            <div class="advanced-group">
               <div class="advanced-group-title" data-i18n="ui.advanced.boat">Bateau</div>
               <div class="control-row">
                 <div class="control-meta"><label for="boatProfileSelect" data-i18n="ui.boat.profile">Profil du bateau</label></div>
@@ -2449,6 +2520,19 @@
               <div class="control-row">
                 <div class="control-meta"><label for="mooringAttachSpeed" data-i18n="ui.attach.a.line.below">Frapper une aussière sous</label><span class="control-value" data-value-for="mooringAttachSpeed"></span></div>
                 <input id="mooringAttachSpeed" type="range" min="0.1" max="1" step="0.1" value="0.6">
+              </div>
+            </div>
+            <div class="advanced-group">
+              <div class="advanced-group-title" data-i18n="ui.advanced.commands">Commandes</div>
+              <div class="control-row">
+                <div class="control-meta"><label for="mouseHelmSensitivity" data-i18n="ui.mouse.helm.sensitivity">Sensibilité de la barre à la souris</label><span class="control-value" data-value-for="mouseHelmSensitivity"></span></div>
+                <input id="mouseHelmSensitivity" type="range" min="25" max="300" step="5" value="100" aria-describedby="mouseHelmHelp">
+                <p class="sidebar-subtitle" id="mouseHelmHelp" data-i18n="ui.mouse.helm.help">Alt / Option ou clic droit dans la scène : basculer entre caméra et barre. En mode barre, déplacez la souris à gauche ou à droite sans maintenir de bouton. Échap revient au mode normal.</p>
+              </div>
+              <div class="control-row">
+                <div class="control-meta"><label for="tabletControlsSize" data-i18n="ui.tablet.controls.size">Taille des commandes tactiles</label><span class="control-value" data-value-for="tabletControlsSize"></span></div>
+                <input id="tabletControlsSize" type="range" min="100" max="200" step="25" value="175" aria-describedby="tabletControlsHelp">
+                <p class="sidebar-subtitle" id="tabletControlsHelp" data-i18n="ui.tablet.controls.help">Sur tablette. 175 % correspond à un agrandissement de 75 %.</p>
               </div>
             </div>
           </div>
@@ -2674,6 +2758,14 @@
     const VESSEL_PROFILE_STORAGE_KEY = "kjp.vesselProfile.v1";
     const DEFAULT_VESSEL_PROFILE_ID = PortPhysics.DEFAULT_PROFILE.id;
     const DUFOUR_310_PROFILE_ID = "dufour-310-gl-2014-deep-keel-experimental";
+    // Ressources de présentation : les profils physiques validés restent figés.
+    const EXPERIMENTAL_BOAT_PRESENTATIONS = Object.freeze({
+      "sun-odyssey-24-2-fixed-keel-experimental": { asset: "sun-odyssey-24-2", modelOffsetX: .05, descriptionKey: "ui.boat.description.so242", deckZ: .77, roofZ: 1.38, mastZ: 10.1 },
+      "contessa-26-long-keel-experimental": { asset: "contessa-26", modelOffsetX: .135, descriptionKey: "ui.boat.description.contessa26", deckZ: .65, roofZ: 1.20, mastZ: 10.7,
+        keelOutline: [[-3.15, -.40], [-3.15, -1.00], [-2.25, -1.21], [-.65, -1.21], [.60, -.95], [1.65, -.65], [2.20, -.40]] },
+      "pogo-40-s4-twin-rudder-experimental": { asset: "pogo-40-s4", modelOffsetX: .095, descriptionKey: "ui.boat.description.pogo40s4", deckZ: 1.02, roofZ: 1.70, mastZ: 19.0 },
+      "oceanis-48-fixed-keel-experimental": { asset: "oceanis-48", modelOffsetX: .085, descriptionKey: "ui.boat.description.oceanis48", deckZ: 1.19, roofZ: 2.08, mastZ: 21.69 }
+    });
 
     function storedVesselProfileId() {
       try {
@@ -2688,7 +2780,28 @@
 
     function boatPresentation(profile) {
       const dufour = profile.id === DUFOUR_310_PROFILE_ID;
-      const visual = dufour ? {
+      const additional = EXPERIMENTAL_BOAT_PRESENTATIONS[profile.id];
+      const visual = additional ? {
+        waterlineZ: .02,
+        playerDeckZ: additional.deckZ,
+        playerCabinRoofZ: additional.roofZ,
+        playerMastTopZ: additional.mastZ,
+        staticDeckZ: .92,
+        staticCabinRoofZ: 1.42,
+        bowMarkerX: profile.geometry.gunwale.at(-2).x,
+        rudderAxisLengthFactor: 1,
+        usePlayerModel: true,
+        playerModelAsset: additional.asset,
+        playerModelOffsetX: additional.modelOffsetX || 0,
+        keelOutline: additional.keelOutline || null,
+        collision: {
+          fenderRadius: profile.contacts.fenderRadius,
+          fenderHeight: profile.contacts.fenderRadius * 4,
+          fenderBottomZ: .14,
+          hullVisible: false,
+          reference: "gunwale"
+        }
+      } : dufour ? {
         waterlineZ: .02,
         playerDeckZ: .99,
         playerCabinRoofZ: 1.54,
@@ -2726,16 +2839,19 @@
       return {
         id: profile.id,
         version: profile.version,
-        experimental: dufour,
+        experimental: dufour || Boolean(additional),
+        provisional: false,
+        specificModel: Boolean(additional),
         name: profile.name,
-        descriptionKey: dufour ? "ui.boat.description.dufour310" : "ui.boat.description.sun36",
+        steering: { ...profile.steering },
+        descriptionKey: additional?.descriptionKey || (dufour ? "ui.boat.description.dufour310" : "ui.boat.description.sun36"),
         length: profile.dimensions.lengthOverall,
         waterline: profile.dimensions.waterline,
         beam: profile.dimensions.beam,
         draft: profile.dimensions.draft,
         lightMass: profile.inertia.lightMass,
         mass: profile.inertia.loadedMass,
-        keelMass: dufour ? 1300 : 1571,
+        keelMass: additional ? null : dufour ? 1300 : 1571,
         enginePowerKw: profile.propulsion.enginePowerKw,
         yawRadius: profile.inertia.yawRadius,
         propellerX: profile.propulsion.x,
@@ -2744,12 +2860,12 @@
         propellerBlades: profile.propulsion.blades,
         rudderX: Math.min(...profile.rudders.map(rudder => rudder.x)),
         rudders: profile.rudders.map(rudder => ({ ...rudder, y: -rudder.y })),
-        keelX: profile.keel.x,
+        keelX: additional ? profile.appendages.reduce((sum, item) => sum + item.x * item.area, 0) / profile.appendages.reduce((sum, item) => sum + item.area, 0) : profile.keel.x,
         rudderArea: profile.rudders.reduce((sum, rudder) => sum + rudder.area, 0),
-        keelArea: profile.keel.area,
+        keelArea: additional ? profile.appendages.reduce((sum, item) => sum + item.area, 0) : profile.keel.area,
         maxRudder: Math.min(...profile.rudders.map(rudder => rudder.maxAngle)),
-        maxForwardThrust: dufour ? 1750 : 2350,
-        reverseRatio: dufour ? .60 : .62,
+        maxForwardThrust: additional ? null : dufour ? 1750 : 2350,
+        reverseRatio: additional ? null : dufour ? .60 : .62,
         visual,
         gunwale: profile.geometry.gunwale.map(point => ({ ...point })),
         fenders: profile.contacts.fenders.map(fender => ({
@@ -3054,6 +3170,20 @@
       sensitivity: readMouseHelmSensitivity()
     };
 
+    const TABLET_CONTROLS_STORAGE_KEY = "kjp.tabletControlsSize";
+    function validTabletControlsSize(value) {
+      const number = Number(value);
+      return Number.isFinite(number) && number >= 100 && number <= 200 && number % 25 === 0
+        ? number : 175;
+    }
+    function readTabletControlsSize() {
+      try { return validTabletControlsSize(localStorage.getItem(TABLET_CONTROLS_STORAGE_KEY)); }
+      catch { return 175; }
+    }
+    let tabletControlsSize = readTabletControlsSize();
+    document.documentElement.style.setProperty("--tablet-controls-scale", tabletControlsSize / 100);
+    $("#tabletControlsSize").value = tabletControlsSize;
+
     const placement = { active: false, mooring: false, draft: null, controller: null, pointer: null,
       armed: false, blocked: false, sliding: false, contact: null, saved: null, disabled: [], center: null };
 
@@ -3138,12 +3268,13 @@
       })
     );
     const flowRenderStats = { windSegments: 0, currentSegments: 0 };
+    // Vue A validée : cadrage de manœuvre, indépendant d'une taille humaine.
     const SKIPPER_EYE = Object.freeze({
-      x: -8.2,
+      x: -6.3,
       y: 0,
-      z: 5.1,
-      pitch: -10 * DEG,
-      focalScale: .62
+      z: 3.2,
+      pitch: -16 * DEG,
+      focalScale: .9
     });
 
     const camera = {
@@ -4376,14 +4507,16 @@
       const select = $("#boatProfileSelect");
       select.replaceChildren(...PortPhysics.COMMERCIAL_PROFILE_IDS.map(id => {
         const profile = PortPhysics.COMPILED_PROFILES[id];
-        const label = id === DUFOUR_310_PROFILE_ID
+        const label = id !== DEFAULT_VESSEL_PROFILE_ID
           ? `${profile.name} — ${t("ui.experimental")}`
           : profile.name;
         return new Option(label, id);
       }));
       select.value = activeVesselProfileId;
       $("#boatProfileShortcut").textContent = t(BOAT_PROFILE.descriptionKey);
-      $("#boatProfileStatus").textContent = BOAT_PROFILE.experimental
+      $("#boatProfileStatus").textContent = BOAT_PROFILE.specificModel
+        ? t("ui.boat.profile.specific.status")
+        : BOAT_PROFILE.experimental
         ? t("ui.boat.profile.experimental.status")
         : t("ui.boat.profile.reference.status");
       const mass = $("#boatMass");
@@ -7456,22 +7589,64 @@
           const organColor = palette.understand?.organ || boatPalette.playerSidePort;
           const organOutline = palette.understand?.silhouetteStroke || boatOutline;
           const propellerColor = palette.understand?.propeller || boatPalette.outline;
-          const keelChord = BOAT_PROFILE.visual.usePlayerModel
-            ? 2
-            : BOAT_PROFILE.keelArea / physicsSimulator.getProfile().keel.span;
-          const keelSide = side => [
-            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? 1.05 : BOAT_PROFILE.keelX + keelChord * .48, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
-            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -.95 : BOAT_PROFILE.keelX - keelChord * .52, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
-            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -1.15 : BOAT_PROFILE.keelX - keelChord * .42, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.78 : -BOAT_PROFILE.draft),
-            pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? .35 : BOAT_PROFILE.keelX + keelChord * .30, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.92 : -BOAT_PROFILE.draft)
-          ];
-          const keelPort = keelSide(1), keelStarboard = keelSide(-1);
-          addPolygon(keelPort, organColor, organOutline, 1.2, .03);
-          addPolygon(keelStarboard, organColor, organOutline, 1.2, .03);
-          addPolygon([keelPort[2], keelStarboard[2], keelStarboard[3], keelPort[3]],
-            organColor, false);
+          const legacyModel = BOAT_PROFILE.visual.usePlayerModel && !BOAT_PROFILE.specificModel;
+          if (BOAT_PROFILE.specificModel) {
+            const profile = physicsSimulator.getProfile();
+            const outlines = BOAT_PROFILE.visual.keelOutline
+              ? [{ y: 0, points: BOAT_PROFILE.visual.keelOutline }]
+              : profile.appendages.map(foil => {
+                const chord = foil.area / foil.span;
+                return { y: -foil.y, points: [
+                  [foil.x - chord / 2, foil.z + foil.span / 2],
+                  [foil.x - chord / 2, foil.z - foil.span / 2],
+                  [foil.x + chord / 2, foil.z - foil.span / 2],
+                  [foil.x + chord / 2, foil.z + foil.span / 2]
+                ] };
+              });
+            for (const outline of outlines) {
+              const side = offset => outline.points.map(([x, z]) => pointFor(boat, x, outline.y + offset, z));
+              const port = side(.08), starboard = side(-.08);
+              addPolygon(port, organColor, organOutline, 1.2, .03);
+              addPolygon(starboard, organColor, organOutline, 1.2, .03);
+              for (let i = 0; i < port.length; i++) {
+                const j = (i + 1) % port.length;
+                addPolygon([port[i], port[j], starboard[j], starboard[i]], organColor, false);
+              }
+            }
+          } else {
+            const keelChord = BOAT_PROFILE.visual.usePlayerModel
+              ? 2
+              : BOAT_PROFILE.keelArea / physicsSimulator.getProfile().keel.span;
+            const keelSide = side => [
+              pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? 1.05 : BOAT_PROFILE.keelX + keelChord * .48, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
+              pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -.95 : BOAT_PROFILE.keelX - keelChord * .52, side * (BOAT_PROFILE.visual.usePlayerModel ? .2 : .16), -.15),
+              pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? -1.15 : BOAT_PROFILE.keelX - keelChord * .42, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.78 : -BOAT_PROFILE.draft),
+              pointFor(boat, BOAT_PROFILE.visual.usePlayerModel ? .35 : BOAT_PROFILE.keelX + keelChord * .30, side * (BOAT_PROFILE.visual.usePlayerModel ? .14 : .11), BOAT_PROFILE.visual.usePlayerModel ? -1.92 : -BOAT_PROFILE.draft)
+            ];
+            const keelPort = keelSide(1), keelStarboard = keelSide(-1);
+            addPolygon(keelPort, organColor, organOutline, 1.2, .03);
+            addPolygon(keelStarboard, organColor, organOutline, 1.2, .03);
+            addPolygon([keelPort[2], keelStarboard[2], keelStarboard[3], keelPort[3]],
+              organColor, false);
+          }
           for (const rudder of BOAT_PROFILE.rudders) {
-            if (BOAT_PROFILE.visual.usePlayerModel) {
+            if (BOAT_PROFILE.specificModel) {
+              const side = offset => [
+                pointFor(boat, rudder.x - rudder.meanChord / 2, rudder.y + offset, rudder.z + rudder.span / 2),
+                pointFor(boat, rudder.x - rudder.meanChord / 2, rudder.y + offset, rudder.z - rudder.span / 2),
+                pointFor(boat, rudder.x + rudder.meanChord / 2, rudder.y + offset, rudder.z - rudder.span / 2),
+                pointFor(boat, rudder.x + rudder.meanChord / 2, rudder.y + offset, rudder.z + rudder.span / 2)
+              ];
+              const port = side(.035), starboard = side(-.035);
+              addPolygon(port, organColor, organOutline, 1.2, .04);
+              addPolygon(starboard, organColor, organOutline, 1.2, .04);
+              for (let i = 0; i < 4; i++) {
+                const j = (i + 1) % 4;
+                addPolygon([port[i], port[j], starboard[j], starboard[i]], organColor, false);
+              }
+              continue;
+            }
+            if (legacyModel) {
               const rudderSide = side => [
                 pointFor(boat, -3.8, side * .12, -.2),
                 pointFor(boat, -4.72, side * .12, -.35),
@@ -7497,17 +7672,18 @@
             addPolygon(rudderSide(-1), organColor, organOutline, 1.2, .04);
           }
           addWorldLine([
-            pointFor(boat, -2.35, 0, -.34),
+            pointFor(boat, BOAT_PROFILE.specificModel ? BOAT_PROFILE.propellerX + .5 : -2.35, 0,
+              BOAT_PROFILE.specificModel ? BOAT_PROFILE.propellerZ + .06 : -.34),
             pointFor(boat, BOAT_PROFILE.propellerX, 0,
-              BOAT_PROFILE.visual.usePlayerModel ? -.55 : BOAT_PROFILE.propellerZ)
+              legacyModel ? -.55 : BOAT_PROFILE.propellerZ)
           ], propellerColor, 2, [], 14);
           const bladeOutline = [
             [.16, -.14], [.43, -.34], [.82, -.25], [1, .02],
             [.87, .26], [.53, .34], [.20, .20]
           ];
-          const bladeCount = BOAT_PROFILE.visual.usePlayerModel ? 3 : BOAT_PROFILE.propellerBlades;
-          const propellerRadius = BOAT_PROFILE.visual.usePlayerModel ? .34 : BOAT_PROFILE.propellerRadius;
-          const propellerZ = BOAT_PROFILE.visual.usePlayerModel ? -.55 : BOAT_PROFILE.propellerZ;
+          const bladeCount = legacyModel ? 3 : BOAT_PROFILE.propellerBlades;
+          const propellerRadius = legacyModel ? .34 : BOAT_PROFILE.propellerRadius;
+          const propellerZ = legacyModel ? -.55 : BOAT_PROFILE.propellerZ;
           for (let blade = 0; blade < bladeCount; blade++) {
             const angle = blade * Math.PI * 2 / bladeCount;
             const c = Math.cos(angle), s = Math.sin(angle);
@@ -8156,11 +8332,11 @@
         palette: nativePlayerPalette([]),
         player: {
           model: useModel ? {
-            asset: dufourModel ? "dufour-310-gl-2014-dimfix-rudders" : "sun-odyssey-36i",
+            asset: BOAT_PROFILE.visual.playerModelAsset || (dufourModel ? "dufour-310-gl-2014-dimfix-rudders" : "sun-odyssey-36i"),
             role: "boat.playerHull",
-            // Recentrage du milieu de coque mesuré (-0,125 m dans le GLB)
-            // sur le milieu du rail KJP (+0,0825 m), sans toucher à la pose.
-            position: [dufourModel ? .2075 : 0, 0, BOAT_PROFILE.visual.waterlineZ],
+            // Calage visuel seul : Dufour -0,125 → +0,0825 m ; fichiers
+            // centrés 24.2/Class40/Contessa/Oceanis → milieux des rails KJP.
+            position: [dufourModel ? .2075 : BOAT_PROFILE.visual.playerModelOffsetX || 0, 0, BOAT_PROFILE.visual.waterlineZ],
             rotation: [Math.PI / 2, Math.PI / 2, 0],
             scale: 1,
             clipBelowZ: BOAT_PROFILE.visual.waterlineZ,
@@ -9681,7 +9857,14 @@
       setText("#rudderValue", `${fmt(Math.abs(rudderDeg), 0)}°${rudderSide}`);
       setStyleProperty("#rudderIndicator", "--position", `${50 - rudderDeg / 35 * 46}%`);
       setStyleProperty("#touchHelmWheel", "--wheel-angle", `${-rudderDeg / .14}deg`);
-      $("#touchHelmWheel").setAttribute("aria-valuenow", String(Math.round(-rudderDeg)));
+      setStyleProperty("#touchHelmWheel", "--tiller-angle", `${rudderDeg}deg`);
+      const touchHelmControl = $("#touchHelmWheel");
+      const steeringType = BOAT_PROFILE.steering.type;
+      touchHelmControl.closest(".touch-helm").dataset.steeringType = steeringType;
+      touchHelmControl.setAttribute("aria-label", t(steeringType === "tiller"
+        ? "ui.helm.tiller.move.to.adjust.angle"
+        : "ui.helm.wheel.turn.to.adjust.angle"));
+      touchHelmControl.setAttribute("aria-valuenow", String(Math.round(-rudderDeg)));
       setText("#touchRudderValue", Math.abs(rudderDeg) < .5
         ? "0°"
         : `${Math.round(Math.abs(rudderDeg))}° ${rudderSide.trim()}`);
@@ -9692,6 +9875,8 @@
       if (throttle < 0) throttleLabel = t("ui.astern", { value1: Math.round(Math.abs(throttle) * 100) });
       if (throttleIsIdle()) throttleLabel = t(controls.gearTarget > 0 ? "ui.ahead.idle" : "ui.astern.idle");
       setText("#throttleLabel", throttleLabel);
+      setText("#touchTabletThrottleValue", controls.gearTarget === 0
+        ? t("ui.neutral") : `${Math.round(Math.abs(throttle) * 100)} %`);
       setText("#touchThrottleValue", throttleIsIdle() ? throttleLabel : throttle > 0
         ? t("ui.fwd.2", { value1: Math.round(throttle * 100) })
         : throttle < 0
@@ -9762,6 +9947,7 @@
         rudderEfficiency: `${Math.round(calibration.rudder * 100)} %`,
         lateralResistance: `${Math.round(calibration.lateral * 100)} %`,
         mouseHelmSensitivity: `${mouseHelm.sensitivity} %`,
+        tabletControlsSize: `${tabletControlsSize} %`,
         mooringAttachSpeed: t("ui.kn", { value1: fmt(calibration.mooringAttachSpeedKn, 1) })
       };
       Object.entries(values).forEach(([id, value]) => {
@@ -10273,6 +10459,13 @@
     }
 
     const inputs = {
+      tabletControlsSize: value => {
+        cancelEngineGesture();
+        tabletControlsSize = validTabletControlsSize(value);
+        $("#tabletControlsSize").value = tabletControlsSize;
+        document.documentElement.style.setProperty("--tablet-controls-scale", tabletControlsSize / 100);
+        try { localStorage.setItem(TABLET_CONTROLS_STORAGE_KEY, String(tabletControlsSize)); } catch {}
+      },
       mouseHelmSensitivity: value => {
         mouseHelm.sensitivity = validMouseHelmSensitivity(value);
         $("#mouseHelmSensitivity").value = mouseHelm.sensitivity;
@@ -10442,25 +10635,47 @@
 
     const touchHelm = $(".touch-helm");
     const touchWheel = $("#touchHelmWheel");
+    function touchTillerPointerAngle(event) {
+      const rect = touchWheel.getBoundingClientRect();
+      const style = getComputedStyle(touchWheel);
+      const shaft = getComputedStyle(touchWheel, "::before");
+      const scaleX = rect.width / touchWheel.offsetWidth;
+      const scaleY = rect.height / touchWheel.offsetHeight;
+      const pivotX = rect.left + (parseFloat(style.borderLeftWidth) + parseFloat(shaft.left)) * scaleX;
+      const pivotY = rect.bottom - (parseFloat(style.borderBottomWidth) + parseFloat(shaft.bottom)) * scaleY;
+      // La prise suit l'embase visible, y compris avec le zoom des commandes.
+      // Un bras de levier minimal évite l'instabilité d'une prise sur l'axe.
+      return Math.atan2(event.clientX - pivotX, Math.max(
+        pivotY - event.clientY, parseFloat(shaft.height) * scaleY * .25
+      ));
+    }
     let helmGesture = null;
     touchHelm.addEventListener("pointerdown", event => {
       if (event.target.closest("button") || helmGesture) return;
       event.preventDefault();
       const rect = touchWheel.getBoundingClientRect();
-      const angle = Math.atan2(event.clientY - (rect.top + rect.height / 2),
-        event.clientX - (rect.left + rect.width / 2));
-      helmGesture = { id: event.pointerId, angle };
+      const tiller = BOAT_PROFILE.steering.type === "tiller";
+      const angle = tiller ? touchTillerPointerAngle(event)
+        : Math.atan2(event.clientY - (rect.top + rect.height / 2),
+          event.clientX - (rect.left + rect.width / 2));
+      helmGesture = { id: event.pointerId, angle, tiller };
       try { touchHelm.setPointerCapture(event.pointerId); } catch {}
     });
     touchHelm.addEventListener("pointermove", event => {
       if (helmGesture?.id !== event.pointerId) return;
       const rect = touchWheel.getBoundingClientRect();
-      const angle = Math.atan2(event.clientY - (rect.top + rect.height / 2),
-        event.clientX - (rect.left + rect.width / 2));
+      const angle = helmGesture.tiller ? touchTillerPointerAngle(event)
+        : Math.atan2(event.clientY - (rect.top + rect.height / 2),
+          event.clientX - (rect.left + rect.width / 2));
       const delta = Math.atan2(Math.sin(angle - helmGesture.angle),
         Math.cos(angle - helmGesture.angle));
-      controls.rudderTarget = clamp(controls.rudderTarget - delta * RAD * .14 * DEG,
-        -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
+      if (helmGesture.tiller) {
+        controls.rudderTarget = clamp(controls.rudderTarget + delta,
+          -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
+      } else {
+        controls.rudderTarget = clamp(controls.rudderTarget - delta * RAD * .14 * DEG,
+          -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder);
+      }
       helmGesture.angle = angle;
     });
     const endHelmGesture = event => {
@@ -10551,6 +10766,8 @@
       engineGesture = {
         id: event.pointerId,
         startY: event.clientY,
+        scale: (touchEngine.getBoundingClientRect().height / touchEngine.offsetHeight || 1)
+          * (Number(getComputedStyle(touchEngine).getPropertyValue("--touch-engine-travel-scale")) || 1),
         gear: controls.gearTarget,
         startDistance: controls.gearTarget
           * touchThrottleDistanceFor(Math.abs(controls.throttleTarget)),
@@ -10566,7 +10783,7 @@
     touchEngine.addEventListener("pointermove", event => {
       const gesture = engineGesture;
       if (gesture?.id !== event.pointerId) return;
-      const dy = event.clientY - gesture.startY;
+      const dy = (event.clientY - gesture.startY) / gesture.scale;
       if (Math.abs(dy) < 5 && !gesture.moved) return;
       gesture.moved = true;
       gesture.distance = clamp(gesture.startDistance - dy, -52, 52);
@@ -10641,6 +10858,7 @@
     window.addEventListener("keydown", event => {
       if (readmeDialog.open || portLibraryDialog.open) return;
       if (event.target === $("#languageSelect")) return;
+      if (event.target === $("#tabletControlsSize")) return;
       if (isPreparingDeparture()) {
         if (event.key === "Escape") { event.preventDefault(); cancelBoatPlacement(); return; }
         if (placement.mooring && event.target.closest?.("#mooringGaugePanel")) return;

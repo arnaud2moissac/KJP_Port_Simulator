@@ -1,0 +1,2877 @@
+{
+  "formatVersion": 1,
+  "generator": "scripts/build-vessel-models.mjs",
+  "threeRevision": "186",
+  "sourceAxes": {
+    "up": "+Y",
+    "bow": "+Z",
+    "units": "m",
+    "waterlineY": 0
+  },
+  "sceneTransform": {
+    "rotation": [
+      1.5707963267948966,
+      1.5707963267948966,
+      0
+    ],
+    "position": [
+      0,
+      0,
+      0.02
+    ],
+    "scale": 1
+  },
+  "measurementMethod": "Re-read exported float32 positions and indices, reverse glTF axes into physical coordinates; projected foil area is half the sum of absolute XZ triangle projections of each closed part. Hull/equipment LOA excludes aft appendage extension; full mesh envelope is also reported. Draft is below waterline, before scene z+0.02 transform.",
+  "vessels": [
+    {
+      "id": "sun-odyssey-24-2-fixed-keel-experimental",
+      "file": "kjp_sun_odyssey_24_2.glb",
+      "name": "Jeanneau Sun Odyssey 24.2",
+      "style": "compact-cruiser",
+      "profileVersion": "1.1.2",
+      "profileSha256": "a9298a0ac670e15d2ba56b11ad6f408254517f3ca612209dc4c4174016fa6b5e",
+      "rawProfileSha256": "09b098e1dd24d70b83069d01bb9bcc4b776e7bf2c3d6b6be252f0729df5919df",
+      "transform": {
+        "rotation": [
+          1.5707963267948966,
+          1.5707963267948966,
+          0
+        ],
+        "position": [
+          0,
+          0,
+          0.02
+        ],
+        "scale": 1
+      },
+      "documentaryHullLengthM": 7.2,
+      "profile": {
+        "loaM": 7.3,
+        "lwlM": 6.61,
+        "beamM": 2.49,
+        "draftM": 1.1,
+        "physicalRailLengthM": 7.1
+      },
+      "notes": [
+        "Hull7.20m; physical rail7.10m; pulpit gives LOA7.30m.",
+        "Single tiller, sails furled, no deployed sprayhood."
+      ],
+      "sha256": "fb7cbc513fd06e9649401110319ec6192d4ed6ef7ef56073eaa8e2c003d5232d",
+      "fingerprint": 2606111129,
+      "fingerprintHex": "0x9b561999",
+      "bytes": 146364,
+      "meshCount": 1,
+      "primitiveCount": 1,
+      "materialCount": 1,
+      "triangles": 1562,
+      "vertices": 3306,
+      "indexed": true,
+      "rgba": true,
+      "externalResources": [],
+      "degenerateTriangles": 0,
+      "invalidNormals": 0,
+      "boundsPhysical": {
+        "min": [
+          -3.549999952316284,
+          -1.2450000047683716,
+          -1.100000023841858
+        ],
+        "max": [
+          3.75,
+          1.2450000047683716,
+          10.100000381469727
+        ]
+      },
+      "hullBoundsPhysical": {
+        "min": [
+          -3.549999952316284,
+          -1.2450000047683716,
+          -0.42993369698524475
+        ],
+        "max": [
+          3.6500000953674316,
+          1.2450000047683716,
+          0.9399999976158142
+        ]
+      },
+      "loaBoundsPhysical": {
+        "min": [
+          -3.549999952316284,
+          -1.2450000047683716,
+          -0.42993369698524475
+        ],
+        "max": [
+          3.75,
+          1.2450000047683716,
+          1.4249966144561768
+        ]
+      },
+      "waterlineBoundsPhysical": {
+        "min": [
+          -3.305000066757202,
+          -1.1204999685287476,
+          0
+        ],
+        "max": [
+          3.305000066757202,
+          1.1204999685287476,
+          0
+        ]
+      },
+      "measurements": {
+        "hullLengthM": 7.200000047683716,
+        "overallHullEquipmentLengthM": 7.299999952316284,
+        "fullAppendageEnvelopeLengthM": 7.299999952316284,
+        "beamM": 2.490000009536743,
+        "waterlineLengthM": 6.610000133514404,
+        "draftM": 1.100000023841858,
+        "waterlineZ": 0
+      },
+      "spans": [
+        [
+          "upper_sheer",
+          80,
+          "silhouette"
+        ],
+        [
+          "sheer_stripe",
+          80,
+          "silhouette"
+        ],
+        [
+          "hull_sides",
+          80,
+          "hull"
+        ],
+        [
+          "hull_underwater",
+          240,
+          "hidden"
+        ],
+        [
+          "transom",
+          7,
+          "hull"
+        ],
+        [
+          "deck",
+          53,
+          "hull"
+        ],
+        [
+          "deck_edge",
+          78,
+          "silhouette"
+        ],
+        [
+          "cockpit_and_stern_furniture",
+          126,
+          "hidden"
+        ],
+        [
+          "coachroof",
+          48,
+          "roof"
+        ],
+        [
+          "coachroof_windows",
+          14,
+          "roof"
+        ],
+        [
+          "hull_portlights",
+          8,
+          "hidden"
+        ],
+        [
+          "deck_fittings",
+          200,
+          "hidden"
+        ],
+        [
+          "tiller",
+          40,
+          "hidden"
+        ],
+        [
+          "mast_and_rigging",
+          164,
+          "hidden"
+        ],
+        [
+          "stanchions_and_railings",
+          248,
+          "hidden"
+        ],
+        [
+          "overall_fittings",
+          60,
+          "hidden"
+        ],
+        [
+          "keel_fin",
+          12,
+          "organ"
+        ],
+        [
+          "keel_ballast_shoe",
+          12,
+          "organ"
+        ],
+        [
+          "rudder",
+          12,
+          "organ"
+        ]
+      ],
+      "hullParts": [
+        "upper_sheer",
+        "sheer_stripe",
+        "hull_sides",
+        "hull_underwater",
+        "transom"
+      ],
+      "parts": [
+        {
+          "name": "upper_sheer",
+          "role": "silhouette",
+          "start": 0,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -1.2450000047683716,
+              0.675000011920929
+            ],
+            "max": [
+              3.6500000953674316,
+              1.2450000047683716,
+              0.9399999976158142
+            ]
+          },
+          "surfaceAreaM2": 0.8274858466096205,
+          "projectedSideAreaM2": 0.39600003221001145,
+          "projectedSideCentroidPhysical": [
+            0.05000000862742993,
+            0,
+            0.7602816892347978
+          ]
+        },
+        {
+          "name": "sheer_stripe",
+          "role": "silhouette",
+          "start": 240,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -1.2450000047683716,
+              0.625
+            ],
+            "max": [
+              3.6500000953674316,
+              1.2450000047683716,
+              0.8849999904632568
+            ]
+          },
+          "surfaceAreaM2": 0.7522598494573489,
+          "projectedSideAreaM2": 0.3600000232374194,
+          "projectedSideCentroidPhysical": [
+            0.050000013032365904,
+            0,
+            0.707781689339886
+          ]
+        },
+        {
+          "name": "hull_sides",
+          "role": "hull",
+          "start": 480,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -1.2450000047683716,
+              0
+            ],
+            "max": [
+              3.6500000953674316,
+              1.2450000047683716,
+              0.8349999785423279
+            ]
+          },
+          "surfaceAreaM2": 10.04575043052943,
+          "projectedSideAreaM2": 4.689303218717395,
+          "projectedSideCentroidPhysical": [
+            0.166185175616539,
+            0,
+            0.3481699494228967
+          ]
+        },
+        {
+          "name": "hull_underwater",
+          "role": "hidden",
+          "start": 720,
+          "count": 720,
+          "triangles": 240,
+          "boundsPhysical": {
+            "min": [
+              -3.305000066757202,
+              -1.1204999685287476,
+              -0.42993369698524475
+            ],
+            "max": [
+              3.305000066757202,
+              1.1204999685287476,
+              0
+            ]
+          },
+          "surfaceAreaM2": 12.634223377685505,
+          "projectedSideAreaM2": 2.2928434423840525,
+          "projectedSideCentroidPhysical": [
+            0.00459604609014439,
+            0,
+            -0.18599571004606258
+          ]
+        },
+        {
+          "name": "transom",
+          "role": "hull",
+          "start": 1440,
+          "count": 21,
+          "triangles": 7,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -0.7799999713897705,
+              -0.0860000029206276
+            ],
+            "max": [
+              -3.040600061416626,
+              0.7799999713897705,
+              0.7799999713897705
+            ]
+          },
+          "surfaceAreaM2": 1.4304846405782454,
+          "projectedSideAreaM2": 0.0010800712085377029,
+          "projectedSideCentroidPhysical": [
+            -3.2278833389282227,
+            0,
+            -0.03726666669050852
+          ]
+        },
+        {
+          "name": "deck",
+          "role": "hull",
+          "start": 1461,
+          "count": 159,
+          "triangles": 53,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -1.2450000047683716,
+              0.7300000190734863
+            ],
+            "max": [
+              3.6500000953674316,
+              1.2450000047683716,
+              0.9399999976158142
+            ]
+          },
+          "surfaceAreaM2": 11.847911301558735,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "deck_edge",
+          "role": "silhouette",
+          "start": 1620,
+          "count": 234,
+          "triangles": 78,
+          "boundsPhysical": {
+            "min": [
+              -3.549999952316284,
+              -1.2450000047683716,
+              0.7440000176429749
+            ],
+            "max": [
+              3.6500000953674316,
+              1.2450000047683716,
+              0.9539999961853027
+            ]
+          },
+          "surfaceAreaM2": 0.5008971015261068,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "cockpit_and_stern_furniture",
+          "role": "hidden",
+          "start": 1854,
+          "count": 378,
+          "triangles": 126,
+          "boundsPhysical": {
+            "min": [
+              -3.194999933242798,
+              -0.5799999833106995,
+              0.5
+            ],
+            "max": [
+              -1.5,
+              0.5799999833106995,
+              0.8134999871253967
+            ]
+          },
+          "surfaceAreaM2": 9.418123186586463,
+          "projectedSideAreaM2": 0.9306154534771593,
+          "projectedSideCentroidPhysical": [
+            -2.348146544075258,
+            0,
+            0.6980786801842662
+          ]
+        },
+        {
+          "name": "coachroof",
+          "role": "roof",
+          "start": 2232,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              -1.4800000190734863,
+              -0.8299999833106995,
+              0.7599999904632568
+            ],
+            "max": [
+              1.4800000190734863,
+              0.8299999833106995,
+              1.4299999475479126
+            ]
+          },
+          "surfaceAreaM2": 7.455235713291405,
+          "projectedSideAreaM2": 1.5687999355316151,
+          "projectedSideCentroidPhysical": [
+            4.201905583632033e-17,
+            0,
+            1.1463682149476366
+          ]
+        },
+        {
+          "name": "coachroof_windows",
+          "role": "roof",
+          "start": 2376,
+          "count": 42,
+          "triangles": 14,
+          "boundsPhysical": {
+            "min": [
+              -1.4880000352859497,
+              -0.7932299971580505,
+              0.800000011920929
+            ],
+            "max": [
+              1.097000002861023,
+              0.7932299971580505,
+              1.2691999673843384
+            ]
+          },
+          "surfaceAreaM2": 1.295527649520147,
+          "projectedSideAreaM2": 0.5075280775905857,
+          "projectedSideCentroidPhysical": [
+            -0.10519703407518076,
+            0,
+            1.1215533835481337
+          ]
+        },
+        {
+          "name": "hull_portlights",
+          "role": "hidden",
+          "start": 2418,
+          "count": 24,
+          "triangles": 8,
+          "boundsPhysical": {
+            "min": [
+              -1.5800000429153442,
+              -1.2417892217636108,
+              0.4301111102104187
+            ],
+            "max": [
+              -0.46399998664855957,
+              1.2417892217636108,
+              0.5682476162910461
+            ]
+          },
+          "surfaceAreaM2": 0.12480000038146954,
+          "projectedSideAreaM2": 0.06240000019073477,
+          "projectedSideCentroidPhysical": [
+            -1.022000014781952,
+            0,
+            0.4991793632507324
+          ]
+        },
+        {
+          "name": "deck_fittings",
+          "role": "hidden",
+          "start": 2442,
+          "count": 600,
+          "triangles": 200,
+          "boundsPhysical": {
+            "min": [
+              -1.6799999475479126,
+              -0.8799999952316284,
+              0.7316666841506958
+            ],
+            "max": [
+              1.3975000381469727,
+              0.8799999952316284,
+              1.5279983282089233
+            ]
+          },
+          "surfaceAreaM2": 1.581038251287102,
+          "projectedSideAreaM2": 0.21958208698451998,
+          "projectedSideCentroidPhysical": [
+            -0.4493657831016799,
+            0,
+            1.346411150756708
+          ]
+        },
+        {
+          "name": "tiller",
+          "role": "hidden",
+          "start": 3042,
+          "count": 120,
+          "triangles": 40,
+          "boundsPhysical": {
+            "min": [
+              -2.8277127742767334,
+              -0.03200000151991844,
+              0.6700000166893005
+            ],
+            "max": [
+              -1.8571076393127441,
+              0.03200000151991844,
+              1.1150004863739014
+            ]
+          },
+          "surfaceAreaM2": 0.23744540103794973,
+          "projectedSideAreaM2": 0.0657470862170797,
+          "projectedSideCentroidPhysical": [
+            -2.4605709366284354,
+            0,
+            0.9865792031216295
+          ]
+        },
+        {
+          "name": "mast_and_rigging",
+          "role": "hidden",
+          "start": 3162,
+          "count": 492,
+          "triangles": 164,
+          "boundsPhysical": {
+            "min": [
+              -3.329239845275879,
+              -1.0435631275177002,
+              0.7544262409210205
+            ],
+            "max": [
+              3.552194833755493,
+              1.0435631275177002,
+              10.100000381469727
+            ]
+          },
+          "surfaceAreaM2": 7.627375729053731,
+          "projectedSideAreaM2": 2.441000398505626,
+          "projectedSideCentroidPhysical": [
+            0.11066346221460396,
+            0,
+            4.666436389565662
+          ]
+        },
+        {
+          "name": "stanchions_and_railings",
+          "role": "hidden",
+          "start": 3654,
+          "count": 744,
+          "triangles": 248,
+          "boundsPhysical": {
+            "min": [
+              -2.9630000591278076,
+              -1.1901428699493408,
+              0.7355555295944214
+            ],
+            "max": [
+              2.312999963760376,
+              1.1901428699493408,
+              1.3453248739242554
+            ]
+          },
+          "surfaceAreaM2": 1.2115341830480277,
+          "projectedSideAreaM2": 0.42152723328363884,
+          "projectedSideCentroidPhysical": [
+            -0.3594026911680603,
+            0,
+            1.1145510183300067
+          ]
+        },
+        {
+          "name": "overall_fittings",
+          "role": "hidden",
+          "start": 4398,
+          "count": 180,
+          "triangles": 60,
+          "boundsPhysical": {
+            "min": [
+              3.265000104904175,
+              -0.13500000536441803,
+              0.9300000071525574
+            ],
+            "max": [
+              3.75,
+              0.13500000536441803,
+              1.4249966144561768
+            ]
+          },
+          "surfaceAreaM2": 0.16884600809183062,
+          "projectedSideAreaM2": 0.056335602083493086,
+          "projectedSideCentroidPhysical": [
+            3.396075004604337,
+            0,
+            1.2849161961003086
+          ]
+        },
+        {
+          "name": "keel_fin",
+          "role": "organ",
+          "start": 4578,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -1.025373101234436,
+              -0.0949999988079071,
+              -1.0950000286102295
+            ],
+            "max": [
+              0.825373113155365,
+              0.0949999988079071,
+              -0.42500001192092896
+            ]
+          },
+          "surfaceAreaM2": 3.437883544847857,
+          "projectedSideAreaM2": 1.2399999945288265,
+          "projectedSideCentroidPhysical": [
+            -0.09999999403953551,
+            0,
+            -0.7600000202655792
+          ]
+        },
+        {
+          "name": "keel_ballast_shoe",
+          "role": "organ",
+          "start": 4614,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -0.8958209156990051,
+              -0.1599999964237213,
+              -1.100000023841858
+            ],
+            "max": [
+              0.6958208680152893,
+              0.1599999964237213,
+              -1.0950000286102295
+            ]
+          },
+          "surfaceAreaM2": 1.0377671183433108,
+          "projectedSideAreaM2": 0.007958201329032022,
+          "projectedSideCentroidPhysical": [
+            -0.10000002384185791,
+            0,
+            -1.097500026226044
+          ]
+        },
+        {
+          "name": "rudder",
+          "role": "organ",
+          "start": 4650,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -3.229569911956787,
+              -0.017500000074505806,
+              -1.0244085788726807
+            ],
+            "max": [
+              -2.6704301834106445,
+              0.017500000074505806,
+              -0.27440860867500305
+            ]
+          },
+          "surfaceAreaM2": 0.8689713783406301,
+          "projectedSideAreaM2": 0.3899999701976782,
+          "projectedSideCentroidPhysical": [
+            -2.9500000476837163,
+            0,
+            -0.6400000006248052
+          ]
+        }
+      ]
+    },
+    {
+      "id": "contessa-26-long-keel-experimental",
+      "file": "kjp_contessa_26.glb",
+      "name": "Contessa 26",
+      "style": "classic-long-keel",
+      "profileVersion": "1.1.2",
+      "profileSha256": "df701a5a03df5e9fe63d9e1d15f6b24098355984d4831343de00a1cfe97da1fd",
+      "rawProfileSha256": "8cfbee2377089e490725377cbe3b2f0b5537220877bbdfb4bc0c7e68d62955fb",
+      "transform": {
+        "rotation": [
+          1.5707963267948966,
+          1.5707963267948966,
+          0
+        ],
+        "position": [
+          0,
+          0,
+          0.02
+        ],
+        "scale": 1
+      },
+      "documentaryHullLengthM": 7.77,
+      "profile": {
+        "loaM": 7.77,
+        "lwlM": 6.08,
+        "beamM": 2.28,
+        "draftM": 1.21,
+        "physicalRailLengthM": 7.77
+      },
+      "notes": [
+        "Raked narrow classic stern; continuous long keel from the Phase1 polygon, not separated bands.",
+        "The distinct keel-hung rudder keeps the validated vertical equivalent axis."
+      ],
+      "sha256": "39eeda733d0b92528611bd8202e6d2405373463440b629488c1da82647b51c8d",
+      "fingerprint": 3958735198,
+      "fingerprintHex": "0xebf5815e",
+      "bytes": 144968,
+      "meshCount": 1,
+      "primitiveCount": 1,
+      "materialCount": 1,
+      "triangles": 1550,
+      "vertices": 3275,
+      "indexed": true,
+      "rgba": true,
+      "externalResources": [],
+      "degenerateTriangles": 0,
+      "invalidNormals": 0,
+      "boundsPhysical": {
+        "min": [
+          -3.75,
+          -1.1399999856948853,
+          -1.2100000381469727
+        ],
+        "max": [
+          4.019999980926514,
+          1.1399999856948853,
+          10.699999809265137
+        ]
+      },
+      "hullBoundsPhysical": {
+        "min": [
+          -3.75,
+          -1.1399999856948853,
+          -0.3992053270339966
+        ],
+        "max": [
+          4.019999980926514,
+          1.1399999856948853,
+          0.9599999785423279
+        ]
+      },
+      "loaBoundsPhysical": {
+        "min": [
+          -3.75,
+          -1.1399999856948853,
+          -0.3992053270339966
+        ],
+        "max": [
+          4.019999980926514,
+          1.1399999856948853,
+          1.4449462890625
+        ]
+      },
+      "waterlineBoundsPhysical": {
+        "min": [
+          -3.0399999618530273,
+          -0.9462000131607056,
+          0
+        ],
+        "max": [
+          3.0399999618530273,
+          0.9462000131607056,
+          0
+        ]
+      },
+      "measurements": {
+        "hullLengthM": 7.769999980926514,
+        "overallHullEquipmentLengthM": 7.769999980926514,
+        "fullAppendageEnvelopeLengthM": 7.769999980926514,
+        "beamM": 2.2799999713897705,
+        "waterlineLengthM": 6.079999923706055,
+        "draftM": 1.2100000381469727,
+        "waterlineZ": 0
+      },
+      "spans": [
+        [
+          "upper_sheer",
+          80,
+          "silhouette"
+        ],
+        [
+          "sheer_stripe",
+          80,
+          "silhouette"
+        ],
+        [
+          "hull_sides",
+          80,
+          "hull"
+        ],
+        [
+          "hull_underwater",
+          240,
+          "hidden"
+        ],
+        [
+          "transom",
+          7,
+          "hull"
+        ],
+        [
+          "deck",
+          53,
+          "hull"
+        ],
+        [
+          "deck_edge",
+          78,
+          "silhouette"
+        ],
+        [
+          "cockpit_and_stern_furniture",
+          126,
+          "hidden"
+        ],
+        [
+          "coachroof",
+          48,
+          "roof"
+        ],
+        [
+          "coachroof_windows",
+          14,
+          "roof"
+        ],
+        [
+          "hull_portlights",
+          8,
+          "hidden"
+        ],
+        [
+          "deck_fittings",
+          200,
+          "hidden"
+        ],
+        [
+          "tiller",
+          40,
+          "hidden"
+        ],
+        [
+          "mast_and_rigging",
+          164,
+          "hidden"
+        ],
+        [
+          "stanchions_and_railings",
+          248,
+          "hidden"
+        ],
+        [
+          "overall_fittings",
+          48,
+          "hidden"
+        ],
+        [
+          "keel_fin",
+          24,
+          "organ"
+        ],
+        [
+          "rudder",
+          12,
+          "organ"
+        ]
+      ],
+      "hullParts": [
+        "upper_sheer",
+        "sheer_stripe",
+        "hull_sides",
+        "hull_underwater",
+        "transom"
+      ],
+      "parts": [
+        {
+          "name": "upper_sheer",
+          "role": "silhouette",
+          "start": 0,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -1.1399999856948853,
+              0.5450000166893005
+            ],
+            "max": [
+              4.019999980926514,
+              1.1399999856948853,
+              0.9599999785423279
+            ]
+          },
+          "surfaceAreaM2": 0.8910206387331355,
+          "projectedSideAreaM2": 0.4273500545263289,
+          "projectedSideCentroidPhysical": [
+            0.1349999904632569,
+            0,
+            0.6648680850718308
+          ]
+        },
+        {
+          "name": "sheer_stripe",
+          "role": "silhouette",
+          "start": 240,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -1.1399999856948853,
+              0.4950000047683716
+            ],
+            "max": [
+              4.019999980926514,
+              1.1399999856948853,
+              0.9049999713897705
+            ]
+          },
+          "surfaceAreaM2": 0.8100185932883757,
+          "projectedSideAreaM2": 0.3884999699294598,
+          "projectedSideCentroidPhysical": [
+            0.13499992540058187,
+            0,
+            0.6123680776234459
+          ]
+        },
+        {
+          "name": "hull_sides",
+          "role": "hull",
+          "start": 480,
+          "count": 240,
+          "triangles": 80,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -1.1399999856948853,
+              0
+            ],
+            "max": [
+              4.019999980926514,
+              1.1399999856948853,
+              0.8550000190734863
+            ]
+          },
+          "surfaceAreaM2": 9.190655477671088,
+          "projectedSideAreaM2": 3.926574978518487,
+          "projectedSideCentroidPhysical": [
+            0.26730153125341916,
+            0,
+            0.30921619689712265
+          ]
+        },
+        {
+          "name": "hull_underwater",
+          "role": "hidden",
+          "start": 720,
+          "count": 720,
+          "triangles": 240,
+          "boundsPhysical": {
+            "min": [
+              -3.0399999618530273,
+              -0.9462000131607056,
+              -0.3992053270339966
+            ],
+            "max": [
+              3.0399999618530273,
+              0.9462000131607056,
+              0
+            ]
+          },
+          "surfaceAreaM2": 9.973732721650624,
+          "projectedSideAreaM2": 1.8317660622665024,
+          "projectedSideCentroidPhysical": [
+            0.0016371070898100557,
+            0,
+            -0.1658434171567882
+          ]
+        },
+        {
+          "name": "transom",
+          "role": "hull",
+          "start": 1440,
+          "count": 21,
+          "triangles": 7,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -0.3199999928474426,
+              -0.07999999821186066
+            ],
+            "max": [
+              -2.796799898147583,
+              0.3199999928474426,
+              0.7200000286102295
+            ]
+          },
+          "surfaceAreaM2": 0.6764711904687264,
+          "projectedSideAreaM2": 0.0023833560093784456,
+          "projectedSideCentroidPhysical": [
+            -2.969066619873047,
+            0,
+            -0.04106666644414266
+          ]
+        },
+        {
+          "name": "deck",
+          "role": "hull",
+          "start": 1461,
+          "count": 159,
+          "triangles": 53,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -1.1399999856948853,
+              0.6000000238418579
+            ],
+            "max": [
+              4.019999980926514,
+              1.1399999856948853,
+              0.9599999785423279
+            ]
+          },
+          "surfaceAreaM2": 11.15201079308931,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "deck_edge",
+          "role": "silhouette",
+          "start": 1620,
+          "count": 234,
+          "triangles": 78,
+          "boundsPhysical": {
+            "min": [
+              -3.75,
+              -1.1399999856948853,
+              0.6140000224113464
+            ],
+            "max": [
+              4.019999980926514,
+              1.1399999856948853,
+              0.9739999771118164
+            ]
+          },
+          "surfaceAreaM2": 0.5371122731666623,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "cockpit_and_stern_furniture",
+          "role": "hidden",
+          "start": 1854,
+          "count": 378,
+          "triangles": 126,
+          "boundsPhysical": {
+            "min": [
+              -2.994999885559082,
+              -0.4000000059604645,
+              0.4099999964237213
+            ],
+            "max": [
+              -1.399999976158142,
+              0.4000000059604645,
+              0.7235000133514404
+            ]
+          },
+          "surfaceAreaM2": 7.367316518812041,
+          "projectedSideAreaM2": 0.8406629721331598,
+          "projectedSideCentroidPhysical": [
+            -2.204153691106632,
+            0,
+            0.6065062392677448
+          ]
+        },
+        {
+          "name": "coachroof",
+          "role": "roof",
+          "start": 2232,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              -1.4199999570846558,
+              -0.6499999761581421,
+              0.6499999761581421
+            ],
+            "max": [
+              1.3200000524520874,
+              0.6499999761581421,
+              1.2200000286102295
+            ]
+          },
+          "surfaceAreaM2": 5.494322305642704,
+          "projectedSideAreaM2": 1.2330000172257432,
+          "projectedSideCentroidPhysical": [
+            -0.04999993225470108,
+            0,
+            0.9275364966817582
+          ]
+        },
+        {
+          "name": "coachroof_windows",
+          "role": "roof",
+          "start": 2376,
+          "count": 42,
+          "triangles": 14,
+          "boundsPhysical": {
+            "min": [
+              -1.4279999732971191,
+              -0.6203020215034485,
+              0.6899999976158142
+            ],
+            "max": [
+              1.0470000505447388,
+              0.6203020215034485,
+              1.059999942779541
+            ]
+          },
+          "surfaceAreaM2": 1.038901153533478,
+          "projectedSideAreaM2": 0.4131000380337202,
+          "projectedSideCentroidPhysical": [
+            -0.10184237777735082,
+            0,
+            0.9019956826452761
+          ]
+        },
+        {
+          "name": "hull_portlights",
+          "role": "hidden",
+          "start": 2418,
+          "count": 24,
+          "triangles": 8,
+          "boundsPhysical": {
+            "min": [
+              -1.6740000247955322,
+              -1.136426568031311,
+              0.3002159893512726
+            ],
+            "max": [
+              -0.5016000270843506,
+              1.136426568031311,
+              0.43953999876976013
+            ]
+          },
+          "surfaceAreaM2": 0.12479999918937423,
+          "projectedSideAreaM2": 0.06239999959468712,
+          "projectedSideCentroidPhysical": [
+            -1.087800015491944,
+            0,
+            0.36987800155562855
+          ]
+        },
+        {
+          "name": "deck_fittings",
+          "role": "hidden",
+          "start": 2442,
+          "count": 600,
+          "triangles": 200,
+          "boundsPhysical": {
+            "min": [
+              -1.5800000429153442,
+              -0.699999988079071,
+              0.609000027179718
+            ],
+            "max": [
+              1.347499966621399,
+              0.699999988079071,
+              1.2479981184005737
+            ]
+          },
+          "surfaceAreaM2": 1.5667346160008935,
+          "projectedSideAreaM2": 0.21453283655135635,
+          "projectedSideCentroidPhysical": [
+            -0.4435811173199566,
+            0,
+            1.1033870102713093
+          ]
+        },
+        {
+          "name": "tiller",
+          "role": "hidden",
+          "start": 3042,
+          "count": 120,
+          "triangles": 40,
+          "boundsPhysical": {
+            "min": [
+              -2.6277127265930176,
+              -0.03200000151991844,
+              0.5799999833106995
+            ],
+            "max": [
+              -1.7139548063278198,
+              0.03200000151991844,
+              1.024985432624817
+            ]
+          },
+          "surfaceAreaM2": 0.22757539978310692,
+          "projectedSideAreaM2": 0.06289786355777593,
+          "projectedSideCentroidPhysical": [
+            -2.2867092453435203,
+            0,
+            0.893932790567606
+          ]
+        },
+        {
+          "name": "mast_and_rigging",
+          "role": "hidden",
+          "start": 3162,
+          "count": 492,
+          "triangles": 164,
+          "boundsPhysical": {
+            "min": [
+              -3.5792791843414307,
+              -0.9885657429695129,
+              0.6117873191833496
+            ],
+            "max": [
+              3.9720563888549805,
+              0.9885657429695129,
+              10.699999809265137
+            ]
+          },
+          "surfaceAreaM2": 7.3968523930207315,
+          "projectedSideAreaM2": 2.3941074657770924,
+          "projectedSideCentroidPhysical": [
+            0.09313639440173416,
+            0,
+            4.90941420430582
+          ]
+        },
+        {
+          "name": "stanchions_and_railings",
+          "role": "hidden",
+          "start": 3654,
+          "count": 744,
+          "triangles": 248,
+          "boundsPhysical": {
+            "min": [
+              -2.86299991607666,
+              -1.090000033378601,
+              0.6039999723434448
+            ],
+            "max": [
+              2.562999963760376,
+              1.090000033378601,
+              1.2765446901321411
+            ]
+          },
+          "surfaceAreaM2": 1.2404316812204816,
+          "projectedSideAreaM2": 0.4301692817429341,
+          "projectedSideCentroidPhysical": [
+            -0.1903992703760498,
+            0,
+            1.0017765400960315
+          ]
+        },
+        {
+          "name": "overall_fittings",
+          "role": "hidden",
+          "start": 4398,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              3.4149999618530273,
+              -0.14499999582767487,
+              0.9100000262260437
+            ],
+            "max": [
+              4.008307933807373,
+              0.14499999582767487,
+              1.4449462890625
+            ]
+          },
+          "surfaceAreaM2": 0.18376439260941496,
+          "projectedSideAreaM2": 0.06302160628715114,
+          "projectedSideCentroidPhysical": [
+            3.588853801729024,
+            0,
+            1.2886590552065247
+          ]
+        },
+        {
+          "name": "keel_fin",
+          "role": "organ",
+          "start": 4542,
+          "count": 72,
+          "triangles": 24,
+          "boundsPhysical": {
+            "min": [
+              -3.1500000953674316,
+              -0.06499999761581421,
+              -1.2100000381469727
+            ],
+            "max": [
+              2.200000047683716,
+              0.06499999761581421,
+              -0.4000000059604645
+            ]
+          },
+          "surfaceAreaM2": 8.026622925221307,
+          "projectedSideAreaM2": 3.2692501154243967,
+          "projectedSideCentroidPhysical": [
+            -0.9366980960478603,
+            0,
+            -0.7475973250185736
+          ]
+        },
+        {
+          "name": "rudder",
+          "role": "organ",
+          "start": 4614,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -3.701930284500122,
+              -0.017500000074505806,
+              -1.1902867555618286
+            ],
+            "max": [
+              -3.1380698680877686,
+              0.017500000074505806,
+              -0.3702867329120636
+            ]
+          },
+          "surfaceAreaM2": 0.9541737601416269,
+          "projectedSideAreaM2": 0.42999999280382895,
+          "projectedSideCentroidPhysical": [
+            -3.4200000762939458,
+            0,
+            -0.7700000149554654
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pogo-40-s4-twin-rudder-experimental",
+      "file": "kjp_pogo_40_s4.glb",
+      "name": "Pogo 40 S4",
+      "style": "wide-racing-monohull",
+      "profileVersion": "1.1.2",
+      "profileSha256": "ae1dcad89cde74b211f37f32f745262ae51a78f080c39427bb3515c08dd67e5e",
+      "rawProfileSha256": "f3ada2c5d98c0d84a1f43682357900fef202b4de733b89c1b0b0a0bddc031c81",
+      "transform": {
+        "rotation": [
+          1.5707963267948966,
+          1.5707963267948966,
+          0
+        ],
+        "position": [
+          0,
+          0,
+          0.02
+        ],
+        "scale": 1
+      },
+      "documentaryHullLengthM": 12.19,
+      "profile": {
+        "loaM": 12.19,
+        "lwlM": 10.9,
+        "beamM": 4.42,
+        "draftM": 3,
+        "physicalRailLengthM": 12.190000000000001
+      },
+      "notes": [
+        "Broad forefoot and hard chines, open racing cockpit; bowsprit retracted within hull LOA.",
+        "Twin fixed rudders extend abaft the12.19m hull; full appendage envelope is measured separately."
+      ],
+      "sha256": "f97b244e90486caba322de4c26153ac136c298b33e5c03f425855b277510b6b3",
+      "fingerprint": 1188377891,
+      "fingerprintHex": "0x46d53523",
+      "bytes": 158892,
+      "meshCount": 1,
+      "primitiveCount": 1,
+      "materialCount": 1,
+      "triangles": 1698,
+      "vertices": 3593,
+      "indexed": true,
+      "rgba": true,
+      "externalResources": [],
+      "degenerateTriangles": 0,
+      "invalidNormals": 0,
+      "boundsPhysical": {
+        "min": [
+          -6.089491844177246,
+          -2.2100000381469727,
+          -3
+        ],
+        "max": [
+          6.190000057220459,
+          2.2100000381469727,
+          19
+        ]
+      },
+      "hullBoundsPhysical": {
+        "min": [
+          -6,
+          -2.2100000381469727,
+          -0.459490567445755
+        ],
+        "max": [
+          6.190000057220459,
+          2.2100000381469727,
+          1.649999976158142
+        ]
+      },
+      "loaBoundsPhysical": {
+        "min": [
+          -6,
+          -2.2100000381469727,
+          -0.459490567445755
+        ],
+        "max": [
+          6.190000057220459,
+          2.2100000381469727,
+          2.1349711418151855
+        ]
+      },
+      "waterlineBoundsPhysical": {
+        "min": [
+          -5.449999809265137,
+          -2.1215999126434326,
+          0
+        ],
+        "max": [
+          5.449999809265137,
+          2.1215999126434326,
+          0
+        ]
+      },
+      "measurements": {
+        "hullLengthM": 12.190000057220459,
+        "overallHullEquipmentLengthM": 12.190000057220459,
+        "fullAppendageEnvelopeLengthM": 12.279491901397705,
+        "beamM": 4.420000076293945,
+        "waterlineLengthM": 10.899999618530273,
+        "draftM": 3,
+        "waterlineZ": 0
+      },
+      "spans": [
+        [
+          "upper_sheer",
+          88,
+          "silhouette"
+        ],
+        [
+          "sheer_stripe",
+          88,
+          "silhouette"
+        ],
+        [
+          "hull_sides",
+          88,
+          "hull"
+        ],
+        [
+          "hull_underwater",
+          264,
+          "hidden"
+        ],
+        [
+          "transom",
+          7,
+          "hull"
+        ],
+        [
+          "deck",
+          61,
+          "hull"
+        ],
+        [
+          "deck_edge",
+          86,
+          "silhouette"
+        ],
+        [
+          "cockpit_and_stern_furniture",
+          114,
+          "hidden"
+        ],
+        [
+          "coachroof",
+          48,
+          "roof"
+        ],
+        [
+          "coachroof_windows",
+          14,
+          "roof"
+        ],
+        [
+          "hull_portlights",
+          24,
+          "hidden"
+        ],
+        [
+          "deck_fittings",
+          200,
+          "hidden"
+        ],
+        [
+          "tiller",
+          52,
+          "hidden"
+        ],
+        [
+          "mast_and_rigging",
+          164,
+          "hidden"
+        ],
+        [
+          "stanchions_and_railings",
+          304,
+          "hidden"
+        ],
+        [
+          "overall_fittings",
+          48,
+          "hidden"
+        ],
+        [
+          "keel_fin",
+          12,
+          "organ"
+        ],
+        [
+          "keel_ballast_shoe",
+          12,
+          "organ"
+        ],
+        [
+          "rudder_port",
+          12,
+          "organ"
+        ],
+        [
+          "rudder_starboard",
+          12,
+          "organ"
+        ]
+      ],
+      "hullParts": [
+        "upper_sheer",
+        "sheer_stripe",
+        "hull_sides",
+        "hull_underwater",
+        "transom"
+      ],
+      "parts": [
+        {
+          "name": "upper_sheer",
+          "role": "silhouette",
+          "start": 0,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -2.2100000381469727,
+              0.8450000286102295
+            ],
+            "max": [
+              6.190000057220459,
+              2.2100000381469727,
+              1.649999976158142
+            ]
+          },
+          "surfaceAreaM2": 1.401868794205814,
+          "projectedSideAreaM2": 0.6704499565243864,
+          "projectedSideCentroidPhysical": [
+            0.09500013746249301,
+            0,
+            1.0982178011773873
+          ]
+        },
+        {
+          "name": "sheer_stripe",
+          "role": "silhouette",
+          "start": 264,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -2.2100000381469727,
+              0.7950000166893005
+            ],
+            "max": [
+              6.190000057220459,
+              2.2100000381469727,
+              1.5950000286102295
+            ]
+          },
+          "surfaceAreaM2": 1.2744259610882132,
+          "projectedSideAreaM2": 0.6094998483657719,
+          "projectedSideCentroidPhysical": [
+            0.09499941023990195,
+            0,
+            1.0457177760287713
+          ]
+        },
+        {
+          "name": "hull_sides",
+          "role": "hull",
+          "start": 528,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -2.2100000381469727,
+              0
+            ],
+            "max": [
+              6.190000057220459,
+              2.2100000381469727,
+              1.5449999570846558
+            ]
+          },
+          "surfaceAreaM2": 25.280012888981087,
+          "projectedSideAreaM2": 11.63302492330075,
+          "projectedSideCentroidPhysical": [
+            0.7173846028055205,
+            0,
+            0.5427851262955898
+          ]
+        },
+        {
+          "name": "hull_underwater",
+          "role": "hidden",
+          "start": 792,
+          "count": 792,
+          "triangles": 264,
+          "boundsPhysical": {
+            "min": [
+              -5.449999809265137,
+              -2.1215999126434326,
+              -0.459490567445755
+            ],
+            "max": [
+              5.449999809265137,
+              2.1215999126434326,
+              0
+            ]
+          },
+          "surfaceAreaM2": 38.280814937551554,
+          "projectedSideAreaM2": 4.00577439598318,
+          "projectedSideCentroidPhysical": [
+            0.017521322752165697,
+            0,
+            -0.1999187925062647
+          ]
+        },
+        {
+          "name": "transom",
+          "role": "hull",
+          "start": 1584,
+          "count": 21,
+          "triangles": 7,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -1.8300000429153442,
+              -0.09200000017881393
+            ],
+            "max": [
+              -5.013999938964844,
+              1.8300000429153442,
+              0.9700000286102295
+            ]
+          },
+          "surfaceAreaM2": 4.73848836910884,
+          "projectedSideAreaM2": 0.04980126038078403,
+          "projectedSideCentroidPhysical": [
+            -5.57165882295157,
+            0,
+            0.29306986645665933
+          ]
+        },
+        {
+          "name": "deck",
+          "role": "hull",
+          "start": 1605,
+          "count": 183,
+          "triangles": 61,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -2.2100000381469727,
+              0.8999999761581421
+            ],
+            "max": [
+              6.190000057220459,
+              2.2100000381469727,
+              1.649999976158142
+            ]
+          },
+          "surfaceAreaM2": 34.62801953969798,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "deck_edge",
+          "role": "silhouette",
+          "start": 1788,
+          "count": 258,
+          "triangles": 86,
+          "boundsPhysical": {
+            "min": [
+              -6,
+              -2.2100000381469727,
+              0.9139999747276306
+            ],
+            "max": [
+              6.190000057220459,
+              2.2100000381469727,
+              1.6640000343322754
+            ]
+          },
+          "surfaceAreaM2": 0.8463969643049237,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "cockpit_and_stern_furniture",
+          "role": "hidden",
+          "start": 2046,
+          "count": 342,
+          "triangles": 114,
+          "boundsPhysical": {
+            "min": [
+              -5.900000095367432,
+              -1.3700000047683716,
+              0.6100000143051147
+            ],
+            "max": [
+              -2.450000047683716,
+              1.3700000047683716,
+              0.9660000205039978
+            ]
+          },
+          "surfaceAreaM2": 30.301605901920226,
+          "projectedSideAreaM2": 2.2565954807487856,
+          "projectedSideCentroidPhysical": [
+            -4.198881991528939,
+            0,
+            0.8217675676152478
+          ]
+        },
+        {
+          "name": "coachroof",
+          "role": "roof",
+          "start": 2388,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              -2.450000047683716,
+              -1.600000023841858,
+              0.9300000071525574
+            ],
+            "max": [
+              1.899999976158142,
+              1.600000023841858,
+              1.7699999809265137
+            ]
+          },
+          "surfaceAreaM2": 16.578513991691757,
+          "projectedSideAreaM2": 2.392499820590018,
+          "projectedSideCentroidPhysical": [
+            -0.27500004827125135,
+            0,
+            1.344551730416387
+          ]
+        },
+        {
+          "name": "coachroof_windows",
+          "role": "roof",
+          "start": 2532,
+          "count": 42,
+          "triangles": 14,
+          "boundsPhysical": {
+            "min": [
+              -2.4579999446868896,
+              -1.539175033569336,
+              0.9700000286102295
+            ],
+            "max": [
+              1.4880000352859497,
+              1.539175033569336,
+              1.565999984741211
+            ]
+          },
+          "surfaceAreaM2": 2.0747999917396127,
+          "projectedSideAreaM2": 0.8058599052780888,
+          "projectedSideCentroidPhysical": [
+            -0.34566425550452,
+            0,
+            1.3119722302370844
+          ]
+        },
+        {
+          "name": "hull_portlights",
+          "role": "hidden",
+          "start": 2574,
+          "count": 72,
+          "triangles": 24,
+          "boundsPhysical": {
+            "min": [
+              -3.4000000953674316,
+              -1.747499942779541,
+              0.9925000071525574
+            ],
+            "max": [
+              -2.9000000953674316,
+              1.747499942779541,
+              1.0475000143051147
+            ]
+          },
+          "surfaceAreaM2": 0.18769994120597744,
+          "projectedSideAreaM2": 0.05500000715255737,
+          "projectedSideCentroidPhysical": [
+            -3.1500000953674316,
+            0,
+            1.020000010728836
+          ]
+        },
+        {
+          "name": "deck_fittings",
+          "role": "hidden",
+          "start": 2646,
+          "count": 600,
+          "triangles": 200,
+          "boundsPhysical": {
+            "min": [
+              -2.630000114440918,
+              -1.6699999570846558,
+              0.9096153974533081
+            ],
+            "max": [
+              1.837499976158142,
+              1.6699999570846558,
+              1.778499960899353
+            ]
+          },
+          "surfaceAreaM2": 1.7412675180558936,
+          "projectedSideAreaM2": 0.27604316023543163,
+          "projectedSideCentroidPhysical": [
+            -0.8890664976101746,
+            0,
+            1.5578365621236945
+          ]
+        },
+        {
+          "name": "tiller",
+          "role": "hidden",
+          "start": 3246,
+          "count": 156,
+          "triangles": 52,
+          "boundsPhysical": {
+            "min": [
+              -5.5777130126953125,
+              -1.1624534130096436,
+              0.7799999713897705
+            ],
+            "max": [
+              -3.5823516845703125,
+              0.03200000151991844,
+              1.2259907722473145
+            ]
+          },
+          "surfaceAreaM2": 0.5229133936001782,
+          "projectedSideAreaM2": 0.12343917944599525,
+          "projectedSideCentroidPhysical": [
+            -4.7222564660933495,
+            -0.5652267057448626,
+            1.125660969453994
+          ]
+        },
+        {
+          "name": "mast_and_rigging",
+          "role": "hidden",
+          "start": 3402,
+          "count": 492,
+          "triangles": 164,
+          "boundsPhysical": {
+            "min": [
+              -5.829486846923828,
+              -1.8600530624389648,
+              1.0045017004013062
+            ],
+            "max": [
+              6.142179489135742,
+              1.8600530624389648,
+              19
+            ]
+          },
+          "surfaceAreaM2": 18.564285293870174,
+          "projectedSideAreaM2": 5.903606050257305,
+          "projectedSideCentroidPhysical": [
+            -0.38904524302007315,
+            0,
+            8.386281800023898
+          ]
+        },
+        {
+          "name": "stanchions_and_railings",
+          "role": "hidden",
+          "start": 3894,
+          "count": 912,
+          "triangles": 304,
+          "boundsPhysical": {
+            "min": [
+              -4.913000106811523,
+              -2.1603076457977295,
+              0.9023076891899109
+            ],
+            "max": [
+              4.413000106811523,
+              2.1603076457977295,
+              1.9429528713226318
+            ]
+          },
+          "surfaceAreaM2": 1.9337316875406976,
+          "projectedSideAreaM2": 0.6749453634927232,
+          "projectedSideCentroidPhysical": [
+            -0.28338960798170465,
+            0,
+            1.4308482658078143
+          ]
+        },
+        {
+          "name": "overall_fittings",
+          "role": "hidden",
+          "start": 4806,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              5.514999866485596,
+              -0.4950000047683716,
+              1.600000023841858
+            ],
+            "max": [
+              6.183955192565918,
+              0.4950000047683716,
+              2.1349711418151855
+            ]
+          },
+          "surfaceAreaM2": 0.2200703079966212,
+          "projectedSideAreaM2": 0.06751139767789027,
+          "projectedSideCentroidPhysical": [
+            5.717788461127142,
+            0,
+            1.986395384681409
+          ]
+        },
+        {
+          "name": "keel_fin",
+          "role": "organ",
+          "start": 4950,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -0.7822834849357605,
+              -0.06499999761581421,
+              -2.950000047683716
+            ],
+            "max": [
+              0.1822834610939026,
+              0.06499999761581421,
+              -0.4099999964237213
+            ]
+          },
+          "surfaceAreaM2": 5.811187570591237,
+          "projectedSideAreaM2": 2.4500000923590406,
+          "projectedSideCentroidPhysical": [
+            -0.30000001192092896,
+            0,
+            -1.6800000220537186
+          ]
+        },
+        {
+          "name": "keel_ballast_shoe",
+          "role": "organ",
+          "start": 4986,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -0.7147637605667114,
+              -0.1899999976158142,
+              -3
+            ],
+            "max": [
+              0.1147637814283371,
+              0.1899999976158142,
+              -2.950000047683716
+            ]
+          },
+          "surfaceAreaM2": 0.7513935623783787,
+          "projectedSideAreaM2": 0.04147633754479685,
+          "projectedSideCentroidPhysical": [
+            -0.29999998956918716,
+            0,
+            -2.9750000238418584
+          ]
+        },
+        {
+          "name": "rudder_port",
+          "role": "organ",
+          "start": 5022,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -6.089491844177246,
+              -1.7575000524520874,
+              -1.3337992429733276
+            ],
+            "max": [
+              -5.610508441925049,
+              -1.722499966621399,
+              -0.2337992787361145
+            ]
+          },
+          "surfaceAreaM2": 1.0882179283662081,
+          "projectedSideAreaM2": 0.49000004128976116,
+          "projectedSideCentroidPhysical": [
+            -5.8500001430511475,
+            -1.7400000095367432,
+            -0.7699999929206873
+          ]
+        },
+        {
+          "name": "rudder_starboard",
+          "role": "organ",
+          "start": 5058,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -6.089491844177246,
+              1.722499966621399,
+              -1.3337992429733276
+            ],
+            "max": [
+              -5.610508441925049,
+              1.7575000524520874,
+              -0.2337992787361145
+            ]
+          },
+          "surfaceAreaM2": 1.0882179283662081,
+          "projectedSideAreaM2": 0.49000004128976116,
+          "projectedSideCentroidPhysical": [
+            -5.8500001430511475,
+            1.7400000095367432,
+            -0.7699999929206873
+          ]
+        }
+      ]
+    },
+    {
+      "id": "oceanis-48-fixed-keel-experimental",
+      "file": "kjp_oceanis_48.glb",
+      "name": "Beneteau Oceanis 48",
+      "style": "large-volume-cruiser",
+      "profileVersion": "1.1.0",
+      "profileSha256": "a2a961e24d738f03decb4e0bd96a931d9d55c0c6a96d062f6aefea41ae4e2b47",
+      "rawProfileSha256": "96eb44fdc978b0e4d0780efbdc6b2f622927354f1e25bf6eb4dd080056fe4845",
+      "transform": {
+        "rotation": [
+          1.5707963267948966,
+          1.5707963267948966,
+          0
+        ],
+        "position": [
+          0,
+          0,
+          0.02
+        ],
+        "scale": 1
+      },
+      "documentaryHullLengthM": 14.27,
+      "profile": {
+        "loaM": 14.6,
+        "lwlM": 13.86,
+        "beamM": 4.74,
+        "draftM": 2.17,
+        "physicalRailLengthM": 14.27
+      },
+      "notes": [
+        "Hull14.27m; stern bathing platform gives documented overall14.60m.",
+        "Twin wheels are static presentation; a single physical and visual rudder remains."
+      ],
+      "sha256": "86a74f103483dac74147500bd17582b56401fa74be94dc6a37c50809db9e2e3b",
+      "fingerprint": 3685620714,
+      "fingerprintHex": "0xdbae1bea",
+      "bytes": 182880,
+      "meshCount": 1,
+      "primitiveCount": 1,
+      "materialCount": 1,
+      "triangles": 1986,
+      "vertices": 4149,
+      "indexed": true,
+      "rgba": true,
+      "externalResources": [],
+      "degenerateTriangles": 0,
+      "invalidNormals": 0,
+      "boundsPhysical": {
+        "min": [
+          -7.380000114440918,
+          -2.369999885559082,
+          -2.1700000762939453
+        ],
+        "max": [
+          7.21999979019165,
+          2.369999885559082,
+          21.690000534057617
+        ]
+      },
+      "hullBoundsPhysical": {
+        "min": [
+          -7.050000190734863,
+          -2.369999885559082,
+          -0.8399246335029602
+        ],
+        "max": [
+          7.21999979019165,
+          2.369999885559082,
+          1.5499999523162842
+        ]
+      },
+      "loaBoundsPhysical": {
+        "min": [
+          -7.380000114440918,
+          -2.369999885559082,
+          -0.8399246335029602
+        ],
+        "max": [
+          7.21999979019165,
+          2.369999885559082,
+          1.700654149055481
+        ]
+      },
+      "waterlineBoundsPhysical": {
+        "min": [
+          -6.929999828338623,
+          -2.227799892425537,
+          0
+        ],
+        "max": [
+          6.929999828338623,
+          2.227799892425537,
+          0
+        ]
+      },
+      "measurements": {
+        "hullLengthM": 14.269999980926514,
+        "overallHullEquipmentLengthM": 14.599999904632568,
+        "fullAppendageEnvelopeLengthM": 14.599999904632568,
+        "beamM": 4.739999771118164,
+        "waterlineLengthM": 13.859999656677246,
+        "draftM": 2.1700000762939453,
+        "waterlineZ": 0
+      },
+      "spans": [
+        [
+          "upper_sheer",
+          88,
+          "silhouette"
+        ],
+        [
+          "sheer_stripe",
+          88,
+          "silhouette"
+        ],
+        [
+          "hull_sides",
+          88,
+          "hull"
+        ],
+        [
+          "hull_underwater",
+          264,
+          "hidden"
+        ],
+        [
+          "transom",
+          7,
+          "hull"
+        ],
+        [
+          "deck",
+          61,
+          "hull"
+        ],
+        [
+          "deck_edge",
+          86,
+          "silhouette"
+        ],
+        [
+          "cockpit_and_stern_furniture",
+          126,
+          "hidden"
+        ],
+        [
+          "coachroof",
+          48,
+          "roof"
+        ],
+        [
+          "coachroof_windows",
+          14,
+          "roof"
+        ],
+        [
+          "hull_portlights",
+          16,
+          "hidden"
+        ],
+        [
+          "deck_fittings",
+          200,
+          "hidden"
+        ],
+        [
+          "wheel_port",
+          140,
+          "hidden"
+        ],
+        [
+          "wheel_starboard",
+          140,
+          "hidden"
+        ],
+        [
+          "cockpit_table",
+          24,
+          "hidden"
+        ],
+        [
+          "mast_and_rigging",
+          164,
+          "hidden"
+        ],
+        [
+          "stanchions_and_railings",
+          360,
+          "hidden"
+        ],
+        [
+          "overall_fittings",
+          36,
+          "hidden"
+        ],
+        [
+          "keel_fin",
+          12,
+          "organ"
+        ],
+        [
+          "keel_ballast_shoe",
+          12,
+          "organ"
+        ],
+        [
+          "rudder",
+          12,
+          "organ"
+        ]
+      ],
+      "hullParts": [
+        "upper_sheer",
+        "sheer_stripe",
+        "hull_sides",
+        "hull_underwater",
+        "transom"
+      ],
+      "parts": [
+        {
+          "name": "upper_sheer",
+          "role": "silhouette",
+          "start": 0,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -2.369999885559082,
+              1.0750000476837158
+            ],
+            "max": [
+              7.21999979019165,
+              2.369999885559082,
+              1.5499999523162842
+            ]
+          },
+          "surfaceAreaM2": 1.6223725931372088,
+          "projectedSideAreaM2": 0.7848497734904285,
+          "projectedSideCentroidPhysical": [
+            0.08500116546709925,
+            0,
+            1.2051559629226927
+          ]
+        },
+        {
+          "name": "sheer_stripe",
+          "role": "silhouette",
+          "start": 264,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -2.369999885559082,
+              1.024999976158142
+            ],
+            "max": [
+              7.21999979019165,
+              2.369999885559082,
+              1.4950000047683716
+            ]
+          },
+          "surfaceAreaM2": 1.4748851933962965,
+          "projectedSideAreaM2": 0.7135003098249486,
+          "projectedSideCentroidPhysical": [
+            0.08499855406203338,
+            0,
+            1.1526558732291248
+          ]
+        },
+        {
+          "name": "hull_sides",
+          "role": "hull",
+          "start": 528,
+          "count": 264,
+          "triangles": 88,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -2.369999885559082,
+              0
+            ],
+            "max": [
+              7.21999979019165,
+              2.369999885559082,
+              1.4450000524520874
+            ]
+          },
+          "surfaceAreaM2": 33.075947932065056,
+          "projectedSideAreaM2": 15.815224569411576,
+          "projectedSideCentroidPhysical": [
+            0.3772002127560527,
+            0,
+            0.5719967676978152
+          ]
+        },
+        {
+          "name": "hull_underwater",
+          "role": "hidden",
+          "start": 792,
+          "count": 792,
+          "triangles": 264,
+          "boundsPhysical": {
+            "min": [
+              -6.929999828338623,
+              -2.227799892425537,
+              -0.8399246335029602
+            ],
+            "max": [
+              6.929999828338623,
+              2.227799892425537,
+              0
+            ]
+          },
+          "surfaceAreaM2": 52.238064894653206,
+          "projectedSideAreaM2": 9.346175419741739,
+          "projectedSideCentroidPhysical": [
+            -0.00032373906468154004,
+            0,
+            -0.36437572493103476
+          ]
+        },
+        {
+          "name": "transom",
+          "role": "hull",
+          "start": 1584,
+          "count": 21,
+          "triangles": 7,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -1.8300000429153442,
+              -0.1679999977350235
+            ],
+            "max": [
+              -6.3755998611450195,
+              1.8300000429153442,
+              1.2200000286102295
+            ]
+          },
+          "surfaceAreaM2": 5.422515624653902,
+          "projectedSideAreaM2": 0.0020956377773426738,
+          "projectedSideCentroidPhysical": [
+            -6.768299897511801,
+            0,
+            -0.06831999868154526
+          ]
+        },
+        {
+          "name": "deck",
+          "role": "hull",
+          "start": 1605,
+          "count": 183,
+          "triangles": 61,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -2.369999885559082,
+              1.1299999952316284
+            ],
+            "max": [
+              7.21999979019165,
+              2.369999885559082,
+              1.5499999523162842
+            ]
+          },
+          "surfaceAreaM2": 43.523597578937085,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "deck_edge",
+          "role": "silhouette",
+          "start": 1788,
+          "count": 258,
+          "triangles": 86,
+          "boundsPhysical": {
+            "min": [
+              -7.050000190734863,
+              -2.369999885559082,
+              1.1440000534057617
+            ],
+            "max": [
+              7.21999979019165,
+              2.369999885559082,
+              1.5640000104904175
+            ]
+          },
+          "surfaceAreaM2": 0.9889804680713837,
+          "projectedSideAreaM2": 0,
+          "projectedSideCentroidPhysical": null
+        },
+        {
+          "name": "cockpit_and_stern_furniture",
+          "role": "hidden",
+          "start": 2046,
+          "count": 378,
+          "triangles": 126,
+          "boundsPhysical": {
+            "min": [
+              -6.664999961853027,
+              -1.3200000524520874,
+              0.7599999904632568
+            ],
+            "max": [
+              -3.130000114440918,
+              1.3200000524520874,
+              1.201894760131836
+            ]
+          },
+          "surfaceAreaM2": 33.1334673299413,
+          "projectedSideAreaM2": 2.5860280783423377,
+          "projectedSideCentroidPhysical": [
+            -4.925803758442425,
+            0,
+            0.9886726745803782
+          ]
+        },
+        {
+          "name": "coachroof",
+          "role": "roof",
+          "start": 2424,
+          "count": 144,
+          "triangles": 48,
+          "boundsPhysical": {
+            "min": [
+              -3.119999885559082,
+              -1.4900000095367432,
+              1.149999976158142
+            ],
+            "max": [
+              2.8499999046325684,
+              1.4900000095367432,
+              2.059999942779541
+            ]
+          },
+          "surfaceAreaM2": 24.598988834728615,
+          "projectedSideAreaM2": 4.5371997836113,
+          "projectedSideCentroidPhysical": [
+            -0.134999990463257,
+            0,
+            1.5844974881363816
+          ]
+        },
+        {
+          "name": "coachroof_windows",
+          "role": "roof",
+          "start": 2568,
+          "count": 42,
+          "triangles": 14,
+          "boundsPhysical": {
+            "min": [
+              -3.128000020980835,
+              -1.4282000064849854,
+              1.190000057220459
+            ],
+            "max": [
+              2.174999952316284,
+              1.4282000064849854,
+              1.809999942779541
+            ]
+          },
+          "surfaceAreaM2": 3.580875723577663,
+          "projectedSideAreaM2": 1.5102720088987347,
+          "projectedSideCentroidPhysical": [
+            -0.2642218502039031,
+            0,
+            1.5421706737169134
+          ]
+        },
+        {
+          "name": "hull_portlights",
+          "role": "hidden",
+          "start": 2610,
+          "count": 48,
+          "triangles": 16,
+          "boundsPhysical": {
+            "min": [
+              -3.25,
+              -2.3630292415618896,
+              0.8299999833106995
+            ],
+            "max": [
+              2.6659998893737793,
+              2.3630292415618896,
+              1.0532532930374146
+            ]
+          },
+          "surfaceAreaM2": 0.6863998769283484,
+          "projectedSideAreaM2": 0.3431999384641742,
+          "projectedSideCentroidPhysical": [
+            -0.29200056150452824,
+            0,
+            0.9298721362114039
+          ]
+        },
+        {
+          "name": "deck_fittings",
+          "role": "hidden",
+          "start": 2658,
+          "count": 600,
+          "triangles": 200,
+          "boundsPhysical": {
+            "min": [
+              -3.309999942779541,
+              -1.6200000047683716,
+              1.1299999952316284
+            ],
+            "max": [
+              2.617500066757202,
+              1.6200000047683716,
+              2.058500051498413
+            ]
+          },
+          "surfaceAreaM2": 1.856008001943848,
+          "projectedSideAreaM2": 0.31678600130234713,
+          "projectedSideCentroidPhysical": [
+            -1.2421643569731227,
+            0,
+            1.9055278866918974
+          ]
+        },
+        {
+          "name": "wheel_port",
+          "role": "hidden",
+          "start": 3258,
+          "count": 420,
+          "triangles": 140,
+          "boundsPhysical": {
+            "min": [
+              -5.940000057220459,
+              -1.3793184757232666,
+              0.8299999833106995
+            ],
+            "max": [
+              -5.644999980926514,
+              -0.5406814813613892,
+              1.9893184900283813
+            ]
+          },
+          "surfaceAreaM2": 1.2915194714771787,
+          "projectedSideAreaM2": 0.2722000617265792,
+          "projectedSideCentroidPhysical": [
+            -5.822792098679107,
+            -0.9599999785423279,
+            1.2992065347913313
+          ]
+        },
+        {
+          "name": "wheel_starboard",
+          "role": "hidden",
+          "start": 3678,
+          "count": 420,
+          "triangles": 140,
+          "boundsPhysical": {
+            "min": [
+              -5.940000057220459,
+              0.5406814813613892,
+              0.8299999833106995
+            ],
+            "max": [
+              -5.644999980926514,
+              1.3793184757232666,
+              1.9893184900283813
+            ]
+          },
+          "surfaceAreaM2": 1.2915194714771794,
+          "projectedSideAreaM2": 0.2722000617265792,
+          "projectedSideCentroidPhysical": [
+            -5.822792098679107,
+            0.9599999785423279,
+            1.2992065347913313
+          ]
+        },
+        {
+          "name": "cockpit_table",
+          "role": "hidden",
+          "start": 4098,
+          "count": 72,
+          "triangles": 24,
+          "boundsPhysical": {
+            "min": [
+              -5.179999828338623,
+              -0.26499998569488525,
+              0.8299999833106995
+            ],
+            "max": [
+              -4.130000114440918,
+              0.26499998569488525,
+              1.4375
+            ]
+          },
+          "surfaceAreaM2": 1.7748002316474967,
+          "projectedSideAreaM2": 0.16515020713805484,
+          "projectedSideCentroidPhysical": [
+            -4.6549999713897705,
+            0,
+            1.2430516291801172
+          ]
+        },
+        {
+          "name": "mast_and_rigging",
+          "role": "hidden",
+          "start": 4170,
+          "count": 492,
+          "triangles": 164,
+          "boundsPhysical": {
+            "min": [
+              -6.879324913024902,
+              -1.9468159675598145,
+              1.167141318321228
+            ],
+            "max": [
+              7.172335624694824,
+              1.9468159675598145,
+              21.690000534057617
+            ]
+          },
+          "surfaceAreaM2": 22.574588785812907,
+          "projectedSideAreaM2": 7.165628845154259,
+          "projectedSideCentroidPhysical": [
+            0.20960938602861742,
+            0,
+            9.450488939183995
+          ]
+        },
+        {
+          "name": "stanchions_and_railings",
+          "role": "hidden",
+          "start": 4662,
+          "count": 1080,
+          "triangles": 360,
+          "boundsPhysical": {
+            "min": [
+              -6.11299991607666,
+              -2.3227059841156006,
+              1.1299999952316284
+            ],
+            "max": [
+              5.813000202178955,
+              2.3227059841156006,
+              2.0379838943481445
+            ]
+          },
+          "surfaceAreaM2": 2.540741936650103,
+          "projectedSideAreaM2": 0.8815871843576151,
+          "projectedSideCentroidPhysical": [
+            -0.15010645197558384,
+            0,
+            1.6399076201909986
+          ]
+        },
+        {
+          "name": "overall_fittings",
+          "role": "hidden",
+          "start": 5742,
+          "count": 108,
+          "triangles": 36,
+          "boundsPhysical": {
+            "min": [
+              -7.380000114440918,
+              -1.3580000400543213,
+              0.574999988079071
+            ],
+            "max": [
+              -6.892012119293213,
+              1.3580000400543213,
+              1.700654149055481
+            ]
+          },
+          "surfaceAreaM2": 2.2908710836640775,
+          "projectedSideAreaM2": 0.06932586373716276,
+          "projectedSideCentroidPhysical": [
+            -7.046381530648586,
+            0,
+            1.0801286739876856
+          ]
+        },
+        {
+          "name": "keel_fin",
+          "role": "organ",
+          "start": 5850,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -1.9605263471603394,
+              -0.0949999988079071,
+              -2.1449999809265137
+            ],
+            "max": [
+              1.4605263471603394,
+              0.0949999988079071,
+              -0.8149999976158142
+            ]
+          },
+          "surfaceAreaM2": 10.905400047548191,
+          "projectedSideAreaM2": 4.550000026351526,
+          "projectedSideCentroidPhysical": [
+            -0.25,
+            0,
+            -1.479999989271164
+          ]
+        },
+        {
+          "name": "keel_ballast_shoe",
+          "role": "organ",
+          "start": 5886,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -1.721052646636963,
+              -0.1599999964237213,
+              -2.1700000762939453
+            ],
+            "max": [
+              1.221052646636963,
+              0.1599999964237213,
+              -2.1449999809265137
+            ]
+          },
+          "surfaceAreaM2": 2.046053232111433,
+          "projectedSideAreaM2": 0.07355291291287358,
+          "projectedSideCentroidPhysical": [
+            -0.25,
+            0,
+            -2.1575000286102295
+          ]
+        },
+        {
+          "name": "rudder",
+          "role": "organ",
+          "start": 5922,
+          "count": 36,
+          "triangles": 12,
+          "boundsPhysical": {
+            "min": [
+              -6.354032039642334,
+              -0.017500000074505806,
+              -1.9380645751953125
+            ],
+            "max": [
+              -5.345967769622803,
+              0.017500000074505806,
+              -0.4980645179748535
+            ]
+          },
+          "surfaceAreaM2": 2.866546064477692,
+          "projectedSideAreaM2": 1.3500000536441803,
+          "projectedSideCentroidPhysical": [
+            -5.8499999046325675,
+            0,
+            -1.200000092742266
+          ]
+        }
+      ]
+    }
+  ]
+}

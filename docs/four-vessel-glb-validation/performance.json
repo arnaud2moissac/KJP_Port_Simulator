@@ -1,0 +1,4624 @@
+{
+  "protocol": {
+    "smoke": false,
+    "viewport": {
+      "width": 1440,
+      "height": 1000
+    },
+    "dpr": 1,
+    "backend": "native Three WebGLRenderer r186",
+    "portSourceSha256": "cb68f1b568ce1abba7ffcc839b70c0cbc348f86766aeb6598858e98e3cbd761d",
+    "harbor": "built-in pedagogic harbor (ports/la-trinite-pedagogique.js), free scenario",
+    "pageLifecycle": "fresh isolated page per profile, mode, repetition and before/after sample",
+    "warmupFrames": 60,
+    "measuredFrames": 300,
+    "repetitions": 3,
+    "alternatingPairs": true,
+    "controlledRafHz": 60,
+    "initial": {
+      "x": 25,
+      "y": 48,
+      "heading": -1.5707963267948966,
+      "u": 1
+    },
+    "controls": {
+      "throttleTarget": 0.3,
+      "rudderTarget": 0.12
+    },
+    "wind": {
+      "speedKn": 12,
+      "fromDeg": 90
+    },
+    "cpuScope": "Complete synchronous KJP RAF callback; excludes snapshot/hash instrumentation, GPU completion and browser composition",
+    "gpuScope": "Actual EXT_disjoint_timer_query_webgl2 queries only when available; no finish or busy wait",
+    "staticScope": "No geometry attributes/versions/UUIDs change; no bufferData/texture/shader work after warmup; dynamic force instance bufferSubData during motion recorded separately; isolated camera orbit must upload nothing",
+    "oldRegressionThreshold": "Reproducible p95 increase >10% AND >0.5ms blocks acceptance"
+  },
+  "environment": {
+    "browser": "149.0.7827.55",
+    "headless": false,
+    "os": "darwin",
+    "release": "24.6.0",
+    "arch": "arm64",
+    "cpu": "Apple M1"
+  },
+  "htmlSha256": {
+    "reference": "282ffa54578b2b815d5a37258befa390ad2be72f033d9bb890e60e95ea612db6",
+    "candidate": "3c1fd548349e556c9b26a24bdfd2d692609f415167d9358e7b1675e5b69d6989"
+  },
+  "acceptance": {
+    "hardware": true,
+    "exactPhysicalAndCameraParity": true,
+    "staticGeometryAndCameraNoUpload": true,
+    "oldCountersUnchanged": true,
+    "oldReproducibleP95Regression": false,
+    "newProfiles15PercentBudgetPass": true
+  },
+  "pairs": 54,
+  "backend": {
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+    "vendor": "Google Inc. (Apple)",
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+    "software": false
+  },
+  "resolution": {
+    "viewportWidth": 1440,
+    "viewportHeight": 1000,
+    "cssWidth": 1114,
+    "cssHeight": 934,
+    "bufferWidth": 1114,
+    "bufferHeight": 934,
+    "dpr": 1
+  },
+  "rawFile": "performance-raw.json",
+  "rawSha256": "32912b70eb5a608ea0d6eec10d7557de9bb84830f1c8556c44e3634f3fa43dbd",
+  "comparisons": [
+    {
+      "id": "sun-odyssey-36i-pedagogical",
+      "mode": "navigation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 3.1000001430511475,
+      "candidateMedianP95Ms": 2.5,
+      "medianPairedP95Ratio": 1.041666728754842,
+      "medianPairedP95DeltaMs": 0.10000014305114746,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2,
+        "cpuP95Ms": 3.1000001430511475,
+        "gpuMedianMs": 0.4895,
+        "gpuP95Ms": 0.637499,
+        "draws": [
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2,
+        "cpuP95Ms": 2.5,
+        "gpuMedianMs": 0.482874,
+        "gpuP95Ms": 0.57625,
+        "draws": [
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 365,
+            "triangles": 18268,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 42100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0576922979933272,
+          "deltaMs": 0.2999999523162842
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.041666728754842,
+          "deltaMs": 0.10000014305114746
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.8064515756890893,
+          "deltaMs": -0.6000001430511475
+        }
+      ]
+    },
+    {
+      "id": "sun-odyssey-36i-pedagogical",
+      "mode": "translation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 3.6999998092651367,
+      "candidateMedianP95Ms": 3.0999999046325684,
+      "medianPairedP95Ratio": 0.9687499557621784,
+      "medianPairedP95DeltaMs": -0.10000014305114746,
+      "exceedsBothInRepetitions": 1,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.5,
+        "cpuP95Ms": 3.6999998092651367,
+        "gpuMedianMs": 0.560041,
+        "gpuP95Ms": 0.636749,
+        "draws": [
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 91700000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.5,
+        "cpuP95Ms": 3.0999999046325684,
+        "gpuMedianMs": 0.554,
+        "gpuP95Ms": 0.597083,
+        "draws": [
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20378,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 0.9687499557621784,
+          "deltaMs": -0.10000014305114746
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.6382978982437579,
+          "deltaMs": -1.6999998092651367
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.3783784880962109,
+          "deltaMs": 1.4000003337860107
+        }
+      ]
+    },
+    {
+      "id": "sun-odyssey-36i-pedagogical",
+      "mode": "rotation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 5.3999998569488525,
+      "candidateMedianP95Ms": 3.1000001430511475,
+      "medianPairedP95Ratio": 0.8148148540606724,
+      "medianPairedP95DeltaMs": -0.9999997615814209,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.700000047683716,
+        "cpuP95Ms": 5.3999998569488525,
+        "gpuMedianMs": 0.574499,
+        "gpuP95Ms": 0.641166,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.5,
+        "cpuP95Ms": 3.1000001430511475,
+        "gpuMedianMs": 0.560624,
+        "gpuP95Ms": 0.606375,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26626,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 91700000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1948
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 0.9999999230907844,
+          "deltaMs": -2.384185791015625e-7
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.8148148540606724,
+          "deltaMs": -0.9999997615814209
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.5254237445665821,
+          "deltaMs": -2.799999952316284
+        }
+      ]
+    },
+    {
+      "id": "dufour-310-gl-2014-deep-keel-experimental",
+      "mode": "navigation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 3,
+      "candidateMedianP95Ms": 2.8000001907348633,
+      "medianPairedP95Ratio": 0.9333333174387614,
+      "medianPairedP95DeltaMs": -0.20000004768371582,
+      "exceedsBothInRepetitions": 1,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.1999998092651367,
+        "cpuP95Ms": 3,
+        "gpuMedianMs": 0.520749,
+        "gpuP95Ms": 0.624166,
+        "draws": [
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.0999999046325684,
+        "cpuP95Ms": 2.8000001907348633,
+        "gpuMedianMs": 0.512124,
+        "gpuP95Ms": 0.612041,
+        "draws": [
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 18338,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 2.5384615948919733,
+          "deltaMs": 4
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.9333333174387614,
+          "deltaMs": -0.20000004768371582
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.37333335876464846,
+          "deltaMs": -4.699999809265137
+        }
+      ]
+    },
+    {
+      "id": "dufour-310-gl-2014-deep-keel-experimental",
+      "mode": "translation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 3.5,
+      "candidateMedianP95Ms": 2.9000000953674316,
+      "medianPairedP95Ratio": 0.8571428571428571,
+      "medianPairedP95DeltaMs": -0.5,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.3999998569488525,
+        "cpuP95Ms": 3.5,
+        "gpuMedianMs": 0.549166,
+        "gpuP95Ms": 0.608,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.200000047683716,
+        "cpuP95Ms": 2.9000000953674316,
+        "gpuMedianMs": 0.536666,
+        "gpuP95Ms": 0.597291,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 20430,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 0.7837837994577588,
+          "deltaMs": -0.7999999523162842
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.8571428571428571,
+          "deltaMs": -0.5
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.9642857477373012,
+          "deltaMs": -0.09999990463256836
+        }
+      ]
+    },
+    {
+      "id": "dufour-310-gl-2014-deep-keel-experimental",
+      "mode": "rotation",
+      "oldVessel": true,
+      "referenceMedianP95Ms": 2.8999998569488525,
+      "candidateMedianP95Ms": 2.9000000953674316,
+      "medianPairedP95Ratio": 1.0357143374121929,
+      "medianPairedP95DeltaMs": 0.10000014305114746,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.3000001907348633,
+        "cpuP95Ms": 2.8999998569488525,
+        "gpuMedianMs": 0.555666,
+        "gpuP95Ms": 0.586083,
+        "draws": [
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.3999998569488525,
+        "cpuP95Ms": 2.9000000953674316,
+        "gpuMedianMs": 0.558,
+        "gpuP95Ms": 0.620625,
+        "draws": [
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 410,
+            "triangles": 27174,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1970
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0357143374121929,
+          "deltaMs": 0.10000014305114746
+        },
+        {
+          "repetition": 1,
+          "ratio": 1,
+          "deltaMs": 0
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.1034483467356095,
+          "deltaMs": 0.3000001907348633
+        }
+      ]
+    },
+    {
+      "id": "sun-odyssey-24-2-fixed-keel-experimental",
+      "mode": "navigation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.200000047683716,
+      "candidateMedianP95Ms": 2.200000047683716,
+      "medianPairedP95Ratio": 0.9999998916279209,
+      "medianPairedP95DeltaMs": -2.384185791015625e-7,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 1.7999999523162842,
+        "cpuP95Ms": 2.200000047683716,
+        "gpuMedianMs": 0.468208,
+        "gpuP95Ms": 0.530458,
+        "draws": [
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 1.7999999523162842,
+        "cpuP95Ms": 2.200000047683716,
+        "gpuMedianMs": 0.472499,
+        "gpuP95Ms": 0.532625,
+        "draws": [
+          {
+            "calls": 369,
+            "triangles": 17930,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 17930,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 17930,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1562
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 0.9565217796931429,
+          "deltaMs": -0.09999990463256836
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.9999998916279209,
+          "deltaMs": -2.384185791015625e-7
+        },
+        {
+          "repetition": 2,
+          "ratio": 1,
+          "deltaMs": 0
+        }
+      ]
+    },
+    {
+      "id": "sun-odyssey-24-2-fixed-keel-experimental",
+      "mode": "translation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.5,
+      "candidateMedianP95Ms": 2.6999998092651367,
+      "medianPairedP95Ratio": 1.040000057220459,
+      "medianPairedP95DeltaMs": 0.10000014305114746,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2,
+        "cpuP95Ms": 2.5,
+        "gpuMedianMs": 0.508916,
+        "gpuP95Ms": 0.590875,
+        "draws": [
+          {
+            "calls": 404,
+            "triangles": 20203,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 404,
+            "triangles": 20203,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 404,
+            "triangles": 20203,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2,
+        "cpuP95Ms": 2.6999998092651367,
+        "gpuMedianMs": 0.525708,
+        "gpuP95Ms": 0.576124,
+        "draws": [
+          {
+            "calls": 402,
+            "triangles": 20242,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20242,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 20242,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1562
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0799999237060547,
+          "deltaMs": 0.19999980926513672
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.040000057220459,
+          "deltaMs": 0.10000014305114746
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.9655172753986071,
+          "deltaMs": -0.09999990463256836
+        }
+      ]
+    },
+    {
+      "id": "sun-odyssey-24-2-fixed-keel-experimental",
+      "mode": "rotation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.799999952316284,
+      "candidateMedianP95Ms": 2.799999952316284,
+      "medianPairedP95Ratio": 1,
+      "medianPairedP95DeltaMs": 0,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.200000047683716,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.540375,
+        "gpuP95Ms": 0.583249,
+        "draws": [
+          {
+            "calls": 408,
+            "triangles": 26451,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 408,
+            "triangles": 26451,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 408,
+            "triangles": 26451,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.200000047683716,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.544208,
+        "gpuP95Ms": 0.589499,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 26490,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26490,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 26490,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1562
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1,
+          "deltaMs": 0
+        },
+        {
+          "repetition": 1,
+          "ratio": 1,
+          "deltaMs": 0
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.7499999834431549,
+          "deltaMs": -0.9000000953674316
+        }
+      ]
+    },
+    {
+      "id": "contessa-26-long-keel-experimental",
+      "mode": "navigation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.200000047683716,
+      "candidateMedianP95Ms": 2.3999998569488525,
+      "medianPairedP95Ratio": 1.0869565442739682,
+      "medianPairedP95DeltaMs": 0.19999980926513672,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 1.7999999523162842,
+        "cpuP95Ms": 2.200000047683716,
+        "gpuMedianMs": 0.470458,
+        "gpuP95Ms": 0.5265,
+        "draws": [
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 382,
+            "triangles": 17281,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 42100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 1.8999998569488525,
+        "cpuP95Ms": 2.3999998569488525,
+        "gpuMedianMs": 0.479208,
+        "gpuP95Ms": 0.567625,
+        "draws": [
+          {
+            "calls": 369,
+            "triangles": 17918,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 17918,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 369,
+            "triangles": 17918,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 44700000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1550
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0869565442739682,
+          "deltaMs": 0.20000004768371582
+        },
+        {
+          "repetition": 1,
+          "ratio": 1,
+          "deltaMs": 0
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.0909090022410262,
+          "deltaMs": 0.19999980926513672
+        }
+      ]
+    },
+    {
+      "id": "contessa-26-long-keel-experimental",
+      "mode": "translation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.9000000953674316,
+      "candidateMedianP95Ms": 2.799999952316284,
+      "medianPairedP95Ratio": 0.9655171931853066,
+      "medianPairedP95DeltaMs": -0.10000014305114746,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.0999999046325684,
+        "cpuP95Ms": 2.9000000953674316,
+        "gpuMedianMs": 0.521125,
+        "gpuP95Ms": 0.597374,
+        "draws": [
+          {
+            "calls": 404,
+            "triangles": 19707,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 404,
+            "triangles": 19707,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 404,
+            "triangles": 19707,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.200000047683716,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.532916,
+        "gpuP95Ms": 0.593249,
+        "draws": [
+          {
+            "calls": 402,
+            "triangles": 19746,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 19746,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 402,
+            "triangles": 19746,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1550
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.1153845906963022,
+          "deltaMs": 0.2999999523162842
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.9655171931853066,
+          "deltaMs": -0.10000014305114746
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.9000000158945719,
+          "deltaMs": -0.2999999523162842
+        }
+      ]
+    },
+    {
+      "id": "contessa-26-long-keel-experimental",
+      "mode": "rotation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.700000047683716,
+      "candidateMedianP95Ms": 2.8000001907348633,
+      "medianPairedP95Ratio": 1.0740740021233381,
+      "medianPairedP95DeltaMs": 0.19999980926513672,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.1999998092651367,
+        "cpuP95Ms": 2.700000047683716,
+        "gpuMedianMs": 0.54275,
+        "gpuP95Ms": 0.597249,
+        "draws": [
+          {
+            "calls": 408,
+            "triangles": 29427,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 408,
+            "triangles": 29427,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 408,
+            "triangles": 29427,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.299999952316284,
+        "cpuP95Ms": 2.8000001907348633,
+        "gpuMedianMs": 0.552958,
+        "gpuP95Ms": 0.606041,
+        "draws": [
+          {
+            "calls": 406,
+            "triangles": 29466,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 29466,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 406,
+            "triangles": 29466,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 91700000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1550
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0740740021233381,
+          "deltaMs": 0.19999980926513672
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.076922999331236,
+          "deltaMs": 0.19999980926513672
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.000000085149494,
+          "deltaMs": 2.384185791015625e-7
+        }
+      ]
+    },
+    {
+      "id": "pogo-40-s4-twin-rudder-experimental",
+      "mode": "navigation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.3000001907348633,
+      "candidateMedianP95Ms": 2.299999952316284,
+      "medianPairedP95Ratio": 0.9999998963397568,
+      "medianPairedP95DeltaMs": -2.384185791015625e-7,
+      "exceedsBothInRepetitions": 1,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 1.8000001907348633,
+        "cpuP95Ms": 2.3000001907348633,
+        "gpuMedianMs": 0.472749,
+        "gpuP95Ms": 0.545124,
+        "draws": [
+          {
+            "calls": 374,
+            "triangles": 17309,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 374,
+            "triangles": 17309,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 374,
+            "triangles": 17309,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 1.7999999523162842,
+        "cpuP95Ms": 2.299999952316284,
+        "gpuMedianMs": 0.476333,
+        "gpuP95Ms": 0.548166,
+        "draws": [
+          {
+            "calls": 361,
+            "triangles": 17970,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 361,
+            "triangles": 17970,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 361,
+            "triangles": 17970,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1698
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 0.9999998963397568,
+          "deltaMs": -2.384185791015625e-7
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.2608695291616507,
+          "deltaMs": 0.5999999046325684
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.9166666418313966,
+          "deltaMs": -0.20000004768371582
+        }
+      ]
+    },
+    {
+      "id": "pogo-40-s4-twin-rudder-experimental",
+      "mode": "translation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.700000047683716,
+      "candidateMedianP95Ms": 2.799999952316284,
+      "medianPairedP95Ratio": 1.076922999331236,
+      "medianPairedP95DeltaMs": 0.19999980926513672,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.0999999046325684,
+        "cpuP95Ms": 2.700000047683716,
+        "gpuMedianMs": 0.521375,
+        "gpuP95Ms": 0.589083,
+        "draws": [
+          {
+            "calls": 396,
+            "triangles": 20231,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 396,
+            "triangles": 20231,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 396,
+            "triangles": 20231,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.1999998092651367,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.535124,
+        "gpuP95Ms": 0.601041,
+        "draws": [
+          {
+            "calls": 394,
+            "triangles": 20250,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 394,
+            "triangles": 20250,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 394,
+            "triangles": 20250,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1698
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.1851851819146972,
+          "deltaMs": 0.5
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.076922999331236,
+          "deltaMs": 0.19999980926513672
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.9333333174387614,
+          "deltaMs": -0.20000004768371582
+        }
+      ]
+    },
+    {
+      "id": "pogo-40-s4-twin-rudder-experimental",
+      "mode": "rotation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.799999952316284,
+      "candidateMedianP95Ms": 3.1999998092651367,
+      "medianPairedP95Ratio": 1.1428570942002891,
+      "medianPairedP95DeltaMs": 0.39999985694885254,
+      "exceedsBothInRepetitions": 1,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.200000047683716,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.5365,
+        "gpuP95Ms": 0.6005,
+        "draws": [
+          {
+            "calls": 400,
+            "triangles": 26975,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 400,
+            "triangles": 26975,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 400,
+            "triangles": 26975,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 86400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.3999998569488525,
+        "cpuP95Ms": 3.1999998092651367,
+        "gpuMedianMs": 0.557,
+        "gpuP95Ms": 0.611499,
+        "draws": [
+          {
+            "calls": 398,
+            "triangles": 26994,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 398,
+            "triangles": 26994,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 398,
+            "triangles": 26994,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1698
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1,
+          "deltaMs": 0
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.2500000212873734,
+          "deltaMs": 0.7000000476837158
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.1428570942002891,
+          "deltaMs": 0.39999985694885254
+        }
+      ]
+    },
+    {
+      "id": "oceanis-48-fixed-keel-experimental",
+      "mode": "navigation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.3999998569488525,
+      "candidateMedianP95Ms": 2.5999999046325684,
+      "medianPairedP95Ratio": 1.0833333581686035,
+      "medianPairedP95DeltaMs": 0.20000004768371582,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 1.8000001907348633,
+        "cpuP95Ms": 2.3999998569488525,
+        "gpuMedianMs": 0.4755,
+        "gpuP95Ms": 0.547749,
+        "draws": [
+          {
+            "calls": 366,
+            "triangles": 17211,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 366,
+            "triangles": 17211,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 366,
+            "triangles": 17211,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          },
+          {
+            "geometries": 522,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 39600000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 64000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 1.8999998569488525,
+        "cpuP95Ms": 2.5999999046325684,
+        "gpuMedianMs": 0.4775,
+        "gpuP95Ms": 0.5725,
+        "draws": [
+          {
+            "calls": 353,
+            "triangles": 18160,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 353,
+            "triangles": 18160,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 353,
+            "triangles": 18160,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          },
+          {
+            "geometries": 510,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          56,
+          56,
+          56
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 44700000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 31200000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 42100000,
+            "totalJSHeapSize": 68000000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1986
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0833333581686035,
+          "deltaMs": 0.20000004768371582
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.1249999875823649,
+          "deltaMs": 0.2999999523162842
+        },
+        {
+          "repetition": 2,
+          "ratio": 1,
+          "deltaMs": 0
+        }
+      ]
+    },
+    {
+      "id": "oceanis-48-fixed-keel-experimental",
+      "mode": "translation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.700000047683716,
+      "candidateMedianP95Ms": 2.799999952316284,
+      "medianPairedP95Ratio": 1.0370370010616692,
+      "medianPairedP95DeltaMs": 0.09999990463256836,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.0999999046325684,
+        "cpuP95Ms": 2.700000047683716,
+        "gpuMedianMs": 0.525583,
+        "gpuP95Ms": 0.580291,
+        "draws": [
+          {
+            "calls": 388,
+            "triangles": 22117,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 388,
+            "triangles": 22117,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 388,
+            "triangles": 22117,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          },
+          {
+            "geometries": 528,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.1999998092651367,
+        "cpuP95Ms": 2.799999952316284,
+        "gpuMedianMs": 0.533166,
+        "gpuP95Ms": 0.596958,
+        "draws": [
+          {
+            "calls": 386,
+            "triangles": 22112,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 386,
+            "triangles": 22112,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 386,
+            "triangles": 22112,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          },
+          {
+            "geometries": 516,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 37300000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1986
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.0370370010616692,
+          "deltaMs": 0.09999990463256836
+        },
+        {
+          "repetition": 1,
+          "ratio": 1.07692309808449,
+          "deltaMs": 0.20000004768371582
+        },
+        {
+          "repetition": 2,
+          "ratio": 0.903225818856326,
+          "deltaMs": -0.2999999523162842
+        }
+      ]
+    },
+    {
+      "id": "oceanis-48-fixed-keel-experimental",
+      "mode": "rotation",
+      "oldVessel": false,
+      "referenceMedianP95Ms": 2.8999998569488525,
+      "candidateMedianP95Ms": 3,
+      "medianPairedP95Ratio": 1.034482809649639,
+      "medianPairedP95DeltaMs": 0.10000014305114746,
+      "exceedsBothInRepetitions": 0,
+      "reproducibleRegression": false,
+      "reference": {
+        "cpuMedianMs": 2.299999952316284,
+        "cpuP95Ms": 2.8999998569488525,
+        "gpuMedianMs": 0.551,
+        "gpuP95Ms": 0.610458,
+        "draws": [
+          {
+            "calls": 392,
+            "triangles": 26381,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 392,
+            "triangles": 26381,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 392,
+            "triangles": 26381,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          },
+          {
+            "geometries": 530,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          65,
+          65,
+          65
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 29400000,
+            "totalJSHeapSize": 72200000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          null
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "candidate": {
+        "cpuMedianMs": 2.3000001907348633,
+        "cpuP95Ms": 3,
+        "gpuMedianMs": 0.553458,
+        "gpuP95Ms": 0.614791,
+        "draws": [
+          {
+            "calls": 390,
+            "triangles": 26376,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 390,
+            "triangles": 26376,
+            "points": 0,
+            "lines": 0
+          },
+          {
+            "calls": 390,
+            "triangles": 26376,
+            "points": 0,
+            "lines": 0
+          }
+        ],
+        "memory": [
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          },
+          {
+            "geometries": 518,
+            "textures": 0
+          }
+        ],
+        "materials": [
+          60,
+          60,
+          60
+        ],
+        "jsMemory": [
+          {
+            "usedJSHeapSize": 35100000,
+            "totalJSHeapSize": 76600000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 81400000,
+            "jsHeapSizeLimit": 3760000000
+          },
+          {
+            "usedJSHeapSize": 33100000,
+            "totalJSHeapSize": 91700000,
+            "jsHeapSizeLimit": 3760000000
+          }
+        ],
+        "modelTriangles": [
+          1986
+        ],
+        "motionUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 2700,
+            "bytes": 8064000,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ],
+        "cameraUploads": [
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          },
+          {
+            "bufferData": 0,
+            "bufferSubData": 0,
+            "bytes": 0,
+            "textureCalls": 0,
+            "shaderCompilations": 0
+          }
+        ]
+      },
+      "pairedP95Changes": [
+        {
+          "repetition": 0,
+          "ratio": 1.034482809649639,
+          "deltaMs": 0.10000014305114746
+        },
+        {
+          "repetition": 1,
+          "ratio": 0.9677419652551825,
+          "deltaMs": -0.09999990463256836
+        },
+        {
+          "repetition": 2,
+          "ratio": 1.0714285896748916,
+          "deltaMs": 0.20000004768371582
+        }
+      ]
+    }
+  ],
+  "rawBounds": {
+    "candidateCpuMedianMs": [
+      1.7000000476837158,
+      2.799999952316284
+    ],
+    "candidateCpuP95PerRunMs": [
+      2.1999998092651367,
+      6.599999904632568
+    ],
+    "candidateGpuMedianMs": [
+      0.471125,
+      0.575541
+    ],
+    "candidateGpuP95PerRunMs": [
+      0.524708,
+      1.465249
+    ],
+    "cpuMaxMs": 58.799999952316284,
+    "gpuSamples": 32400,
+    "gpuDiscarded": 0,
+    "tails": [
+      {
+        "id": "sun-odyssey-36i-pedagogical",
+        "mode": "translation",
+        "repetition": 2,
+        "label": "candidate",
+        "maxMs": 54.10000014305115,
+        "over16_67ms": 2
+      },
+      {
+        "id": "dufour-310-gl-2014-deep-keel-experimental",
+        "mode": "navigation",
+        "repetition": 0,
+        "label": "candidate",
+        "maxMs": 58.799999952316284,
+        "over16_67ms": 5
+      },
+      {
+        "id": "dufour-310-gl-2014-deep-keel-experimental",
+        "mode": "navigation",
+        "repetition": 2,
+        "label": "reference",
+        "maxMs": 26.5,
+        "over16_67ms": 3
+      }
+    ]
+  }
+}

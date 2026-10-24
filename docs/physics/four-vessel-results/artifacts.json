@@ -1,0 +1,266 @@
+{
+  "created": "2026-10-21",
+  "phase": 1,
+  "branch": "codex/four-vessel-profiles",
+  "baseHead": "5c9dbfc7a9647d2af10d91af761882293894ddab",
+  "physicsVersion": "6.0.0",
+  "rawFormat": "One gzip-compressed JSON object per profile; records contains 120 scenario objects with 10 Hz samples plus events, inputs, milestones and final states.",
+  "reproduce": {
+    "matrix": "npm run qualify:vessels -- --profiles commercial --out /tmp/kjp-vessel-qualification",
+    "diagnostics": "npm run qualify:vessels -- --profiles sun-odyssey-24-2-fixed-keel-experimental,contessa-26-long-keel-experimental,pogo-40-s4-twin-rudder-experimental,oceanis-48-fixed-keel-experimental --diagnostics --out /tmp/kjp-vessel-diagnostics",
+    "tests": "npm run test:physics:profiles"
+  },
+  "files": [
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/sun-odyssey-36i-pedagogical.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 158606803,
+      "sha256": "fdede9334c019f97affe18de7775d55e4b2cee93a5e3ed27520d3d933cf9105a",
+      "profileId": "sun-odyssey-36i-pedagogical",
+      "profileSha256": "f207705791846ec073f0eb3e0560d67f5fd70d69e4ef0f7de4bb624b28ede9ad"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/dufour-310-gl-2014-deep-keel-experimental.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 133731755,
+      "sha256": "6393a20d0cb1b88c8afc900c28683379b08fb1a4f6037570d374d5128804262d",
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental",
+      "profileSha256": "c3c2552882dbac98da79d45880ca4f8eb39e721b314b77cb71d657afa5cdf4ae"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/sun-odyssey-24-2-fixed-keel-experimental.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 138306346,
+      "sha256": "13ab47f9205df3f6f84ef63fc713c1a89e98879c275df8ac7171c7801d9df80f",
+      "profileId": "sun-odyssey-24-2-fixed-keel-experimental",
+      "profileSha256": "7cbf2b66bc46488748f6ec4aaab1d48de33ef6de439e2a5b0d127f46c58a8e7d"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/contessa-26-long-keel-experimental.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 167338556,
+      "sha256": "6a56f2215492b56401211b8742ae8bbb562e38c4dbe160dc1eb227804e8e9de7",
+      "profileId": "contessa-26-long-keel-experimental",
+      "profileSha256": "1e4a2f87a1291858c3264fd0e784fc7cc427a6ca7d688bb08d598ea53a58a3f7"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/pogo-40-s4-twin-rudder-experimental.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 127504591,
+      "sha256": "d56d8a72f1c24e8de89201f7610ce3a3dbdf06e76d50bdccb367fb2f108c147d",
+      "profileId": "pogo-40-s4-twin-rudder-experimental",
+      "profileSha256": "0f0037fdda0254e1f2efe40182af88421a6da552df2702a1ec51f3f8fdeb6be2"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/raw/oceanis-48-fixed-keel-experimental.json.gz",
+      "role": "Final 120-case matrix, 10 Hz and events",
+      "bytes": 139450708,
+      "sha256": "60a54264913700664bdd25f14b9574f5aeafebcb2fc9a2bd975b563b52eb5175",
+      "profileId": "oceanis-48-fixed-keel-experimental",
+      "profileSha256": "08b5e102f83cd5ea784bc9c2d29dbbc15e3d387638aa18ff4b1a230ed8458015"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/before/sun-odyssey-36i-pedagogical.json.gz",
+      "role": "Original identical 120-case reference matrix",
+      "bytes": 158244229,
+      "sha256": "5a345c15fde0fd994a6e9ada7751065c012470d00886fb85f587e4885853e05e",
+      "profileId": "sun-odyssey-36i-pedagogical"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/after/sun-odyssey-36i-pedagogical.json.gz",
+      "role": "Original identical 120-case reference matrix",
+      "bytes": 158244229,
+      "sha256": "5a345c15fde0fd994a6e9ada7751065c012470d00886fb85f587e4885853e05e",
+      "profileId": "sun-odyssey-36i-pedagogical"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/stopping-before/sun-odyssey-36i-pedagogical.json.gz",
+      "role": "Additional identical B/B2 reference records",
+      "bytes": 7135354,
+      "sha256": "e7260150d4f133febcf3d47e1611abb39a87ec659d76ada7a699d16dcb769470",
+      "profileId": "sun-odyssey-36i-pedagogical"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/stopping-after/sun-odyssey-36i-pedagogical.json.gz",
+      "role": "Additional identical B/B2 reference records",
+      "bytes": 7135354,
+      "sha256": "e7260150d4f133febcf3d47e1611abb39a87ec659d76ada7a699d16dcb769470",
+      "profileId": "sun-odyssey-36i-pedagogical"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/before/dufour-310-gl-2014-deep-keel-experimental.json.gz",
+      "role": "Original identical 120-case reference matrix",
+      "bytes": 133406887,
+      "sha256": "c25bb30f3db9d374c947e8d20c1bca33d31dfc4df20eb24d52fefd59dae7758d",
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/after/dufour-310-gl-2014-deep-keel-experimental.json.gz",
+      "role": "Original identical 120-case reference matrix",
+      "bytes": 133406887,
+      "sha256": "c25bb30f3db9d374c947e8d20c1bca33d31dfc4df20eb24d52fefd59dae7758d",
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/stopping-before/dufour-310-gl-2014-deep-keel-experimental.json.gz",
+      "role": "Additional identical B/B2 reference records",
+      "bytes": 3138630,
+      "sha256": "7ea3ac21ee561b0bf5743ffcbacae615fdfbf4c748759ac9d4901c7b4932cd6d",
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/regression/stopping-after/dufour-310-gl-2014-deep-keel-experimental.json.gz",
+      "role": "Additional identical B/B2 reference records",
+      "bytes": 3138630,
+      "sha256": "7ea3ac21ee561b0bf5743ffcbacae615fdfbf4c748759ac9d4901c7b4932cd6d",
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/summary.json",
+      "role": "Compact qualification output",
+      "bytes": 1323444,
+      "sha256": "12655ef42522525f860d05bbd926c81ebf7d7710ee6145191d5e7d471b3ec47b"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/metrics.csv",
+      "role": "Compact qualification output",
+      "bytes": 576301,
+      "sha256": "8d77950a7457a73ef3cfa2d5afe3e862b30910ce0464c375a5f95e8545b8cff4"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/diagnostics.json",
+      "role": "Compact qualification output",
+      "bytes": 1987863,
+      "sha256": "0b60b64c6213b865f4574a7c930657c3e15a09d4b099c34f546fd80ffcaaa00f"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/contessa-bands.json",
+      "role": "Compact qualification output",
+      "bytes": 7830,
+      "sha256": "52b207131b5a77f94b5bc5d3abd58be0dd0186fb9a4cf2181a87345973bf7a6d"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/exact-regression.json",
+      "role": "Compact qualification output",
+      "bytes": 1270,
+      "sha256": "f6cf344a4177e05e35df0850833f0e95a71a64b26babd03be43bccc89ed80616"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/pogo-jet.json",
+      "role": "Compact qualification output",
+      "bytes": 1220,
+      "sha256": "a498e02de9150004b197c559f9ede8db721c009a097a18b3c37e29190efc7a2c"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/results/preexisting-changes.json",
+      "role": "Compact qualification output",
+      "bytes": 2420,
+      "sha256": "dcf7385540c2422c6222498c60e6ff55b0034179a69bf4596d09db8e3786e0cd"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/baseline/src/simulateur-port/physics-core.js",
+      "role": "Sources and hashes captured before changes",
+      "bytes": 119791,
+      "sha256": "06032b6c3075061bd37a154d02720b3332728ce4ee65fcb19204733fc7f94251"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/baseline/src/simulateur-port/vessel-profiles.js",
+      "role": "Sources and hashes captured before changes",
+      "bytes": 70574,
+      "sha256": "d3ecd2b22a206842b0b86b7b4e9453440d859dc217c7c84d51ecd35c461878d4"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/baseline/src/simulateur-port/template.html",
+      "role": "Sources and hashes captured before changes",
+      "bytes": 477891,
+      "sha256": "5d90123456a2808a5eb6965e746a5167ff3b0ce8ac528f84019315f4de3a3f6d"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/baseline/hashes.json",
+      "role": "Sources and hashes captured before changes",
+      "bytes": 1469,
+      "sha256": "54e90d9e2f66b18fade414104a5f4e51b9f97af87ca646ea6a94031614b3a342"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/baseline/simulateur-port.html",
+      "role": "Initial generated HTML",
+      "bytes": 4573306,
+      "sha256": "b760c1b567ff2e5e459621713470cfe2562a7cd33a6f153873fd0629f019c157"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/src/simulateur-port/vessel-profiles.js",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 188738,
+      "sha256": "cf394bea6f06da25852fac82d038f182d33e10945d601927e031122e868383d7"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/scripts/qualify-vessel-profiles.js",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 29253,
+      "sha256": "90a3f544093835b718a9d5fa5b2448bb677b337d658c225839c4ffa1da90a140"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/tests/physics/vessel-catalogue.test.js",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 16157,
+      "sha256": "ad06530bf314d5c3dacafbc7e53ed7798321cd9086710c0e42454a06f6d68c33"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/tests/fixtures/vessel-reference-signatures.json",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 4688,
+      "sha256": "675d95b213d5c4f7f47e29d33fe9a9e1d0b8222a772b98d0cdea1c6d2d41b257"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/simulateur-port.html",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 4694747,
+      "sha256": "282ffa54578b2b815d5a37258befa390ad2be72f033d9bb890e60e95ea612db6"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/docs/physics/four-vessel-validation.md",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 18745,
+      "sha256": "1436a65dfdb363366cee9831c89ab873342eabb24db79c3cde09f45b85fe6a41"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/docs/physics/sun-odyssey-24-2-fixed-keel.md",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 66140,
+      "sha256": "6689f17f924f8e9c2a8cf00a0de73a7a8690d6638557fc3d4466da43b009177a"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/docs/physics/contessa-26-long-keel.md",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 71199,
+      "sha256": "0b2bc05e0ebe95800dbef11b165d24d2ef201ffa5643029586198cef61fd31bb"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/docs/physics/pogo-40-s4-twin-rudder.md",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 70876,
+      "sha256": "63911c5fb7f4a27d580a1b6fc1e9c8d4ab3d928c3e10d7bd8e9db8b904899fc5"
+    },
+    {
+      "path": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/delivery/docs/physics/oceanis-48-fixed-keel.md",
+      "role": "Delivered sources, built HTML and parameter dossiers",
+      "bytes": 68871,
+      "sha256": "a74c80b6174b61c7deaeda78d2b6b902fac75cf0a602bca5ccf783b34ff60117"
+    }
+  ],
+  "captures": [
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/contessa-26-long-keel-navigation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/contessa-26-long-keel-rotation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/contessa-26-long-keel-translation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/oceanis-48-fixed-keel-navigation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/oceanis-48-fixed-keel-rotation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/oceanis-48-fixed-keel-translation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/pogo-40-s4-twin-rudder-navigation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/pogo-40-s4-twin-rudder-rotation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/pogo-40-s4-twin-rudder-translation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/sun-odyssey-24-2-fixed-keel-navigation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/sun-odyssey-24-2-fixed-keel-rotation.png",
+    "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/sun-odyssey-24-2-fixed-keel-translation.png"
+  ],
+  "visualReport": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase1/visual-inspection.json"
+}

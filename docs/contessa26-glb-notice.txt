@@ -1,0 +1,102 @@
+KJP — CONTESSA 26
+Modèle visuel low-poly — version 1 — 21 octobre 2026
+
+FICHIER PRINCIPAL
+KJP_Contessa26.glb, glTF 2.0 binaire autonome.
+223240 octets ; 3265 triangles ; 6878 sommets.
+Un maillage, une primitive indexée et un matériau opaque mat.
+Couleurs par sommet ; aucune texture ni ressource externe.
+SHA-256 : 597c70f1cc57290f26649c96c4f80fb1845dd0306296d382b8c2c2fbcbd430a5
+Validation Khronos glTF : 0 erreur, 0 avertissement.
+Rapport inclus dans verification/gltf_validation.json.
+
+DIRECTION ARTISTIQUE
+Interprétation originale et stylisée du Contessa 26 à partir de la photo fournie,
+dans la continuité visuelle des assets KJP : surfaces mates, facettes lisibles,
+détails limités et gréement simplifié.
+- Coque classique étroite, étrave fine et inclinée, arrière étroit.
+- Quille longue intégrée à la carène et safran unique incliné dans son prolongement.
+- Passage d'hélice dans la partie avant du safran et petite hélice à deux pales.
+- Roof arrondi à l'arrière, descendant progressivement vers le pont avant.
+- Trois hublots par bord, banquettes et hiloires de cockpit couleur bois.
+- Coque bleu marine, bande de flottaison ivoire, œuvres vives rouge brique.
+- Pont et roof clairs, mât et bôme champagne, vitrages sombres.
+- Configuration au port : grand-voile affalée dans sa housse, voile d'avant retirée.
+Les formes sont une interprétation visuelle ; elles ne proviennent pas de plans
+numériques de chantier. Aucun aménagement intérieur n'est modélisé.
+
+DIMENSIONS DU MODÈLE, EN MÈTRES
+Longueur hors tout de coque : 7,77, hors safran et balcons extérieurs.
+Longueur de flottaison de référence : 6,10.
+Largeur maximale de coque : 2,29.
+Tirant d'eau visuel : 1,22, entre Y=0 et le fond de la quille.
+Ces valeurs sont les conversions arrondies des cotes impériales de la brochure
+Maclan Marine sous licence J.C. Rogers : 25 ft 6 in, 20 ft, 7 ft 6 in et 4 ft.
+Les anciennes conversions métriques imprimées dans la brochure sont légèrement
+différentes ; le modèle utilise la conversion des dimensions impériales.
+Sommet du mât : Y=9,50, au-dessus de la flottaison. Cette hauteur est une estimation
+visuelle de modélisation, pas une cote constructeur vérifiée.
+Encombrement de l'ensemble, avec safran et balcons :
+  X : -1.1456 à 1.1456
+  Y : -1.2200 à 9.5000
+  Z : -4.0325 à 3.9850
+Le fin liseré de coque dépasse le bau nominal d'environ 1 mm au total.
+Ne pas déduire la longueur de coque de la boîte englobante complète.
+
+REPÈRE ET INTÉGRATION KJP
+1 unité = 1 mètre ; transformation racine à l'identité.
++X : tribord ; +Y : haut ; +Z : proue.
+Flottaison : Y=0. Origine : milieu longitudinal de la coque, sur l'axe central,
+à la flottaison. Ce repère ne définit pas le centre de gravité physique.
+Étrave de coque : Z=+3,885 ; tableau de coque : Z=-3,885.
+
+Le fichier est un asset de rendu à intégrer au projet KJP. Il ne contient ni
+profil de simulation Contessa 26, ni masse, inertie, collision ou force physique.
+Les conventions de repère suivent celles du GLB Sun Odyssey 36i KJP consulté.
+Le chargeur KJP consulté utilise une empreinte et des plages d'indices propres
+au Sun Odyssey : ajouter une entrée pour ce Contessa et ses données de rendu.
+La physique de KJP et du mode Comprendre reste indépendante de cet asset.
+
+APPARENCE ET PARTIES
+Conserver COLOR_0 et les normales exportées. COLOR_0 est en RGBA normalisé,
+avec RGB en espace linéaire et un facteur de base blanc. Un importeur qui ignore
+les couleurs de sommets affichera une coque blanche.
+Aucune compression Draco, aucune extension glTF obligatoire.
+Les parties sont fusionnées dans une seule primitive de rendu. Leurs plages
+d'indices sont disponibles dans le manifeste, ainsi que dans :
+  asset.extras.parts
+  nodes[0].extras.indexRangesBySourcePart
+Elles permettent d'adapter le rendu par parties ou le rendu radiographique.
+Le safran est statique et fusionné au maillage : le fichier ne l'anime pas.
+Les nœuds RudderPivotUpper, RudderPivotLower et Mooring sont des repères visuels.
+Ils ne définissent aucune contrainte mécanique ni animation automatique.
+
+FICHIERS DU PACK ET REPRODUCTION
+KJP_Contessa26.glb : modèle principal.
+KJP_Contessa26_manifest.json : dimensions, statistiques et plages d'indices.
+KJP_Contessa26_notice.txt : cette notice.
+sources/build_contessa26.py : géométrie, palette, export et métadonnées.
+sources/render_contessa26.py : rendu du GLB réel pour les aperçus.
+verification/gltf_validation.json : rapport du validateur Khronos.
+apercus/ : vues avant, arrière, dessus, profil de coque et profil avec mât entier.
+Les vues rapprochées cadrent la coque et coupent volontairement le haut du mât.
+Le GLB contient le gréement entier, visible dans profil_complet.png.
+
+Pour reconstruire : Python 3 avec numpy, puis
+  python sources/build_contessa26.py
+Le GLB et le manifeste régénérés sont écrits à côté du script, dans sources/.
+Pour rendre le modèle fourni depuis la racine du pack :
+  python sources/render_contessa26.py --model KJP_Contessa26.glb --output apercus
+Dépendances de rendu : numpy, Pillow, trimesh, pyrender et un environnement
+OpenGL/EGL compatible. Le script lit directement les couleurs de sommets du GLB.
+
+SOURCES ET RÉFÉRENCES
+- Photo utilisateur image(9).png, Contessa 26 « Nellie », fournie le 21 octobre 2026.
+- Brochure historique Maclan Marine sous licence J.C. Rogers, cotes et formes :
+  https://contessazeilers.com/wp-content/uploads/2015/04/contessa_26.pdf
+- Présentation du Contessa 26 par Jeremy Rogers :
+  https://www.jeremyrogers.co.uk/contessa-26/
+- GLB KJP utilisé pour vérifier les conventions visuelles :
+  https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/kjp_sun_odyssey_36i.glb
+- Chargement KJP consulté :
+  https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/src/simulateur-port/rendering/native-player-model.mjs

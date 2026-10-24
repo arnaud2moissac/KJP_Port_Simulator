@@ -698,7 +698,7 @@ test("Dufour 310 bi-safran: profil complet, indépendant et sans jet direct", ()
   const id = "dufour-310-gl-2014-deep-keel-experimental";
   const profile = Physics.COMPILED_PROFILES[id];
   assert.ok(profile);
-  assert.equal(profile.version, "1.0.0");
+  assert.equal(profile.version, "1.1.0");
   assert.deepEqual(profile.configuration, {
     propellers: 1,
     rudders: 2,
@@ -710,7 +710,11 @@ test("Dufour 310 bi-safran: profil complet, indépendant et sans jet direct", ()
   assert.deepEqual(profile.rudders.map(rudder => rudder.slipstreamSources), [[], []]);
   assert.deepEqual(Physics.COMMERCIAL_PROFILE_IDS, [
     "sun-odyssey-36i-pedagogical",
-    id
+    id,
+    "sun-odyssey-24-2-fixed-keel-experimental",
+    "contessa-26-long-keel-experimental",
+    "pogo-40-s4-twin-rudder-experimental",
+    "oceanis-48-fixed-keel-experimental"
   ]);
 
   for (const candidate of Object.values(Physics.COMPILED_PROFILES)) {
@@ -1171,7 +1175,7 @@ test("énergie au neutre, déterminisme et convergence du pas", () => {
 
 test("aussières: profil de taquets, longueur maximale et capacité", () => {
   const cleats = Physics.DEFAULT_PROFILE.mooring.cleats;
-  assert.equal(Physics.DEFAULT_PROFILE.schemaVersion, 4);
+  assert.equal(Physics.DEFAULT_PROFILE.schemaVersion, 5);
   assert.equal(Physics.DEFAULT_PROFILE.mooring.maxLength, 20);
   assert.equal(Physics.DEFAULT_PROFILE.mooring.maximumLinesPerBoatCleat, 2);
   assert.equal(cleats.length, 6);

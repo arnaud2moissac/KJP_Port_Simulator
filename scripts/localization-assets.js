@@ -7,8 +7,7 @@ const root = path.resolve(__dirname, "..");
 function parameters(value) {
   return [...new Set(String(value).match(/\{\w+\}/g) || [])].sort().join(",");
 }
-function loadCatalogs({ includeGuides = false } = {}) {
-  const directory = path.join(root, "src/simulateur-port/locales");
+function loadCatalogs({ includeGuides = false, directory = path.join(root, "src/simulateur-port/locales") } = {}) {
   const catalogs = fs.readdirSync(directory).filter(file => file.endsWith(".json")).sort()
     .map(file => {
       const catalog = JSON.parse(fs.readFileSync(path.join(directory, file), "utf8"));

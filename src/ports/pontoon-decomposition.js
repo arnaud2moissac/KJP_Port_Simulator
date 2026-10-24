@@ -264,6 +264,7 @@
       return {
         available: false,
         reason: "Cette emprise est déjà assimilable à un rectangle.",
+        reasonMessage: { key: "source.cette.emprise.est.deja.assimilable.a.un.rectangle", params: {} },
         diagnostics: { method: "area-profile", simple: true }
       };
     }
@@ -276,6 +277,7 @@
       return {
         available: false,
         reason: "L’emprise est trop petite pour être découpée de façon fiable.",
+        reasonMessage: { key: "source.l.emprise.est.trop.petite.pour.etre.decoupee.de.facon.fiable", params: {} },
         diagnostics: { method: "area-profile", simple: false }
       };
     }
@@ -314,6 +316,7 @@
       return {
         available: false,
         reason: "La forme est complexe, mais aucun doigt perpendiculaire fiable n’a été isolé.",
+        reasonMessage: { key: "source.la.forme.est.complexe.mais.aucun.doigt.perpendiculaire.fiable.n.a.ete.isole", params: {} },
         diagnostics: { method: "area-profile", simple: false, baseWidth }
       };
     }
@@ -369,6 +372,7 @@
     return {
       available: catways.length > 0,
       reason: `${catways.length} branche(s) perpendiculaire(s) isolée(s) dans l’emprise.`,
+      reasonMessage: { key: "source.value1.branche.s.perpendiculaire.s.isolee.s.dans.l.emprise", params: { value1: catways.length } },
       candidateIndices: [targetIndex],
       objects: { pontoons: [pontoon], catways },
       continuity,
@@ -407,6 +411,7 @@
       return {
         available: false,
         reason: "Aucune arête exploitable.",
+        reasonMessage: { key: "source.aucune.arete.exploitable", params: {} },
         diagnostics: { method: "line-graph", edges: 0 }
       };
     }
@@ -496,6 +501,7 @@
       reason: catways.length
         ? `${catways.length} branche(s) raccordée(s) à l’axe principal.`
         : "Le réseau est déjà assimilable à un axe rectangulaire simple.",
+      reasonMessage: catways.length ? { key: "source.value1.branche.s.raccordee.s.a.l.axe.principal", params: { value1: catways.length } } : { key: "source.le.reseau.est.deja.assimilable.a.un.axe.rectangulaire.simple", params: {} },
       candidateIndices: component.map(item => item.index),
       objects: { pontoons: [pontoon], catways },
       continuity,
@@ -527,6 +533,7 @@
       return {
         available: false,
         reason: "La découpe s’applique à un ponton OpenStreetMap sélectionné.",
+        reasonMessage: { key: "source.la.decoupe.s.applique.a.un.ponton.openstreetmap.selectionne", params: {} },
         diagnostics: { method: "none" }
       };
     }

@@ -1,0 +1,93 @@
+KJP — CLASS40 SCOW
+Modèle visuel low-poly — version 1 — 21 octobre 2026
+
+FICHIER PRINCIPAL
+KJP_Class40.glb, glTF 2.0 binaire, autonome.
+160540 octets ; 2618 triangles ; 4863 sommets.
+Un seul maillage, une primitive indexée, un matériau opaque mat.
+Aucune texture et aucune ressource externe.
+Validation Khronos glTF : 0 erreur, 0 avertissement.
+SHA-256 : 091385c899dd2ed0c679d4b9e5b027f903e5b9dc9880e3f7a51cf6683c838e84
+
+DIRECTION ARTISTIQUE
+Interprétation originale et stylisée d'un Class40 moderne à étrave scow,
+inspirée des deux images fournies. Les lignes de coque ne sont pas les plans
+exacts d'un chantier. Formes peu détaillées et proportions de voilier de course :
+- avant volumineux, brion haut, petit nez central et arrière très large ;
+- long roof bas qui rejoint progressivement le pont à l'avant ;
+- cockpit arrière ouvert, barre franche, quille fixe à bulbe, deux safrans écartés ;
+- gréement simplifié avec un étage de barres de flèche et bout-dehors ;
+- grand-voile affalée dans une housse sur la bôme, voile d'avant retirée ;
+- coque blanche, pont gris clair, rouge atténué, vitrages et gréement anthracite ;
+- pas de logos, d'aussières ni de pare-battages.
+
+DIMENSIONS DU MODÈLE, EN MÈTRES
+Longueur de coque : 12,19, hors bout-dehors et safrans extérieurs.
+Largeur maximale de coque : 4,50.
+Tirant d'eau visuel : 3,00, mesuré de Y=0 au point bas du bulbe.
+Sommet du mât : Y=19,00, soit 19 m au-dessus de la flottaison.
+Projection avant du bout-dehors : environ 1,65 au-delà de l'étrave.
+Encombrement complet avec tous appendices :
+  X : -2.2500 à 2.2500
+  Y : -3.0000 à 19.0000
+  Z : -6.5600 à 7.7467
+La longueur de coque ne doit pas être remplacée par celle de la boîte englobante
+complète, qui comprend le bout-dehors et les safrans.
+
+REPÈRE GLB, IDENTIQUE AUX CONVENTIONS VISUELLES KJP
+Unité : 1 = 1 mètre. Échelle du nœud racine : identité.
++X : tribord ; +Y : haut ; +Z : proue.
+Flottaison de référence : Y=0.
+Origine : milieu longitudinal de la coque, sur l'axe central, à la flottaison.
+Cette origine n'est pas une affirmation sur le centre de gravité physique.
+Étrave coque : Z=+6,095 ; tableau coque : Z=-6,095.
+
+INTÉGRATION DANS KJP
+Le livrable est un asset de rendu. Il ne définit aucune masse, inertie,
+collision, traînée, force, propulsion ou autre coefficient physique.
+Il ne contient pas de profil de simulation Class40.
+Les conventions géométriques ont été comparées au GLB Sun Odyssey 36i du dépôt.
+Le chargeur KJP consulté associe le modèle Sun Odyssey à une empreinte et à des
+plages d'indices spécifiques : intégrer ce Class40 demande d'ajouter son entrée
+et ses données de rendu, pas de substituer aveuglément le binaire du Sun Odyssey.
+La physique reste indépendante de ce fichier, y compris pour le mode Comprendre.
+
+APPARENCE ET PARTIES
+Les couleurs sont portées par COLOR_0 (RGBA normalisé, RGB en espace linéaire)
+avec un facteur de base blanc. Préserver ces couleurs et les normales exportées.
+Un importeur qui perd COLOR_0 affichera le modèle tout blanc.
+Pas de compression Draco, pas d'extension glTF obligatoire, pas de textures.
+Les parties sont fusionnées afin de conserver une seule primitive de rendu.
+Les plages d'indices par partie sont fournies dans le manifeste et dans :
+  asset.extras.parts
+  nodes[0].extras.indexRangesBySourcePart
+Ces plages facilitent une adaptation ultérieure du rendu radiographique.
+Les safrans sont des géométries statiques fusionnées. Le GLB n'a pas d'animation.
+Les nœuds de repère RudderPivot et Mooring sont des points visuels auxiliaires,
+sans effet sur la physique et sans mécanisme d'animation automatique.
+
+RECONSTRUIRE ET RETOUCHER
+build_class40.py contient toute la géométrie, la palette et l'export GLB.
+Dépendance : Python 3 avec numpy.
+Lancer : python build_class40.py
+Le script produit KJP_Class40.glb et KJP_Class40_manifest.json dans son dossier.
+Les dimensions, sections de coque et de roof, ainsi que les couleurs sont
+regroupées au début du fichier et dans les blocs portant le nom de chaque pièce.
+render_class40.py produit les aperçus à partir du vrai GLB ; il requiert numpy,
+Pillow, trimesh, pyrender et une plateforme OpenGL/EGL compatible.
+Les aperçus avant et arrière cadrent volontairement la coque et le bas du mât.
+Le profil complet montre l'ensemble du gréement.
+
+SOURCES ET RÉFÉRENCES
+- Images utilisateur image(7).png et image(8).png, fournies le 21 octobre 2026.
+- Présentation du Class40 par l'organisateur GLOBE40 (cotes de référence) :
+  https://www.globe40.com/le-bateau/
+- Documents officiels de la classe :
+  https://www.class40.com/regles-docs
+- GLB KJP utilisé pour vérifier les conventions :
+  https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/kjp_sun_odyssey_36i.glb
+- Chargement KJP consulté :
+  https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/src/simulateur-port/rendering/native-player-model.mjs
+
+Le modèle reprend des dimensions de référence de la classe. Il ne constitue
+ni une certification de jauge, ni une reconstruction exacte d'un bateau nommé.

@@ -39,7 +39,7 @@ function plan(argv) {
     owner === "simulator" ? "scripts/build-simulateur-port.js" : "scripts/build-port-generator.js", "--check"] });
   const tests = (label, files) => ({ label, files,
     ...(files.every(file => file.startsWith("tests/physics/")) ? { expected: physicalSelection(files) } : {}) });
-  const physics = tests("physics:functional", ["tests/physics/port-physics.test.js", "tests/physics/wind-current-profiles.test.js", "tests/physics/port-obstacles.test.js"]);
+  const physics = tests("physics:functional", ["tests/physics/port-physics.test.js", "tests/physics/wind-current-profiles.test.js", "tests/physics/port-obstacles.test.js", "tests/physics/vessel-catalogue.test.js"]);
   const ports = tests("ports", ["tests/ports/kjp-codec.test.js", "tests/ports/pontoon-decomposition.test.js"]);
   const i18n = tests("i18n", ["tests/simulator-i18n-unit.test.js", "tests/simulator-i18n-ui.test.js"]);
   if (suite === "simulator" || suite === "generator") return [browser(suite)];
@@ -65,6 +65,7 @@ function plan(argv) {
     if (component === "environment") return [check("simulator"), tests("physics:environment", ["tests/physics/wind-current-profiles.test.js"]),
       { label: "wind-current:audit", command: [process.execPath, "scripts/audit-wind-current.js", "--check"] }];
     if (component === "contacts") return [check("simulator"), tests("physics:contacts", ["tests/physics/port-obstacles.test.js"])];
+    if (component === "profiles") return [check("simulator"), tests("physics:profiles", ["tests/physics/vessel-catalogue.test.js"])];
     if (!patterns[component]) throw new Error("physics-check requires a known --component");
     const files = ["tests/physics/port-physics.test.js"];
     return [check("simulator"), { ...tests(`physics:${component}`, files),
@@ -73,8 +74,10 @@ function plan(argv) {
   if (route === "release-check") {
     const stages = [];
     if (product !== "generator") stages.push(check("simulator"), { label: "i18n:catalogs", command: [process.execPath, "scripts/check-simulator-i18n.js"] }, physics, i18n, browserSelectionStage());
-    if (product !== "simulator") stages.push(check("generator"), ports, { label: "generator:all", files: ["tests/port-generator.test.js"], expected: browserSelection("generator").map(r => `[${r.product}:${r.id}] ${r.name}`) });
-    if (product !== "generator") stages.push(tests("renderer:qualification", ["tests/native-rendering.test.js", "tests/native-world-renderer.test.js", "tests/native-player.test.js", "tests/dufour-player.test.js", "tests/native-renderer-activation.test.js", "tests/native-renderer-qualification.test.js", "tests/understanding-rotation.test.js"]));
+    if (product !== "simulator") stages.push(check("generator"), ports,
+      tests("i18n:generator", ["tests/generator-i18n-unit.test.js"]),
+      { label: "generator:all", files: ["tests/port-generator.test.js"], expected: browserSelection("generator").map(r => `[${r.product}:${r.id}] ${r.name}`) });
+    if (product !== "generator") stages.push(tests("renderer:qualification", ["tests/native-rendering.test.js", "tests/vessel-models.test.js", "tests/native-world-renderer.test.js", "tests/native-player.test.js", "tests/dufour-player.test.js", "tests/four-vessel-player.test.js", "tests/native-renderer-activation.test.js", "tests/native-renderer-qualification.test.js", "tests/understanding-rotation.test.js"]));
     return stages;
   }
   throw new Error("Choose --route patch-local|ui-check|physics-check|release-check, or --suite");

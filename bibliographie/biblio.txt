@@ -196,6 +196,29 @@ Usage : audit pédagogique des pendilles : amarrage arrière ou avant au quai,
 DONNEES PORTUAIRES, CARTOGRAPHIE ET LICENCES
 --------------------------------------------
 
+[archivés — 16 octobre 2026] osm-port-tudy-way-<id>-2026-10-16.html
+URL canoniques :
+  https://www.openstreetmap.org/way/230915998
+  https://www.openstreetmap.org/way/230915999
+  https://www.openstreetmap.org/way/230916001
+  https://www.openstreetmap.org/way/453044121
+  https://www.openstreetmap.org/way/453044122
+  https://www.openstreetmap.org/way/453044123
+Usage : six pontons retenus lors de la création de l'exercice Port Tudy / Groix
+        pour docs/guide-generateur.fr.md et docs/exemples/port-tudy-exercice.kjp.
+        Analyse réalisée dans le générateur KJP hébergé sur GitHub ; les captures
+        conservent les attributions OpenStreetMap / ODbL et OpenSeaMap visibles.
+        Ces données servent à illustrer la construction d'un port, sans calibrer
+        la physique ni certifier la géométrie ou les dimensions réelles du port.
+        Les tracés manuels, le ponton supplémentaire et ses catways sont signalés
+        comme simplifications et ajouts pédagogiques dans le guide et le fichier.
+Archive : réponses HTML publiques originales des six pages, téléchargées le
+          16 octobre 2026 ; chaque fichier porte l'identifiant de son objet.
+Contexte : centre de carte 47.644200, -3.446750, zoom 17 ; les URL avec fragment
+           de cadrage OpenStreetMap ne sont pas des références supplémentaires.
+Exclusion : les URL des applications KJP et le fichier d'exercice produit sont
+            des éléments internes au projet, pas de nouvelles sources externes.
+
 [archivé] iala-r1001.html
 URL : https://www.iala.int/product/r1001/
 Usage : système de balisage IALA, cité pour le rendu et l'interprétation des
@@ -239,6 +262,12 @@ Usage : licence et limites d'usage des tuiles OpenStreetMap.
 URL : https://geoservices.ign.fr/sites/default/files/2022-10/IGNF_BDORTHOr_2-0.html
 Usage : résolution, ancienneté et licence de la BD ORTHO pour les choix
         d'assistance cartographique.
+        Guide utilisateur français du générateur, 16 octobre 2026 : comparaison
+        visuelle de l'occupation des pontons, de la densité de bateaux et des
+        équipements à vérifier après l'import OSM à Port Tudy. Capture réalisée
+        dans le générateur hébergé, attribution IGN / BD ORTHO conservée ;
+        l'image ne fournit ni disponibilité actuelle ni inventaire certifié
+        des catways, corps-morts ou lignes immergées.
 
 [archivé] google-map-tile-policy.html
 URL : https://developers.google.com/maps/documentation/tile/policies?hl=fr
@@ -335,6 +364,8 @@ Usage : base prioritaire du vocabulaire marin français–anglais–breton de KJ
         Correction de lecture : « aussière » = Oser (page 3), et non Osser.
         Correction de terminologie : Pontig désigne un pontet (page 4), pas un
         catway ; KJP utilise désormais la formulation descriptive Ponton bihan.
+        Ce vocabulaire est également repris par les dictionnaires et le guide
+        breton du générateur de ports (docs/localisation-generateur.md).
         Les autres termes nautiques repris du lexique ont été recoupés avec les
         pages correspondantes ; aucune autre erreur de lecture relevée.
         Le lexique ne donne pas de terme pour pare-battage, pendille ou
@@ -455,3 +486,108 @@ quai, balles légères/plaques, forums, slogans d'absorption et références don
 le texte complet est inaccessible. Ces éléments ne fondent aucune nouvelle
 valeur numérique dans le profil. Les masses effectives et rapports de rebond
 du rapport sont calculés/mesurés dans KJP, non mesurés sur un bateau réel.
+
+
+QUATRE PROFILS EXPERIMENTAUX — PHASE 1, 20 OCTOBRE 2026
+------------------------------------------------------
+Les quatre profils sont SO24.2 (remplacement autorisé du SO26), Contessa 26,
+Pogo 40 S4 2021 et Oceanis 48 2017. Les coefficients non mesurés restent des
+priors explicites ; aucune donnée de rendu ne pilote leur physique.
+
+[archivé] jeanneau-sun-odyssey-26-inventaire-2003.pdf
+URL canonique : https://app.jeanneau.com/inventory/7620
+Usage : Exclusion du SO26 de la cible monosafran : p.2 « Bi-safran » / « Twin rudders ». Dimensions et variantes p.1. Substitution par SO24.2 autorisée par l’utilisateur le 20 octobre 2026.
+
+[archivé] jeanneau-sun-odyssey-24-2.html
+URL canonique : https://www.jeanneau.com/fr/bateaux/voilier/2-sun-odyssey/486-sun-odyssey-24-2
+Usage : LOA 7,30 m, coque 7,20 m, quille 1,10 m, poids publié 1830 kg, eau 56 L, version inboard. La condition du poids est incertaine ; pas de coefficients hydrodynamiques issus de cette page.
+
+[URL seule] https://sailboatdata.com/sailboat/sun-odyssey-242-jeanneau/
+URL canonique : https://sailboatdata.com/sailboat/sun-odyssey-242-jeanneau/
+Usage : Documentation technique secondaire : safran suspendu unique, largeur 2,49 m, LWL 6,61 m et divergence de déplacement 1905 kg. HTTP 403 à l’archivage ; données indexées consultées. Aucun coefficient physique emprunté.
+
+[archivé] contessa-26-maclan-brochure.pdf
+URL canonique : https://contessazeilers.com/wp-content/uploads/2015/04/contessa_26.pdf
+Usage : Brochure constructeur Maclan : p.3 dimensions et déplacement ; p.5 plan/coupe, Yanmar YS8, réduction 2:1, bipale fixe, barre et quatre taquets. Contour de quille équivalent estimé depuis ce dessin, pas un relevé coté.
+
+[archivé] contessa-26-jeremy-rogers.html
+URL canonique : https://www.jeremyrogers.co.uk/contessa-26/
+Usage : Histoire et distinction production britannique/canadienne ; lien de contexte vers les archives de classe. Aucun coefficient numérique.
+
+[archivé] yanmar-ys8-ys12-manuel.pdf
+URL canonique : https://www.sextan.com/wp-content/uploads/2019/02/manuel-yanmar-ys.pdf
+Usage : Manuel constructeur Yanmar archivé chez un distributeur : p.1 rapport standard 2:1 ; p.43 (page PDF 46) YS8, 3200 tr/min, rotation hélice à gauche, puissance publiée 8/10 ch. Le profil choisit 8 ch conformément à la brochure Maclan.
+
+[archivé] pogo-40-s4-documentation-2021.pdf
+URL canonique : https://www.pogostructures.com/wp-content/uploads/2021/01/01-POGO40s4-DOCUMENTATION.pdf
+Usage : Brochure constructeur image, p.1 : coque 12,19 m, largeur 4,42 m, tirant 3 m, poids 4500 kg, ballasts 750 L, diesel Lombardini 30 cv ; silhouette et deux safrans relevables.
+
+[archivé] pogo-40-s4-chantier.html
+URL canonique : https://www.pogostructures.com/fiche-bateau/pogo-40-s4/
+Usage : Architecture S4 à deux safrans et quille fixe ; différence V2 et poids de jauge. L’état de manœuvre est calculé séparément, ballasts vides.
+
+[archivé] lombardini-ldw1003-sd.html
+URL canonique : https://lombardinimarine.com/prodotto/ldw1003-sd/
+Usage : Fiche moteur actuelle 19,5 kW / 27 hp, 3600 tr/min : utilisée pour éviter de l’identifier abusivement au Lombardini 30 cv du S4 2021. Référence exacte et transmission du S4 restent estimées.
+
+[archivé] pogo-s4-variant-monosafran-exclue-2024.html
+URL canonique : https://www.guillaumeverdier.com/un-seul-safran-un-volet-sur-la-quille-le-nouveau-pogo-de-vincent-riou-au-choix-architectural-assume/
+Usage : Exclusion de la variante Vincent Riou : monosafran et volet de quille ; article publié par l’architecte le 4 avril 2024.
+
+[archivé] beneteau-oceanis-48-fiche-technique.pdf
+URL canonique : https://pro.beneteau.fr/documents/bateau/7937/V10166_OCEANIS_48_FR_LIGHT.pdf
+Usage : Inventaire Europe V10166(Y) du 01/06/2017 : dimensions, quilles et déplacement p.1 ; safran unique, doubles roues, taquets p.2 ; Yanmar Common Rail 80 cv, sail-drive standard, tripale fixe p.4. Dock&Go et propulseur exclus ; divergence réservoir eau 370/330 L conservée.
+
+[archivé] beneteau-oceanis-48-constructeur.html
+URL canonique : https://www.beneteau.com/fr/oceanis-2005-2014/oceanis-48
+Usage : Contrôle croisé des dimensions, déplacement et options. La configuration retenue vient de l’inventaire 2017, sans mélange avec les moteurs 75 ch des premières unités.
+
+[URL seule] https://www.yanmar.com/marine/product/engines/1gm10-marine-diesel-engine/
+URL canonique : https://www.yanmar.com/marine/product/engines/1gm10-marine-diesel-engine/
+Usage : Caractéristiques officielles du 1GM10 : 6,6 kW, 3600 tr/min, montage KM2P-1 compatible. Installation exacte sur une unité SO24.2 et hélice non certifiées. URL officielle indexée ; archivage du PDF associé refusé HTTP 403.
+
+[URL seule] DS_1GM10_A4_022021_HR.pdf
+URL canonique : https://www.yanmar.com/marine/wp-content/uploads/2021/02/DS_1GM10_A4_022021_HR.pdf
+Usage : Fiche officielle du moteur 1GM10 compatible ; récupération refusée HTTP 403. La rotation vilebrequin ne prouve pas la rotation hélice.
+
+[URL seule] https://www.yanmar.com/marine/product/engines/4jh80/
+URL canonique : https://www.yanmar.com/marine/product/engines/4jh80/
+Usage : 4JH80 : 58,8 kW / 80 ch à 3200 tr/min. Fiche indexée consultée, HTTP 403 à l’archivage.
+
+[URL seule] https://www.yanmar.com/marine/product/drives/sd60/
+URL canonique : https://www.yanmar.com/marine/product/drives/sd60/
+Usage : Compatibilité SD60 avec 4JH80 ; ne certifie ni rapport ni montage exact d’une unité Oceanis. Fiche indexée consultée, récupération refusée HTTP 403.
+
+[URL seule] JH_series_OPM_0AJHM-M00201.pdf
+URL canonique : https://www.yanmar.com/media/global/com/product/marinepleasure/sailBoatPropulsion/operationmanual/JH_series_OPM_0AJHM-M00201.pdf
+Usage : Vérification des variantes 75 ch / 4JH4-TE, non retenues pour l’inventaire Oceanis 2017. HTTP 403 au téléchargement ; limite de taille du lecteur web. Pas de transfert de la motorisation 75 ch au profil 80 ch.
+
+[URL seule] 0AJHC-EN0015_2019.12.pdf
+URL canonique : https://www.yanmar.com/marine/wp-content/uploads/2020/03/0AJHC-EN0015_2019.12.pdf
+Usage : Manuel moteur JH-CR, tableau 4JH80 : 58,8 kW / 3200 tr/min, SD60-4 compatible. Extrait indexé consulté ; document complet non récupéré pendant la qualification.
+
+[URL seule] annonce.php?num_annonce=7096
+URL canonique : https://www.beboat.be/en/search/annonce.php?num_annonce=7096
+Usage : Annonce propriétaire Contessa citant un Yanmar 1GM 7,5 cv et une bipale ; utilisée uniquement pour distinguer une remotorisation du YS8 de la brochure. Pas de paramètre retenu depuis cette annonce ; récupération non tentée.
+
+[URL seule] JEANNEAU-SUN-ODYSSEY-26.html
+URL canonique : https://www.devalk.nl/en/yachtbrokerage/22234/JEANNEAU-SUN-ODYSSEY-26.html
+Usage : Exemplaire SO26 avec Yanmar 2GM20 : piste documentaire initiale, exclue du profil après la décision de substitution. Pas de paramètre transféré au SO24.2 ; récupération non tentée.
+
+[URL seule] jeanneau-sun-odyssey-24-2-manuel
+URL canonique : https://www.manualslib.com/manual/4172505/Jeanneau-Sun-Odyssey-24-2.html
+Usage : Manuel Jeanneau mis à jour en mai 2002 ; page PDF 7 indexée : LWL 6,60 m, conservée en divergence avec 6,61 m de Sailboatdata. La page indexée distingue plusieurs poids HB/IB, sans arbitrer une condition de pesée depuis cet extrait. Archivage refusé HTTP 403, y compris hors sandbox.
+
+[URL seule] so24-2-temoignage-proprietaire-1gm10-2023
+URL canonique : https://forums.ybw.com/threads/alternator-problems-yanmar-1gm10-sun-odyssey-24-2.596010/
+Usage : Témoignage direct d'un propriétaire d'un SO24.2 de 1999 équipé d'un 1GM10 ; confirme l'existence d'un montage, sans certification usine ni hélice. Récupération renvoyant seulement une page « Checking your browser », pas le témoignage ; URL et motif conservés.
+
+[URL seule] beneteau-oceanis-48-manuel-index-h
+URL canonique : https://manualzz.com/doc/7490361/beneteau-oceanis-48-owner-s-manual
+Usage : Manuel Beneteau, index H, septembre 2015 : divergence de quille courte 1,96 m et contexte du millésime. La configuration retenue reste celle de la fiche 2017 à quille longue 2,17 m. Texte indexé consulté ; récupération refusée HTTP 403.
+
+Les références Fossen et ITTC déjà présentes dans ce manifeste ne sont pas
+dupliquées. Les URL internes, fichiers de scénario, résultats de test, chemins
+de dépôt et GLB KJP restent exclus de la bibliographie. Les autres résultats de
+recherche non utilisés pour définir ou valider ces profils ne sont pas des sources
+de calibration.

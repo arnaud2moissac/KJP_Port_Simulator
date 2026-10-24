@@ -1,0 +1,352 @@
+{
+  "phase": 2,
+  "directory": "/Users/arnaud/.codex/visualizations/2026/10/20/01a15a7f-dff5-76e2-adad-ded3e9a47761/four-vessel-phase2",
+  "htmlSha256": {
+    "reference": "282ffa54578b2b815d5a37258befa390ad2be72f033d9bb890e60e95ea612db6",
+    "candidate": "3c1fd548349e556c9b26a24bdfd2d692609f415167d9358e7b1675e5b69d6989"
+  },
+  "files": [
+    {
+      "file": "accepted-phase1-freeze.json",
+      "bytes": 1683,
+      "sha256": "34611d544a19d2d2123ef3f6e29c6762d5c61717bf85f5260006686674cb687d"
+    },
+    {
+      "file": "capture-four-vessels.cjs",
+      "bytes": 3455,
+      "sha256": "50b2f829801bb0fb15f86ffe1048036ab3022b235008a22602d7b4cfc0165381"
+    },
+    {
+      "file": "contessa-26-five-views.png",
+      "bytes": 132540,
+      "sha256": "924e75ceac2f5421ee2211e9a27af18214af6a75d83129d94d7adba19f929994"
+    },
+    {
+      "file": "contessa-26-profile.png",
+      "bytes": 33617,
+      "sha256": "031173862677731ebd2472eb5e6baa5efe61b6b8b4e692fb2d57ae4d5681a30d"
+    },
+    {
+      "file": "contessa-26-stern.png",
+      "bytes": 36807,
+      "sha256": "298ec6cfb68da03be8b9ed04b3131ade2b806ca29e45f1f230cc402b3e417750"
+    },
+    {
+      "file": "contessa-26-three-quarter.png",
+      "bytes": 51109,
+      "sha256": "b5b80c2268a09d649b92b38cd874fc34312b77c6cb3161f8e8453c099ab1ad3c"
+    },
+    {
+      "file": "contessa-26-top.png",
+      "bytes": 31461,
+      "sha256": "7694212898f36f91c0477b49be51b53ab166663d9ee6072415412d525d27583d"
+    },
+    {
+      "file": "contessa-26-underwater.png",
+      "bytes": 30160,
+      "sha256": "6ed2bd27939d3edc782da2972d74bcb6db21ef4d19e402dab08c874699ab73c0"
+    },
+    {
+      "file": "four-vessel-qa-five-views.png",
+      "bytes": 526871,
+      "sha256": "b6a6604f24ef4371610bd12abc70c10dfd8e02e7fceb4a6ee7bef1e40b5c87d8"
+    },
+    {
+      "file": "full-rig-contact-sheet.png",
+      "bytes": 119657,
+      "sha256": "387eac1f7b01f3cc83ad5671b115bc18e16821a197b73597249d99ce5bd1afeb"
+    },
+    {
+      "file": "full-rig-profiles-qa.png",
+      "bytes": 79542,
+      "sha256": "ec5056c8626d44d460ce7a71fda67675fe03031fb3275062b37ca63c0bb820f9"
+    },
+    {
+      "file": "kjp_contessa_26-canvas-rotation.png",
+      "bytes": 535314,
+      "sha256": "51d501453172f1eaf480828dd7ad54319193594b3072ad62a0221738c5961183"
+    },
+    {
+      "file": "kjp_contessa_26-navigation-oblique.png",
+      "bytes": 174188,
+      "sha256": "dc6ec78f07f1bdaf6da40bceb3714c6cdd168bd2d226f03cf58a263761b4adb0"
+    },
+    {
+      "file": "kjp_contessa_26-navigation.png",
+      "bytes": 172894,
+      "sha256": "ad1ab4e8d65629ba4ec0d46a4559e19df4d73cda0b4a88305c31195c8fa66119"
+    },
+    {
+      "file": "kjp_contessa_26-rotation.png",
+      "bytes": 461233,
+      "sha256": "13c6feb0899ffa7465ffb32a2664e3bdaf248742448b2f34c4de4263b4268131"
+    },
+    {
+      "file": "kjp_contessa_26-translation.png",
+      "bytes": 457993,
+      "sha256": "2d4f66766d123b223b08b837459f6dfffd62733e8ad744b9d65b44619b8a41c4"
+    },
+    {
+      "file": "kjp_oceanis_48-canvas-rotation.png",
+      "bytes": 567624,
+      "sha256": "c38ed691422bef15e662fefdaf2c011f56ede0b46e542bf405b697ab95eaef4b"
+    },
+    {
+      "file": "kjp_oceanis_48-navigation-oblique.png",
+      "bytes": 196827,
+      "sha256": "f7a818b88876888072e082bd2d4393cee5011dd07ece0ad112d8c73aa8cf4e14"
+    },
+    {
+      "file": "kjp_oceanis_48-navigation.png",
+      "bytes": 197326,
+      "sha256": "536c6be1dced72fbfc1fa0e1b9a88d4ea3476748f4d6e93f1a6101f614d60cc3"
+    },
+    {
+      "file": "kjp_oceanis_48-rotation.png",
+      "bytes": 485229,
+      "sha256": "b728d08a9f5a4d09d5fa434dd4a242bb8c71c81a97fb0fcaaec073ba0e8b6bbc"
+    },
+    {
+      "file": "kjp_oceanis_48-translation.png",
+      "bytes": 480926,
+      "sha256": "fa883a74cde39bb892cf24ab92c20500a81c17c55886924210eb4a6104b0e420"
+    },
+    {
+      "file": "kjp_pogo_40_s4-canvas-rotation.png",
+      "bytes": 557299,
+      "sha256": "23aaf827a7dac04c4976f4097127c13ec265b62b131e07984c9b666fd067c885"
+    },
+    {
+      "file": "kjp_pogo_40_s4-navigation-oblique.png",
+      "bytes": 192008,
+      "sha256": "8e84122489ed2d8b86090404b35e7790afecb010e4df29b81d22c68e80b7d8db"
+    },
+    {
+      "file": "kjp_pogo_40_s4-navigation.png",
+      "bytes": 190590,
+      "sha256": "0a3a722176610f618c73737f279d26187e0e094d0fb8b26f16a3df25d8bf8950"
+    },
+    {
+      "file": "kjp_pogo_40_s4-rotation.png",
+      "bytes": 475872,
+      "sha256": "98d469e28c421b151b542f9b77255a3096c06a47761050a794e6630f25f75201"
+    },
+    {
+      "file": "kjp_pogo_40_s4-translation.png",
+      "bytes": 473315,
+      "sha256": "84acc102f8700bd1fa924020f238527af6b739c98e6bfd9d9939ebbc635c497d"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2-canvas-rotation.png",
+      "bytes": 535152,
+      "sha256": "3030a5dc0c366ccb514e0abbf971b1b9dc2f61e726365d97d396f2b5b84344ad"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2-navigation-oblique.png",
+      "bytes": 174345,
+      "sha256": "f9a1c0b64e1fca092aac034db586939ea7deff4ec9adab897b18bc5cb580f0ce"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2-navigation.png",
+      "bytes": 178866,
+      "sha256": "3b09e214da388341c949448f513238b8e5bcef0f4c9ab07878e73fdb73d879f9"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2-rotation.png",
+      "bytes": 461060,
+      "sha256": "11dfd6bbd74e092ac2d9e6a0fb5c253dde52c57f67ff97026cad224de7955a22"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2-translation.png",
+      "bytes": 458299,
+      "sha256": "b1d66d7939adf4fb2f4296bcdb8ae13516c58059c19c80440f2ff40691e8d0dc"
+    },
+    {
+      "file": "oceanis-48-five-views.png",
+      "bytes": 131990,
+      "sha256": "09ad2d61a7b418b22af57e7b874b02e4304bf6c56c30342b44f9d7d5fc9e0356"
+    },
+    {
+      "file": "oceanis-48-profile.png",
+      "bytes": 31376,
+      "sha256": "7dd0b8ce2b865b16f67a5a11fa9db1fe7981e1cbba0958b1401fbc966c8b810e"
+    },
+    {
+      "file": "oceanis-48-stern.png",
+      "bytes": 39476,
+      "sha256": "a921541ba7c9d23755be5255859d8f0b4a08736d912e4081100eadf59bce5815"
+    },
+    {
+      "file": "oceanis-48-three-quarter.png",
+      "bytes": 52283,
+      "sha256": "896fa29ac1613c270207c53ed1881ec55266cc0450219f4124bc3f18ee4fb0b9"
+    },
+    {
+      "file": "oceanis-48-top.png",
+      "bytes": 30553,
+      "sha256": "c9da80fac476f4ead0996384d7d3996a4ffa9d5b00aa4fe372f65a2464aa1619"
+    },
+    {
+      "file": "oceanis-48-underwater.png",
+      "bytes": 28195,
+      "sha256": "fd235c63bd4c4a7ac2e86d65c92ba843f7f1ac6edf1c402c79981c3d0c7eb9f6"
+    },
+    {
+      "file": "performance-analysis.json",
+      "bytes": 33178,
+      "sha256": "95ff54ce9a21e25f43d8dea624b513bec6fb19eced38a6786f0281cdabd32d0a"
+    },
+    {
+      "file": "performance-raw.json",
+      "bytes": 2948176,
+      "sha256": "32912b70eb5a608ea0d6eec10d7557de9bb84830f1c8556c44e3634f3fa43dbd"
+    },
+    {
+      "file": "phase1-reference.html",
+      "bytes": 4694747,
+      "sha256": "282ffa54578b2b815d5a37258befa390ad2be72f033d9bb890e60e95ea612db6"
+    },
+    {
+      "file": "phase2-candidate.html",
+      "bytes": 5545138,
+      "sha256": "3c1fd548349e556c9b26a24bdfd2d692609f415167d9358e7b1675e5b69d6989"
+    },
+    {
+      "file": "pogo-40-s4-five-views.png",
+      "bytes": 130196,
+      "sha256": "9f052a8f8febc5d074fcc296d714a598267c782741469e7d86990b22e9a7682a"
+    },
+    {
+      "file": "pogo-40-s4-profile.png",
+      "bytes": 31988,
+      "sha256": "32fdbe0b48e63ca33bf086be921516383b1547c919ff3d2a5e9ba86b9bde83c1"
+    },
+    {
+      "file": "pogo-40-s4-stern.png",
+      "bytes": 34987,
+      "sha256": "e5e7ef7f652e1e82fac6fc992bf8401a5653aa0d9a242bac47ac5812118e28b9"
+    },
+    {
+      "file": "pogo-40-s4-three-quarter.png",
+      "bytes": 50697,
+      "sha256": "c73b59ed8885fde635d13fa8c80a99c32c09699b0086a75e852f84d55c3b79c8"
+    },
+    {
+      "file": "pogo-40-s4-top.png",
+      "bytes": 32027,
+      "sha256": "fd3f4ed88a9914406292594f9dba175d4b7cae093ec2be1b27b5390159a7e6c7"
+    },
+    {
+      "file": "pogo-40-s4-underwater.png",
+      "bytes": 27171,
+      "sha256": "5da673b1131343fd0688e7c9b9f395740fc0867f727d791769e14c6066ab7a65"
+    },
+    {
+      "file": "profile-four-vessels.cjs",
+      "bytes": 19058,
+      "sha256": "eb2056dc46f1b58a00eaba1784363556a03beeed132d05ad0d65465f1bfdacc4"
+    },
+    {
+      "file": "project-vessel-qa.py",
+      "bytes": 8586,
+      "sha256": "7e5c1bba59067677fcce496bb0a9cdb88c7e4a7a580c133360bfa73b614de004"
+    },
+    {
+      "file": "projection-qa-manifest.json",
+      "bytes": 6551,
+      "sha256": "1c9c4bb2bca8f7302450abe11cacb1d1b0e534c75372493ff79bfce057f3657d"
+    },
+    {
+      "file": "sun-odyssey-24-2-five-views.png",
+      "bytes": 132612,
+      "sha256": "01ff281c89312b48dbdd51d6b597e5e27a148462696fdeaf1dca50373d066241"
+    },
+    {
+      "file": "sun-odyssey-24-2-profile.png",
+      "bytes": 33858,
+      "sha256": "6bfb0f6abf6dbe750668b5823583eb737642a370095af6195bd853546471bdb8"
+    },
+    {
+      "file": "sun-odyssey-24-2-stern.png",
+      "bytes": 37056,
+      "sha256": "2a3f0e5dde31e30dbbfbc5caf053f61b865da58488d653bc1427147511325cb9"
+    },
+    {
+      "file": "sun-odyssey-24-2-three-quarter.png",
+      "bytes": 53244,
+      "sha256": "4983f0d810ffc6288e65f3058d778d89d2d6c933e3ca7574dedbb2f3f0cc16ca"
+    },
+    {
+      "file": "sun-odyssey-24-2-top.png",
+      "bytes": 31867,
+      "sha256": "ed74bf220fc08c3f99b33d68f172de4a0fb19f8d2ea0b7aa33179a71e07086e9"
+    },
+    {
+      "file": "sun-odyssey-24-2-underwater.png",
+      "bytes": 29449,
+      "sha256": "2db3ca7b694f0b3eb9c97662ebacf37de6d2ab48e56a85c9bf33fc39f03f9173"
+    },
+    {
+      "file": "trajectory-comparison.json",
+      "bytes": 100,
+      "sha256": "2aab11a0a3aec33f12f70ae31abd805c4aff149273ca2aaf62d8b7338213db62"
+    },
+    {
+      "file": "trajectory-replay-metrics.csv",
+      "bytes": 322802,
+      "sha256": "3d175bfe381a3583cf50c0e7f9e0a56db13f4756b79bbd73216cd9207c39bbb7"
+    },
+    {
+      "file": "trajectory-replay-summary.json.gz",
+      "bytes": 150609,
+      "sha256": "517bb5295af8afa97fbeda36e2293f2b99396fb97bde4dddeef8309ed89b30a8"
+    },
+    {
+      "file": "visual-inspection.json",
+      "bytes": 3398283,
+      "sha256": "b9018142814db5af3b582388bef392abe9b6b94888f38fbf436535e56ceb8450"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "file": "src/simulateur-port/physics-core.js",
+      "sha256": "06032b6c3075061bd37a154d02720b3332728ce4ee65fcb19204733fc7f94251"
+    },
+    {
+      "file": "src/simulateur-port/vessel-profiles.js",
+      "sha256": "cf394bea6f06da25852fac82d038f182d33e10945d601927e031122e868383d7"
+    },
+    {
+      "file": "src/simulateur-port/template.html",
+      "sha256": "29921f73f63284bccc6e95349accf9a06c53b99a9190f4660d72934937bcf65a"
+    },
+    {
+      "file": "src/simulateur-port/rendering/native-player-model.mjs",
+      "sha256": "f6d414fd4e384912f6c964c6894e072c3832aa6a37c56979f2b73f4cf82cb970"
+    },
+    {
+      "file": "scripts/build-vessel-models.mjs",
+      "sha256": "4982d3a5e731f94c411ca587c39ce586b002bc20241f29b4108020600624e263"
+    },
+    {
+      "file": "simulateur-port.html",
+      "sha256": "3c1fd548349e556c9b26a24bdfd2d692609f415167d9358e7b1675e5b69d6989"
+    },
+    {
+      "file": "kjp_sun_odyssey_24_2.glb",
+      "sha256": "80dbfff8d12e6dbf447b0a6deee8dfa3983b7a19e693a52ac53bf27bcc2a4af2"
+    },
+    {
+      "file": "kjp_contessa_26.glb",
+      "sha256": "a40c354a65cd821d48e89eee4cb13ae0fb67fca3ba4a0aa4f91f896576cf6249"
+    },
+    {
+      "file": "kjp_pogo_40_s4.glb",
+      "sha256": "14c538340c5b378290e5e33572e0af5041023908550bf83e53fb5afde3c99d3c"
+    },
+    {
+      "file": "kjp_oceanis_48.glb",
+      "sha256": "81ab91978cc6179f0952f78850e73b20a47eb9b8fbdb5760f697e43d2b78ab61"
+    }
+  ]
+}

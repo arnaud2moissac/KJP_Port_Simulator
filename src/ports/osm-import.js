@@ -103,14 +103,14 @@
   function validateAnalysisBounds(bounds) {
     const { south, west, north, east } = bounds || {};
     if (![south, west, north, east].every(Number.isFinite)) {
-      throw new Error("Emprise géographique incomplète.");
+      throw Object.assign(new Error("Emprise géographique incomplète."), { key: "source.emprise.geographique.incomplete", params: {} });
     }
-    if (south >= north || west >= east) throw new Error("Emprise géographique inversée.");
+    if (south >= north || west >= east) throw Object.assign(new Error("Emprise géographique inversée."), { key: "source.emprise.geographique.inversee", params: {} });
     const midLatitude = (south + north) / 2 * Math.PI / 180;
     const width = (east - west) * METERS_PER_DEGREE * Math.cos(midLatitude);
     const height = (north - south) * METERS_PER_DEGREE;
     if (width > MAX_ANALYSIS_SIDE_METERS + 1 || height > MAX_ANALYSIS_SIDE_METERS + 1) {
-      throw new Error("L’analyse est limitée à une zone de 2 × 2 km.");
+      throw Object.assign(new Error("L’analyse est limitée à une zone de 2 × 2 km."), { key: "source.l.analyse.est.limitee.a.une.zone.de.2.2.km", params: {} });
     }
     return { width, height };
   }
@@ -118,16 +118,16 @@
   function normalizeAnalysisPolygon(polygon) {
     if (polygon === undefined || polygon === null) return null;
     if (!Array.isArray(polygon) || polygon.length < 3) {
-      throw new Error("Le polygone d’analyse doit comporter au moins trois sommets.");
+      throw Object.assign(new Error("Le polygone d’analyse doit comporter au moins trois sommets."), { key: "source.le.polygone.d.analyse.doit.comporter.au.moins.trois.sommets", params: {} });
     }
     const normalized = polygon.map((point, index) => {
       const latitude = Number(point?.latitude);
       const longitude = Number(point?.longitude);
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-        throw new Error(`Sommet ${index + 1} du polygone invalide.`);
+        throw Object.assign(new Error(`Sommet ${index + 1} du polygone invalide.`), { key: "source.sommet.value1.du.polygone.invalide", params: { value1: index + 1 } });
       }
       if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-        throw new Error(`Sommet ${index + 1} du polygone hors du globe.`);
+        throw Object.assign(new Error(`Sommet ${index + 1} du polygone hors du globe.`), { key: "source.sommet.value1.du.polygone.hors.du.globe", params: { value1: index + 1 } });
       }
       return { latitude, longitude };
     });
@@ -137,7 +137,7 @@
       && normalized[0].longitude === normalized.at(-1).longitude
     ) normalized.pop();
     if (normalized.length < 3) {
-      throw new Error("Le polygone d’analyse doit comporter trois sommets distincts.");
+      throw Object.assign(new Error("Le polygone d’analyse doit comporter trois sommets distincts."), { key: "source.le.polygone.d.analyse.doit.comporter.trois.sommets.distincts", params: {} });
     }
     return normalized;
   }
@@ -169,7 +169,7 @@
         || polygonBounds.north > bounds.north + tolerance
         || polygonBounds.east > bounds.east + tolerance
       ) {
-        throw new Error("Le polygone doit être contenu dans l’emprise analysée.");
+        throw Object.assign(new Error("Le polygone doit être contenu dans l’emprise analysée."), { key: "source.le.polygone.doit.etre.contenu.dans.l.emprise.analysee", params: {} });
       }
     }
     const scope = polygon
@@ -231,11 +231,11 @@ out tags geom;`;
   }
 
   async function requestOverpass(query, options = {}) {
-    if (typeof query !== "string" || !query.trim()) throw new Error("Requête Overpass vide.");
+    if (typeof query !== "string" || !query.trim()) throw Object.assign(new Error("Requête Overpass vide."), { key: "source.requete.overpass.vide", params: {} });
     const fetchImpl = options.fetchImpl || (
       typeof fetch === "function" ? fetch.bind(globalThis) : null
     );
-    if (typeof fetchImpl !== "function") throw new Error("Client réseau indisponible.");
+    if (typeof fetchImpl !== "function") throw Object.assign(new Error("Client réseau indisponible."), { key: "source.client.reseau.indisponible", params: {} });
     const configuredEndpoints = options.endpoints?.length
       ? options.endpoints
       : DEFAULT_OVERPASS_ENDPOINTS;
@@ -320,7 +320,10 @@ out tags geom;`;
               label: endpoint.label,
               round: roundIndex + 1,
               status,
-              reason: status ? `HTTP ${status}` : "réponse invalide"
+              reason: status ? `HTTP ${status}` : "réponse invalide",
+              reasonMessage: status
+                ? { key: "source.http.status", params: { status } }
+                : { key: "source.response.invalid" }
             });
             if (NON_RETRYABLE_OVERPASS_STATUS.has(status)) break requestLoop;
             roundRetryAfterMs = Math.max(
@@ -336,7 +339,8 @@ out tags geom;`;
               label: endpoint.label,
               round: roundIndex + 1,
               status: response.status,
-              reason: "JSON Overpass invalide"
+              reason: "JSON Overpass invalide",
+              reasonMessage: { key: "source.overpass.json.invalid" }
             });
             continue;
           }
@@ -353,7 +357,13 @@ out tags geom;`;
             label: endpoint.label,
             round: roundIndex + 1,
             status: 0,
-            reason: describeOverpassFailure(error)
+            reason: describeOverpassFailure(error),
+            reasonMessage: error?.name === "AbortError"
+              ? { key: "source.network.timeout" }
+              : error instanceof TypeError
+                ? { key: "source.network.cors" }
+                : error?.message ? { key: "source.network.details", params: { message: describeOverpassFailure(error) } }
+                  : { key: "source.network.error" }
           });
         } finally {
           if (timeout) clearTimeout(timeout);
@@ -671,6 +681,7 @@ out tags geom;`;
           height: ["spar", "pillar"].includes(shape) ? 2.2 : 1.45,
           confidence: 0.99,
           reason: `${seamarkType}${category ? ` · ${category}` : ""} selon OpenSeaMap`,
+          reasonMessage: { key: "source.value1.value2.selon.openseamap", params: { value1: seamarkType, value2: category ? ` · ${category}` : "" } },
           sourceLabel,
           accepted: false
         };
@@ -704,6 +715,7 @@ out tags geom;`;
             : proposedType === "pontoon"
               ? `${Math.round(item.length)} m et ${connected} connexion(s) : axe principal probable`
             : `${Math.round(item.length)} m et peu de connexions : catway probable`,
+          reasonMessage: decompositionRecommended ? { key: "source.emprise.non.rectangulaire.value1.decoupe.recommandee", params: { value1: Math.round(item.fittedRectangle.fillRatio * 100) } } : proposedType === "pontoon" ? { key: "source.value1.m.et.value2.connexion.s.axe.principal.probable", params: { value1: Math.round(item.length), value2: connected } } : { key: "source.value1.m.et.peu.de.connexions.catway.probable", params: { value1: Math.round(item.length) } },
           decompositionRecommended,
           sourceLabel,
           accepted: false
@@ -716,6 +728,7 @@ out tags geom;`;
           obstacleType: tags.man_made,
           confidence: tags.man_made === "breakwater" ? 0.96 : 0.9,
           reason: `balise man_made=${tags.man_made}`,
+          reasonMessage: { key: "source.balise.man.made.value1", params: { value1: tags.man_made } },
           sourceLabel,
           accepted: false
         };
@@ -738,6 +751,7 @@ out tags geom;`;
           reason: tags.natural
             ? `balise natural=${tags.natural}`
             : `balise landuse=${tags.landuse}`,
+          reasonMessage: tags.natural ? { key: "source.balise.natural.value1", params: { value1: tags.natural } } : { key: "source.balise.landuse.value1", params: { value1: tags.landuse } },
           sourceLabel,
           accepted: false
         };
@@ -747,6 +761,7 @@ out tags geom;`;
         candidateType: "ignore",
         confidence: 0.2,
         reason: "géométrie non reconnue",
+        reasonMessage: { key: "source.geometrie.non.reconnue", params: {} },
         sourceLabel,
         accepted: false
       };

@@ -82,6 +82,175 @@ function createLargePortText() {
   return Codec.serialize(document);
 }
 
+browserCase("generator:localization.01", async ({ page, externalRequests }) => {
+    const { loadCatalogs } = require("../scripts/localization-assets.js");
+    const catalogs = loadCatalogs({ directory: path.join(projectRoot, "src/generateur-port/locales") });
+    const fixture = require("./fixtures/osm-port-sample.json");
+    await page.evaluate(fixture => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      api.loadDemonstration();
+      api.select("pontoon-main");
+      api.setAnalysisPolygon([{ east: -100, north: -100 }, { east: 100, north: -100 }, { east: 0, north: 100 }]);
+      api.showCandidateFixture(fixture);
+      document.querySelector('[data-property="length"]').value = "83.25";
+      document.querySelector("#portComment").value = "Texte auteur à conserver — test";
+    }, fixture);
+    await page.waitForTimeout(50);
+    const snapshot = () => page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        render: api.renderReport(), candidates: api.candidateReport(), analysis: api.analysisReport(),
+        length: document.querySelector('[data-property="length"]').value,
+        comment: document.querySelector("#portComment").value };
+    });
+    const before = await snapshot();
+    for (const code of ["en", "br", "fr", "en"]) {
+      const catalog = catalogs.find(c => c.code === code).messages;
+      await page.evaluate(code => window.__KJP_GENERATOR_TEST__.selectLocale(code), code);
+      assert.deepEqual(await snapshot(), before, `state preserved in ${code}`);
+      assert.equal(await page.locator("html").getAttribute("lang"), code);
+      assert.equal(await page.locator("#languageSelect").inputValue(), code);
+      assert.equal(await page.locator("#lengthPropertyLabel").textContent(), catalog["ui.longueur.m"]);
+      assert.equal(await page.locator("#inspectorTitle").textContent(), catalog["ui.ponton"]);
+      const leaks = await page.evaluate(({ french, translated }) => {
+        const surface = [document.body.innerText, ...Array.from(document.querySelectorAll("[aria-label], [title], [placeholder]"))
+          .flatMap(e => ["aria-label", "title", "placeholder"].map(a => e.getAttribute(a) || ""))].join("\n");
+        return Object.entries(french).filter(([key, value]) => typeof value === "string"
+          && value !== translated[key] && value.length > 15 && !value.includes("{") && surface.includes(value)).map(([key]) => key);
+      }, { french: catalogs[0].messages, translated: catalog });
+      assert.deepEqual(leaks, [], `no French display text in ${code}`);
+      await page.locator("#readmeHelpButton").click();
+      assert.match(await page.locator(".project-help-content").textContent(), /Arnaud de Moissac/);
+      assert.ok((await page.locator(".project-help-content").textContent()).includes(
+        { fr: "Enregistrer, importer et exporter", en: "Save, import and export", br: "Enrollañ, enporzhiañ hag ezporzhiañ" }[code]));
+      await page.locator("#closeReadmeHelp").click();
+    }
+    await page.locator("#closeCandidates").click();
+    await page.selectOption("#languageSelect", "br");
+    await page.locator("#computeBerthsButton").click();
+    assert.match(await page.locator("#toast").textContent(), /lec'h/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+    assert.match(await page.locator("#toast").textContent(), /berths of 4\.0 m/);
+    assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.localeReport())).missingKeys, []);
+    assert.deepEqual(externalRequests.filter(url => !url.includes("googletagmanager")), []);
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const code of ["fr", "en", "br"]) {
+        await page.selectOption("#languageSelect", code);
+        const clipped = await page.evaluate(() => Array.from(document.querySelectorAll(
+          ".header-actions > button, .header-actions > select, .header-edit-actions button"
+        )).filter(element => {
+          const box = element.getBoundingClientRect();
+          return box.left < 0 || box.right > innerWidth || box.width < 35 || box.bottom > 104;
+        }).map(element => element.id));
+        assert.deepEqual(clipped, [], `${code} controls fit at ${width}px`);
+      }
+    }
+});
+
+browserCase("generator:localization.02", async ({ browser }) => {
+    for (const [locale, stored, expected, blocked] of [
+      ["en-GB", null, "en", false], ["br-FR", null, "br", false],
+      ["zz-ZZ", null, "fr", false], ["fr-FR", "br", "br", false],
+      ["br-FR", "en", "en", false], ["en-GB", null, "en", true]
+    ]) {
+      const context = await browser.newContext({ locale });
+      try {
+        const errors = [], network = [];
+        const page = await context.newPage();
+        page.on("pageerror", error => errors.push(error.message));
+        page.on("console", message => { if (["error", "warning"].includes(message.type())) errors.push(message.text()); });
+        await page.route("https://www.googletagmanager.com/**", route => route.fulfill({ body: "" }));
+        page.on("request", request => { if (/^https?:/.test(request.url()) && !request.url().includes("googletagmanager")) network.push(request.url()); });
+        await page.addInitScript(({ stored, blocked }) => {
+          localStorage.setItem("kjp.simulator.locale", "fr");
+          if (stored) localStorage.setItem("kjp.generator.locale", stored);
+          if (blocked) Object.defineProperty(window, "localStorage", { get() { throw new Error("disabled"); } });
+        }, { stored, blocked });
+        await page.goto(testUrl(generatorPath));
+        await page.waitForFunction(() => window.__KJP_GENERATOR_TEST__);
+        assert.equal(await page.locator("html").getAttribute("lang"), expected);
+        await page.selectOption("#languageSelect", "br");
+        assert.equal(await page.locator("html").getAttribute("lang"), "br");
+        if (!blocked) {
+          assert.equal(await page.evaluate(() => localStorage.getItem("kjp.simulator.locale")), "fr");
+          // The init script only writes a preference when a fixture explicitly supplies one.
+          if (!stored) {
+            await page.reload();
+            assert.equal(await page.locator("html").getAttribute("lang"), "br");
+          }
+        }
+        assert.deepEqual(errors, []);
+        assert.deepEqual(network, []);
+      } finally { await context.close(); }
+    }
+});
+
+browserCase("generator:localization.03", async ({ page }) => {
+    await page.selectOption("#languageSelect", "en");
+    await page.locator("#importInput").setInputFiles({ name: "invalid.kjp", mimeType: "application/json", buffer: Buffer.from("{") });
+    await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Import refused"));
+    assert.match(await page.locator("#toast").textContent(), /unreadable JSON/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+    assert.match(await page.locator("#toast").textContent(), /Enporzhiañ/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+    assert.match(await page.locator("#toast").textContent(), /Import refusé.*JSON illisible/);
+    await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      const document = api.loadDemonstration();
+      document.structures.pontoons[0].length = 0;
+      api.setDocument(document);
+    });
+    await page.selectOption("#languageSelect", "en");
+    await page.locator("#exportButton").click();
+    assert.match(await page.locator("#toast").textContent(), /Export failed/);
+    assert.equal(await page.locator(".toast-action").textContent(), "Show object");
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+    assert.equal(await page.locator(".toast-action").textContent(), "Afficher l’objet");
+    await page.locator(".toast-action").click();
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.renderReport())).selected, "pontoon-main");
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.resetWorkspace({ confirmReset: false }));
+    await page.selectOption("#languageSelect", "en");
+    // A deferred network response leaves a real progress message on screen while switching language.
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route(/https:\/\/.*\/api\/interpreter/, async route => {
+      await pending;
+      await route.fulfill({ json: require("./fixtures/osm-port-sample.json") });
+    });
+    await page.route(/https:\/\/(?:tile\.openstreetmap\.org|tiles\.openseamap\.org)\//, route => route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64")
+    }));
+    try {
+      await page.locator("#analyzeButton").click();
+      await page.waitForFunction(() => document.querySelector("#analysisStats").textContent.includes("Connecting"));
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+      assert.match(await page.locator("#analysisStats").textContent(), /O kennaskañ/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+      assert.match(await page.locator("#analysisStats").textContent(), /Connexion/);
+      release();
+      await page.waitForFunction(() => !document.querySelector("#analyzeButton").disabled);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+      assert.match(await page.locator("#analysisStats").textContent(), /OSM objects/);
+      await page.evaluate(() => {
+        const realFetch = window.fetch;
+        window.fetch = (url, options) => String(url).includes("interpreter")
+          ? Promise.resolve({ ok: false, status: 400, headers: new Headers() })
+          : realFetch(url, options);
+      });
+      await page.locator("#closeCandidates").click();
+      await page.locator("#analyzeButton").click();
+      await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("HTTP 400"));
+      assert.match(await page.locator("#toast").textContent(), /No Overpass server.*HTTP 400/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+      assert.match(await page.locator("#toast").textContent(), /Servijer Overpass.*HTTP 400/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+      assert.match(await page.locator("#toast").textContent(), /Aucun serveur Overpass.*HTTP 400/);
+      assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.localeReport())).missingKeys, []);
+    } finally { release(); }
+});
+
 browserCase("generator:guide.01", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const initial = await page.evaluate(() => ({
       eyebrow: document.querySelector(".brand .eyebrow")?.textContent.trim(),
@@ -857,6 +1026,10 @@ browserCase("generator:measurement.01", async ({ page }) => {
     assert.deepEqual(after.history, before.history);
     assert.equal(after.selected, "pontoon-main");
     assert.doesNotMatch(after.exported, /measurement/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+    assert.equal(await page.locator("#measurementHint").textContent(), "Distance between the two points");
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport().distance), measurement.distance);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
     await page.locator("#clearMeasurement").click();
     assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
     assert.equal(await page.locator("#measurementPanel").isVisible(), false);

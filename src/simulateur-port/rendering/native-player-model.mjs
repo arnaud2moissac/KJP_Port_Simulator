@@ -2,6 +2,10 @@ import { Box3, DoubleSide, Mesh, MeshBasicMaterial, Plane, Vector3 } from "three
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import embeddedPlayerModel from "../../../kjp_sun_odyssey_36i.glb";
 import embeddedDufourModel from "../../../kjp_dufour_310_gl_2014_dimfix_rudders.glb";
+import embeddedSun242 from "../../../KJP_SunOdyssey242.glb";
+import embeddedContessa26 from "../../../KJP_Contessa26_rouge_lazybag.glb";
+import embeddedPogo40 from "../../../KJP_Class40_lazybag.glb";
+import embeddedOceanis48 from "../../../KJP_Oceanis48_lazybag.glb";
 
 const GROUP_ROLE_INDEX = Object.freeze({ hull: 0, silhouette: 1, organ: 2, roof: 3, hidden: 4 });
 // Le catalogue GLB donne les totaux par nom, mais PAS leurs offsets : l'ordre
@@ -68,7 +72,153 @@ const ASSETS = Object.freeze({
     hullParts: ["hull_upper", "hull_sides", "hull_underwater", "hull_transom"],
     catalogueChecks: ["hull_underwater", "keel_fin", "keel_bulb"],
     preserveVertexColor: true
+  }),
+  // BEGIN four vessel assets
+  "sun-odyssey-24-2": Object.freeze({
+    name: "KJP_SunOdyssey242.glb", bytes: embeddedSun242,
+    fingerprint: 0xb0507705,
+    spans: Object.freeze([
+      ["hull",672,"hull"],
+      ["sheer_trim",96,"silhouette"],
+      ["deck",116,"hull"],
+      ["stern_scoop",38,"hull"],
+      ["cockpit_seats_and_coamings",140,"hidden"],
+      ["coachroof",94,"roof"],
+      ["roof_glazing",220,"roof"],
+      ["fixed_fin_keel",44,"organ"],
+      ["keel_bulb",80,"organ"],
+      ["rudder",60,"organ"],
+      ["tiller_and_rudder_fittings",108,"hidden"],
+      ["propeller_and_shaft",52,"hidden"],
+      ["mast_and_boom",72,"hidden"],
+      ["mainsail_cover",80,"hidden"],
+      ["standing_rigging",164,"hidden"],
+      ["furled_headsail",84,"hidden"],
+      ["guardrails_and_toerails",768,"hidden"],
+      ["deck_hardware",550,"hidden"]
+    ]),
+    hullParts: ["hull"],
+    catalogueChecks: ["hull","fixed_fin_keel","keel_bulb","rudder","mainsail_cover"],
+    preserveVertexColor: true
+  }),
+  "contessa-26": Object.freeze({
+    name: "KJP_Contessa26_rouge_lazybag.glb", bytes: embeddedContessa26,
+    fingerprint: 0xf3b5c439,
+    hullReference: Object.freeze({
+      boundsMin: [-1.1449999809265137, -1.2200000286102295, -3.884999990463257],
+      boundsMax: [1.1449999809265137, 1.0579999685287476, 3.884999990463257]
+    }),
+    // Les 883 premiers triangles forment une carène et une quille continues.
+    // Plages relevées sur les facettes du fichier fourni : aucun indice,
+    // sommet ou paramètre physique ne change pour la radiographie.
+    spans: Object.freeze([
+      ["hull_integral_0",120,"hull"],
+      ["keel_integral_1",36,"organ"],
+      ["hull_integral_2",42,"hull"],
+      ["keel_integral_3",12,"organ"],
+      ["hull_integral_4",40,"hull"],
+      ["keel_integral_5",12,"organ"],
+      ["hull_integral_6",36,"hull"],
+      ["keel_integral_7",12,"organ"],
+      ["hull_integral_8",36,"hull"],
+      ["keel_integral_9",12,"organ"],
+      ["hull_integral_10",36,"hull"],
+      ["keel_integral_11",12,"organ"],
+      ["hull_integral_12",36,"hull"],
+      ["keel_integral_13",12,"organ"],
+      ["hull_integral_14",36,"hull"],
+      ["keel_integral_15",12,"organ"],
+      ["hull_integral_16",36,"hull"],
+      ["keel_integral_17",12,"organ"],
+      ["hull_integral_18",36,"hull"],
+      ["keel_integral_19",12,"organ"],
+      ["hull_integral_20",40,"hull"],
+      ["keel_integral_21",12,"organ"],
+      ["hull_integral_22",42,"hull"],
+      ["keel_integral_23",36,"organ"],
+      ["hull_integral_24",155,"hull"],
+      ["sheer_trim",68,"silhouette"],
+      ["deck",76,"hull"],
+      ["cockpit_and_woodwork",200,"hidden"],
+      ["coachroof",166,"roof"],
+      ["portlights",116,"roof"],
+      ["forehatch",28,"hidden"],
+      ["rudder",204,"organ"],
+      ["tiller_and_fittings",128,"hidden"],
+      ["propeller",56,"hidden"],
+      ["mast_and_boom",112,"hidden"],
+      ["standing_rigging",168,"hidden"],
+      ["guardrails_and_toerails",796,"hidden"],
+      ["deck_hardware",264,"hidden"]
+    ]),
+    hullParts: ["hull_integral_0","keel_integral_1","hull_integral_2","keel_integral_3","hull_integral_4","keel_integral_5","hull_integral_6","keel_integral_7","hull_integral_8","keel_integral_9","hull_integral_10","keel_integral_11","hull_integral_12","keel_integral_13","hull_integral_14","keel_integral_15","hull_integral_16","keel_integral_17","hull_integral_18","keel_integral_19","hull_integral_20","keel_integral_21","hull_integral_22","keel_integral_23","hull_integral_24"],
+    catalogueChecks: ["sheer_trim","deck","coachroof","rudder"],
+    preserveVertexColor: true
+  }),
+  "pogo-40-s4": Object.freeze({
+    name: "KJP_Class40_lazybag.glb", bytes: embeddedPogo40,
+    fingerprint: 0x1b27fe7b,
+    // Coque utilisateur conservée dans le dérivé : bornes sur ses 295
+    // triangles de coque, hors bout-dehors et appendices. Ses marqueurs ne
+    // remplacent jamais les ancrages ou les paramètres physiques KJP.
+    hullReference: Object.freeze({
+      boundsMin: [-2.25, -.699999988079071, -6.09499979019165],
+      boundsMax: [2.25, 1.534999966621399, 6.09499979019165]
+    }),
+    spans: Object.freeze([
+      ["hull",295,"hull"],
+      ["cockpit",124,"hidden"],
+      ["coachroof",195,"roof"],
+      ["keel",132,"organ"],
+      // Les noms suivent le repère KJP : source X < 0 → scène Y < 0,
+      // donc tribord physique ; les marqueurs nommés du fichier sont ignorés.
+      ["rudder_starboard",48,"organ"],
+      ["stock_tiller_starboard",84,"hidden"],
+      ["rudder_port",48,"organ"],
+      ["stock_tiller_port",84,"hidden"],
+      ["tiller_linkage",24,"hidden"],
+      ["propeller",64,"hidden"],
+      ["mast_and_boom",124,"hidden"],
+      ["rigging",252,"hidden"],
+      ["bowsprit",48,"silhouette"],
+      ["guardrails",712,"hidden"],
+      ["deck_hardware",384,"hidden"]
+    ]),
+    hullParts: ["hull"],
+    catalogueChecks: ["hull","keel","coachroof"],
+    preserveVertexColor: true
+  }),
+  "oceanis-48": Object.freeze({
+    name: "KJP_Oceanis48_lazybag.glb", bytes: embeddedOceanis48,
+    fingerprint: 0x32f9fcee,
+    spans: Object.freeze([
+      ["hull",731,"hull"],
+      ["hull_windows_and_trim",240,"hidden"],
+      ["deck",128,"hull"],
+      ["cockpit_seats_and_table",240,"hidden"],
+      ["transom_platform_closed",20,"hull"],
+      ["coachroof",94,"roof"],
+      ["roof_glazing",142,"roof"],
+      ["deck_hatches",162,"hidden"],
+      ["deep_fin_keel",44,"organ"],
+      ["keel_bulb",100,"organ"],
+      ["rudder",60,"organ"],
+      // L'hélice fonctionnelle KJP reste distincte en mode Comprendre.
+      ["saildrive_and_propeller",64,"hidden"],
+      ["helm_consoles",112,"hidden"],
+      ["steering_wheels",432,"hidden"],
+      ["mainsheet_arch",52,"hidden"],
+      ["mast_and_boom",112,"hidden"],
+      ["standing_rigging",224,"hidden"],
+      ["furled_headsail",84,"hidden"],
+      ["guardrails_and_toerails",928,"hidden"],
+      ["deck_hardware",590,"hidden"]
+    ]),
+    hullParts: ["hull"],
+    catalogueChecks: ["hull","deep_fin_keel","keel_bulb","rudder","steering_wheels"],
+    preserveVertexColor: true
   })
+  // END four vessel assets
 });
 const assetStates = new Map();
 
@@ -184,7 +334,7 @@ function prepareTemplate(gltf, asset) {
   if (!position || !normal || !color || color.itemSize !== 4 || !source.geometry.index) {
     throw new Error("Modèle joueur natif : attributs GLB incomplets");
   }
-  const hullReference = source.userData?.hullReference;
+  const hullReference = asset.hullReference || source.userData?.hullReference;
   if (!hullReference || !Array.isArray(hullReference.boundsMin)
     || !Array.isArray(hullReference.boundsMax)) {
     throw new Error("Modèle joueur natif : référence de coque absente");
