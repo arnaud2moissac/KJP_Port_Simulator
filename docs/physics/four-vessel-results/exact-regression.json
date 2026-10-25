@@ -1,0 +1,34 @@
+{
+  "fullMatrix": [
+    {
+      "profileId": "sun-odyssey-36i-pedagogical",
+      "before": "5a345c15fde0fd994a6e9ada7751065c012470d00886fb85f587e4885853e05e",
+      "after": "5a345c15fde0fd994a6e9ada7751065c012470d00886fb85f587e4885853e05e",
+      "equal": true,
+      "bytes": 158244229
+    },
+    {
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental",
+      "before": "c25bb30f3db9d374c947e8d20c1bca33d31dfc4df20eb24d52fefd59dae7758d",
+      "after": "c25bb30f3db9d374c947e8d20c1bca33d31dfc4df20eb24d52fefd59dae7758d",
+      "equal": true,
+      "bytes": 133406887
+    }
+  ],
+  "extendedStops": [
+    {
+      "profileId": "sun-odyssey-36i-pedagogical",
+      "before": "e7260150d4f133febcf3d47e1611abb39a87ec659d76ada7a699d16dcb769470",
+      "after": "e7260150d4f133febcf3d47e1611abb39a87ec659d76ada7a699d16dcb769470",
+      "equal": true,
+      "protocol": "B/B2 : suivi du seuil 0,1 nd puis du premier u=0"
+    },
+    {
+      "profileId": "dufour-310-gl-2014-deep-keel-experimental",
+      "before": "7ea3ac21ee561b0bf5743ffcbacae615fdfbf4c748759ac9d4901c7b4932cd6d",
+      "after": "7ea3ac21ee561b0bf5743ffcbacae615fdfbf4c748759ac9d4901c7b4932cd6d",
+      "equal": true,
+      "protocol": "B/B2 : suivi du seuil 0,1 nd puis du premier u=0"
+    }
+  ]
+}

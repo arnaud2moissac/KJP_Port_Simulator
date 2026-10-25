@@ -122,14 +122,17 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
     assert.equal(Object.isFrozen(profile), true);
     assert.equal(profile.schemaVersion, Physics.DEFAULT_PROFILE.schemaVersion);
     assert.ok(profile.version);
-    assert.equal(raw.hull.crossFlow.linearDampingFroude, 0.020);
+    assert.ok(raw.hull.crossFlow.linearDampingFroude > 0);
+    if (["sun-odyssey-36i-pedagogical", "dufour-310-gl-2014-deep-keel-experimental", "synthetic-cruiser-7m", "synthetic-cruiser-16m"].includes(raw.id)) {
+      assert.equal(raw.hull.crossFlow.linearDampingFroude, 0.020);
+    }
     assert.ok(
       raw.provenance.values["hull.crossFlow.linearDampingFroude"],
       `${raw.id}: provenance du terme linéaire absente`
     );
     assert.ok(Math.abs(
       profile.resistance.crossFlowLinearSpeed
-      - 0.020 * Math.sqrt(9.80665 * raw.geometry.lwl)
+      - raw.hull.crossFlow.linearDampingFroude * Math.sqrt(9.80665 * raw.geometry.lwl)
     ) < 1e-12);
     assert.ok(profile.appendages.length >= 1);
     assert.ok(profile.propulsors.length >= 1);
@@ -212,9 +215,9 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   legacy.schemaVersion = 1;
   delete legacy.rudders[0].stock;
   const adapted = Physics.compileVesselProfile(legacy);
-  assert.equal(adapted.schemaVersion, 4);
+  assert.equal(adapted.schemaVersion, 5);
   assert.equal(adapted.rudders[0].stockChordFraction, 0.5);
-  assert.ok(adapted.warnings.some(message => /adapté vers la version 4/.test(message)));
+  assert.ok(adapted.warnings.some(message => /adapté vers la version 5/.test(message)));
   assert.ok(adapted.mooring.elasticity.workingLoadN > 0);
 
   const previous = structuredClone(
@@ -225,7 +228,7 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   delete previous.mooring.elasticity;
   delete previous.rudders[0].stock;
   const upgradedPrevious = Physics.compileVesselProfile(previous);
-  assert.equal(upgradedPrevious.schemaVersion, 4);
+  assert.equal(upgradedPrevious.schemaVersion, 5);
   assert.equal(upgradedPrevious.rudders[0].stockChordFraction, 0.5);
   assert.ok(upgradedPrevious.warnings.some(message => /schemaVersion 2/.test(message)));
   assert.ok(upgradedPrevious.mooring.elasticity.workingLoadN > 0);
@@ -237,9 +240,48 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
   previousRudderSchema.schemaVersion = 3;
   delete previousRudderSchema.rudders[0].stock;
   const upgradedRudderSchema = Physics.compileVesselProfile(previousRudderSchema);
-  assert.equal(upgradedRudderSchema.schemaVersion, 4);
+  assert.equal(upgradedRudderSchema.schemaVersion, 5);
   assert.equal(upgradedRudderSchema.rudders[0].stockChordFraction, 0.5);
   assert.ok(upgradedRudderSchema.warnings.some(message => /position de mèche/.test(message)));
+
+  const previousSteeringSchema = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  previousSteeringSchema.id = "schema-4-steering-adapter-regression";
+  previousSteeringSchema.schemaVersion = 4;
+  delete previousSteeringSchema.steering;
+  previousSteeringSchema.rudders[0].rateDegS = 41;
+  const upgradedSteeringSchema = Physics.compileVesselProfile(previousSteeringSchema);
+  assert.equal(upgradedSteeringSchema.schemaVersion, 5);
+  assert.deepEqual(upgradedSteeringSchema.steering, {
+    type: "wheel",
+    maximumRudderRateDegS: 41
+  });
+  assert.ok(Math.abs(upgradedSteeringSchema.rudders[0].rate / Physics.DEG - 41) < 1e-12);
+
+  const missingSteering = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  delete missingSteering.steering;
+  assert.ok(Physics.validateVesselProfile(missingSteering).errors.some(
+    message => /steering\.type/.test(message)
+  ));
+
+  const invalidSteeringType = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  invalidSteeringType.steering.type = "joystick";
+  assert.ok(Physics.validateVesselProfile(invalidSteeringType).errors.some(
+    message => /wheel ou tiller/.test(message)
+  ));
+
+  const invalidSteeringRate = structuredClone(
+    Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
+  );
+  invalidSteeringRate.steering.maximumRudderRateDegS = 0;
+  assert.ok(Physics.validateVesselProfile(invalidSteeringRate).errors.some(
+    message => /maximumRudderRateDegS/.test(message)
+  ));
 
   const missingStock = structuredClone(
     Physics.RAW_PROFILES["sun-odyssey-36i-pedagogical"]
@@ -254,6 +296,8 @@ test("profils complets: validation stricte, métadonnées et absence d'héritage
 test("sens d'hélice: contrat générique, validation et isolation par instance", () => {
   for (const raw of RAW_PROFILES) {
     const propulsorId = raw.propulsors[0].id;
+    const defaultRotation = raw.propulsors[0].rotation;
+    const overrideRotation = defaultRotation === "right" ? "left" : "right";
     for (const invalidRotation of [undefined, "clockwise", null]) {
       const invalid = structuredClone(raw);
       invalid.propulsors[0].rotation = invalidRotation;
@@ -263,21 +307,21 @@ test("sens d'hélice: contrat générique, validation et isolation par instance"
     }
 
     const inherited = create(raw);
-    assert.deepEqual(inherited.getPropulsorRotations(), { [propulsorId]: "right" });
-    assert.equal(inherited.snapshot().propulsion.units[0].rotation, "right");
+    assert.deepEqual(inherited.getPropulsorRotations(), { [propulsorId]: defaultRotation });
+    assert.equal(inherited.snapshot().propulsion.units[0].rotation, defaultRotation);
 
     const overridden = create(raw, environment(), {}, {
-      propulsorRotations: { [propulsorId]: "left" }
+      propulsorRotations: { [propulsorId]: overrideRotation }
     });
-    assert.deepEqual(overridden.getPropulsorRotations(), { [propulsorId]: "left" });
-    assert.equal(overridden.snapshot().propulsion.units[0].rotation, "left");
+    assert.deepEqual(overridden.getPropulsorRotations(), { [propulsorId]: overrideRotation });
+    assert.equal(overridden.snapshot().propulsion.units[0].rotation, overrideRotation);
     overridden.reset();
-    assert.equal(overridden.snapshot().propulsion.units[0].rotation, "left");
+    assert.equal(overridden.snapshot().propulsion.units[0].rotation, overrideRotation);
 
     const returned = overridden.getPropulsorRotations();
-    returned[propulsorId] = "right";
-    assert.equal(overridden.getPropulsorRotations()[propulsorId], "left");
-    assert.equal(inherited.getPropulsorRotations()[propulsorId], "right");
+    returned[propulsorId] = defaultRotation;
+    assert.equal(overridden.getPropulsorRotations()[propulsorId], overrideRotation);
+    assert.equal(inherited.getPropulsorRotations()[propulsorId], defaultRotation);
 
     const beforeInvalid = overridden.getPropulsorRotations();
     assert.throws(
@@ -319,6 +363,8 @@ test("sens d'hélice: inversion complète sur les trois profils sans altérer la
     const id = raw.propulsors[0].id;
     const right = create(raw, environment({ propWalk: 0 }));
     const left = create(raw, environment({ propWalk: 0 }));
+    right.setPropulsorRotation(id, "right");
+    left.setPropulsorRotation(id, "right");
     advance(right, 4, { throttle: -0.7, rudder: 0 });
     advance(left, 4, { throttle: -0.7, rudder: 0 });
     right.setEnvironment({ propWalk: 1 });

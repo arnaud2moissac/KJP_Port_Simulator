@@ -1,0 +1,74 @@
+[
+  {
+    "path": "README.md",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "docs/validation-levels.md",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "scripts/build-port-generator.js",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "scripts/localization-assets.js",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "src/generateur-port/main.js",
+    "matchesCapturedDiff": false,
+    "editedByThisEvolution": false,
+    "handling": "Le fichier a évolué pendant la session ; son état courant est conservé, sans restauration ni édition dans cette évolution."
+  },
+  {
+    "path": "src/generateur-port/styles.css",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "src/generateur-port/template.html",
+    "matchesCapturedDiff": false,
+    "editedByThisEvolution": false,
+    "handling": "Le fichier a évolué pendant la session ; son état courant est conservé, sans restauration ni édition dans cette évolution."
+  },
+  {
+    "path": "src/ports/osm-import.js",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "src/ports/pontoon-decomposition.js",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "src/simulateur-port/i18n.js",
+    "matchesCapturedDiff": true,
+    "editedByThisEvolution": false,
+    "handling": "Diff préexistant inchangé."
+  },
+  {
+    "path": "tests/browser-cases.json",
+    "matchesCapturedDiff": false,
+    "editedByThisEvolution": false,
+    "handling": "Le fichier a évolué pendant la session ; son état courant est conservé, sans restauration ni édition dans cette évolution."
+  },
+  {
+    "path": "tests/port-generator.test.js",
+    "matchesCapturedDiff": false,
+    "editedByThisEvolution": false,
+    "handling": "Le fichier a évolué pendant la session ; son état courant est conservé, sans restauration ni édition dans cette évolution."
+  }
+]

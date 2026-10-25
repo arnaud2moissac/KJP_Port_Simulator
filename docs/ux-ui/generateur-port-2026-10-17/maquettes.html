@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17363b">
+  <title>KJP — propositions UX/UI du générateur</title>
+  <link rel="icon" href="assets/kjp-logo.png">
+  <link rel="stylesheet" href="maquettes.css">
+  <script src="maquettes.js" defer></script>
+</head>
+<body>
+  <div class="study-bar">
+    <a href="index.html">← Rapport UX/UI</a>
+    <span class="study-label">MAQUETTES · DONNÉES D’ILLUSTRATION</span>
+    <div class="study-switch">
+      <button id="previousScreen" type="button" aria-label="Maquette précédente">←</button>
+      <label class="sr-only" for="screenPicker">Vue proposée</label>
+      <select id="screenPicker">
+        <option value="accueil">A · Démarrer un projet</option>
+        <option value="localiser">B · Localiser et analyser</option>
+        <option value="candidats">C · Examiner les propositions</option>
+        <option value="edition" selected>D · Éditer le port</option>
+        <option value="serie">E · Modifier une série</option>
+        <option value="places">F · Préparer les places</option>
+        <option value="verifier">G · Vérifier et exporter</option>
+      </select>
+      <button id="nextScreen" type="button" aria-label="Maquette suivante">→</button>
+    </div>
+  </div>
+  <div id="prototype" class="prototype">
+    <header class="editor-header">
+      <div class="project-brand">
+        <img src="assets/kjp-logo.png" alt="KJP" width="38" height="38">
+        <div class="project-title">
+          <span class="product-label">KJP · Générateur de ports</span>
+          <button type="button" id="projectMenu" class="project-name">Port Tudy — exercice <span>⌄</span></button>
+        </div>
+      </div>
+      <div class="save-indicator"><span class="save-dot"></span><span>Brouillon enregistré <small>sur cet appareil</small></span></div>
+      <div class="header-command-group">
+        <button type="button" class="icon-control" data-action="undo" aria-label="Annuler la dernière action" title="Annuler">↶</button>
+        <button type="button" class="icon-control" data-action="redo" aria-label="Rétablir la dernière action" title="Rétablir">↷</button>
+      </div>
+      <div class="header-end">
+        <button type="button" class="control subtle" data-action="help">Aide</button>
+        <button type="button" class="control" data-action="layers">Fonds de carte</button>
+        <button type="button" class="control primary" data-go="verifier">Vérifier et exporter <span>↗</span></button>
+      </div>
+    </header>
+    <nav class="workflow" aria-label="Étapes de création">
+      <div class="workflow-links">
+        <button type="button" data-go="localiser" data-stage="1"><span class="step-number">1</span>Localiser</button>
+        <span class="step-link"></span>
+        <button type="button" data-go="edition" data-stage="2"><span class="step-number">2</span>Construire</button>
+        <span class="step-link"></span>
+        <button type="button" data-go="places" data-stage="3"><span class="step-number">3</span>Préparer</button>
+        <span class="step-link"></span>
+        <button type="button" data-go="verifier" data-stage="4"><span class="step-number">4</span>Vérifier</button>
+      </div>
+      <span class="workflow-caption">Votre port, étape par étape. À votre rythme.</span>
+    </nav>
+    <div class="work-area">
+      <nav class="editor-rail" aria-label="Outils de construction" id="toolRail"></nav>
+      <main class="map-stage" id="mapStage" aria-label="Aperçu de la carte et de l’édition"></main>
+      <aside class="context-panel" id="contextPanel" aria-label="Panneau de travail"></aside>
+    </div>
+    <footer class="editor-status">
+      <span id="statusCount">16 structures <span>·</span> 8 bateaux <span>·</span> 12 places</span>
+      <span class="status-center">Port pédagogique · géométrie simplifiée</span>
+      <span class="status-reference">Objets KJP <span class="mini-solid"></span> <span>Propositions</span> <span class="mini-dash"></span></span>
+    </footer>
+    <div id="layerPopover" class="floating-popover layers-popover" hidden></div>
+    <div id="notice" class="editor-notice" role="status" aria-live="polite" hidden></div>
+  </div>
+  <dialog id="prototypeDialog" class="prototype-dialog"><div id="dialogContent"></div></dialog>
+</body>
+</html>

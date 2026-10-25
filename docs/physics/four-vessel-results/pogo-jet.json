@@ -1,0 +1,41 @@
+{
+  "profileId": "pogo-40-s4-twin-rudder-experimental",
+  "anglesDeg": [
+    {
+      "angleDeg": -35,
+      "minimumLateralDistanceM": 1.6122488846309033,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": -25,
+      "minimumLateralDistanceM": 1.6458713871577533,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": -15,
+      "minimumLateralDistanceM": 1.6823539399544385,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": 0,
+      "minimumLateralDistanceM": 1.74,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": 15,
+      "minimumLateralDistanceM": 1.6823539399544385,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": 25,
+      "minimumLateralDistanceM": 1.6458713871577533,
+      "maximumCentralJetRadiusM": 0.19
+    },
+    {
+      "angleDeg": 35,
+      "minimumLateralDistanceM": 1.6122488846309033,
+      "maximumCentralJetRadiusM": 0.19
+    }
+  ],
+  "method": "Borne géométrique conservatrice : corde entière autour du centre, disque central non contracté. Le jet KJP ne s’élargit pas au-delà du disque pour ces coefficients de contraction. Les sources sont vides, jamais complétées artificiellement."
+}

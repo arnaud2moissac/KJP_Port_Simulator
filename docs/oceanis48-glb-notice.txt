@@ -1,0 +1,190 @@
+KJP — OCEANIS 48
+NOTICE D'INTÉGRATION POUR CODEX
+Version 1 — 22 octobre 2026
+
+1. OBJECTIF ET PÉRIMÈTRE
+
+Intégrer KJP_Oceanis48.glb comme modèle VISUEL d'un Beneteau Oceanis 48
+standard, à quille profonde, dans la direction artistique low-poly KJP.
+Le pack contient exactement deux fichiers :
+  KJP_Oceanis48.glb
+  KJP_Oceanis48_notice_integration_Codex.txt
+
+Le modèle est une interprétation stylisée originale fondée sur les références
+Beneteau. Les dimensions principales sont documentées ; les sections de coque,
+les implantations et les petits équipements sont des approximations visuelles.
+
+Respecter strictement l'iso-physique et l'iso-fonctionnel du simulateur.
+Ne modifier ni remplacer le moteur physique par Three.js. Ne changer aucune
+masse, inertie, force, traînée, propulsion, géométrie de collision, profil,
+commande, pas de temps, interpolation ou trajectoire étalon pour intégrer ce GLB.
+Three.js reste un consommateur de l'état de présentation existant.
+Les dimensions visuelles du GLB ne constituent pas un nouveau profil physique.
+Si le projet n'a pas de profil Oceanis 48 prévu, ne pas en déduire un du maillage :
+référencer l'asset dans la bibliothèque visuelle et traiter séparément ce besoin.
+
+2. CARACTÉRISTIQUES DU FICHIER
+
+Format : glTF 2.0 binaire autonome.
+Taille : 307636 octets.
+Géométrie : 4559 triangles ; 9467 sommets.
+Un maillage, une primitive indexée et un matériau.
+Attributs : POSITION, NORMAL et COLOR_0 (RGBA normalisé).
+Indices : UNSIGNED_SHORT ; triangles glTF mode 4.
+Aucune texture, aucune ressource externe, aucune extension obligatoire.
+Pas de compression Draco, pas de squelette et pas d'animation embarquée.
+Matériau opaque mat, metallicFactor=0, roughnessFactor=0.87, baseColorFactor blanc.
+Validation Khronos du binaire final : 0 erreur, 0 avertissement.
+
+SHA-256 : 2d3b423ebeedaf57f4d47f192ba8f141612d1ff3ab2dd311f34619876b983618
+FNV-1a 32 bits sur le fichier complet : 0x4f3ac30c
+Les empreintes valent pour ce binaire exact. Toute réexportation les modifie.
+
+3. REPÈRE, DIMENSIONS ET CALAGE
+
+Unité : 1 unité = 1 mètre. Transformation du nœud racine : identité.
++X = tribord ; +Y = haut ; +Z = proue.
+Flottaison de référence : Y=0.
+Origine : milieu longitudinal de coque, sur l'axe central, à la flottaison.
+Cette origine n'est pas un centre de gravité ni un centre de rotation physique.
+
+Dimensions retenues :
+  Longueur de coque : 14,27 m, de Z=-7,135 à Z=+7,135.
+  Largeur de coque : 4,74 m, de X=-2,37 à X=+2,37.
+  Tirant d'eau GTE standard : 2,17 m, jusqu'à Y=-2,17.
+  Longueur hors tout constructeur : 14,60 m.
+  Longueur de flottaison constructeur : 13,86 m (référence documentaire).
+  Tirant d'air constructeur : 21,69 m, représenté au sommet du mât.
+
+Boîte englobante complète du modèle, appendices et décor inclus :
+  X : -2.370000 à 2.370000
+  Y : -2.170000 à 21.690001
+  Z : -7.142000 à 7.465000
+La boîte complète comprend le davier avant et le léger relief du tableau.
+Utiliser hullReference pour le calage de coque ; ne pas confondre cette boîte
+avec la longueur de coque. Ne pas recentrer le GLB sur son centre géométrique
+complet, qui serait déplacé par le mât. Ne pas appliquer geometry.center().
+
+Conserver la conversion de repère GLB vers monde KJP déjà utilisée par le rendu.
+Le repère source Y vertical ne doit pas être confondu avec le Z vertical du
+monde KJP. Appliquer les conversions uniquement au nœud de rendu.
+Préserver l'échelle uniforme. Le modèle est déjà en mètres : scale=1 pour une
+représentation à taille réelle. Ne pas ajuster les collisions à son encombrement.
+
+4. APPARENCE À CONSERVER
+
+Coque blanche standard et décoration gris métal ; œuvres vives gris bleuté.
+Roof long et bas, descente progressive vers l'avant, bandeaux vitrés sombres.
+Trois grands hublots de coque par bord, cockpit bois clair, deux roues de 0,90 m.
+Arceau composite incliné vers l'arrière ; deux étages de barres de flèche.
+Une quille à aileron et bulbe, un seul safran central suspendu.
+Grand-voile affalée dans une housse claire et génois enroulé.
+Tableau arrière fermé, plateforme relevée pour la manœuvre au port.
+Les aussières et pare-battages fonctionnels ne font pas partie du GLB.
+
+Conserver COLOR_0 et les normales exportées. Les couleurs RGB sont en espace
+linéaire, déjà converties depuis la palette sRGB : ne pas les convertir deux fois.
+Si un matériau KJP remplace le PBR, activer vertexColors et garder une couleur
+multiplicative blanche pour préserver la palette. Le shader d'affichage et
+l'éclairage restent ceux du renderer KJP retenu. Le GLB ne prescrit pas de
+nouveau système d'éclairage ou de tonemapping.
+
+5. CHARGEMENT DANS LE CODE KJP
+
+Le module public consulté le 22 octobre 2026 est :
+  src/simulateur-port/rendering/native-player-model.mjs
+Il est actuellement spécialisé pour kjp_sun_odyssey_36i.glb : import du fichier,
+nom d'asset, empreinte FNV32, INDEX_SPANS et préparation de la radiographie.
+Vérifier son état actuel dans le checkout de travail avant modification.
+
+Ajouter une entrée de modèle Oceanis 48 et ses métadonnées, en conservant le
+chemin existant du Sun Odyssey 36i et les autres bateaux. Ne pas simplement
+écraser son binaire ou remplacer globalement son empreinte par celle de ce pack.
+Adapter la sélection et le cache à l'identité de l'asset. Charger et préparer
+la géométrie une seule fois ; conserver les ressources de rendu persistantes.
+Ne pas régénérer les géométries, groupes ou matériaux à chaque image.
+
+Les métadonnées du GLB comprennent :
+  nodes[0].extras.units, upAxis, bowAxis, waterlineY, noPhysicsData
+  nodes[0].extras.hullReference
+    length, beam, boundsMin, boundsMax, bow_z, stern_z
+  nodes[0].extras.triangleCountsBySourcePart
+  nodes[0].extras.indexRangesBySourcePart
+  asset.extras.parts
+Le chargeur GLTFLoader reporte les extras des objets dans leur userData.
+Le catalogue complet est embarqué : aucun manifeste séparé n'est nécessaire.
+
+Utiliser les plages explicites ci-dessous ou celles embarquées, sans supposer
+un ordre alphabétique des parties. firstIndex et indexCount sont des nombres
+d'indices de triangles, pas des octets. Chaque triangle utilise trois indices.
+  hull: firstIndex=0, indexCount=2193
+  hull_windows_and_trim: firstIndex=2193, indexCount=720
+  deck: firstIndex=2913, indexCount=384
+  cockpit_seats_and_table: firstIndex=3297, indexCount=720
+  transom_platform_closed: firstIndex=4017, indexCount=60
+  coachroof: firstIndex=4077, indexCount=282
+  roof_glazing: firstIndex=4359, indexCount=426
+  deck_hatches: firstIndex=4785, indexCount=486
+  deep_fin_keel: firstIndex=5271, indexCount=132
+  keel_bulb: firstIndex=5403, indexCount=300
+  rudder: firstIndex=5703, indexCount=180
+  saildrive_and_propeller: firstIndex=5883, indexCount=192
+  helm_consoles: firstIndex=6075, indexCount=336
+  steering_wheels: firstIndex=6411, indexCount=1296
+  mainsheet_arch: firstIndex=7707, indexCount=156
+  mast_and_boom: firstIndex=7863, indexCount=336
+  standing_rigging: firstIndex=8199, indexCount=672
+  furled_headsail: firstIndex=8871, indexCount=252
+  guardrails_and_toerails: firstIndex=9123, indexCount=2784
+  deck_hardware: firstIndex=11907, indexCount=1770
+
+Pour conserver le mode Comprendre, préparer une correspondance de rôles de rendu
+propre à l'Oceanis 48, en réutilisant les matériaux et comportements existants.
+Correspondance de départ proposée :
+  hull, deck, transom_platform_closed : coque radiographique.
+  coachroof, roof_glazing : roof.
+  deep_fin_keel, keel_bulb, rudder, saildrive_and_propeller : organes visibles.
+  autres détails, mobilier, gréement et vitrages de coque : détails masquables.
+Les liserés sont regroupés avec les vitrages de coque ; cette version n'exporte
+pas une plage autonome identique au rôle silhouette du Sun Odyssey.
+Cette correspondance concerne uniquement l'affichage. Les forces, leurs points
+d'application, le centre de rotation et les moments proviennent exclusivement
+du moteur existant. Ne pas recréer un bateau ou une scène pour la radiographie.
+Conserver le découpage à la flottaison dans le repère monde utilisé par KJP.
+
+6. REPÈRES AUXILIAIRES ET PIÈCES MOBILES
+
+Nœuds de repère : WaterlineOrigin, BowHull, SternHull, MastFoot, RudderPivot,
+WheelPort, WheelStarboard, PlatformHinge et six Mooring... (Bow, Midships,
+Stern ; Port et Starboard).
+Ce sont des points visuels auxiliaires. Ils ne définissent aucune liaison
+mécanique, collision, force, ou point d'amarrage physique faisant autorité.
+Le safran, les roues et la plateforme sont statiques et fusionnés au maillage.
+Les nœuds de repère ne les animent pas automatiquement.
+Si une animation visuelle existante doit être conservée, isoler sa plage de
+triangles une seule fois au chargement, puis consommer l'état déjà calculé.
+Ne pas créer un nouveau calcul de gouverne ou de mouvement depuis le GLB.
+
+7. VÉRIFICATION APRÈS INTÉGRATION
+
+Contrôler l'échelle, le cap, la flottaison et le calage de coque ; vérifier les
+couleurs en modes jour et foncé ainsi que la radiographie du mode Comprendre.
+Les roues doivent rester distinctes et le safran unique sur l'axe central.
+Conserver les interactions et équipements fonctionnels existants.
+Exécuter les vérifications habituelles du dépôt pour le renderer concerné.
+Confirmer que le changement ne touche ni le moteur ni les profils physiques.
+
+Le GLB a été validé et inspecté en vues avant, arrière, dessus et profils.
+L'intégration effective dans l'application et ses essais restent à effectuer
+par Codex dans le dépôt du projet.
+
+8. SOURCES
+
+Beneteau Oceanis 48, archive officielle et photos/plan de pont :
+https://www.beneteau.com/oceanis-2005-2014/oceanis-48
+Inventaire Beneteau V10166(Y)FRA du 1er juin 2017, miroir concessionnaire :
+https://www.atlantic-yachting.fr/web/upload/boats/1503328792599afa1806888.pdf
+Brochure officielle :
+https://pro.beneteau.fr/documents/bateau/7969/B_Oceanis%2048_web.pdf
+Chargeur KJP consulté pour cette notice :
+https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/src/simulateur-port/rendering/native-player-model.mjs

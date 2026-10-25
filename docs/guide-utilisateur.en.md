@@ -32,13 +32,13 @@ The `FR / EN / Bzh` selector in the top bar changes the whole interface and this
 
 **On a tablet or phone:**
 
-- Turn the **Helm** wheel at the bottom left. Tap `0` to centre it.
+- Use the **Helm** control at the bottom left. It shows a wheel or a tiller for the selected boat. The tiller follows your finger directly around its base: a 20° gesture commands 20° of helm. It keeps its angle when released. The wheel retains its geared circular gesture; tap `0` to centre it.
 - Drag the **Engine** handle towards **FWD** or **REV**. Tap `N` for neutral.
 - The two marks near neutral select **FWD idle** and **REV idle**. A small capture zone and a **0.5 s** pause help you find them. Release at the detent to stay there; continue beyond it to accelerate. Reducing throttle pauses at the same detent before neutral. Neutral stops the gesture: release before reversing. Tapping the handle requests neutral directly, without waiting.
 - Pinch with two fingers to zoom. Move the same gesture to pan.
 - Open settings with `☰`. Landscape orientation gives the best visibility on a phone.
 
-**Tablet view with touch helm and engine controls:**
+**Tablet view with touch steering and engine controls:**
 
 ![Touch controls on a tablet](images/02-commandes-et-vues.en.jpg)
 

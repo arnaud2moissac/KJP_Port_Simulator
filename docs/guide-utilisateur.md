@@ -30,13 +30,13 @@ Le sélecteur `FR / EN / Bzh` du bandeau supérieur change immédiatement la lan
 
 **Sur tablette ou téléphone :**
 
-- Faites tourner la roue **Barre** en bas à gauche. Touchez `0` pour recentrer.
+- Utilisez la commande **Barre** en bas à gauche. Elle affiche une roue ou une barre franche selon le bateau sélectionné. La barre franche suit directement le doigt autour de son embase : 20° de geste commandent 20° de barre. Elle conserve son angle au relâchement. La roue garde son geste circulaire démultiplié ; touchez `0` pour la recentrer.
 - Faites glisser la poignée **Moteur** vers **AV** ou **AR**. Touchez `N` pour revenir au neutre.
 - Les deux repères près du neutre correspondent à **AV ralenti** et **AR ralenti**. Une petite zone d'accroche et une pause de **0,5 s** facilitent leur sélection. Relâchez au cran pour le conserver ; poursuivez le geste au-delà pour accélérer. En réduisant les gaz, la poignée marque la même pause avant le neutre. Le neutre arrête le geste : relâchez avant d'inverser. Toucher la poignée demande directement le neutre, sans attendre.
 - Pincez avec deux doigts pour zoomer. Le même geste déplacé fait glisser la vue.
 - Ouvrez les réglages avec `☰`. Sur un téléphone, le mode paysage offre la meilleure visibilité.
 
-**Vue sur tablette, avec la roue de barre et la poignée moteur tactiles :**
+**Vue sur tablette, avec la commande de barre et la poignée moteur tactiles :**
 
 ![Commandes tactiles sur tablette](images/02-commandes-et-vues.jpg)
 

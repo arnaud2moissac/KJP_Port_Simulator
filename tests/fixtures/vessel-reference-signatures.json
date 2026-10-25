@@ -1,0 +1,142 @@
+{
+  "physicsVersion": "6.0.0",
+  "physicsSourceSha256": "06032b6c3075061bd37a154d02720b3332728ce4ee65fcb19204733fc7f94251",
+  "profiles": [
+    {
+      "id": "sun-odyssey-36i-pedagogical",
+      "version": "6.1.0",
+      "rawSha256": "f1deca16e6413611bab3e0d1fa54c2c10c366924c09659c0522bc9b44a694f50",
+      "cases": [
+        {
+          "id": "A.0.3",
+          "seconds": 8,
+          "finalSha256": "551ec69338672852384b4d78767d50e607f33132152aca3a13bfd9ce8ed97459"
+        },
+        {
+          "id": "B.0.6",
+          "seconds": 8,
+          "finalSha256": "e37372bc10c7a7ae0d6625077e029a134d969cb1c3d97bc75f5cc1510842b043"
+        },
+        {
+          "id": "B2.loaded",
+          "seconds": 8,
+          "finalSha256": "551ec69338672852384b4d78767d50e607f33132152aca3a13bfd9ce8ed97459"
+        },
+        {
+          "id": "D.25",
+          "seconds": 8,
+          "finalSha256": "86eab4fc2098994a52ebfbf9abaa62a68caf0618de31d8aac1d2a4279e8ccbc0"
+        },
+        {
+          "id": "E.25",
+          "seconds": 8,
+          "finalSha256": "400c21e76acbd6cc4d89be16b590a3fa79d083256b7a998c4685a9458d6d99f1"
+        },
+        {
+          "id": "F.0.1.25",
+          "seconds": 8,
+          "finalSha256": "0245a94b8ae8978d6a1147d0b86d820f5cdd0845287b8aa868f6eb9b365d120c"
+        },
+        {
+          "id": "G.12.90.0",
+          "seconds": 8,
+          "finalSha256": "5fa64131b6d484512f35843e84806a245c0b89eb85dffa5ae00b6a7459069cc0"
+        },
+        {
+          "id": "H.0.1.0.3.0.6",
+          "seconds": 8,
+          "finalSha256": "551ec69338672852384b4d78767d50e607f33132152aca3a13bfd9ce8ed97459"
+        },
+        {
+          "id": "I.1",
+          "seconds": 8,
+          "finalSha256": "0b63257903dacbd4e23c741f7feeab40753fa483962abad582e278fb6a63dbe0"
+        },
+        {
+          "id": "J.yaw0.2",
+          "seconds": 8,
+          "finalSha256": "03fff812c8f8c3db90b333806a807edf4c80bffb77654084a78abb20b3cef021"
+        },
+        {
+          "id": "K.contact.0.5.false",
+          "seconds": 8,
+          "finalSha256": "eaa1838eef3a2d2046ea925748813ab3361fbc328aa34153aa610bc8f8ba98d2"
+        },
+        {
+          "id": "K.mooring.wind",
+          "seconds": 8,
+          "finalSha256": "556f445e60b0711f67e8632d1ba55a6d285d2ce99fec985c2158f8e4b3220a9a"
+        }
+      ]
+    },
+    {
+      "id": "dufour-310-gl-2014-deep-keel-experimental",
+      "version": "1.1.0",
+      "rawSha256": "2bd8f3adebdbb6b80c973c2bf1697c39e6d6357230fd07e32c57b1c871afb424",
+      "cases": [
+        {
+          "id": "A.0.3",
+          "seconds": 8,
+          "finalSha256": "0bea9fadb9e80491b2ef4fa584c3cd1275f0a7edefe4126d0928de5e7987f11c"
+        },
+        {
+          "id": "B.0.6",
+          "seconds": 7.508333333333496,
+          "finalSha256": "6beeb47cebb06baa011b0d478597a6c5806d5523006c5a272591c509706a7ed5",
+          "requestedSeconds": 8,
+          "horizonSource": "Baseline avant modification : arrêt au premier seuil 0,1 nd. Empreinte originale conservée."
+        },
+        {
+          "id": "B2.loaded",
+          "seconds": 8,
+          "finalSha256": "0bea9fadb9e80491b2ef4fa584c3cd1275f0a7edefe4126d0928de5e7987f11c"
+        },
+        {
+          "id": "D.25",
+          "seconds": 8,
+          "finalSha256": "25d212ab36c67d0a8ae2897fd713d5a780e8de33ed2af764a447c4c297bb27e0"
+        },
+        {
+          "id": "E.25",
+          "seconds": 8,
+          "finalSha256": "49b85f754b083d745842e3b42ef6dd734dde197047c0a363a965313666e0be9d"
+        },
+        {
+          "id": "F.0.1.25",
+          "seconds": 8,
+          "finalSha256": "f5fc98e47c2a037fc9e7303f9a6e18daaf7ef2afc1942123f0e102b3661beb99"
+        },
+        {
+          "id": "G.12.90.0",
+          "seconds": 8,
+          "finalSha256": "dae861eeb9d184fc3dfcb9d3e28624518dc353b8d9526aa415a256f6f1034888"
+        },
+        {
+          "id": "H.0.1.0.3.0.6",
+          "seconds": 8,
+          "finalSha256": "0bea9fadb9e80491b2ef4fa584c3cd1275f0a7edefe4126d0928de5e7987f11c"
+        },
+        {
+          "id": "I.1",
+          "seconds": 8,
+          "finalSha256": "bf89b7b50538feb8a373a53e274fdf39451517ebf7ebde569d9d20ca6cccda3d"
+        },
+        {
+          "id": "J.yaw0.2",
+          "seconds": 8,
+          "finalSha256": "c74ad0444747dc5714b56910d5df637b56e6c3b64801f79c9a015bebc7a9d11a"
+        },
+        {
+          "id": "K.contact.0.5.false",
+          "seconds": 8,
+          "finalSha256": "9c279ca87806b4722398504728ed00ab6605e5a3d405d02f94ab18222c82ff83"
+        },
+        {
+          "id": "K.mooring.wind",
+          "seconds": 8,
+          "finalSha256": "ac55710c3c8d2cd20e15d19084ef2ac1e1059e16f97bbc35c062e7388651d25e"
+        }
+      ]
+    }
+  ]
+}

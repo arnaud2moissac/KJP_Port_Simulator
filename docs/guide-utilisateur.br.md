@@ -30,13 +30,13 @@ Ar dibaber `FR / EN / Bzh` er vandenn en nec'h a cheñch diouzhtu yezh an etrefa
 
 **War dabletezenn pe bellgomzer :**
 
-- Troit ar rod **Stur** en traoñ a-gleiz. Stekit ouzh `0` evit adkreizañ.
+- Implijit ar reoler **Stur** en traoñ a-gleiz. Diskouez a ra ur rod-stur pe ur barr-stur hervez ar vag dibabet. Ar barr-stur a heuilh ar biz war-eeun en-dro d'e ziaz : ur jest a 20° a c'houlenn 20° stur. Mirout a ra e gorn pa vez lezet da vont. Ar rod-stur a vir he jest kelc'hiek digresket ; stekit ouzh `0` evit he adkreizañ.
 - Riklit dornell al **Lusker** war-du **RA** (war-raok) pe **DR** (a-dreñv). Stekit ouzh `N` evit distreiñ d'an neptu.
 - An daou verk tost d'an neptu a glot gant **RA gorrek** ha **DR gorrek**. Ur zonenn vihan hag ur paouez a **0,5 s** a sikour da chom en harz. Lezit an dornell da vont evit chom eno ; kendalc'hit ar jest en tu-hont evit kreskiñ ar gaz. Pa zigresker ar gaz e vez ar memes paouez a-raok an neptu. An neptu a harz ar jest : lezit da vont a-raok cheñch tu. Stekiñ ouzh an dornell a c'houlenn an neptu diouzhtu, hep gortoz.
 - Pincit gant daou viz da greskiñ pe da zigreskiñ ar gwel. Dilec'hiañ an daou viz asambles a zilec'h ar gwel.
 - Digorit an arventennoù gant `☰`. War ur pellgomzer eo sklaeroc'h ar gwel gant ar skramm a-led.
 
-**Gwel war dabletezenn, gant ar rod-stur hag an dornell lusker stekiñ :**
+**Gwel war dabletezenn, gant ar reoler stur hag an dornell lusker stekiñ :**
 
 ![Reolerezhioù stekiñ war dabletezenn](images/02-commandes-et-vues.br.jpg)
 

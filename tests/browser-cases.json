@@ -321,7 +321,14 @@
     "product": "simulator",
     "id": "controls.49",
     "group": "controls",
-    "name": "commandes tactiles: roue persistante et levier avec arrêt au neutre"
+    "name": "commandes tactiles: roue ou barre franche selon le profil, et levier avec arrêt au neutre"
+  },
+  {
+    "product": "simulator",
+    "id": "controls.61",
+    "group": "controls",
+    "name": "les commandes tablette agrandies gardent le levier sous le doigt et mémorisent leur taille",
+    "hasTouch": true
   },
   {
     "product": "simulator",
@@ -484,7 +491,7 @@
     "product": "generator",
     "id": "editing.15",
     "group": "editing",
-    "name": "les poignées de longueur et d'angle restent synchronisées avec les champs"
+    "name": "les extrémités libres des pontons et leur déplacement restent synchronisés avec les champs"
   },
   {
     "product": "generator",
@@ -601,5 +608,36 @@
     "group": "placement",
     "id": "placement.10",
     "name": "Annuler pendant Amarrer retrouve exactement le simulateur précédent"
+  },
+  {
+    "product": "generator",
+    "id": "localization.01",
+    "group": "localization",
+    "name": "les trois langues hors ligne préservent le port et les champs en cours de saisie"
+  },
+  {
+    "product": "generator",
+    "id": "localization.02",
+    "group": "localization",
+    "name": "la langue du navigateur et la préférence indépendante supportent le stockage désactivé"
+  },
+  {
+    "product": "generator",
+    "id": "localization.03",
+    "group": "localization",
+    "name": "les erreurs, actions et analyses en cours changent de langue sans redémarrer"
+  },
+  {
+    "product": "generator",
+    "id": "measurement.01",
+    "group": "measurement",
+    "name": "la mesure métrique sur satellite renseigne l’entraxe sans modifier le port"
+  },
+  {
+    "product": "generator",
+    "id": "measurement.02",
+    "group": "measurement",
+    "name": "la mesure tactile peut être recommencée, annulée et effacée",
+    "hasTouch": true
   }
 ]

@@ -3,7 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const esbuild = require("esbuild");
-const { projectAssets } = require("./embed-project-readme.js");
+const { logoAsset } = require("./embed-project-readme.js");
+const { loadCatalogs, localizedTemplate } = require("./localization-assets.js");
 
 const root = path.resolve(__dirname, "..");
 const templatePath = path.join(root, "src", "generateur-port", "template.html");
@@ -11,7 +12,8 @@ const entryPath = path.join(root, "src", "generateur-port", "main.js");
 const outputPath = path.join(root, "generateur-port.html");
 const cssMarker = "/*__PORT_GENERATOR_CSS__*/";
 const jsMarker = "/*__PORT_GENERATOR_JS__*/";
-const readmeMarker = "<!--__README_HTML__-->";
+const readmeMarker = "<!--__GENERATOR_GUIDE_HTML__-->";
+const localesMarker = "/*__GENERATOR_LOCALES__*/";
 const logoMarker = "__KJP_LOGO_DATA_URI__";
 const analyticsTag = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-D901YPY4SY"></script>';
 
@@ -43,21 +45,26 @@ async function build() {
     !template.includes(cssMarker)
     || !template.includes(jsMarker)
     || !template.includes(readmeMarker)
+    || !template.includes(localesMarker)
     || !template.includes(logoMarker)
   ) {
     throw new Error("Marqueurs de build absents du générateur.");
   }
-  const { logoDataUri, readmeHtml } = projectAssets(root);
+  const catalogs = loadCatalogs({ directory: path.join(root, "src/generateur-port/locales"), includeGuides: true });
+  require("./check-generator-i18n.js").check(catalogs);
+  const logoDataUri = logoAsset(root);
   const { javascript, css } = await bundle();
-  const output = template
+  const output = localizedTemplate(template, catalogs)
     .replace(cssMarker, () => css.trim())
     .replace(jsMarker, () => javascript.trim())
-    .replace(readmeMarker, () => readmeHtml)
+    .replace(readmeMarker, () => catalogs.find(catalog => catalog.code === "fr").guideHtml)
+    .replace(localesMarker, () => JSON.stringify(catalogs).replaceAll("<", "\\u003c"))
     .replaceAll(logoMarker, logoDataUri);
   if (
     output.includes(cssMarker)
     || output.includes(jsMarker)
     || output.includes(readmeMarker)
+    || output.includes(localesMarker)
     || output.includes(logoMarker)
   ) {
     throw new Error("Un marqueur subsiste dans le générateur.");

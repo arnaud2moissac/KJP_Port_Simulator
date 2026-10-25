@@ -1,0 +1,210 @@
+KJP — SUN ODYSSEY 24.2
+NOTICE D'INTÉGRATION POUR CODEX
+Version 2 — 22 octobre 2026
+Correction du lazybag suivant la photo fournie par l’utilisateur.
+
+1. OBJECTIF ET PÉRIMÈTRE
+
+Intégrer KJP_SunOdyssey242.glb comme modèle VISUEL d'un Jeanneau
+Sun Odyssey 24.2, version quillard standard de 1,10 m, dans le style low-poly KJP.
+Le pack contient exactement deux fichiers :
+  KJP_SunOdyssey242.glb
+  KJP_SunOdyssey242_notice_integration_Codex.txt
+
+Modèle stylisé original réalisé à partir du manuel constructeur Jeanneau :
+plan de pont, profil et perspective du roof. Les dimensions principales sont
+documentées ; sections de coque, petit équipement et implantations sont des
+approximations visuelles. La configuration extérieure représente l'option
+moteur intérieur, par un petit arbre et une hélice sous la coque.
+
+Respecter strictement l'iso-physique et l'iso-fonctionnel du simulateur.
+Ne modifier ni remplacer le moteur physique par Three.js. Ne changer aucune
+masse, inertie, force, traînée, propulsion, géométrie de collision, profil,
+commande, pas de temps, interpolation ou trajectoire étalon pour intégrer ce GLB.
+Three.js reste un consommateur de l'état de présentation existant.
+Les dimensions visuelles du GLB ne constituent pas un nouveau profil physique.
+Si le projet n'a pas de profil Sun Odyssey 24.2 prévu, ne pas en déduire un du
+maillage : référencer l'asset visuel et traiter séparément ce besoin.
+
+2. CARACTÉRISTIQUES DU FICHIER
+
+Format : glTF 2.0 binaire autonome.
+Taille : 238108 octets.
+Géométrie : 3438 triangles ; 7270 sommets.
+Un maillage, une primitive indexée et un matériau.
+Attributs : POSITION, NORMAL et COLOR_0, RGBA normalisé sur 8 bits.
+Indices : UNSIGNED_SHORT ; triangles glTF mode 4.
+Aucune texture, aucune ressource externe, aucune extension obligatoire.
+Pas de compression Draco, pas de squelette et pas d'animation embarquée.
+Matériau opaque mat : metallicFactor=0, roughnessFactor=0.87,
+baseColorFactor blanc, doubleSided=false.
+Validation Khronos du binaire final : 0 erreur, 0 avertissement.
+
+SHA-256 : b1681d04f1993598cddd4b26873659c2c7fcd39a1232fb3ab2322e234bde96d3
+FNV-1a 32 bits sur le fichier complet : 0xb0507705
+Les empreintes valent pour ce binaire exact. Toute réexportation les modifie.
+
+3. REPÈRE, DIMENSIONS ET CALAGE
+
+Unité : 1 unité = 1 mètre. Transformation du nœud racine : identité.
++X = tribord ; +Y = haut ; +Z = proue.
+Flottaison de référence : Y=0.
+Origine : milieu longitudinal de coque, sur l'axe central, à la flottaison.
+Cette origine n'est pas un centre de gravité ni un centre de rotation physique.
+
+Dimensions principales retenues :
+  Longueur de coque : 7,20 m, de Z=-3,60 à Z=+3,60.
+  Largeur maximale de coque : 2,49 m, de X=-1,245 à X=+1,245.
+  Tirant d'eau quillard standard : 1,10 m, jusqu'à Y=-1,10.
+  Longueur hors tout constructeur : 7,30 m (référence documentaire).
+  Longueur de flottaison constructeur : 6,60 m (référence documentaire).
+  Sommet du mât : Y=10,65 m, ESTIMATION VISUELLE tirée du profil Jeanneau.
+La hauteur de mât n'est pas un tirant d'air certifié. Le modèle représente le
+quillard fixe ; la version dériveur de 0,65 à 1,40 m n'est pas représentée.
+Les hauteurs et positions du roof, du gréement et du safran restent estimées.
+
+Boîte complète du modèle, appendices et décor inclus, en mètres :
+  X : -1.245000 à 1.245000
+  Y : -1.100000 à 10.650000
+  Z : -3.680000 à 3.622000
+Le safran et le davier dépassent légèrement les limites longitudinales de coque.
+Utiliser hullReference pour le calage de coque, sans confondre sa longueur avec
+la boîte complète. Ne pas recentrer sur le centre géométrique de l'ensemble,
+qui serait déplacé par le mât. Ne pas appliquer geometry.center().
+
+Conserver la conversion de repère GLB vers monde KJP déjà utilisée par le rendu.
+Le repère source Y vertical ne doit pas être confondu avec le Z vertical du
+monde KJP. Appliquer les conversions uniquement au nœud de rendu.
+Conserver une échelle uniforme : scale=1 pour la taille réelle en mètres.
+Ne pas adapter les collisions à l'encombrement du modèle.
+
+4. APPARENCE À CONSERVER
+
+Coque blanche mate à bouchains arrondis, liserés bleu ardoise, œuvres vives
+bleu-gris. Roof abaissé progressivement vers le pont avant, grande vitre
+latérale effilée et petit hublot distinct à l'arrière de chaque bord.
+Panneau avant vitré posé sur le roof incliné, cockpit à deux banquettes,
+barre franche en bois, jupe arrière et encoche centrale.
+Quille fixe courte avec petit renflement inférieur ; un seul safran au tableau.
+Une paire de barres de flèche, grand-voile affalée dans un lazybag bleu-gris,
+voile d'avant enroulée. Les aussières et pare-battages fonctionnels sont exclus.
+
+Révision 2 : le haut du lazybag remonte progressivement vers le mât ; sa
+partie avant reste haute et vient au contact du mât. Sa base suit la bôme et
+reste en contact avec elle. Seule la géométrie mainsail_cover a changé.
+Les indices des pièces suivantes ont été décalés et sont actualisés ci-dessous,
+ainsi que dans les métadonnées du GLB. Utiliser le nouveau binaire et ses
+empreintes ; ne pas réutiliser les plages d’indices de la version 1.
+
+Conserver COLOR_0 et les normales exportées. Les couleurs RGB sont en espace
+linéaire, déjà converties depuis la palette sRGB : ne pas les convertir deux fois.
+Si un matériau KJP remplace le PBR, activer vertexColors et garder une couleur
+multiplicative blanche pour préserver la palette. Garder l'éclairage et le
+shader du renderer KJP prévu ; aucun nouveau tonemapping n'est nécessaire.
+
+5. CHARGEMENT DANS LE CODE KJP
+
+Le module public consulté le 22 octobre 2026 est :
+  src/simulateur-port/rendering/native-player-model.mjs
+Il est spécialisé pour kjp_sun_odyssey_36i.glb : import du fichier, nom d'asset,
+empreinte FNV32, INDEX_SPANS et préparation de la radiographie.
+Vérifier son état actuel dans le checkout de travail avant modification.
+
+Ajouter une entrée distincte Sun Odyssey 24.2, avec ses propres métadonnées,
+en conservant le chemin existant du 36i et les autres bateaux.
+Ne pas écraser le binaire du 36i ni remplacer globalement son empreinte par
+celle de ce pack. Le 24.2 et le 36i sont deux modèles différents.
+Adapter la sélection et le cache à l'identité de l'asset. Charger et préparer
+la géométrie une seule fois ; conserver les ressources de rendu persistantes.
+Ne pas régénérer géométries, groupes ou matériaux à chaque image.
+
+Les métadonnées utiles sont embarquées dans le GLB :
+  nodes[0].extras.units, upAxis, bowAxis, waterlineY, noPhysicsData
+  nodes[0].extras.hullReference
+    length, beam, boundsMin, boundsMax, bow_z, stern_z
+  nodes[0].extras.triangleCountsBySourcePart
+  nodes[0].extras.indexRangesBySourcePart
+  asset.extras.parts
+GLTFLoader reporte les extras des objets dans leur userData.
+Le catalogue complet est embarqué : aucun manifeste séparé n'est requis.
+
+Utiliser les plages explicites suivantes ou celles embarquées, sans supposer
+un ordre alphabétique des pièces. firstIndex et indexCount sont des nombres
+d'indices, pas des octets ; un triangle utilise trois indices.
+  hull: firstIndex=0, indexCount=2016
+  sheer_trim: firstIndex=2016, indexCount=288
+  deck: firstIndex=2304, indexCount=348
+  stern_scoop: firstIndex=2652, indexCount=114
+  cockpit_seats_and_coamings: firstIndex=2766, indexCount=420
+  coachroof: firstIndex=3186, indexCount=282
+  roof_glazing: firstIndex=3468, indexCount=660
+  fixed_fin_keel: firstIndex=4128, indexCount=132
+  keel_bulb: firstIndex=4260, indexCount=240
+  rudder: firstIndex=4500, indexCount=180
+  tiller_and_rudder_fittings: firstIndex=4680, indexCount=324
+  propeller_and_shaft: firstIndex=5004, indexCount=156
+  mast_and_boom: firstIndex=5160, indexCount=216
+  mainsail_cover: firstIndex=5376, indexCount=240
+  standing_rigging: firstIndex=5616, indexCount=492
+  furled_headsail: firstIndex=6108, indexCount=252
+  guardrails_and_toerails: firstIndex=6360, indexCount=2304
+  deck_hardware: firstIndex=8664, indexCount=1650
+
+Pour conserver le mode Comprendre, préparer une correspondance de rôles propre
+au 24.2, en réutilisant les matériaux et comportements existants.
+Correspondance de départ proposée :
+  hull, deck, stern_scoop : coque radiographique.
+  sheer_trim : liseré/silhouette.
+  coachroof, roof_glazing : roof.
+  fixed_fin_keel, keel_bulb, rudder, propeller_and_shaft : organes visibles.
+  autres pièces, mobilier, ferrures et gréement : détails masquables.
+Cette correspondance est une proposition d'affichage à adapter au renderer
+actuel. Les forces, points d'application, centre de rotation et moments doivent
+provenir exclusivement du moteur existant. Ne pas recréer un bateau ou une
+scène pour la radiographie. Préserver le découpage à la flottaison dans le
+repère monde actuellement utilisé par KJP.
+
+6. REPÈRES AUXILIAIRES ET PIÈCES MOBILES
+
+Nœuds vides nommés : WaterlineOrigin, BowHull, SternHull, MastFoot,
+RudderPivot, TillerPivot, MooringSternPort, MooringSternStarboard,
+MooringBowPort et MooringBowStarboard.
+Ils sont des repères visuels auxiliaires, pas des paramètres de mécanique,
+collision, force ou amarrage physique. Les deux repères de gouverne ne
+constituent pas une modélisation cinématique des ferrures et de leur axe.
+Le safran et la barre franche sont statiques et fusionnés au maillage.
+Les nœuds de repère ne les animent pas automatiquement.
+Si une animation visuelle existante doit être conservée, isoler les triangles
+nécessaires une seule fois au chargement et consommer l'angle déjà calculé
+par le moteur. Ne pas déduire un nouveau comportement de gouverne du GLB.
+
+7. VÉRIFICATION APRÈS INTÉGRATION
+
+Contrôler l'échelle, le cap, la flottaison et le calage de coque ; vérifier
+la palette en modes jour et foncé et la radiographie du mode Comprendre.
+Conserver la barre franche, le safran unique et l'encoche de jupe.
+Préserver les interactions et les équipements fonctionnels existants.
+Exécuter les vérifications habituelles du dépôt pour le renderer concerné.
+Confirmer que le changement ne touche ni le moteur ni les profils physiques.
+
+Le GLB a été validé et inspecté en cinq vues : avant, arrière, dessus,
+profil de coque et profil complet avec le mât. Ses coordonnées, normales,
+triangles et plages d'indices ont été contrôlés indépendamment.
+L'intégration effective dans l'application et ses essais restent à effectuer
+par Codex dans le dépôt du projet.
+
+8. SOURCES
+
+Jeanneau, archive officielle Sun Odyssey 24.2 :
+https://www.jeanneau.com/fr/bateaux/voilier/2-sun-odyssey/486-sun-odyssey-24-2
+
+Manuel du propriétaire Jeanneau, reproduction du document constructeur :
+https://www.manualslib.com/manual/4172505/Jeanneau-Sun-Odyssey-24-2.html
+Spécifications : page PDF 7, page imprimée 6/69.
+Plan de pont : page PDF 26, page imprimée 25/69.
+Profil du quillard et gréement : page PDF 31, page imprimée 30/69.
+Perspective du roof : page PDF 35, page imprimée 34/69.
+La largeur et les chiffres ont été vérifiés directement sur les scans.
+
+Chargeur KJP consulté pour cette notice :
+https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/src/simulateur-port/rendering/native-player-model.mjs

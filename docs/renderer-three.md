@@ -59,6 +59,17 @@ diagnostic explicite puis activer le painter Canvas 2D. Le canvas natif est lib�
 le routage ne remplace ni n'avance l'état physique. Un joueur invisible ne constitue
 pas un secours acceptable : l'erreur asynchrone du GLB doit être relayée au produit.
 
+## Vue skipper
+
+Le cadrage A retenu par l’utilisateur le 22 octobre 2026 utilise la position locale
+`[-6,3 ; 0 ; 3,2] m`, une inclinaison de `−16°` et une focale relative de `0,9`.
+Cette vue privilégie la visibilité du pont et des alentours à l’écran ; elle ne
+représente pas strictement la hauteur des yeux d’une personne. `SKIPPER_EYE`
+reste un réglage de présentation commun, consommé par les projections native
+et Canvas. Le suivi, l’orbite, le panoramique et le retour à Skipper conservent
+leurs commandes existantes. Le cas `camera.09` vérifie aussi le rétablissement
+de ce cadrage après déplacement de la caméra.
+
 ## Vent et courant intégrés — 9 octobre 2026
 
 Le rendu de particules validé sur `codex/wind-particles-prototype` est intégré

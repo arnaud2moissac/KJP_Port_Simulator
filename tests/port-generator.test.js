@@ -82,6 +82,175 @@ function createLargePortText() {
   return Codec.serialize(document);
 }
 
+browserCase("generator:localization.01", async ({ page, externalRequests }) => {
+    const { loadCatalogs } = require("../scripts/localization-assets.js");
+    const catalogs = loadCatalogs({ directory: path.join(projectRoot, "src/generateur-port/locales") });
+    const fixture = require("./fixtures/osm-port-sample.json");
+    await page.evaluate(fixture => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      api.loadDemonstration();
+      api.select("pontoon-main");
+      api.setAnalysisPolygon([{ east: -100, north: -100 }, { east: 100, north: -100 }, { east: 0, north: 100 }]);
+      api.showCandidateFixture(fixture);
+      document.querySelector('[data-property="length"]').value = "83.25";
+      document.querySelector("#portComment").value = "Texte auteur à conserver — test";
+    }, fixture);
+    await page.waitForTimeout(50);
+    const snapshot = () => page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        render: api.renderReport(), candidates: api.candidateReport(), analysis: api.analysisReport(),
+        length: document.querySelector('[data-property="length"]').value,
+        comment: document.querySelector("#portComment").value };
+    });
+    const before = await snapshot();
+    for (const code of ["en", "br", "fr", "en"]) {
+      const catalog = catalogs.find(c => c.code === code).messages;
+      await page.evaluate(code => window.__KJP_GENERATOR_TEST__.selectLocale(code), code);
+      assert.deepEqual(await snapshot(), before, `state preserved in ${code}`);
+      assert.equal(await page.locator("html").getAttribute("lang"), code);
+      assert.equal(await page.locator("#languageSelect").inputValue(), code);
+      assert.equal(await page.locator("#lengthPropertyLabel").textContent(), catalog["ui.longueur.m"]);
+      assert.equal(await page.locator("#inspectorTitle").textContent(), catalog["ui.ponton"]);
+      const leaks = await page.evaluate(({ french, translated }) => {
+        const surface = [document.body.innerText, ...Array.from(document.querySelectorAll("[aria-label], [title], [placeholder]"))
+          .flatMap(e => ["aria-label", "title", "placeholder"].map(a => e.getAttribute(a) || ""))].join("\n");
+        return Object.entries(french).filter(([key, value]) => typeof value === "string"
+          && value !== translated[key] && value.length > 15 && !value.includes("{") && surface.includes(value)).map(([key]) => key);
+      }, { french: catalogs[0].messages, translated: catalog });
+      assert.deepEqual(leaks, [], `no French display text in ${code}`);
+      await page.locator("#readmeHelpButton").click();
+      assert.match(await page.locator(".project-help-content").textContent(), /Arnaud de Moissac/);
+      assert.ok((await page.locator(".project-help-content").textContent()).includes(
+        { fr: "Enregistrer, importer et exporter", en: "Save, import and export", br: "Enrollañ, enporzhiañ hag ezporzhiañ" }[code]));
+      await page.locator("#closeReadmeHelp").click();
+    }
+    await page.locator("#closeCandidates").click();
+    await page.selectOption("#languageSelect", "br");
+    await page.locator("#computeBerthsButton").click();
+    assert.match(await page.locator("#toast").textContent(), /lec'h/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+    assert.match(await page.locator("#toast").textContent(), /berths of 4\.0 m/);
+    assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.localeReport())).missingKeys, []);
+    assert.deepEqual(externalRequests.filter(url => !url.includes("googletagmanager")), []);
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const code of ["fr", "en", "br"]) {
+        await page.selectOption("#languageSelect", code);
+        const clipped = await page.evaluate(() => Array.from(document.querySelectorAll(
+          ".header-actions > button, .header-actions > select, .header-edit-actions button"
+        )).filter(element => {
+          const box = element.getBoundingClientRect();
+          return box.left < 0 || box.right > innerWidth || box.width < 35 || box.bottom > 104;
+        }).map(element => element.id));
+        assert.deepEqual(clipped, [], `${code} controls fit at ${width}px`);
+      }
+    }
+});
+
+browserCase("generator:localization.02", async ({ browser }) => {
+    for (const [locale, stored, expected, blocked] of [
+      ["en-GB", null, "en", false], ["br-FR", null, "br", false],
+      ["zz-ZZ", null, "fr", false], ["fr-FR", "br", "br", false],
+      ["br-FR", "en", "en", false], ["en-GB", null, "en", true]
+    ]) {
+      const context = await browser.newContext({ locale });
+      try {
+        const errors = [], network = [];
+        const page = await context.newPage();
+        page.on("pageerror", error => errors.push(error.message));
+        page.on("console", message => { if (["error", "warning"].includes(message.type())) errors.push(message.text()); });
+        await page.route("https://www.googletagmanager.com/**", route => route.fulfill({ body: "" }));
+        page.on("request", request => { if (/^https?:/.test(request.url()) && !request.url().includes("googletagmanager")) network.push(request.url()); });
+        await page.addInitScript(({ stored, blocked }) => {
+          localStorage.setItem("kjp.simulator.locale", "fr");
+          if (stored) localStorage.setItem("kjp.generator.locale", stored);
+          if (blocked) Object.defineProperty(window, "localStorage", { get() { throw new Error("disabled"); } });
+        }, { stored, blocked });
+        await page.goto(testUrl(generatorPath));
+        await page.waitForFunction(() => window.__KJP_GENERATOR_TEST__);
+        assert.equal(await page.locator("html").getAttribute("lang"), expected);
+        await page.selectOption("#languageSelect", "br");
+        assert.equal(await page.locator("html").getAttribute("lang"), "br");
+        if (!blocked) {
+          assert.equal(await page.evaluate(() => localStorage.getItem("kjp.simulator.locale")), "fr");
+          // The init script only writes a preference when a fixture explicitly supplies one.
+          if (!stored) {
+            await page.reload();
+            assert.equal(await page.locator("html").getAttribute("lang"), "br");
+          }
+        }
+        assert.deepEqual(errors, []);
+        assert.deepEqual(network, []);
+      } finally { await context.close(); }
+    }
+});
+
+browserCase("generator:localization.03", async ({ page }) => {
+    await page.selectOption("#languageSelect", "en");
+    await page.locator("#importInput").setInputFiles({ name: "invalid.kjp", mimeType: "application/json", buffer: Buffer.from("{") });
+    await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Import refused"));
+    assert.match(await page.locator("#toast").textContent(), /unreadable JSON/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+    assert.match(await page.locator("#toast").textContent(), /Enporzhiañ/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+    assert.match(await page.locator("#toast").textContent(), /Import refusé.*JSON illisible/);
+    await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      const document = api.loadDemonstration();
+      document.structures.pontoons[0].length = 0;
+      api.setDocument(document);
+    });
+    await page.selectOption("#languageSelect", "en");
+    await page.locator("#exportButton").click();
+    assert.match(await page.locator("#toast").textContent(), /Export failed/);
+    assert.equal(await page.locator(".toast-action").textContent(), "Show object");
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+    assert.equal(await page.locator(".toast-action").textContent(), "Afficher l’objet");
+    await page.locator(".toast-action").click();
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.renderReport())).selected, "pontoon-main");
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.resetWorkspace({ confirmReset: false }));
+    await page.selectOption("#languageSelect", "en");
+    // A deferred network response leaves a real progress message on screen while switching language.
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    await page.route(/https:\/\/.*\/api\/interpreter/, async route => {
+      await pending;
+      await route.fulfill({ json: require("./fixtures/osm-port-sample.json") });
+    });
+    await page.route(/https:\/\/(?:tile\.openstreetmap\.org|tiles\.openseamap\.org)\//, route => route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64")
+    }));
+    try {
+      await page.locator("#analyzeButton").click();
+      await page.waitForFunction(() => document.querySelector("#analysisStats").textContent.includes("Connecting"));
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+      assert.match(await page.locator("#analysisStats").textContent(), /O kennaskañ/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+      assert.match(await page.locator("#analysisStats").textContent(), /Connexion/);
+      release();
+      await page.waitForFunction(() => !document.querySelector("#analyzeButton").disabled);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+      assert.match(await page.locator("#analysisStats").textContent(), /OSM objects/);
+      await page.evaluate(() => {
+        const realFetch = window.fetch;
+        window.fetch = (url, options) => String(url).includes("interpreter")
+          ? Promise.resolve({ ok: false, status: 400, headers: new Headers() })
+          : realFetch(url, options);
+      });
+      await page.locator("#closeCandidates").click();
+      await page.locator("#analyzeButton").click();
+      await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("HTTP 400"));
+      assert.match(await page.locator("#toast").textContent(), /No Overpass server.*HTTP 400/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("br"));
+      assert.match(await page.locator("#toast").textContent(), /Servijer Overpass.*HTTP 400/);
+      await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+      assert.match(await page.locator("#toast").textContent(), /Aucun serveur Overpass.*HTTP 400/);
+      assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.localeReport())).missingKeys, []);
+    } finally { release(); }
+});
+
 browserCase("generator:guide.01", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const initial = await page.evaluate(() => ({
       eyebrow: document.querySelector(".brand .eyebrow")?.textContent.trim(),
@@ -495,8 +664,15 @@ browserCase("generator:editing.14", async ({ page, browser, context, runtimeErro
     await page.waitForTimeout(320);
     await page.locator('[data-tool="pontoon"]').click();
     const box = await page.locator("#map").boundingBox();
+    const cameraBefore = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.cameraReport());
     await page.locator("#map").click({
       position: { x: box.width * 0.62, y: box.height * 0.54 }
+    });
+    assert.equal(await page.evaluate(() => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length
+    )), before, "le premier clic ne crée pas encore de ponton");
+    await page.locator("#map").click({
+      position: { x: box.width * 0.78, y: box.height * 0.38 }
     });
     await page.waitForFunction(count => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length === count + 1
@@ -508,6 +684,19 @@ browserCase("generator:editing.14", async ({ page, browser, context, runtimeErro
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.at(-1)
     ));
     assert.equal(createdPontoon.width, 2);
+    assert.ok(createdPontoon.length > 0.2);
+    assert.ok(Math.abs(createdPontoon.heading - Math.PI / 4) < 0.25,
+      "les deux clics déterminent l’orientation");
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.cameraReport()), cameraBefore,
+      "les deux clics de placement ne doivent pas déclencher le zoom");
+    const createdHandles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
+    for (const [sign, expected] of [[-1, [box.width * 0.62, box.height * 0.54]],
+      [1, [box.width * 0.78, box.height * 0.38]]]) {
+      const endpoint = createdHandles.handles.find(handle => handle.sign === sign);
+      assert.ok(Math.hypot(endpoint.pixel[0] - expected[0], endpoint.pixel[1] - expected[1]) < 2,
+        `les extrémités doivent coïncider avec les clics : ${JSON.stringify({ actual: endpoint.pixel, expected, box })}`);
+    }
 
     const buoyBefore = await page.evaluate(() => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.buoys.length
@@ -575,7 +764,7 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
       const document = api.loadDemonstration();
       const pontoon = document.structures.pontoons[0];
       api.select(pontoon.id);
-      return { id: pontoon.id, length: pontoon.length };
+      return pontoon;
     });
     await page.waitForTimeout(350);
     const mapBox = await page.locator("#map").boundingBox();
@@ -583,11 +772,11 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
 
     let handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
     assert.equal(handles.objectId, selected.id);
-    assert.equal(handles.handles.filter(handle => handle.kind === "length").length, 2);
-    assert.equal(handles.handles.filter(handle => handle.kind === "rotate").length, 1);
+    assert.equal(handles.handles.filter(handle => handle.kind === "endpoint").length, 2);
+    assert.equal(handles.handles.filter(handle => handle.kind === "rotate").length, 0);
 
-    const positive = handles.handles.find(handle => handle.kind === "length" && handle.sign === 1);
-    const negative = handles.handles.find(handle => handle.kind === "length" && handle.sign === -1);
+    const positive = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === 1);
+    const negative = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === -1);
     const direction = {
       x: positive.pixel[0] - negative.pixel[0],
       y: positive.pixel[1] - negative.pixel[1]
@@ -606,17 +795,38 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
     ), selected.id);
     assert.ok(object.length > selected.length, "la poignée d'extrémité doit allonger le ponton");
 
+    const endpoint = (rectangle, sign) => ({
+      east: rectangle.center.east + sign * Math.cos(rectangle.heading) * rectangle.length / 2,
+      north: rectangle.center.north + sign * Math.sin(rectangle.heading) * rectangle.length / 2
+    });
+    const closePoint = (actual, expected) => assert.ok(
+      Math.hypot(actual.east - expected.east, actual.north - expected.north) < 1e-6,
+      "l’extrémité opposée doit rester fixe"
+    );
+    closePoint(endpoint(object, -1), endpoint(selected, -1));
     handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
-    const rotation = handles.handles.find(handle => handle.kind === "rotate");
-    const center = handles.centerPixel;
-    await page.mouse.move(...Object.values(absolute(rotation.pixel)));
+    const moving = handles.handles.find(handle => handle.sign === -1);
+    const beforeTurn = object;
+    await page.mouse.move(...Object.values(absolute(moving.pixel)));
     await page.mouse.down();
-    await page.mouse.move(mapBox.x + center[0] + 85, mapBox.y + center[1], { steps: 6 });
+    await page.mouse.move(mapBox.x + moving.pixel[0] + 15, mapBox.y + moving.pixel[1] - 65, { steps: 6 });
     await page.mouse.up();
     object = await page.evaluate(id => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
     ), selected.id);
-    assert.ok(Math.abs(object.heading) > 0.2, "la poignée de rotation doit modifier le cap");
+    assert.ok(Math.abs(object.heading - beforeTurn.heading) > 0.05,
+      "déplacer une extrémité hors de l’axe doit orienter le ponton");
+    closePoint(endpoint(object, 1), endpoint(beforeTurn, 1));
+    const turned = object;
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.undo());
+    assert.deepEqual(await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id), beforeTurn);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.redo());
+    assert.deepEqual(await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id), turned);
+    await page.evaluate(id => window.__KJP_GENERATOR_TEST__.select(id), selected.id);
 
     await page.locator('[data-property="headingDeg"]').fill("37");
     await page.locator('[data-property="headingDeg"]').dispatchEvent("change");
@@ -629,13 +839,13 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
     assert.deepEqual(synchronized.render.mapSelected, [selected.id]);
 
     handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
-    const lengthHandle = handles.handles.find(handle => handle.kind === "length" && handle.sign === 1);
+    const lengthHandle = handles.handles.find(handle => handle.kind === "endpoint" && handle.sign === 1);
     const beforeSecondDrag = synchronized.object.length;
     await page.mouse.move(...Object.values(absolute(lengthHandle.pixel)));
     await page.mouse.down();
     await page.mouse.move(
       mapBox.x + lengthHandle.pixel[0] + 24,
-      mapBox.y + lengthHandle.pixel[1] - 18,
+      mapBox.y + lengthHandle.pixel[1] + 24,
       { steps: 5 }
     );
     await page.mouse.up();
@@ -645,8 +855,25 @@ browserCase("generator:editing.15", async ({ page, browser, context, runtimeErro
       return { object, render: api.renderReport() };
     }, selected.id);
     assert.notEqual(synchronized.object.length, beforeSecondDrag);
-    assert.ok(Math.abs(synchronized.object.heading * 180 / Math.PI - 37) < 1e-9);
+    assert.ok(Math.abs(synchronized.object.heading * 180 / Math.PI - 37) > 0.1,
+      "la poignée doit encore orienter le ponton après une saisie dans les champs");
     assert.deepEqual(synchronized.render.mapSelected, [selected.id]);
+
+    handles = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.rectangleHandleReport());
+    const beforeTranslation = synchronized.object;
+    await page.mouse.move(...Object.values(absolute(handles.centerPixel)));
+    await page.mouse.down();
+    await page.mouse.move(mapBox.x + handles.centerPixel[0] + 45,
+      mapBox.y + handles.centerPixel[1] + 30, { steps: 6 });
+    await page.mouse.up();
+    const translated = await page.evaluate(id => (
+      window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.find(item => item.id === id)
+    ), selected.id);
+    assert.equal(translated.length, beforeTranslation.length);
+    assert.equal(translated.heading, beforeTranslation.heading);
+    assert.ok(Math.hypot(translated.center.east - beforeTranslation.center.east,
+      translated.center.north - beforeTranslation.center.north) > 1,
+    "glisser le corps doit déplacer tout le ponton");
 
     const emptyPixel = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.emptyMapPixel());
     assert.ok(emptyPixel, "une zone vide de la carte doit être disponible");
@@ -745,6 +972,101 @@ browserCase("generator:editing.18", async ({ page, browser, context, runtimeErro
 
 });
 
+browserCase("generator:measurement.01", async ({ page }) => {
+    await page.route(/^https?:\/\//, route => route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64")
+    }));
+    await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      api.loadDemonstration();
+      api.select("pontoon-main");
+    });
+    await page.waitForTimeout(350);
+    await page.locator("#orthoLayerToggle").check();
+    await page.locator("#enableMapsButton").click();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.layers().orthophoto), true);
+    const before = await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        handles: api.rectangleHandleReport() };
+    });
+    const box = await page.locator("#map").boundingBox();
+    const [first, last] = [-1, 1].map(sign => before.handles.handles.find(h => h.sign === sign).pixel);
+    const along = fraction => ({
+      x: box.x + first[0] + fraction * (last[0] - first[0]),
+      y: box.y + first[1] + fraction * (last[1] - first[1])
+    });
+    const start = along(0.25), end = along(0.375);
+    await page.locator('[data-tool="measure"]').click();
+    await page.mouse.click(start.x, start.y);
+    await page.mouse.move(end.x, end.y, { steps: 3 });
+    let measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, false);
+    assert.ok(Math.abs(measurement.distance - 10) < 0.2, "aperçu en mètres terrain, sans facteur Mercator");
+    await page.mouse.click(end.x, end.y);
+    await page.waitForTimeout(300);
+    measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true);
+    assert.equal(measurement.features, 1);
+    assert.ok(Math.abs(measurement.distance - 10) < 0.2);
+    assert.match(await page.locator("#measurementDistance").textContent(), /m$/);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), true);
+    assert.equal(await page.locator("#useMeasurementSpacing").isEnabled(), true);
+    await page.locator("#useMeasurementSpacing").click();
+    assert.equal(await page.locator("#catwayMode").inputValue(), "spacing");
+    assert.equal(Number(await page.locator("#catwaySpacing").inputValue()), Math.round(measurement.distance * 10) / 10);
+    const after = await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__;
+      return { document: api.snapshot(), camera: api.cameraReport(), history: api.historyReport(),
+        selected: api.renderReport().selected, exported: api.exportText() };
+    });
+    assert.deepEqual(after.document, before.document);
+    assert.deepEqual(after.camera, before.camera);
+    assert.deepEqual(after.history, before.history);
+    assert.equal(after.selected, "pontoon-main");
+    assert.doesNotMatch(after.exported, /measurement/);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
+    assert.equal(await page.locator("#measurementHint").textContent(), "Distance between the two points");
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport().distance), measurement.distance);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("fr"));
+    await page.locator("#clearMeasurement").click();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), false);
+});
+
+browserCase("generator:measurement.02", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.locator("#collapseLeft").tap();
+    await page.locator("#collapseRight").tap();
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+    await page.waitForTimeout(350);
+    const box = await page.locator("#map").boundingBox();
+    const start = { x: box.x + box.width * 0.25, y: box.y + box.height * 0.25 };
+    const end = { x: box.x + box.width * 0.65, y: box.y + box.height * 0.35 };
+    await page.locator('[data-tool="measure"]').tap();
+    await page.touchscreen.tap(start.x, start.y);
+    await page.touchscreen.tap(end.x, end.y);
+    let measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true, JSON.stringify({ measurement, box, start, end }));
+    assert.ok(measurement.distance > 2);
+    await page.locator('[data-tool="measure"]').tap();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    await page.touchscreen.tap(start.x, start.y);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+    assert.equal(await page.locator("#measurementPanel").isVisible(), false);
+    await page.locator('[data-tool="measure"]').tap();
+    await page.touchscreen.tap(start.x, start.y);
+    await page.touchscreen.tap(start.x, start.y);
+    measurement = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport());
+    assert.equal(measurement.complete, true);
+    assert.ok(measurement.distance < 0.01);
+    assert.equal(await page.locator("#useMeasurementSpacing").isEnabled(), false);
+    await page.locator("#clearMeasurement").tap();
+    assert.equal(await page.evaluate(() => window.__KJP_GENERATOR_TEST__.measurementReport()), null);
+});
+
 browserCase("generator:maps.19", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.locator("#orthoLayerToggle").check();
     await page.locator("#orthoOpacity").fill("31");
@@ -834,6 +1156,10 @@ browserCase("generator:interface.21", async ({ page, browser, context, runtimeEr
     await tablet.touchscreen.tap(
       mapBox.x + mapBox.width * 0.68,
       mapBox.y + mapBox.height * 0.52
+    );
+    await tablet.touchscreen.tap(
+      mapBox.x + mapBox.width * 0.82,
+      mapBox.y + mapBox.height * 0.38
     );
     await tablet.waitForFunction(count => (
       window.__KJP_GENERATOR_TEST__.snapshot().structures.pontoons.length === count + 1

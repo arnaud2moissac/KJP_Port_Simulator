@@ -1,0 +1,51 @@
+{
+  "authorization": "User: comportements validés. continue",
+  "phase1FreezeHead": "5c9dbfc7a9647d2af10d91af761882293894ddab",
+  "profileSha256": {
+    "sun-odyssey-36i-pedagogical": "f207705791846ec073f0eb3e0560d67f5fd70d69e4ef0f7de4bb624b28ede9ad",
+    "dufour-310-gl-2014-deep-keel-experimental": "c3c2552882dbac98da79d45880ca4f8eb39e721b314b77cb71d657afa5cdf4ae",
+    "sun-odyssey-24-2-fixed-keel-experimental": "7cbf2b66bc46488748f6ec4aaab1d48de33ef6de439e2a5b0d127f46c58a8e7d",
+    "contessa-26-long-keel-experimental": "1e4a2f87a1291858c3264fd0e784fc7cc427a6ca7d688bb08d598ea53a58a3f7",
+    "pogo-40-s4-twin-rudder-experimental": "0f0037fdda0254e1f2efe40182af88421a6da552df2702a1ec51f3f8fdeb6be2",
+    "oceanis-48-fixed-keel-experimental": "08b5e102f83cd5ea784bc9c2d29dbbc15e3d387638aa18ff4b1a230ed8458015"
+  },
+  "physicsSourceSha256": "06032b6c3075061bd37a154d02720b3332728ce4ee65fcb19204733fc7f94251",
+  "profileSourceSha256": "cf394bea6f06da25852fac82d038f182d33e10945d601927e031122e868383d7",
+  "acceptedSummarySha256": "12655ef42522525f860d05bbd926c81ebf7d7710ee6145191d5e7d471b3ec47b",
+  "replayedSummarySha256": "12655ef42522525f860d05bbd926c81ebf7d7710ee6145191d5e7d471b3ec47b",
+  "sameRows": true,
+  "profiles": [
+    {
+      "id": "sun-odyssey-36i-pedagogical",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    },
+    {
+      "id": "dufour-310-gl-2014-deep-keel-experimental",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    },
+    {
+      "id": "sun-odyssey-24-2-fixed-keel-experimental",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    },
+    {
+      "id": "contessa-26-long-keel-experimental",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    },
+    {
+      "id": "pogo-40-s4-twin-rudder-experimental",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    },
+    {
+      "id": "oceanis-48-fixed-keel-experimental",
+      "scenarios": 120,
+      "identicalFinalStates": 120
+    }
+  ],
+  "method": "Existing headless runner, identical commands, environments and time steps; comparison of every full metric row and final-state SHA256 against accepted Phase1. No equations duplicated.",
+  "command": "node scripts/qualify-vessel-profiles.js --profiles commercial --summary-only --out /tmp/kjp-four-vessel-phase2-replay"
+}

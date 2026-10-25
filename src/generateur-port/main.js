@@ -1,4 +1,5 @@
 import "./styles.css";
+import { i18n, t, msg, num, resolve, setText, refreshTranslations } from "./i18n.js";
 import Map from "ol/Map.js";
 import View from "ol/View.js";
 import Feature from "ol/Feature.js";
@@ -49,10 +50,7 @@ const internalHeadingRadians = nauticalHeading => (
 const formatNauticalHeading = heading => String(
   Math.round(nauticalHeadingDegrees(heading)) % 360
 ).padStart(3, "0");
-const format = (value, digits = 1) => Number(value).toLocaleString("fr-FR", {
-  minimumFractionDigits: digits,
-  maximumFractionDigits: digits
-});
+const format = (value, digits = 1) => i18n.formatNumber(value, digits);
 const safeFilename = value => (
   String(value || "port")
     .normalize("NFD")
@@ -65,13 +63,14 @@ const safeFilename = value => (
 );
 
 let editor = new EditorCore.PortEditor(KJPCodec.createEmpty({
-  name: "Nouveau port",
+  name: t("ui.nouveau.port"),
   latitude: 47.586,
   longitude: -3.03,
   generatorVersion: GENERATOR_VERSION
 }));
 let activeTool = "select";
 let drawInteraction = null;
+let measurement = null;
 let mapsEnabled = false;
 let analyzedResponses = [];
 let candidates = [];
@@ -164,13 +163,15 @@ function boatMapCoordinates(boat, document = editor.document) {
 function showToast(message, tone = "neutral", duration = 2300, action = null) {
   const toast = $("#toast");
   clearTimeout(toastTimer);
-  toast.replaceChildren(document.createTextNode(message));
+  const content = document.createElement("span");
+  setText(content, message);
+  toast.replaceChildren(content);
   toast.classList.toggle("has-action", Boolean(action));
   if (action) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "toast-action";
-    button.textContent = action.label;
+    setText(button, action.label);
     button.addEventListener("click", () => {
       action.handler();
       toast.classList.remove("visible", "has-action");
@@ -180,6 +181,30 @@ function showToast(message, tone = "neutral", duration = 2300, action = null) {
   toast.dataset.tone = tone;
   toast.classList.add("visible");
   toastTimer = setTimeout(() => toast.classList.remove("visible", "has-action"), duration);
+}
+
+function errorMessage(error) {
+  if (error.messageKey) return msg(error.messageKey, error.messageParams);
+  if (error.key) return msg(error.key, error.params);
+  if (error.name === "OverpassAvailabilityError") {
+    const endpoints = [];
+    for (const attempt of error.attempts || []) {
+      let group = endpoints.find(item => item.endpoint === attempt.endpoint);
+      if (!group) { group = { endpoint: attempt.endpoint, count: 0 }; endpoints.push(group); }
+      Object.assign(group, attempt, { count: group.count + 1 });
+    }
+    const summary = endpoints.map(attempt => msg("error.overpass.endpoint", {
+      server: attempt.label,
+      repetitions: attempt.count > 1 ? ` ×${attempt.count}` : "",
+      reason: attempt.reasonMessage || attempt.reason
+    })).reduce((left, right) => left ? msg("message.join", { left, right }) : right, "");
+    return msg("error.overpass", {
+      count: error.rounds,
+      deadline: error.totalDeadlineReached ? msg("error.overpass.deadline") : "",
+      details: summary ? msg("error.overpass.details", { summary }) : ""
+    });
+  }
+  return error.message;
 }
 
 function fetchTracked(url, options) {
@@ -195,7 +220,7 @@ const osmLayer = new TileLayer({
   visible: false,
   source: new OSM({
     crossOrigin: "anonymous",
-    attributions: "© les contributeurs OpenStreetMap · ODbL"
+    attributions: t("ui.les.contributeurs.openstreetmap.odbl")
   })
 });
 const orthoLayer = new TileLayer({
@@ -221,6 +246,7 @@ const analysisSource = new VectorSource();
 const decompositionSource = new VectorSource();
 const entryDraftSource = new VectorSource();
 const editHandleSource = new VectorSource();
+const measurementSource = new VectorSource();
 
 const palette = Object.freeze({
   pontoon: { fill: "rgba(250,248,239,.94)", stroke: "#53676c" },
@@ -249,29 +275,29 @@ const buoyColourPalette = Object.freeze({
 
 const buoyCategoryOptions = Object.freeze({
   buoy_lateral: Object.freeze([
-    Object.freeze({ value: "port", label: "Bâbord · rouge" }),
-    Object.freeze({ value: "starboard", label: "Tribord · vert" })
+    Object.freeze({ value: "port", label: msg("ui.babord.rouge") }),
+    Object.freeze({ value: "starboard", label: msg("ui.tribord.vert") })
   ]),
   buoy_cardinal: Object.freeze([
-    Object.freeze({ value: "north", label: "Cardinale Nord" }),
-    Object.freeze({ value: "east", label: "Cardinale Est" }),
-    Object.freeze({ value: "south", label: "Cardinale Sud" }),
-    Object.freeze({ value: "west", label: "Cardinale Ouest" })
+    Object.freeze({ value: "north", label: msg("ui.cardinale.nord") }),
+    Object.freeze({ value: "east", label: msg("ui.cardinale.est") }),
+    Object.freeze({ value: "south", label: msg("ui.cardinale.sud") }),
+    Object.freeze({ value: "west", label: msg("ui.cardinale.ouest") })
   ]),
   buoy_isolated_danger: Object.freeze([
-    Object.freeze({ value: "", label: "Danger isolé" })
+    Object.freeze({ value: "", label: msg("ui.danger.isole") })
   ]),
   buoy_safe_water: Object.freeze([
-    Object.freeze({ value: "", label: "Eaux saines" })
+    Object.freeze({ value: "", label: msg("ui.eaux.saines") })
   ]),
   buoy_special_purpose: Object.freeze([
-    Object.freeze({ value: "", label: "Marque spéciale" })
+    Object.freeze({ value: "", label: msg("ui.marque.speciale") })
   ]),
   buoy_installation: Object.freeze([
-    Object.freeze({ value: "", label: "Installation" })
+    Object.freeze({ value: "", label: msg("ui.installation") })
   ]),
   mooring: Object.freeze([
-    Object.freeze({ value: "buoy", label: "Corps mort · bouée d’amarrage" })
+    Object.freeze({ value: "buoy", label: msg("ui.corps.mort.bouee.damarrage") })
   ])
 });
 
@@ -322,8 +348,8 @@ function dimensionLabel(object, collection) {
       : null;
     const spacing = group
       ? group.parameters.mode === "spacing"
-        ? ` · entraxe ${format(group.parameters.spacing)} m`
-        : ` · ${group.parameters.count} par côté`
+        ? t("metric.spacing", { value: num(group.parameters.spacing) })
+        : t("metric.per.side", { count: group.parameters.count })
       : "";
     return `${format(object.length)} m · ${format(object.width)} m · ${format(object.heading * 180 / Math.PI, 0)}°${spacing}`;
   }
@@ -335,11 +361,11 @@ function dimensionLabel(object, collection) {
     return `Ø ${format(object.radius * 2)} m · H ${format(object.height)} m`;
   }
   if (collection === "pendilles") {
-    return `${format(object.anchor.normalDistance)} m · prof. ${format(object.anchor.depth)} m`;
+    return t("metric.lazy.line", { distance: num(object.anchor.normalDistance), depth: num(object.anchor.depth) });
   }
   if (collection === "staticBoats") return `${format(object.length)} × ${format(object.beam)} m`;
   if (collection === "berths") return `${format(object.length)} × ${format(object.width)} m`;
-  if (collection === "entries") return `Cap ${formatNauticalHeading(object.heading)}°`;
+  if (collection === "entries") return t("metric.heading", { heading: formatNauticalHeading(object.heading) });
   return "";
 }
 
@@ -366,7 +392,7 @@ function entryStyles(feature, object, isSelected) {
     new Style({
       stroke: new Stroke({ color: palette.entry.stroke, width: lineWidth + 3 }),
       text: new Text({
-        text: `Cap ${formatNauticalHeading(heading)}°`,
+        text: t("metric.heading", { heading: formatNauticalHeading(heading) }),
         offsetY: -17,
         padding: [4, 5, 4, 5],
         fill: new Fill({ color: "#173238" }),
@@ -601,7 +627,8 @@ const editHandleLayer = new VectorLayer({
           stroke: new Stroke({ color: palette.selected, width: 3 })
         }),
       text: new Text({
-        text: kind === "rotate" ? "Rotation" : "Longueur",
+        text: kind === "rotate" ? t("ui.rotation")
+          : kind === "endpoint" ? t("ui.extremite") : t("ui.longueur"),
         offsetY: kind === "rotate" ? -17 : 17,
         padding: [3, 4, 3, 4],
         fill: new Fill({ color: "#173238" }),
@@ -612,6 +639,63 @@ const editHandleLayer = new VectorLayer({
   },
   zIndex: 35
 });
+
+function measurementLength(coordinates) {
+  const start = mapToLocal(coordinates[0]);
+  const end = mapToLocal(coordinates[coordinates.length - 1]);
+  return Math.hypot(end.east - start.east, end.north - start.north);
+}
+
+function measurementStyles(feature) {
+  const geometry = feature.getGeometry();
+  const marker = point => new Style({
+    geometry: point,
+    image: new CircleStyle({
+      radius: 5,
+      fill: new Fill({ color: "#fff" }),
+      stroke: new Stroke({ color: "#08758a", width: 2 })
+    })
+  });
+  if (!(geometry instanceof LineString)) return marker(geometry);
+  const coordinates = geometry.getCoordinates();
+  return [
+    new Style({ stroke: new Stroke({ color: "#fff", width: 6 }) }),
+    new Style({
+      stroke: new Stroke({ color: "#08758a", width: 3, lineDash: [8, 5] }),
+      text: new Text({
+        text: `${format(measurementLength(coordinates))} m`,
+        offsetY: -22,
+        font: "700 13px sans-serif",
+        padding: [5, 7, 5, 7],
+        fill: new Fill({ color: "#173238" }),
+        backgroundFill: new Fill({ color: "rgba(255,255,255,.96)" })
+      })
+    }),
+    marker(new Point(coordinates[0])),
+    marker(new Point(coordinates[coordinates.length - 1]))
+  ];
+}
+
+const measurementLayer = new VectorLayer({
+  source: measurementSource,
+  style: measurementStyles,
+  zIndex: 36
+});
+
+function renderMeasurement() {
+  $("#measurementPanel").hidden = activeTool !== "measure" && !measurement?.complete;
+  $("#measurementDistance").textContent = measurement ? `${format(measurement.distance)} m` : "";
+  setText($("#measurementHint"), msg(measurement?.complete ? "measurement.done"
+    : measurement ? "measurement.end" : "measurement.start"));
+  $("#useMeasurementSpacing").hidden = !measurement?.complete;
+  $("#useMeasurementSpacing").disabled = !selectedPontoon() || measurement?.distance < 2;
+}
+
+function clearMeasurement() {
+  measurement = null;
+  measurementSource.clear();
+  renderMeasurement();
+}
 
 const map = new Map({
   target: "map",
@@ -624,7 +708,8 @@ const map = new Map({
     analysisLayer,
     decompositionLayer,
     entryDraftLayer,
-    editHandleLayer
+    editHandleLayer,
+    measurementLayer
   ],
   view: new View({
     center: fromLonLat([-3.03, 47.586]),
@@ -848,14 +933,14 @@ function handleFeatureAtPixel(pixel) {
 function rectangleHandleGeometry(rectangle, collection) {
   const resizeSigns = collection === "catways" && rectangle.attachment ? [1] : [-1, 1];
   const resize = resizeSigns.map(sign => ({
-    kind: "length",
+    kind: collection === "pontoons" ? "endpoint" : "length",
     sign,
     point: KJPCodec.localToWorld(rectangle, {
       longitudinal: sign * rectangle.length / 2,
       transverse: 0
     })
   }));
-  if (collection === "catways" && rectangle.attachment) {
+  if (collection === "pontoons" || rectangle.attachment) {
     return { resize, rotation: null, guideStart: null };
   }
   const rotationOffset = rectangle.width / 2 + clamp(rectangle.length * 0.12, 3, 7);
@@ -929,7 +1014,7 @@ function previewRectangleEdit(found, rectangle) {
   objectLayer.changed();
   const metrics = $("#selectionMetrics");
   metrics.hidden = false;
-  metrics.textContent = `${rectangle.id} · ${dimensionLabel(rectangle, found.collection)}`;
+  setText(metrics, `${rectangle.id} · ${dimensionLabel(rectangle, found.collection)}`);
 }
 
 let rectangleHandleDrag = null;
@@ -950,7 +1035,7 @@ const rectangleHandleInteraction = new PointerInteraction({
     };
     map.getTargetElement().style.cursor = rectangleHandleDrag.kind === "rotate"
       ? "grabbing"
-      : "ew-resize";
+      : rectangleHandleDrag.kind === "endpoint" ? "move" : "ew-resize";
     return true;
   },
   handleDragEvent(event) {
@@ -958,7 +1043,23 @@ const rectangleHandleInteraction = new PointerInteraction({
     const cursor = mapToLocal(event.coordinate);
     const { found, original, kind, sign } = rectangleHandleDrag;
     const next = clone(original);
-    if (kind === "length") {
+    if (kind === "endpoint") {
+      const opposite = KJPCodec.localToWorld(original, {
+        longitudinal: -sign * original.length / 2,
+        transverse: 0
+      });
+      const east = cursor.east - opposite.east;
+      const north = cursor.north - opposite.north;
+      const distance = Math.hypot(east, north);
+      next.length = Math.max(0.2, distance);
+      next.heading = distance > 1e-9
+        ? Math.atan2(sign * north, sign * east)
+        : original.heading;
+      next.center = {
+        east: opposite.east + sign * Math.cos(next.heading) * next.length / 2,
+        north: opposite.north + sign * Math.sin(next.heading) * next.length / 2
+      };
+    } else if (kind === "length") {
       const axis = { east: Math.cos(original.heading), north: Math.sin(original.heading) };
       const opposite = {
         east: original.center.east - sign * axis.east * original.length / 2,
@@ -1026,7 +1127,8 @@ const rectangleHandleInteraction = new PointerInteraction({
     if (rectangleHandleDrag) return;
     const handle = activeTool === "select" ? handleFeatureAtPixel(event.pixel) : null;
     map.getTargetElement().style.cursor = handle
-      ? handle.get("handleKind") === "rotate" ? "grab" : "ew-resize"
+      ? handle.get("handleKind") === "rotate" ? "grab"
+        : handle.get("handleKind") === "endpoint" ? "move" : "ew-resize"
       : "";
   }
 });
@@ -1036,9 +1138,9 @@ function configureBuoyCategorySelect(seamarkType, requestedCategory = "") {
   const select = $("#buoyCategory");
   const options = buoyCategoryOptions[seamarkType] || buoyCategoryOptions.buoy_special_purpose;
   select.replaceChildren();
-  for (const option of options) select.add(new Option(option.label, option.value));
+  for (const option of options) select.add(new Option(resolve(option.label), option.value));
   if (requestedCategory && !options.some(option => option.value === requestedCategory)) {
-    select.add(new Option(`Autre · ${requestedCategory}`, requestedCategory));
+    select.add(new Option(t("buoy.other", { value: requestedCategory }), requestedCategory));
   }
   select.value = options.some(option => option.value === requestedCategory)
     ? requestedCategory
@@ -1048,34 +1150,44 @@ function configureBuoyCategorySelect(seamarkType, requestedCategory = "") {
   return select.value;
 }
 
+function refreshInspectorLabels(found = selectedObject()) {
+  setText($("#inspectorTitle"), found ? {
+      pontoons: t("ui.ponton"),
+      catways: t("ui.catway"),
+      cleats: t("ui.taquet"),
+      obstacles: t("ui.obstacle.lineaire"),
+      landAreas: t("ui.zone.non.navigable"),
+      berths: t("ui.place"),
+      staticBoats: t("ui.bateau.generique"),
+      entries: t("ui.entree.orientee"),
+      buoys: found.object.seamarkType === "mooring"
+        ? t("ui.bouee.corps.mort")
+        : t("ui.bouee.de.navigation"),
+      pendilles: t("ui.pendille")
+    }[found.collection] || t("ui.objet") : msg("ui.aucun.objet.selectionne"));
+  if (!found) return;
+  setText($("#lengthPropertyLabel"), found.collection === "buoys" ? msg("ui.longueur") : msg("ui.longueur.m"));
+  setText($("#widthPropertyLabel"), found.collection === "buoys" ? msg("ui.diametre.m") : msg("ui.largeur.m"));
+  setText($("#headingPropertyLabel"), found.collection === "entries" ? msg("ui.cap.nautique") : msg("ui.angle"));
+  const floatingStructure = ["pontoons", "catways"].includes(found.collection);
+  setText($("#heightPropertyLabel"), floatingStructure ? msg("ui.epaisseur.m") : msg("ui.hauteur.m"));
+  setText($("#verticalLevelLabel"), floatingStructure ? msg("ui.niveau.du.pont.au.dessus.de.leau.m") : msg("ui.altitude.de.base.m"));
+}
+
 function updateInspector() {
+  renderMeasurement();
   const found = selectedObject();
   $("#emptyInspector").hidden = Boolean(found);
   $("#objectInspector").hidden = !found;
-  $("#inspectorTitle").textContent = found
-    ? ({
-      pontoons: "Ponton",
-      catways: "Catway",
-      cleats: "Taquet",
-      obstacles: "Obstacle linéaire",
-      landAreas: "Zone non navigable",
-      berths: "Place",
-      staticBoats: "Bateau générique",
-      entries: "Entrée orientée",
-      buoys: found.object.seamarkType === "mooring"
-        ? "Bouée corps mort"
-        : "Bouée de navigation",
-      pendilles: "Pendille"
-    }[found.collection] || "Objet")
-    : "Aucun objet sélectionné";
+  refreshInspectorLabels(found);
   if (!found) {
     $("#catwayGenerator").hidden = true;
     $("#buoyFields").hidden = true;
     $("#pendilleFields").hidden = true;
     $("#pendilleGenerator").hidden = true;
     $("#verticalLevelField").hidden = true;
-    $("#lengthPropertyLabel").textContent = "Longueur (m)";
-    $("#widthPropertyLabel").textContent = "Largeur (m)";
+    setText($("#lengthPropertyLabel"), msg("ui.longueur.m"));
+    setText($("#widthPropertyLabel"), msg("ui.largeur.m"));
     $("#selectionMetrics").hidden = true;
     return;
   }
@@ -1143,20 +1255,6 @@ function updateInspector() {
   const pendilleParentSelected = found.collection === "pontoons"
     || (found.collection === "obstacles" && object.type === "quay");
   $("#pendilleGenerator").hidden = !pendilleParentSelected;
-  $("#lengthPropertyLabel").textContent = found.collection === "buoys"
-    ? "Longueur"
-    : "Longueur (m)";
-  $("#widthPropertyLabel").textContent = found.collection === "buoys"
-    ? "Diamètre (m)"
-    : "Largeur (m)";
-  $("#headingPropertyLabel").textContent = found.collection === "entries"
-    ? "Cap nautique (°)"
-    : "Angle (°)";
-  const floatingStructure = ["pontoons", "catways"].includes(found.collection);
-  $("#heightPropertyLabel").textContent = floatingStructure ? "Épaisseur (m)" : "Hauteur (m)";
-  $("#verticalLevelLabel").textContent = floatingStructure
-    ? "Niveau du pont au-dessus de l’eau (m)"
-    : "Altitude de base (m)";
   $("#verticalLevelField").hidden = !["pontoons", "catways", "obstacles"].includes(found.collection);
   if (found.collection === "buoys") {
     $("#buoySeamarkType").value = object.seamarkType;
@@ -1172,7 +1270,7 @@ function updateInspector() {
 
   const metrics = $("#selectionMetrics");
   metrics.hidden = false;
-  metrics.textContent = `${object.id} · ${dimensionLabel(object, found.collection) || "position locale métrique"}`;
+  setText(metrics, `${object.id} · ${dimensionLabel(object, found.collection) || t("ui.position.locale.metrique")}`);
 }
 
 function updateStatus() {
@@ -1185,25 +1283,25 @@ function updateStatus() {
     + (document.structures.buoys?.length || 0)
     + (document.structures.pendilles?.length || 0)
   );
-  $("#objectCount").textContent = (
-    `${structures} structure${structures === 1 ? "" : "s"} · `
-    + `${document.staticBoats.length} bateau${document.staticBoats.length === 1 ? "" : "x"} · `
-    + `${document.berths.length} place${document.berths.length === 1 ? "" : "s"}`
-  );
+  setText($("#objectCount"), msg("count.summary", {
+    structures: msg("count.structures", { count: structures }),
+    boats: msg("count.boats", { count: document.staticBoats.length }),
+    berths: msg("count.berths", { count: document.berths.length })
+  }));
   $("#undoButton").disabled = editor.past.length === 0;
   $("#redoButton").disabled = editor.future.length === 0;
 }
 
 function scheduleAutosave() {
-  $("#saveState").textContent = "Modification locale…";
+  setText($("#saveState"), msg("ui.modification.locale"));
   clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(async () => {
     try {
       if (!draftDatabase) draftDatabase = await openDraftDatabase();
       await putDraft(draftDatabase, editor.snapshot());
-      $("#saveState").textContent = "Brouillon enregistré";
+      setText($("#saveState"), msg("ui.brouillon.enregistre"));
     } catch {
-      $("#saveState").textContent = "Brouillon non disponible";
+      setText($("#saveState"), msg("ui.brouillon.non.disponible"));
     }
   }, 450);
 }
@@ -1216,6 +1314,7 @@ function afterEdit({ selectId = editor.selection, fit = false } = {}) {
 }
 
 function setEditorDocument(document, { fit = true, autosave = true } = {}) {
+  clearMeasurement();
   const compatible = clone(document);
   if (!Array.isArray(compatible.structures.buoys)) compatible.structures.buoys = [];
   if (!Array.isArray(compatible.structures.pendilles)) compatible.structures.pendilles = [];
@@ -1244,23 +1343,71 @@ function fitDocument() {
 function setActiveTool(tool) {
   map.getView().cancelAnimations();
   activeTool = tool;
+  $("#map").classList.toggle("measuring", tool === "measure");
+  if (tool === "measure" || !measurement?.complete) clearMeasurement();
+  renderMeasurement();
   $$("[data-tool]").forEach(button => button.classList.toggle("active", button.dataset.tool === tool));
   selectInteraction.setActive(tool === "select");
   translateInteraction.setActive(tool === "select");
+  modifyInteraction.setActive(tool === "select" && ["entries", "pendilles"].includes(selectedObject()?.collection));
+  snapInteraction.setActive(tool !== "measure");
   if (drawInteraction) {
     map.removeInteraction(drawInteraction);
     drawInteraction = null;
   }
   entryDraftSource.clear();
   renderEditHandles();
-  if (tool === "obstacle" || tool === "land") {
+  if (tool === "measure") {
+    const updateMeasurement = (geometry, complete = false) => {
+      measurement = {
+        coordinates: geometry.getCoordinates(),
+        distance: measurementLength(geometry.getCoordinates()),
+        complete
+      };
+      renderMeasurement();
+    };
+    drawInteraction = new Draw({
+      source: measurementSource,
+      type: "LineString",
+      maxPoints: 2,
+      stopClick: true,
+      style: measurementStyles
+    });
+    drawInteraction.on("drawstart", event => {
+      const geometry = event.feature.getGeometry();
+      updateMeasurement(geometry);
+      geometry.on("change", () => updateMeasurement(geometry));
+    });
+    drawInteraction.on("drawend", event => {
+      updateMeasurement(event.feature.getGeometry(), true);
+      setActiveTool("select");
+    });
+    map.addInteraction(drawInteraction);
+  } else if (tool === "pontoon" || tool === "obstacle" || tool === "land") {
     drawInteraction = new Draw({
       source: new VectorSource(),
-      type: tool === "obstacle" ? "LineString" : "Polygon"
+      type: tool === "land" ? "Polygon" : "LineString",
+      ...(tool === "pontoon" ? { maxPoints: 2, stopClick: true } : {})
     });
     drawInteraction.on("drawend", event => {
       const geometry = event.feature.getGeometry();
-      if (tool === "obstacle") {
+      if (tool === "pontoon") {
+        const [start, end] = geometry.getCoordinates().map(point => mapToLocal(point));
+        const length = Math.hypot(end.east - start.east, end.north - start.north);
+        if (length < 0.2) return;
+        const object = {
+          id: EditorCore.createId("pontoon", editor.document),
+          type: "pontoon",
+          center: { east: (start.east + end.east) / 2, north: (start.north + end.north) / 2 },
+          length,
+          width: 2,
+          heading: Math.atan2(end.north - start.north, end.east - start.east),
+          height: 0.5,
+          vertical: EditorCore.verticalWithDeck(0.5, 0.5)
+        };
+        editor.add("pontoons", object, "Ajouter un ponton");
+        afterEdit({ selectId: object.id });
+      } else if (tool === "obstacle") {
         const object = {
           id: EditorCore.createId("obstacle", editor.document),
           type: "breakwater",
@@ -1304,7 +1451,7 @@ function setActiveTool(tool) {
         : Math.PI / 2;
       const object = {
         id: "entry-main",
-        name: "Entrée principale",
+        name: t("default.entrance"),
         position: start,
         heading
       };
@@ -1339,7 +1486,7 @@ function setActiveTool(tool) {
             heading: object.heading
           }, "Replacer l’entrée");
         } else {
-          editor.add("entries", object, "Placer et orienter l’entrée");
+          editor.add("entries", object, t("ui.placer.et.orienter.lentree"));
         }
         afterEdit({ selectId: object.id });
         setActiveTool("select");
@@ -1385,11 +1532,8 @@ function nearestPolylineStation(point, points = []) {
 
 function addObjectAt(coordinate) {
   const point = mapToLocal(coordinate);
-  if (activeTool === "pontoon" || activeTool === "catway") {
-    const isCatway = activeTool === "catway";
-    const parentCandidate = isCatway
-      ? nearestRectangle(point, editor.document.structures.pontoons, 30)
-      : null;
+  if (activeTool === "catway") {
+    const parentCandidate = nearestRectangle(point, editor.document.structures.pontoons, 30);
     let center = point;
     let heading = 0;
     let attachment = null;
@@ -1432,20 +1576,20 @@ function addObjectAt(coordinate) {
       id: EditorCore.createId(activeTool, editor.document),
       type: activeTool,
       center,
-      length: isCatway ? 10 : 60,
-      width: isCatway ? 0.6 : 2,
+      length: 10,
+      width: 0.6,
       heading,
       height: 0.5,
       vertical,
       ...(parentId ? { parentId, attachment } : {})
     };
-    editor.add(activeTool === "pontoon" ? "pontoons" : "catways", object, `Ajouter ${activeTool}`);
+    editor.add("catways", object, `Ajouter ${activeTool}`);
     afterEdit({ selectId: object.id });
   } else if (activeTool === "cleat") {
     const parentFound = selectedObject();
     const quayParent = parentFound?.collection === "obstacles" && parentFound.object.type === "quay";
     if (!parentFound || (!quayParent && !["pontoons", "catways"].includes(parentFound.collection))) {
-      showToast("Sélectionnez d’abord un ponton, un catway ou un quai.", "danger");
+      showToast(msg("ui.selectionnez.dabord.un.ponton.un.catway.ou.un.quai"), "danger");
       return;
     }
     const parent = parentFound.object;
@@ -1475,13 +1619,13 @@ function addObjectAt(coordinate) {
         orientation: local.transverse > 0 ? Math.PI / 2 : -Math.PI / 2
       };
     }
-    editor.add("cleats", object, "Ajouter un taquet");
+    editor.add("cleats", object, t("ui.ajouter.un.taquet"));
     afterEdit({ selectId: object.id });
   } else if (activeTool === "pendille") {
     const parentFound = selectedObject();
     const quayParent = parentFound?.collection === "obstacles" && parentFound.object.type === "quay";
     if (!parentFound || (!quayParent && parentFound.collection !== "pontoons")) {
-      showToast("Sélectionnez d’abord un ponton ou un quai, puis cliquez dans l’eau sur le corps-mort.", "danger");
+      showToast(msg("ui.selectionnez.dabord.un.ponton.ou.un.quai.puis.cliquez.dans.leau.sur.le.corps.mort"), "danger");
       return;
     }
     const parent = parentFound.object;
@@ -1544,7 +1688,7 @@ function addObjectAt(coordinate) {
   } else if (activeTool === "visitor") {
     const nearest = nearestRectangle(point, editor.document.structures.catways, 35);
     if (!nearest) {
-      showToast("Placez la place visiteurs contre un catway.", "danger");
+      showToast(msg("ui.placez.la.place.visiteurs.contre.un.catway"), "danger");
       return;
     }
     const catway = nearest.rectangle;
@@ -1558,7 +1702,7 @@ function addObjectAt(coordinate) {
       id: EditorCore.createId("berth", editor.document),
       parentId: catway.id,
       side: sideSign > 0 ? "port" : "starboard",
-      name: `Visiteurs ${editor.document.berths.filter(item => item.isVisitor).length + 1}`,
+      name: t("default.visitor", { count: editor.document.berths.filter(item => item.isVisitor).length + 1 }),
       center,
       heading: catway.heading,
       length: Math.max(5, catway.length - 0.8),
@@ -1567,14 +1711,14 @@ function addObjectAt(coordinate) {
       maxBeam: width - 0.55,
       isVisitor: true
     };
-    editor.add("berths", object, "Ajouter une place visiteurs");
+    editor.add("berths", object, t("ui.ajouter.une.place.visiteurs"));
     afterEdit({ selectId: object.id });
   } else if (activeTool === "boat") {
     const berth = editor.document.berths
       .map(item => ({ item, distance: Math.hypot(point.east - item.center.east, point.north - item.center.north) }))
       .sort((first, second) => first.distance - second.distance)[0]?.item;
     if (!berth) {
-      showToast("Calculez d’abord les places : un bateau doit longer un catway.", "danger");
+      showToast(msg("ui.calculez.dabord.les.places.un.bateau.doit.longer.un.catway"), "danger");
       return;
     }
     const fitted = EditorCore.fitBoatToBerth(editor.document, berth, () => 0.5);
@@ -1594,7 +1738,7 @@ function addObjectAt(coordinate) {
       0.15
     ));
     if (overlaps) {
-      showToast("Cette place est déjà occupée.", "danger");
+      showToast(msg("ui.cette.place.est.deja.occupee"), "danger");
       return;
     }
     editor.add("staticBoats", object, "Ajouter un bateau");
@@ -1628,12 +1772,12 @@ map.on("singleclick", event => {
       return;
     }
   }
-  if (!["select", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
+  if (!["select", "measure", "pontoon", "obstacle", "land"].includes(activeTool)) addObjectAt(event.coordinate);
 });
 
 map.on("pointermove", event => {
   const point = mapToLocal(event.coordinate);
-  $("#cursorPosition").textContent = `Est ${format(point.east)} m · Nord ${format(point.north)} m`;
+  setText($("#cursorPosition"), msg("metric.cursor", { east: num(point.east), north: num(point.north) }));
 });
 
 selectInteraction.on("select", event => {
@@ -1657,7 +1801,7 @@ translateInteraction.on("translateend", event => {
     renderObjects();
     editor.select(id);
     updateInspector();
-    showToast("Ce catway appartient à une série : modifiez la série ou détachez-le.", "danger", 3300);
+    showToast(msg("ui.ce.catway.appartient.a.une.serie.modifiez.la.serie.ou.detachez.le"), "danger", 3300);
     return;
   }
   const geometry = feature.getGeometry();
@@ -1788,7 +1932,7 @@ modifyInteraction.on("modifyend", event => {
   const distance = Math.hypot(end.east - start.east, end.north - start.north);
   if (distance < 1) {
     renderObjects();
-    showToast("La flèche doit indiquer une direction lisible.", "danger");
+    showToast(msg("ui.la.fleche.doit.indiquer.une.direction.lisible"), "danger");
     return;
   }
   editor.update(id, {
@@ -1806,7 +1950,7 @@ function applyInspectorChange(input) {
   const object = found.object;
   if (found.collection === "catways" && object.groupId) {
     updateInspector();
-    showToast("Choisissez « Modifier la série » ou « Détacher ce catway ».", "danger", 3000);
+    showToast(msg("ui.choisissez.modifier.la.serie.ou.detacher.ce.catway"), "danger", 3000);
     return;
   }
   const property = input.dataset.property;
@@ -1937,7 +2081,7 @@ $("#visitorToggle").addEventListener("change", event => {
 $("#visitorName").addEventListener("change", event => {
   const found = selectedObject();
   if (found?.collection !== "berths") return;
-  editor.update(found.object.id, { name: event.target.value.trim() }, "Nom de la place");
+  editor.update(found.object.id, { name: event.target.value.trim() }, t("ui.nom.de.la.place"));
   afterEdit({ selectId: found.object.id });
 });
 
@@ -2029,7 +2173,7 @@ $("#detachPendilleButton").addEventListener("click", () => {
   if (found?.collection !== "pendilles") return;
   editor.detachPendille(found.object.id);
   afterEdit({ selectId: found.object.id });
-  showToast("Pendille détachée : elle peut maintenant être réglée seule.", "ok");
+  showToast(msg("ui.pendille.detachee.elle.peut.maintenant.etre.reglee.seule"), "ok");
 });
 
 function selectedPontoon() {
@@ -2046,6 +2190,18 @@ function syncCatwayModeFields() {
 }
 
 $("#catwayMode").addEventListener("change", syncCatwayModeFields);
+$("#useMeasurementSpacing").addEventListener("click", () => {
+  if (!measurement?.complete || measurement.distance < 2 || !selectedPontoon()) return;
+  $("#catwayMode").value = "spacing";
+  $("#catwaySpacing").value = (Math.round(measurement.distance * 10) / 10).toFixed(1);
+  syncCatwayModeFields();
+  setPanelCollapsed("right", false);
+  $("#catwaySpacing").focus();
+});
+$("#clearMeasurement").addEventListener("click", () => {
+  setActiveTool("select");
+  clearMeasurement();
+});
 
 function syncPendilleModeFields() {
   const spacingMode = $("#pendilleMode").value === "spacing";
@@ -2078,12 +2234,12 @@ $("#createPendilleSeries").addEventListener("click", () => {
   const validParent = found?.collection === "pontoons"
     || (found?.collection === "obstacles" && found.object.type === "quay");
   if (!validParent) {
-    showToast("Sélectionnez un ponton ou un quai avant de créer les places.", "danger");
+    showToast(msg("ui.selectionnez.un.ponton.ou.un.quai.avant.de.creer.les.places"), "danger");
     return;
   }
   editor.addPendilleGroup(found.object.id, pendilleParameters());
   afterEdit({ selectId: found.object.id });
-  showToast("Places cul au quai, pendilles et taquets créés.", "ok");
+  showToast(msg("ui.places.cul.au.quai.pendilles.et.taquets.crees"), "ok");
 });
 
 function catwayParameters() {
@@ -2105,12 +2261,12 @@ function catwayParameters() {
 $("#createCatwaySeries").addEventListener("click", () => {
   const pontoon = selectedPontoon();
   if (!pontoon) {
-    showToast("Sélectionnez un ponton avant de créer la série.", "danger");
+    showToast(msg("ui.selectionnez.un.ponton.avant.de.creer.la.serie"), "danger");
     return;
   }
   editor.addCatwayGroup(pontoon.id, catwayParameters());
   afterEdit();
-  showToast("Série créée et six taquets ajoutés par catway.", "ok");
+  showToast(msg("ui.serie.creee.et.six.taquets.ajoutes.par.catway"), "ok");
 });
 
 $("#editSeriesButton").addEventListener("click", () => {
@@ -2118,7 +2274,7 @@ $("#editSeriesButton").addEventListener("click", () => {
   if (found?.collection !== "catways" || !found.object.groupId) return;
   editor.updateGroup(found.object.groupId, catwayParameters());
   afterEdit();
-  showToast("Toute la série a été redistribuée.", "ok");
+  showToast(msg("ui.toute.la.serie.a.ete.redistribuee"), "ok");
 });
 
 $("#detachCatwayButton").addEventListener("click", () => {
@@ -2126,7 +2282,7 @@ $("#detachCatwayButton").addEventListener("click", () => {
   if (found?.collection !== "catways") return;
   editor.detachCatway(found.object.id);
   afterEdit({ selectId: found.object.id });
-  showToast("Catway détaché : il peut maintenant être modifié seul.", "ok");
+  showToast(msg("ui.catway.detache.il.peut.maintenant.etre.modifie.seul"), "ok");
 });
 
 $("#generateCleatsButton").addEventListener("click", () => {
@@ -2142,7 +2298,7 @@ $("#generateCleatsButton").addEventListener("click", () => {
   const count = editor.document.structures.cleats.filter(
     cleat => cleat.parentId === found.object.id
   ).length;
-  showToast(`${count} taquets liés à la structure.`, "ok");
+  showToast(msg("toast.cleats", { count }), "ok");
 });
 
 $("#computeBerthsButton").addEventListener("click", () => {
@@ -2151,7 +2307,7 @@ $("#computeBerthsButton").addEventListener("click", () => {
   editor.recomputeBerths({ defaultWidth: width });
   afterEdit();
   showToast(
-    `${editor.document.berths.length} places de ${format(width)} m déduites des catways.`,
+    msg("toast.berths", { count: editor.document.berths.length, width: num(width) }),
     "ok"
   );
 });
@@ -2167,11 +2323,11 @@ $("#populateBoatsButton").addEventListener("click", () => {
     seed: editor.document.editor.occupancySeed
   });
   afterEdit();
-  showToast(`${editor.document.staticBoats.length} bateaux placés sans chevauchement.`, "ok");
+  showToast(msg("toast.boats", { count: editor.document.staticBoats.length }), "ok");
 });
 
 $("#occupancyRate").addEventListener("input", event => {
-  $("#occupancyValue").textContent = `${event.target.value} %`;
+  setText($("#occupancyValue"), msg("metric.percent", { value: num(event.target.value, 0) }));
 });
 
 function removeSelected() {
@@ -2220,7 +2376,7 @@ $$("[data-tool]").forEach(button => button.addEventListener("click", () => setAc
 function enableMaps() {
   if (!mapsEnabled) {
     mapsEnabled = true;
-    $("#enableMapsButton").textContent = "Cartes en ligne actives";
+    setText($("#enableMapsButton"), msg("ui.cartes.en.ligne.actives"));
     $("#enableMapsButton").disabled = true;
   }
   osmLayer.setVisible($("#osmLayerToggle").checked);
@@ -2243,11 +2399,11 @@ $("#orthoLayerToggle").addEventListener("change", event => {
 $("#orthoOpacity").addEventListener("input", event => {
   const opacity = Number(event.target.value) / 100;
   orthoLayer.setOpacity(opacity);
-  $("#orthoOpacityValue").textContent = `${event.target.value} %`;
+  setText($("#orthoOpacityValue"), msg("metric.percent", { value: num(event.target.value, 0) }));
 });
 
 function setOrigin(latitude, longitude) {
-  if (![latitude, longitude].every(Number.isFinite)) throw new Error("Coordonnées invalides.");
+  if (![latitude, longitude].every(Number.isFinite)) throw Object.assign(new Error(t("ui.coordonnees.invalides")), msg("ui.coordonnees.invalides"));
   if (!documentHasGeometry(editor.document)) {
     editor.transaction("Changer l’origine", next => {
       next.georeference.origin = { latitude, longitude };
@@ -2267,7 +2423,7 @@ $("#coordinateForm").addEventListener("submit", event => {
   try {
     setOrigin(Number($("#latitudeInput").value), Number($("#longitudeInput").value));
   } catch (error) {
-    showToast(error.message, "danger");
+    showToast(errorMessage(error), "danger");
   }
 });
 
@@ -2280,13 +2436,13 @@ $("#searchForm").addEventListener("submit", async event => {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
     const response = await fetchTracked(url, { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(`recherche indisponible (${response.status})`);
+    if (!response.ok) throw Object.assign(new Error(t("error.search.unavailable", { status: response.status })), msg("error.search.unavailable", { status: response.status }));
     const result = (await response.json())[0];
-    if (!result) throw new Error("lieu non trouvé");
+    if (!result) throw Object.assign(new Error(t("ui.lieu.non.trouve")), msg("ui.lieu.non.trouve"));
     setOrigin(Number(result.lat), Number(result.lon));
     showToast(result.display_name || query, "ok");
   } catch (error) {
-    showToast(`Recherche impossible · ${error.message}`, "danger", 3200);
+    showToast(msg("error.search", { reason: errorMessage(error) }), "danger", 3200);
   } finally {
     $("#searchForm button").disabled = false;
   }
@@ -2311,17 +2467,17 @@ function clearAnalysisPolygon() {
   }
   analysisPolygonGeographic = null;
   analysisSource.clear();
-  $("#drawAnalysisPolygon").textContent = "Tracer l’emprise";
+  setText($("#drawAnalysisPolygon"), msg("ui.tracer.lemprise"));
   $("#drawAnalysisPolygon").setAttribute("aria-pressed", "false");
   $("#clearAnalysisPolygon").disabled = true;
-  $("#analysisScopeStatus").textContent = "Emprise visible de la carte";
+  setText($("#analysisScopeStatus"), msg("ui.emprise.visible.de.la.carte"));
 }
 
 function beginAnalysisPolygon() {
   if (analysisDrawInteraction) {
     map.removeInteraction(analysisDrawInteraction);
     analysisDrawInteraction = null;
-    $("#drawAnalysisPolygon").textContent = "Tracer l’emprise";
+    setText($("#drawAnalysisPolygon"), msg("ui.tracer.lemprise"));
     $("#drawAnalysisPolygon").setAttribute("aria-pressed", "false");
     return;
   }
@@ -2340,17 +2496,15 @@ function beginAnalysisPolygon() {
     });
     map.removeInteraction(analysisDrawInteraction);
     analysisDrawInteraction = null;
-    $("#drawAnalysisPolygon").textContent = "Redessiner l’emprise";
+    setText($("#drawAnalysisPolygon"), msg("ui.redessiner.lemprise"));
     $("#drawAnalysisPolygon").setAttribute("aria-pressed", "false");
     $("#clearAnalysisPolygon").disabled = false;
-    $("#analysisScopeStatus").textContent = (
-      `Polygone actif · ${analysisPolygonGeographic.length} sommets`
-    );
+    setText($("#analysisScopeStatus"), msg("analysis.polygon", { count: analysisPolygonGeographic.length }));
   });
   map.addInteraction(analysisDrawInteraction);
-  $("#drawAnalysisPolygon").textContent = "Annuler le tracé";
+  setText($("#drawAnalysisPolygon"), msg("ui.annuler.le.trace"));
   $("#drawAnalysisPolygon").setAttribute("aria-pressed", "true");
-  $("#analysisScopeStatus").textContent = "Cliquez autour de la zone, puis double-cliquez pour terminer";
+  setText($("#analysisScopeStatus"), msg("ui.cliquez.autour.de.la.zone.puis.double.cliquez.pour.terminer"));
 }
 
 function activeAnalysisScope() {
@@ -2386,18 +2540,18 @@ function focusCandidate(index, { scroll = false } = {}) {
 
 function updateCandidateBulkControls() {
   const selected = candidates.filter(candidate => candidate.accepted).length;
-  $("#candidateSelectionCount").textContent = `${selected} / ${candidates.length} sélectionné${selected > 1 ? "s" : ""}`;
+  setText($("#candidateSelectionCount"), msg("candidate.selected", { selected, total: candidates.length }));
   for (const button of $$("[data-candidate-category]")) {
     const category = button.dataset.candidateCategory;
     const count = candidates.filter(candidate => candidateCategory(candidate) === category).length;
     const label = {
-      pontoon: "Pontons",
-      catway: "Catways",
-      obstacle: "Digues / quais",
-      land: "Terre",
-      buoy: "Bouées"
+      pontoon: t("ui.pontons"),
+      catway: t("ui.catways"),
+      obstacle: t("ui.digues.quais"),
+      land: t("ui.terre"),
+      buoy: t("ui.bouees")
     }[category];
-    button.textContent = `${label} (${count})`;
+    setText(button, `${label} (${count})`);
     button.disabled = count === 0;
     const categoryCandidates = candidates.filter(candidate => (
       candidateCategory(candidate) === category
@@ -2447,13 +2601,11 @@ function renderDecompositionPreview(proposal) {
     }
   }
   decompositionProposal = proposal;
-  $("#decompositionSummary").textContent = (
-    `${proposal.objects.pontoons.length} ponton · `
-    + `${proposal.objects.catways.length} catway${proposal.objects.catways.length > 1 ? "s" : ""}`
-  );
-  $("#decompositionDetails").textContent = (
-    `${proposal.reason} Continuité maximale : ${format(proposal.maximumGap * 100, 1)} cm.`
-  );
+  setText($("#decompositionSummary"), msg("decomposition.summary", {
+    pontoons: msg("count.pontoons", { count: proposal.objects.pontoons.length }),
+    catways: msg("count.catways", { count: proposal.objects.catways.length })
+  }));
+  setText($("#decompositionDetails"), msg("decomposition.details", { reason: proposal.reasonMessage || proposal.reason, gap: num(proposal.maximumGap * 100) }));
   $("#decompositionPreview").hidden = false;
   const extent = decompositionSource.getExtent();
   if (extent.every(Number.isFinite)) {
@@ -2468,11 +2620,11 @@ function renderDecompositionPreview(proposal) {
 function proposeCandidateDecomposition(index) {
   const proposal = PontoonDecomposition.proposePontoonDecomposition(candidates, index);
   if (!proposal.available) {
-    showToast(proposal.reason, "danger", 3400);
+    showToast(proposal.reasonMessage || proposal.reason, "danger", 3400);
     return;
   }
   if (!proposal.continuityValid) {
-    showToast("Découpe refusée : une discontinuité géométrique subsiste.", "danger", 3800);
+    showToast(msg("ui.decoupe.refusee.une.discontinuite.geometrique.subsiste"), "danger", 3800);
     return;
   }
   focusCandidate(index, { scroll: false });
@@ -2542,7 +2694,7 @@ function applyDecompositionProposal() {
   afterEdit({ selectId: created[0]?.id, fit: false });
   renderCandidates();
   showCandidateDrawer({ focusFirst: false, fit: false });
-  showToast(`${created.length} objet(s) créés sans rupture de jonction.`, "ok", 3400);
+  showToast(msg("toast.decomposition", { count: created.length }), "ok", 3400);
 }
 
 $("#cancelDecomposition").addEventListener("click", clearDecompositionPreview);
@@ -2564,7 +2716,7 @@ function showCandidateDrawer({ focusFirst = true, fit = true } = {}) {
     checkbox.type = "checkbox";
     checkbox.dataset.candidateIndex = String(index);
     checkbox.checked = candidate.accepted;
-    checkbox.setAttribute("aria-label", `Intégrer ${candidate.sourceLabel}`);
+    checkbox.setAttribute("aria-label", t("candidate.integrate", { name: candidate.sourceLabel }));
     checkbox.addEventListener("change", () => {
       candidate.accepted = checkbox.checked;
       candidateLayer.changed();
@@ -2572,17 +2724,17 @@ function showCandidateDrawer({ focusFirst = true, fit = true } = {}) {
     });
     const content = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = `${candidate.sourceLabel} · confiance ${Math.round(candidate.confidence * 100)} %`;
+    setText(title, msg("candidate.confidence", { name: candidate.sourceLabel, value: Math.round(candidate.confidence * 100) }));
     const reason = document.createElement("p");
-    reason.textContent = candidate.reason;
+    setText(reason, candidate.reasonMessage || candidate.reason);
     const select = document.createElement("select");
     for (const [value, label] of [
-      ["pontoon", "Ponton"],
-      ["catway", "Catway"],
-      ["obstacle", "Digue / quai"],
-      ["land", "Terre non navigable"],
-      ["buoy", "Bouée de navigation"],
-      ["ignore", "Ignorer"]
+      ["pontoon", t("ui.ponton")],
+      ["catway", t("ui.catway")],
+      ["obstacle", t("ui.digue.quai")],
+      ["land", t("ui.terre.non.navigable")],
+      ["buoy", t("ui.bouee.de.navigation")],
+      ["ignore", t("ui.ignorer")]
     ]) select.add(new Option(label, value));
     select.value = candidate.candidateType === "coastline" ? "obstacle" : candidate.candidateType;
     select.addEventListener("change", () => {
@@ -2599,9 +2751,7 @@ function showCandidateDrawer({ focusFirst = true, fit = true } = {}) {
       const splitButton = document.createElement("button");
       splitButton.type = "button";
       splitButton.className = "button ghost";
-      splitButton.textContent = candidate.decompositionRecommended
-        ? "Découper · recommandé"
-        : "Découper le ponton";
+      setText(splitButton, candidate.decompositionRecommended ? msg("ui.decouper.recommande") : msg("ui.decouper.le.ponton"));
       splitButton.addEventListener("click", () => proposeCandidateDecomposition(index));
       actions.append(splitButton);
       content.append(actions);
@@ -2630,11 +2780,11 @@ async function analyzeVisibleZone() {
     scope = activeAnalysisScope();
     OSMPortImport.validateAnalysisBounds(scope.bounds);
   } catch (error) {
-    showToast(`${error.message} Zoomez davantage puis relancez.`, "danger", 3800);
+    showToast(msg("error.analysis.bounds", { reason: errorMessage(error) }), "danger", 3800);
     return;
   }
   $("#analyzeButton").disabled = true;
-  $("#analyzeButton").textContent = "Analyse en cours…";
+  setText($("#analyzeButton"), msg("ui.analyse.en.cours"));
   try {
     const query = OSMPortImport.buildOverpassQuery(scope.bounds, {
       polygon: scope.polygon
@@ -2645,17 +2795,13 @@ async function analyzeVisibleZone() {
       maxRounds: 5,
       totalTimeoutMs: 180000,
       onAttempt({ endpoint, index, total, round, maxRounds }) {
-        $("#analyzeButton").textContent = `Analyse · tentative ${round}/${maxRounds}`;
-        $("#analysisStats").textContent = (
-          `Connexion à ${endpoint.label} · serveur ${index + 1}/${total}…`
-        );
+        setText($("#analyzeButton"), msg("analysis.attempt", { round, total: maxRounds }));
+        setText($("#analysisStats"), msg("analysis.connecting", { server: endpoint.label, index: index + 1, total }));
       },
       onRetry({ nextRound, maxRounds, delayMs }) {
         const delaySeconds = Math.max(1, Math.ceil(delayMs / 1000));
-        $("#analyzeButton").textContent = `Nouvel essai ${nextRound}/${maxRounds}`;
-        $("#analysisStats").textContent = (
-          `Tous les serveurs sont occupés · nouvel essai automatique dans ${delaySeconds} s…`
-        );
+        setText($("#analyzeButton"), msg("analysis.retry", { round: nextRound, total: maxRounds }));
+        setText($("#analysisStats"), msg("analysis.busy", { delay: delaySeconds }));
       }
     });
     if (!result.endpoint.fallbackOnly) rememberOverpassEndpoint(result.endpoint.id);
@@ -2676,25 +2822,20 @@ async function analyzeVisibleZone() {
     afterEdit();
     renderCandidates();
     showCandidateDrawer();
-    $("#analysisStats").textContent = (
-      `${analyzedResponses.length} zone(s) · ${merged.elements.length} objet(s) OSM · `
-      + `${candidates.length} candidat(s)`
-    );
+    setText($("#analysisStats"), msg("analysis.result", { zones: analyzedResponses.length, objects: merged.elements.length, candidates: candidates.length }));
     if (result.attempts.length) {
       const retryText = result.round > 1
-        ? ` après ${result.round} tentatives automatiques`
-        : " via un serveur de secours";
-      showToast(`Analyse reçue${retryText} · ${result.endpoint.label}.`, "ok", 4200);
+        ? msg("analysis.received.retries", { count: result.round })
+        : msg("analysis.received.fallback");
+      showToast(msg("analysis.received", { retry: retryText, server: result.endpoint.label }), "ok", 4200);
     }
   } catch (error) {
-    showToast(`Analyse impossible · ${error.message}`, "danger", 3800);
+    showToast(msg("error.analysis", { reason: errorMessage(error) }), "danger", 3800);
     const attemptCount = error.attempts?.length || 0;
-    $("#analysisStats").textContent = attemptCount
-      ? `Aucune donnée ajoutée après ${attemptCount} connexion(s) automatiques`
-      : "Aucune donnée ajoutée · vérifiez la zone analysée";
+    setText($("#analysisStats"), attemptCount ? msg("analysis.no.data", { count: attemptCount }) : msg("ui.aucune.donnee.ajoutee.verifiez.la.zone.analysee"));
   } finally {
     $("#analyzeButton").disabled = false;
-    $("#analyzeButton").textContent = "Analyser cette zone";
+    setText($("#analyzeButton"), msg("ui.analyser.cette.zone"));
   }
 }
 
@@ -2727,7 +2868,7 @@ $("#rejectCandidates").addEventListener("click", () => {
 $("#integrateCandidates").addEventListener("click", () => {
   const result = OSMPortImport.integrateCandidates(editor.document, candidates);
   if (!result.added) {
-    showToast("Aucun nouveau candidat sélectionné.", "danger");
+    showToast(msg("ui.aucun.nouveau.candidat.selectionne"), "danger");
     return;
   }
   const merged = OSMPortImport.mergeOverpassResponses(analyzedResponses);
@@ -2752,7 +2893,7 @@ $("#integrateCandidates").addEventListener("click", () => {
   clearDecompositionPreview();
   renderCandidates();
   setCandidateDrawerOpen(false);
-  showToast(`${result.added} géométrie(s) intégrée(s). Vérifiez leur classification.`, "ok", 3200);
+  showToast(msg("toast.integrated", { count: result.added }), "ok", 3200);
 });
 
 function ensureOrthophotoSourceReference() {
@@ -2783,7 +2924,7 @@ function syncMetadataForm() {
   $("#latitudeInput").value = editor.document.georeference.origin.latitude.toFixed(6);
   $("#longitudeInput").value = editor.document.georeference.origin.longitude.toFixed(6);
   $("#occupancyRate").value = Math.round(editor.document.editor.occupancyRate * 100);
-  $("#occupancyValue").textContent = `${$("#occupancyRate").value} %`;
+  setText($("#occupancyValue"), msg("metric.percent", { value: num($("#occupancyRate").value, 0) }));
   $("#berthWidth").value = Number(
     editor.document.editor.defaultBerthWidth ?? 4
   ).toFixed(1);
@@ -2800,7 +2941,7 @@ function writeMetadataFromForm({ commit = true } = {}) {
     comment: $("#portComment").value.trim()
   };
   if (commit) {
-    editor.transaction("Informations du port", next => Object.assign(next.metadata, patch));
+    editor.transaction(t("ui.informations.du.port"), next => Object.assign(next.metadata, patch));
     afterEdit();
   } else {
     Object.assign(editor.document.metadata, patch);
@@ -2861,16 +3002,16 @@ function focusObject(id) {
 
 function validationTargetLabel(target) {
   return ({
-    pontoons: "Ponton",
-    catways: "Catway",
-    cleats: "Taquet",
-    obstacles: "Obstacle",
-    landAreas: "Zone non navigable",
-    buoys: "Bouée",
-    berths: "Place",
-    staticBoats: "Bateau",
-    entries: "Entrée"
-  })[target.collection] || "Objet";
+    pontoons: msg("ui.ponton"),
+    catways: msg("ui.catway"),
+    cleats: msg("ui.taquet"),
+    obstacles: msg("ui.obstacle"),
+    landAreas: msg("ui.zone.non.navigable"),
+    buoys: msg("ui.bouee"),
+    berths: msg("ui.place"),
+    staticBoats: msg("ui.bateau"),
+    entries: msg("ui.entree")
+  })[target.collection] || msg("ui.objet");
 }
 
 $("#exportButton").addEventListener("click", () => {
@@ -2885,21 +3026,19 @@ $("#exportButton").addEventListener("click", () => {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    showToast("Fichier KJP validé et exporté.", "ok");
+    showToast(msg("ui.fichier.kjp.valide.et.exporte"), "ok");
   } catch (error) {
     const first = error.errors?.[0];
     const target = first ? validationTarget(first.path) : null;
     const targetText = target
-      ? `${validationTargetLabel(target)} « ${target.object.id} » · `
+      ? msg("validation.target", { type: validationTargetLabel(target), id: target.object.id })
       : "";
     showToast(
-      first
-        ? `Export impossible · ${targetText}${first.path} · ${first.message}`
-        : `Export impossible · ${error.message}`,
+      first ? msg("error.export.validation", { target: targetText, path: first.path, reason: errorMessage(first) }) : msg("error.export", { reason: errorMessage(error) }),
       "danger",
       target ? 10000 : 4300,
       target ? {
-        label: "Afficher l’objet",
+        label: msg("ui.afficher.lobjet"),
         handler: () => focusObject(target.object.id)
       } : null
     );
@@ -2916,14 +3055,14 @@ function importText(text) {
   clearAnalysisPolygon();
   renderCandidates();
   setCandidateDrawerOpen(false);
-  showToast(`Port importé · ${document.metadata.name}`, "ok");
+  showToast(msg("toast.imported", { name: document.metadata.name }), "ok");
   return document;
 }
 
 function resetWorkspace({ confirmReset = true } = {}) {
   if (
     confirmReset
-    && !window.confirm("Créer un nouveau port ? Le brouillon actuel sera remplacé.")
+    && !window.confirm(t("ui.creer.un.nouveau.port.le.brouillon.actuel.sera.remplace"))
   ) return false;
   const fallback = editor.document.georeference.origin;
   const center = map.getView().getCenter();
@@ -2936,18 +3075,18 @@ function resetWorkspace({ confirmReset = true } = {}) {
   renderCandidates();
   setCandidateDrawerOpen(false);
   setEditorDocument(KJPCodec.createEmpty({
-    name: "Nouveau port",
+    name: t("ui.nouveau.port"),
     latitude,
     longitude,
     generatorVersion: GENERATOR_VERSION
   }), { fit: false, autosave: true });
   $("#placeSearch").value = "";
-  $("#analysisStats").textContent = "Aucune zone analysée";
+  setText($("#analysisStats"), msg("ui.aucune.zone.analysee"));
   setActiveTool("select");
   setPanelCollapsed("left", false);
   setPanelCollapsed("right", false);
   if ($("#orthoLayerToggle").checked) ensureOrthophotoSourceReference();
-  showToast("Nouveau port prêt à être modélisé.", "ok");
+  showToast(msg("ui.nouveau.port.pret.a.etre.modelise"), "ok");
   return true;
 }
 
@@ -2964,7 +3103,7 @@ $("#importInput").addEventListener("change", event => {
   const file = event.target.files?.[0];
   if (!file) return;
   if (file.size > KJPCodec.LIMITS.fileBytes) {
-    showToast("Import refusé · fichier supérieur à 10 Mo.", "danger");
+    showToast(msg("ui.import.refuse.fichier.superieur.a.10.mo"), "danger");
     event.target.value = "";
     return;
   }
@@ -2975,7 +3114,7 @@ $("#importInput").addEventListener("change", event => {
     } catch (error) {
       const first = error.errors?.[0];
       showToast(
-        first ? `Import refusé · ${first.path} · ${first.message}` : error.message,
+        first ? msg("error.import", { path: first.path, reason: errorMessage(first) }) : errorMessage(error),
         "danger",
         4200
       );
@@ -3064,10 +3203,10 @@ async function restoreDraft() {
     const draft = await getDraft(draftDatabase);
     if (draft?.format === "KJP" && [1, KJPCodec.SCHEMA_VERSION].includes(draft.schemaVersion)) {
       setEditorDocument(KJPCodec.normalizeDocument(draft, { freeze: false }), { fit: true, autosave: false });
-      $("#saveState").textContent = "Brouillon restauré";
+      setText($("#saveState"), msg("ui.brouillon.restaure"));
     }
   } catch {
-    $("#saveState").textContent = "Brouillon non disponible";
+    setText($("#saveState"), msg("ui.brouillon.non.disponible"));
   }
 }
 
@@ -3160,6 +3299,17 @@ function installTestApi() {
       orthophoto: orthoLayer.getVisible(),
       orthophotoOpacity: orthoLayer.getOpacity()
     }),
+    localeReport: () => i18n.report(),
+    selectLocale: code => i18n.setLocale(code),
+    cameraReport: () => ({ center: map.getView().getCenter(), resolution: map.getView().getResolution(), rotation: map.getView().getRotation() }),
+    measurementReport: () => measurement && ({
+      distance: measurement.distance,
+      complete: measurement.complete,
+      points: measurement.coordinates.map(point => mapToLocal(point)),
+      pixels: measurement.coordinates.map(point => map.getPixelFromCoordinate(point)),
+      features: measurementSource.getFeatures().length
+    }),
+    historyReport: () => ({ past: editor.past.length, future: editor.future.length }),
     networkRequests: () => clone(networkRequests),
     classifyOverpass(response) {
       return OSMPortImport.classifyOverpass(response, editor.document.georeference);
@@ -3203,7 +3353,7 @@ function installTestApi() {
       mapRing.push(mapRing[0]);
       analysisSource.addFeature(new Feature({ geometry: new Polygon([mapRing]) }));
       $("#clearAnalysisPolygon").disabled = false;
-      $("#analysisScopeStatus").textContent = `Polygone actif · ${localPoints.length} sommets`;
+      setText($("#analysisScopeStatus"), msg("analysis.polygon", { count: localPoints.length }));
       return activeAnalysisScope();
     },
     clearAnalysisPolygon,
@@ -3341,6 +3491,42 @@ function installTestApi() {
   });
 }
 
+const languageSelect = $("#languageSelect");
+for (const locale of i18n.supportedLocales()) {
+  const option = new Option(locale.shortLabel, locale.code);
+  option.lang = locale.code;
+  option.title = locale.nativeName;
+  languageSelect.add(option);
+}
+languageSelect.addEventListener("change", () => i18n.setLocale(languageSelect.value));
+function localizeInterface() {
+  refreshTranslations();
+  languageSelect.value = i18n.getLocale();
+  $(".project-help-content").innerHTML = i18n.getCatalog().guideHtml;
+  refreshInspectorLabels();
+  updateStatus();
+  updateCandidateBulkControls();
+  const found = selectedObject();
+  if (found) setText($("#selectionMetrics"), `${found.object.id} · ${dimensionLabel(found.object, found.collection) || t("ui.position.locale.metrique")}`);
+  if (found?.collection === "buoys") configureBuoyCategorySelect(found.object.seamarkType, $("#buoyCategory").value);
+  if (!$("#candidateDrawer").hidden) showCandidateDrawer({ focusFirst: false, fit: false });
+  osmLayer.getSource().setAttributions(t("ui.les.contributeurs.openstreetmap.odbl"));
+  objectLayer.changed();
+  editHandleLayer.changed();
+  measurementLayer.changed();
+  renderMeasurement();
+  for (const [selector, key] of [[".ol-zoom-in", "map.zoom.in"], [".ol-zoom-out", "map.zoom.out"], [".ol-attribution button", "map.attributions"]]) {
+    const button = $(selector);
+    if (button) {
+      button.title = t(key);
+      button.setAttribute("aria-label", t(key));
+    }
+  }
+  map.updateSize();
+}
+i18n.subscribe(localizeInterface);
+localizeInterface();
+setText($("#cursorPosition"), msg("metric.cursor", { east: num(0), north: num(0) }));
 syncMetadataForm();
 syncCatwayModeFields();
 syncPendilleModeFields();
