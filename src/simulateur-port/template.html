@@ -1761,6 +1761,13 @@
       backdrop-filter: blur(5px);
     }
 
+    .smartphone-notice { width: min(420px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; overflow: auto; }
+    .smartphone-notice form { margin: 0; }
+    .smartphone-notice h2 { margin: 0 0 12px; font-size: 20px; }
+    .smartphone-notice p { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .smartphone-notice-actions { display: flex; justify-content: flex-end; }
+    .smartphone-notice button { min-height: 44px; padding: 10px 18px; border-color: var(--cyan); }
+
     .port-library-dialog { width: min(1000px, calc(100vw - 32px)); }
     .port-library-content { max-height: calc(100dvh - 110px); overflow: auto; padding: 16px 18px 22px; }
     .port-library-status { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
@@ -2532,7 +2539,7 @@
               <div class="control-row">
                 <div class="control-meta"><label for="tabletControlsSize" data-i18n="ui.tablet.controls.size">Taille des commandes tactiles</label><span class="control-value" data-value-for="tabletControlsSize"></span></div>
                 <input id="tabletControlsSize" type="range" min="100" max="200" step="25" value="175" aria-describedby="tabletControlsHelp">
-                <p class="sidebar-subtitle" id="tabletControlsHelp" data-i18n="ui.tablet.controls.help">Sur tablette. 175 % correspond à un agrandissement de 75 %.</p>
+                <p class="sidebar-subtitle" id="tabletControlsHelp" data-i18n="ui.tablet.controls.help">Par défaut : 100 % sur smartphone, 175 % sur tablette (+75 %).</p>
               </div>
             </div>
           </div>
@@ -2565,6 +2572,14 @@
       </aside>
     </div>
   </main>
+
+  <dialog class="project-help-dialog smartphone-notice" id="smartphoneNotice" aria-labelledby="smartphoneNoticeTitle" aria-describedby="smartphoneNoticeText">
+    <form method="dialog">
+      <h2 id="smartphoneNoticeTitle" data-i18n="ui.smartphone.notice.title">Utilisation sur smartphone</h2>
+      <p id="smartphoneNoticeText" data-i18n="ui.smartphone.notice.text">KJP est conçu pour être utilisé sur tablette ou ordinateur. Sur smartphone, l’espace est limité : les commandes sont réglées au minimum par défaut.</p>
+      <div class="smartphone-notice-actions"><button type="submit" autofocus data-i18n="ui.smartphone.notice.continue">Continuer</button></div>
+    </form>
+  </dialog>
 
   <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
     <div class="project-help-header">
@@ -3171,14 +3186,17 @@
     };
 
     const TABLET_CONTROLS_STORAGE_KEY = "kjp.tabletControlsSize";
+    const smartphoneDevice = matchMedia("(pointer: coarse) and (max-width: 640px), (pointer: coarse) and (max-height: 640px)").matches;
+    const touchControlsStorageKey = smartphoneDevice ? "kjp.smartphoneControlsSize" : TABLET_CONTROLS_STORAGE_KEY;
+    const defaultTouchControlsSize = smartphoneDevice ? 100 : 175;
     function validTabletControlsSize(value) {
       const number = Number(value);
       return Number.isFinite(number) && number >= 100 && number <= 200 && number % 25 === 0
-        ? number : 175;
+        ? number : defaultTouchControlsSize;
     }
     function readTabletControlsSize() {
-      try { return validTabletControlsSize(localStorage.getItem(TABLET_CONTROLS_STORAGE_KEY)); }
-      catch { return 175; }
+      try { return validTabletControlsSize(localStorage.getItem(touchControlsStorageKey)); }
+      catch { return defaultTouchControlsSize; }
     }
     let tabletControlsSize = readTabletControlsSize();
     document.documentElement.style.setProperty("--tablet-controls-scale", tabletControlsSize / 100);
@@ -10464,7 +10482,7 @@
         tabletControlsSize = validTabletControlsSize(value);
         $("#tabletControlsSize").value = tabletControlsSize;
         document.documentElement.style.setProperty("--tablet-controls-scale", tabletControlsSize / 100);
-        try { localStorage.setItem(TABLET_CONTROLS_STORAGE_KEY, String(tabletControlsSize)); } catch {}
+        try { localStorage.setItem(touchControlsStorageKey, String(tabletControlsSize)); } catch {}
       },
       mouseHelmSensitivity: value => {
         mouseHelm.sensitivity = validMouseHelmSensitivity(value);
@@ -10610,6 +10628,7 @@
       void setEngineSound(!engineAudio.enabled);
     });
     const readmeDialog = $("#readmeDialog");
+    const smartphoneNotice = $("#smartphoneNotice");
     $("#readmeHelpButton").addEventListener("click", () => {
       setMouseHelmMode("normal");
       readmeDialog.showModal();
@@ -10856,7 +10875,7 @@
     });
 
     window.addEventListener("keydown", event => {
-      if (readmeDialog.open || portLibraryDialog.open) return;
+      if (readmeDialog.open || portLibraryDialog.open || smartphoneNotice.open) return;
       if (event.target === $("#languageSelect")) return;
       if (event.target === $("#tabletControlsSize")) return;
       if (isPreparingDeparture()) {
@@ -12349,6 +12368,7 @@
     refreshLocale();
     installTestApi();
     activateInitialWorldRenderer();
+    if (smartphoneDevice) smartphoneNotice.showModal();
     requestAnimationFrame(render);
   })();
   </script>

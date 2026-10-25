@@ -3860,8 +3860,50 @@ browserCase("simulator:controls.61", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   assert.equal((await geometry()).helm.width, 136, "le téléphone conserve sa taille");
   await page.evaluate(() => localStorage.setItem("kjp.tabletControlsSize", "invalid"));
+  await page.setViewportSize({ width: 1024, height: 768 });
   await page.reload();
   assert.equal(await size.inputValue(), "175");
+});
+
+browserCase("simulator:controls.62", async ({ page }) => {
+  const size = page.locator('#tabletControlsSize');
+  const notice = page.locator('#smartphoneNotice');
+  await page.evaluate(() => localStorage.setItem('kjp.tabletControlsSize', '200'));
+  for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(viewport);
+    await page.reload();
+    assert.equal(await size.inputValue(), '100');
+    assert.equal(await notice.isVisible(), true);
+    assert.equal(await page.locator('.touch-helm').evaluate(e => e.getBoundingClientRect().width), 136);
+    const before = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls);
+    await page.keyboard.press('ArrowUp');
+    assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls), before,
+      'le popup doit isoler les raccourcis du simulateur');
+    for (const locale of ['fr', 'en', 'br']) {
+      await page.evaluate(code => window.__PORTANCE_TEST__.selectLocale(code), locale);
+      const catalog = require(`../src/simulateur-port/locales/${locale}.json`).messages;
+      assert.equal(await page.locator('#smartphoneNoticeText').textContent(), catalog['ui.smartphone.notice.text']);
+    }
+    await notice.locator('button').click();
+    assert.equal(await notice.isVisible(), false);
+  }
+  await page.locator('#sidebarToggle').click();
+  await page.locator('#advancedDetails summary').click();
+  await size.focus();
+  await page.keyboard.press('End');
+  await page.reload();
+  assert.equal(await size.inputValue(), '200', 'le choix explicite du téléphone est mémorisé');
+  assert.equal(await notice.isVisible(), true, 'le conseil apparaît à chaque lancement sur smartphone');
+  await page.evaluate(() => localStorage.setItem('kjp.smartphoneControlsSize', 'invalid'));
+  await page.reload();
+  assert.equal(await size.inputValue(), '100');
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.reload();
+  assert.equal(await notice.isVisible(), false);
+  assert.equal(await size.inputValue(), '200', 'la préférence tablette est préservée');
+  await page.evaluate(() => localStorage.removeItem('kjp.tabletControlsSize'));
+  await page.reload();
+  assert.equal(await size.inputValue(), '175');
 });
 
 browserCase("simulator:controls.58", async ({ page }) => {

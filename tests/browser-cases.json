@@ -332,6 +332,13 @@
   },
   {
     "product": "simulator",
+    "id": "controls.62",
+    "group": "controls",
+    "name": "le smartphone démarre avec les commandes minimales et un conseil tablette ou ordinateur",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
     "id": "camera.50",
     "group": "camera",
     "name": "deux doigts zooment et déplacent la carte, un toucher inspecte une force"
