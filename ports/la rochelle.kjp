@@ -126,7 +126,7 @@
     }
   },
   "metadata": {
-    "author": "",
+    "author": "Barnab",
     "comment": "",
     "coordinates": {
       "latitude": 46.159732,
@@ -136,11 +136,11 @@
     "currentAdvice": "",
     "harborMasterUrl": "",
     "id": "port-7kmyri",
-    "name": "Nouveau port",
+    "name": "La Rochelle",
     "openingHours": "",
     "revision": 1,
     "source": "OpenStreetMap",
-    "updatedAt": "2026-10-09T16:01:11.933Z"
+    "updatedAt": "2026-10-25T23:03:35.542Z"
   },
   "navigation": {
     "entries": [
