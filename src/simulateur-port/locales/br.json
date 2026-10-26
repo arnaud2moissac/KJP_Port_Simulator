@@ -272,6 +272,7 @@
     "ui.speed": "Nerzh",
     "ui.direction": "Tu",
     "ui.advanced.settings": "Arventennoù araokaet",
+    "ui.reset.setting": "Distreiñ d'ar werzh dre ziouer : {setting}",
     "ui.advanced.commands": "Urzhioù",
     "ui.advanced.boat": "Bag",
     "ui.boat.profile": "Profil ar vag",

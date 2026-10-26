@@ -272,6 +272,7 @@
     "ui.speed": "Force",
     "ui.direction": "Direction",
     "ui.advanced.settings": "Réglages avancés",
+    "ui.reset.setting": "Rétablir la valeur par défaut : {setting}",
     "ui.advanced.commands": "Commandes",
     "ui.advanced.boat": "Bateau",
     "ui.boat.profile": "Profil du bateau",

@@ -272,6 +272,7 @@
     "ui.speed": "Speed",
     "ui.direction": "Direction",
     "ui.advanced.settings": "Advanced settings",
+    "ui.reset.setting": "Reset to default: {setting}",
     "ui.advanced.commands": "Controls",
     "ui.advanced.boat": "Boat",
     "ui.boat.profile": "Boat profile",

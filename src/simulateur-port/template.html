@@ -352,12 +352,6 @@
       font-weight: 650;
     }
 
-    .simulation-action[aria-pressed="true"] {
-      border-color: var(--amber);
-      color: var(--amber);
-      background: var(--amber-soft);
-    }
-
     .port-loader-button {
       width: auto;
       grid-template-columns: 18px auto;
@@ -663,7 +657,31 @@
       background: transparent;
     }
 
-    .metric:last-child { border-right: 0; }
+    .hud-pause {
+      flex: 0 0 56px;
+      min-width: 56px;
+      min-height: 56px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      color: var(--cyan);
+      background: var(--cyan-soft);
+      font-size: 24px;
+      pointer-events: auto;
+    }
+
+    .hud-pause[aria-pressed="true"] {
+      color: var(--amber);
+      background: var(--amber-soft);
+    }
+
+    .hud-pause:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: -5px;
+      box-shadow: none;
+    }
+
+    .hud-pause:active { transform: none; }
 
     .metric.primary {
       min-width: 108px;
@@ -1537,6 +1555,20 @@
       cursor: pointer;
     }
 
+    #advancedDetails .control-meta { align-items: center; }
+    .advanced-setting-value { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .advanced-profile-value { display: flex; align-items: center; gap: 6px; }
+    .advanced-profile-value select { flex: 1; min-width: 0; }
+    .setting-reset {
+      display: inline-grid; place-items: center; flex-shrink: 0;
+      width: 28px; min-width: 28px; height: 28px; min-height: 28px; padding: 0;
+      border-radius: 7px; color: var(--muted); font-size: 19px; line-height: 1;
+    }
+    .setting-reset:hover { color: var(--cyan); }
+    @media (pointer: coarse) {
+      .setting-reset { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
+    }
+
     .control-select {
       width: 100%;
       min-height: 34px;
@@ -1985,6 +2017,11 @@
       .control-dock { grid-template-columns: 230px 170px; }
     }
 
+    @media (min-width: 861px) and (max-width: 1120px) {
+      .workspace:not(.sidebar-collapsed) .hud { max-width: calc(100% - 28px); }
+      .workspace:not(.sidebar-collapsed) .environment-readout { top: 108px; }
+    }
+
     @media (max-width: 860px) {
       .hud { max-width: calc(100% - 28px); }
       .topbar {
@@ -2131,7 +2168,7 @@
         justify-content: space-between;
       }
       .simulation-actions { padding-left: 4px; }
-      .simulation-action:nth-child(2) { display: none; }
+      #resetButton { display: none; }
     }
 
     @media (max-width: 360px) {
@@ -2222,7 +2259,6 @@
           title="Guide utilisateur"
          data-i18n-attr="aria-label:ui.open.user.guide;title:ui.user.guide">?</button>
         <div class="simulation-actions" aria-label="Actions de simulation" data-i18n-attr="aria-label:ui.simulation.actions">
-          <button type="button" class="simulation-action" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise" data-i18n-attr="aria-label:ui.pause.simulation;title:ui.pause.resume">Ⅱ</button>
           <button type="button" class="simulation-action" id="resetButton" aria-label="Recommencer la situation" title="Recommencer la situation" data-i18n-attr="aria-label:ui.restart.scenario;title:ui.restart.scenario">↻</button>
           <button type="button" class="simulation-action" id="cameraButton" aria-label="Recentrer la caméra" title="Recentrer la caméra sur le bateau" data-i18n-attr="aria-label:ui.centre.camera;title:ui.centre.camera.on.the.boat">⌖</button>
         </div>
@@ -2262,6 +2298,7 @@
             <div class="metric-label" data-i18n="ui.engine.speed">Régime</div>
             <div class="metric-value"><span id="rpmValue">850</span> <small data-i18n="ui.rpm">tr/min</small></div>
           </div>
+          <button type="button" class="hud-pause" id="pauseButton" aria-label="Mettre la simulation en pause" aria-pressed="false" title="Pause / reprise" data-i18n-attr="aria-label:ui.pause.simulation;title:ui.pause.resume">Ⅱ</button>
         </div>
 
         <div class="environment-readout">
@@ -5611,7 +5648,7 @@
       setCameraView("top");
       camera.target = [initial.x, initial.y, 0];
       camera.follow = false;
-      placement.disabled = $$("#sidebar input:not([type='file']), #sidebar select, #propulsorRotationControls button, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
+      placement.disabled = $$("#sidebar input:not([type='file']), #sidebar select, #propulsorRotationControls button, .setting-reset, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
         .map(element => ({ element, disabled: element.disabled }));
       placement.disabled.forEach(({ element }) => element.disabled = true);
       document.querySelector(".app").classList.add("placing-boat");
@@ -10530,6 +10567,50 @@
       });
     });
 
+    $$("#advancedDetails input[type='range'], #boatProfileSelect").forEach(input => {
+      const id = input.id;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "setting-reset";
+      button.dataset.resetControl = id;
+      button.innerHTML = '<span aria-hidden="true">↺</span>';
+      const value = $(`#advancedDetails [data-value-for="${id}"]`) || input;
+      const group = document.createElement("span");
+      group.className = input.tagName === "SELECT" ? "advanced-profile-value" : "advanced-setting-value";
+      value.before(group);
+      group.append(value, button);
+      button.addEventListener("click", () => {
+        if (isPreparingDeparture()) return;
+        if (id === "boatProfileSelect") {
+          input.value = DEFAULT_VESSEL_PROFILE_ID;
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          return;
+        }
+        const defaultValue = id === "boatMass" ? BOAT_PROFILE.mass
+          : id === "tabletControlsSize" ? defaultTouchControlsSize : input.defaultValue;
+        input.value = String(defaultValue);
+        inputs[id](defaultValue);
+        if (id === "propWalk") {
+          for (const propulsor of activeVesselProfile.propulsors) {
+            physicsSimulator.setPropulsorRotation(propulsor.id, propulsor.rotation);
+          }
+          latestPhysicsSnapshot = physicsSimulator.snapshot();
+          syncPropulsorRotationControls();
+          understandingSourceRevision++;
+        }
+        updateControlReadouts();
+      });
+    });
+
+    function refreshAdvancedResetLabels() {
+      for (const button of $$("[data-reset-control]")) {
+        const label = $(`label[for="${button.dataset.resetControl}"]`);
+        const description = t("ui.reset.setting", { setting: label.textContent });
+        button.title = description;
+        button.setAttribute("aria-label", description);
+      }
+    }
+
     function setDisplayMode(mode) {
       ui.mode = mode === "understand" ? "understand" : "navigation";
       document.body.dataset.displayMode = ui.mode;
@@ -12346,6 +12427,7 @@
     }));
     function refreshLocale() {
       i18n.apply();
+      refreshAdvancedResetLabels();
       if (portLibraryDialog.open) renderPortLibrary();
       languageSelect.value = i18n.getLocale();
       localizeBuiltInScenarios();

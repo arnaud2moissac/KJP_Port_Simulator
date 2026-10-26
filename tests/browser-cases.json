@@ -363,6 +363,13 @@
   },
   {
     "product": "simulator",
+    "id": "controls.63",
+    "group": "controls",
+    "name": "chaque réglage avancé retrouve sa valeur par défaut avec un bouton dédié",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
     "id": "camera.50",
     "group": "camera",
     "name": "deux doigts zooment et déplacent la carte, un toucher inspecte une force"

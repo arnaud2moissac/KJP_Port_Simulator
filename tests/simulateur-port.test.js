@@ -1040,7 +1040,9 @@ browserCase("simulator:interface.05", async ({ page, browser, context, runtimeEr
     assert.ok(initial.headerOverflow <= 1, `débordement du header: ${initial.headerOverflow}px`);
     assert.equal(initial.portPanelParent, "sidebar");
     assert.equal(initial.lessonParent, "sidebar");
-    assert.deepEqual(initial.actionParents, ["topbar", "topbar", "topbar"]);
+    assert.deepEqual(initial.actionParents, [null, "topbar", "topbar"]);
+    assert.equal(await page.locator(".hud > #pauseButton").evaluate(button =>
+      button.previousElementSibling.contains(document.querySelector("#rpmValue"))), true);
     assert.ok(initial.stage.width / initial.workspace.width >= 0.7);
 
     await page.locator("#sidebarToggle").click();
@@ -1081,6 +1083,26 @@ browserCase("simulator:interface.05", async ({ page, browser, context, runtimeEr
     assert.ok(tablet.toolsRight <= 768);
     assert.equal(tablet.skipperVisible, true);
     assert.equal(tablet.sidebarTop, tablet.workspaceTop);
+    for (const width of [900, 1024, 768, 390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      if (width <= 860 && await page.locator("#sidebarToggle").getAttribute("aria-expanded") === "true") {
+        await page.locator("#sidebarToggle").click();
+      }
+      await page.waitForTimeout(240);
+      const pause = await page.locator("#pauseButton").evaluate(button => {
+        const rect = button.getBoundingClientRect();
+        const hud = button.parentElement.getBoundingClientRect();
+        return {
+          width: rect.width,
+          height: rect.height,
+          inside: rect.right <= hud.right && rect.left >= hud.left,
+          reachable: button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+        };
+      });
+      assert.ok(pause.width >= 44 && pause.height >= 44, `cible Pause trop petite à ${width}px`);
+      assert.equal(pause.inside, true, `Pause masquée par le bandeau à ${width}px`);
+      assert.equal(pause.reachable, true, `Pause inaccessible à ${width}px`);
+    }
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.waitForTimeout(100);
 
@@ -3884,6 +3906,71 @@ browserCase("simulator:controls.61", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.reload();
   assert.equal(await size.inputValue(), "175");
+});
+
+browserCase("simulator:controls.63", async ({ page }) => {
+  const reset = id => page.locator(`[data-reset-control="${id}"]`);
+  await page.locator('#advancedDetails summary').click();
+  assert.equal(await page.locator('.setting-reset').count(), 9);
+  const defaults = await page.locator('#advancedDetails input[type="range"]').evaluateAll(inputs =>
+    inputs.map(input => ({ id: input.id, value: input.value,
+      text: document.querySelector(`[data-value-for="${input.id}"]`).textContent })));
+  for (const { id, value, text } of defaults) {
+    const input = page.locator('#' + id);
+    await input.focus();
+    await page.keyboard.press('End');
+    assert.notEqual(await input.inputValue(), value);
+    const otherValues = await page.locator('#advancedDetails input[type="range"]').evaluateAll((inputs, id) =>
+      inputs.filter(input => input.id !== id).map(input => input.value), id);
+    await reset(id).click();
+    assert.equal(await input.inputValue(), value, id);
+    assert.equal(await page.locator(`[data-value-for="${id}"]`).textContent(), text, id);
+    assert.deepEqual(await page.locator('#advancedDetails input[type="range"]').evaluateAll((inputs, id) =>
+      inputs.filter(input => input.id !== id).map(input => input.value), id), otherValues);
+    const bounds = await reset(id).boundingBox();
+    assert.ok(bounds.width >= 44 && bounds.height >= 44);
+    const readout = await page.locator(`[data-value-for="${id}"]`).boundingBox();
+    assert.ok(bounds.x > readout.x + readout.width, 'le bouton est à droite de la valeur');
+  }
+  assert.equal(await page.evaluate(() => localStorage.getItem('kjp.mouseHelmSensitivity')), '100');
+  assert.equal(await page.evaluate(() => localStorage.getItem('kjp.tabletControlsSize')), '175');
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.mooringReport())).policy.attachSpeedKn, .6);
+  await page.locator('#propulsorRotationControls button').click();
+  assert.equal(await page.locator('#propulsorRotationControls button').getAttribute('data-rotation'), 'left');
+  await reset('propWalk').click();
+  assert.equal(await page.locator('#propulsorRotationControls button').getAttribute('data-rotation'), 'right');
+
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario('free'));
+  await page.selectOption('#boatProfileSelect', 'pogo-40-s4-twin-rudder-experimental');
+  const mass = await page.locator('[data-value-for="boatMass"]').textContent();
+  await page.locator('#boatMass').focus();
+  await page.keyboard.press('End');
+  await reset('boatMass').click();
+  assert.equal(await page.locator('[data-value-for="boatMass"]').textContent(), mass,
+    'la masse par défaut suit le profil, même entre deux graduations du curseur');
+  await reset('boatProfileSelect').click();
+  assert.equal(await page.locator('#boatProfileSelect').inputValue(), 'sun-odyssey-36i-pedagogical');
+  for (const locale of ['en', 'br', 'fr']) {
+    await page.evaluate(code => window.__PORTANCE_TEST__.selectLocale(code), locale);
+    const catalog = require(`../src/simulateur-port/locales/${locale}.json`).messages;
+    assert.equal(await reset('windage').getAttribute('aria-label'),
+      catalog['ui.reset.setting'].replace('{setting}', catalog['ui.windage']));
+  }
+  await page.selectOption('#scenarioSelect', 'placement');
+  assert.equal(await reset('boatMass').isDisabled(), true);
+  await page.locator('#placementCancel').click();
+  assert.equal(await reset('boatMass').isDisabled(), false);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(page.url());
+  await page.locator('#smartphoneNotice button').click();
+  await page.locator('#sidebarToggle').click();
+  await page.locator('#advancedDetails summary').click();
+  await page.locator('#tabletControlsSize').focus();
+  await page.keyboard.press('End');
+  await reset('tabletControlsSize').click();
+  assert.equal(await page.locator('#tabletControlsSize').inputValue(), '100');
+  assert.equal(await page.evaluate(() => localStorage.getItem('kjp.smartphoneControlsSize')), '100');
 });
 
 browserCase("simulator:controls.62", async ({ page }) => {
