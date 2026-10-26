@@ -1,6 +1,6 @@
 # Créer un port de A à Z avec le générateur KJP
 
-Ce guide accompagne la création d’un port sur **PC ou tablette en orientation paysage**, depuis une carte vide jusqu’au chargement du fichier dans le simulateur. Il est rédigé uniquement en français. Les actions « cliquer » se font par un toucher sur tablette, sauf lorsqu’un geste différent est précisé.
+Ce guide accompagne la création d’un port sur **PC ou tablette en orientation paysage**, depuis une carte vide jusqu’au chargement du fichier dans le simulateur. Des guides sont également disponibles en [anglais](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/docs/guide-generateur.en.md) et en [breton](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/docs/guide-generateur.br.md). Le sélecteur **FR / EN / Bzh** change la langue de l’interface et de l’aide embarquée sans modifier le port ni les textes de son auteur. Les actions « cliquer » se font par un toucher sur tablette, sauf lorsqu’un geste différent est précisé.
 
 Ouvrez le [générateur de ports hébergé sur GitHub](https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html). Les illustrations ont été réalisées sur cette version hébergée, le **16 octobre 2026**, avec **Port Tudy, à Groix**, comme localisation. Le générateur et les données OpenStreetMap peuvent évoluer : les nombres d’objets et certains libellés de vos résultats peuvent différer.
 
@@ -92,7 +92,7 @@ Si une proposition de ponton complexe présente **Découper le ponton**, examine
 
 Revenez à **Sélection**, puis cliquez sur un ponton intégré. L’inspecteur affiche son identifiant, ses dimensions et ses réglages.
 
-Chaque clic sur un nouvel élément l’ajoute à la sélection. Cliquez à nouveau
+Chaque clic sur un nouvel élément l’ajoute à la sélection, sans touche de modification. Cliquez à nouveau
 sur un élément sélectionné pour le retirer, ou dans une zone vide pour tout
 désélectionner. **Supprimer** retire tous les éléments sélectionnés en une seule
 opération. Si les éléments sont du même type, leurs propriétés communes sont
@@ -104,7 +104,7 @@ ses poignées et le déplacer.
 
 ![Ponton importé sélectionné, avec ses dimensions et les poignées de manipulation](images/generateur/04-ponton-proprietes.fr.jpg)
 
-**PC et tablette :** les carrés de longueur permettent d’ajuster un ponton ; la poignée ronde de rotation permet de l’orienter. Pour un réglage précis, saisissez la dimension ou l’angle dans le panneau, puis quittez le champ. Les coordonnées **Est / Nord** déplacent l’objet dans le repère local du port : elles ne sont pas des latitudes et longitudes.
+**PC et tablette :** glissez le corps du ponton pour le déplacer. Glissez l’une de ses extrémités dans n’importe quelle direction pour modifier sa longueur et son orientation, l’autre extrémité restant fixe. Pour un réglage précis, saisissez la dimension ou l’angle dans le panneau, puis quittez le champ. Les coordonnées **Est / Nord** déplacent l’objet dans le repère local du port : elles ne sont pas des latitudes et longitudes. Les captures anciennes peuvent encore montrer une poignée ronde de rotation ; elle a été retirée.
 
 **Attention aux angles :** l’**Angle** d’un ponton est un angle géométrique, avec 0° vers l’est et 90° vers le nord. Le **Cap nautique** de l’entrée suit une autre convention, expliquée à l’étape 8.
 
@@ -202,13 +202,17 @@ propriétés, ou la marquer comme place visiteurs. Le contrôle de dégagement p
 réduire sa longueur. Les places manuelles sont conservées par **Calculer les
 places**, ainsi qu’à l’enregistrement et au chargement du fichier KJP.
 
-1. Dans **Places et ambiance**, indiquez une **Largeur des places de 4 m** pour l’exercice.
+1. Dans **Places et ambiance**, réglez **Largeur des places (m)** et **Longueur des places (m)** avant le calcul. Pour retrouver la largeur de l’exercice illustré, indiquez **4 m** ; les captures antérieures au réglage de longueur ne montrent pas ce champ.
 2. Cliquez sur **Calculer les places**. La série de six catways de cet exemple produit **12 places** avant d’autres aménagements.
 3. Sélectionnez une place libre sur la carte, en cliquant à l’intérieur de son rectangle plutôt que sur un taquet ou un catway voisin.
 4. Cochez **Place visiteurs** et renseignez **Nom de la place**, par exemple **Visiteurs du guide**.
 5. Réglez **Occupation**, puis cliquez sur **Placer les bateaux**. Le calcul de remplissage évite les places marquées visiteurs. Si vous les avez désignées après un premier remplissage, vérifiez qu’elles sont effectivement libres et refaites le peuplement si nécessaire.
 
+Lors de la création manuelle ou du calcul, chaque place doit conserver devant elle une distance libre au moins égale à sa propre longueur. Le générateur raccourcit les places si nécessaire ; lorsque deux places sont face à face, il réduit les deux longueurs pour préserver leur dégagement commun. Les dimensions réellement obtenues peuvent donc être inférieures à la longueur demandée. Si l’espace est insuffisant, une place peut ne pas être créée. Après un recalcul, les bateaux qui ne tiennent plus dans leur place sont retirés.
+
 L’occupation est une consigne de remplissage, pas la garantie d’un nombre exact de bateaux. Les captures ont été obtenues avec **35 %**, et le résultat de cette session est **8 bateaux**. Ne cherchez pas à retrouver ce nombre à tout prix.
+
+Dans **Répartition des longueurs**, réglez **Longueur mini (m)** et **Longueur maxi (m)**, puis **% de mini** et **% de maxi**. Ces pourcentages règlent le poids relatif des tailles aux deux limites de la courbe, avec un sommet à 100 % ; ils ne désignent pas une part exacte de bateaux ayant ces longueurs. Le curseur **Centre de la répartition** déplace la taille favorisée et permet une répartition décentrée. L’aperçu **Répartition des tailles de bateaux**, sans axes, montre immédiatement l’effet des réglages. Les bateaux générés doivent tenir dans leurs places ; une place trop petite pour la longueur mini reste libre. Ces paramètres sont conservés dans le fichier KJP.
 
 Pour votre propre port, revenez à la comparaison satellite de l’étape 4 : elle aide à choisir la densité et les secteurs occupés que vous souhaitez représenter. Les **35 %** de cet exercice concernent le peuplement pédagogique ; ils ne mesurent pas le taux d’occupation réel de Port Tudy. Après remplissage, vérifiez les accès et les espaces entre les bateaux dans le modèle.
 
@@ -216,9 +220,11 @@ Pour votre propre port, revenez à la comparaison satellite de l’étape 4 : el
 
 **Contrôle :** le titre de l’inspecteur doit être **Place**, et non **Taquet**, **Catway** ou **Bateau**. Zoomez si les objets sont trop proches. La place visiteurs doit rester reconnaissable et accessible.
 
-**Placer les bateaux** régénère le peuplement ; ce n’est pas un bouton qui ajoute uniquement un bateau supplémentaire. L’outil **Bateau** permet un ajout individuel sur une place existante, si elle est disponible. Pour réserver une place aux visiteurs, sélectionnez-la puis cochez **Place visiteurs** dans ses propriétés. Cette option est disponible pour les places calculées comme pour celles ajoutées avec l’outil **Place**.
+Chaque appui sur **Placer les bateaux** remplace le peuplement par un nouveau tirage : les places occupées, les tailles et les orientations peuvent changer avec les mêmes réglages. Ce bouton n’ajoute pas uniquement un bateau supplémentaire. **Annuler** permet de revenir au peuplement précédent. L’outil **Bateau** permet un ajout individuel sur une place existante, si elle est disponible.
 
-Le calcul automatique des places concerne les catways. Finalisez-le avant l’atelier pendilles : un nouveau **Calculer les places** reconstruit cette liste et peut retirer des places créées autrement. Après une modification des catways ou des places, contrôlez à nouveau les bateaux et les accès.
+Pour réserver une place aux visiteurs, sélectionnez-la puis cochez **Place visiteurs** dans ses propriétés et renseignez **Nom de la place**. Décochez cette option pour en faire de nouveau une place ordinaire. Elle est disponible pour les places calculées comme pour celles ajoutées avec l’outil **Place** ; il n’y a plus d’outil Visiteur séparé. Le statut et le nom sont enregistrés dans le fichier KJP.
+
+Le calcul automatique des places concerne les catways. Il conserve les places ajoutées avec l’outil **Place**, sous réserve du contrôle de dégagement. Finalisez-le avant l’atelier pendilles : un nouveau **Calculer les places** reconstruit la liste automatique et peut retirer les places créées par cet atelier. Après une modification des catways ou des places, contrôlez à nouveau les bateaux et les accès.
 
 ## 7. Atelier facultatif : comprendre les places sur pendille
 

@@ -33,7 +33,11 @@ fil conducteur. Son [fichier d’exercice KJP](docs/exemples/port-tudy-exercice.
 comprend des aménagements pédagogiques explicitement signalés.
 
 Le générateur propose le français, l’anglais et le breton (FR / EN / Bzh), avec
-une aide embarquée dans chaque langue. Ses dictionnaires et la procédure pour
+une aide embarquée dans chaque langue : [français](docs/guide-generateur.fr.md),
+[anglais](docs/guide-generateur.en.md) et [breton](docs/guide-generateur.br.md).
+Les trois guides décrivent la multisélection, les places manuelles, l’option
+visiteurs, le contrôle du dégagement et la répartition des tailles de bateaux.
+Ses dictionnaires et la procédure pour
 ajouter une langue sont décrits dans [la documentation de localisation](docs/localisation-generateur.md).
 
 https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html
