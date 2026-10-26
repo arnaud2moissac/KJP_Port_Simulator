@@ -19,15 +19,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, 'output/modeles-physiques');
 const pdfOutput = path.join(root, 'output/pdf');
 const profile = Physics.DEFAULT_PROFILE;
-if(process.argv.includes('--viewer-only')){
-  const exported=Object.fromEntries(await Promise.all(['fardage','parties-immergees'].map(async name=>
-    [name,await fs.readFile(path.join(output,`${name}.glb`))])));
-  await writeStandaloneViewer(exported);
-  console.log('Lecteur autonome reconstruit ; GLB, dessins, PDF et moteur inchangés.');
-  process.exit(0);
-}
-const scratch = await fs.mkdtemp('/tmp/kjp-physics-illustrations-');
-const raw = Physics.RAW_PROFILES[profile.id];
 const W = 1680, H = 1188;
 const C = {
   ink: '#192f45', muted: '#596c7d', line: '#cfdae2', ghost: '#aebcc8', water: '#338ec0',
@@ -69,6 +60,8 @@ function rectangle(center,width,height,normal=[0,1,0]) {
   return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([u,v]) =>
     add(add(center,mul(t,u*width/2)),[0,0,v*height/2]));
 }
+function modelData(profile){
+const raw=Physics.RAW_PROFILES[profile.id];
 const panels=profile.aerodynamics.panels.map((p,index) => {
   const category=panelCategory(p.id), center=vec(p.center), normal=unit([p.normalBody.x,p.normalBody.y,0]);
   let polygon=null, geometryKind='equivalent-area-rectangle';
@@ -106,10 +99,13 @@ const strips=Array.from({length:rudder.slipstream.stripCount},(_,i) => {
   return {index:i,code:`R${i+1}`,area:rudder.area/rudder.slipstream.stripCount,z,
     center:[rudder.x,rudder.y,z],polygon:rectangle([rudder.x,rudder.y,z],rudder.area/rudder.span,stripHeight)};
 });
-assert.equal(panels.length,36); assert.equal(sections.length,11); assert.equal(strips.length,5);
 assert.ok(Math.abs(polygonArea(keelPolygon)-keel.area)<1e-10);
 const counts={};for(const p of panels){counts[p.category]??={count:0,area:0};counts[p.category].count++;counts[p.category].area+=p.area;}
 const totalArea=panels.reduce((sum,p)=>sum+p.area,0), crossFlowArea=sections.reduce((sum,p)=>sum+p.area,0);
+return {profile,raw,panels,sections,keel,rudder,propeller,keelPolygon,rudderBottom,rudderTop,strips,counts,totalArea,crossFlowArea};
+}
+const defaultData=modelData(profile);
+const {raw,panels,sections,keel,rudder,propeller,keelPolygon,rudderBottom,rudderTop,strips,counts,totalArea,crossFlowArea}=defaultData;
 
 const sourceBytes=await fs.readFile(path.join(root,'kjp_sun_odyssey_36i.glb'));
 const sourceGLTF=await new GLTFLoader().parseAsync(sourceBytes.buffer.slice(sourceBytes.byteOffset,sourceBytes.byteOffset+sourceBytes.byteLength),'');
@@ -142,10 +138,28 @@ function clipPoly(poly,axis,bound,greater){
   }
   return out;
 }
-function contextPolys(kind){
+async function loadContextTriangles(filename,offsetX){
+  const bytes=await fs.readFile(path.join(root,filename));
+  const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+  const triangles=[];gltf.scene.updateMatrixWorld(true);
+  gltf.scene.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const {index,attributes}=mesh.geometry,count=index?.count??attributes.position.count;
+    for(let i=0;i<count;i+=3){
+      const triangle=[];
+      for(let j=0;j<3;j++){
+        const p=new THREE.Vector3().fromBufferAttribute(attributes.position,index?index.getX(i+j):i+j).applyMatrix4(mesh.matrixWorld);
+        triangle.push([p.z+offsetX,-p.x,p.y]);
+      }
+      triangles.push({triangle});
+    }
+  });
+  return triangles;
+}
+function contextPolys(kind,triangles=sourceTriangles){
   const included=kind==='wind'?new Set(['upper_sheer','hull_sides','transom','deck','deck_edge','coachroof','mast_and_rigging']):
     new Set(['hull_underwater','waterline_stripe','keel_fin','keel_bulb','rudder']);
-  return sourceTriangles.filter(t=>included.has(t.part)).map(t=>
+  return triangles.filter(t=>!t.part||included.has(t.part)).map(t=>
     clipPoly(clipPoly(t.triangle,2,kind==='wind'?0:-2,true),2,kind==='wind'?5.6:0.06,false)).filter(p=>p.length>=3);
 }
 
@@ -220,15 +234,16 @@ function label3(text,p,color=C.ink,size=.15){
   const m=new THREE.Mesh(g,material(color));m.position.fromArray(gltfPoint(p));m.userData={role:'annotation',billboard:true};return m;
 }
 function metadataGroup(name,role){const g=new THREE.Group();g.name=name;g.userData={role};return g;}
-function sceneBase(kind){
+function sceneBase(kind,data=defaultData,triangles=sourceTriangles,sourceFile='kjp_sun_odyssey_36i.glb'){
+  const {profile}=data;
   const scene=new THREE.Scene();scene.name=kind==='wind'?'Fardage - modele de calcul KJP':'Eau - parties immergees du modele KJP';
   scene.userData={artifactRole:'technical-explanation-only',units:'meters',physicsVersion:Physics.VERSION,
     profileId:profile.id,profileVersion:profile.version,boatFrame:'x forward; y starboard; z up; origin is physics x=0,y=0,z=0',
     gltfFrame:'X=-boat.y (port); Y=boat.z (up); Z=boat.x (bow)',
     contourPolicy:'exact freeboard/transom; equivalent appendix/superstructure contours; wire hull is visual reference only',
-    sourceFiles:['src/simulateur-port/vessel-profiles.js','src/simulateur-port/physics-core.js','kjp_sun_odyssey_36i.glb']};
+    sourceFiles:['src/simulateur-port/vessel-profiles.js','src/simulateur-port/physics-core.js',sourceFile]};
   const context=metadataGroup('Silhouette visuelle - non physique','context');
-  const m=meshPolys(contextPolys(kind),C.ghost,.12);m.name='GLB visuel existant - contexte uniquement';m.userData={noPhysicsData:true};context.add(m);
+  const m=meshPolys(contextPolys(kind,triangles),C.ghost,.12);m.name='GLB visuel existant - contexte uniquement';m.userData={noPhysicsData:true};context.add(m);
   scene.add(context);
   const water=metadataGroup('Flottaison z=0','waterline');
   water.add(linePath([[-5.6,-2.2,0],[5.7,-2.2,0],[5.7,2.2,0],[-5.6,2.2,0],[-5.6,-2.2,0]],C.water));
@@ -239,8 +254,9 @@ function sceneBase(kind){
   }
   scene.add(axes);return scene;
 }
-function buildWindScene(){
-  const scene=sceneBase('wind'),normals=metadataGroup('Normales - fleches de direction, pas de force','normals'),
+function buildWindScene(data=defaultData,triangles=sourceTriangles,sourceFile){
+  const {panels,counts}=data;
+  const scene=sceneBase('wind',data,triangles,sourceFile),normals=metadataGroup('Normales - fleches de direction, pas de force','normals'),
     annotations=metadataGroup('Codes des panneaux','annotations'), centers=metadataGroup('Centres application','centers');
   for(const category of Object.keys(counts)){
     const group=metadataGroup(`Panneaux ${category}`,category);
@@ -262,8 +278,9 @@ function buildWindScene(){
   }
   scene.add(normals,centers,annotations);return scene;
 }
-function buildWaterScene(){
-  const scene=sceneBase('water'),hull=metadataGroup('11 rubans de resistance laterale','hull'),
+function buildWaterScene(data=defaultData,triangles=sourceTriangles,sourceFile){
+  const {profile,raw,sections}=data;
+  const scene=sceneBase('water',data,triangles,sourceFile),hull=metadataGroup(`${sections.length} rubans de resistance laterale`,'hull'),
     centers=metadataGroup('Centres application 3 DOF','centers'),annotations=metadataGroup('Codes des organes','annotations'),
     directions=metadataGroup('Axes bidirectionnels et sens de flux - jamais des forces imposees','normals');
   for(const [i,s] of sections.entries()){
@@ -278,16 +295,30 @@ function buildWaterScene(){
     directions.add(axis);
     annotations.add(label3(s.code,[s.x,.55,.09],C.hull,.13));
   }
-  const k=metadataGroup('Quille - aire equivalente','keel');k.userData={...raw.appendages[0],role:'physical-element',selectable:true,quantity:'foil',contour:'rectangle preserving area and span, not CAD'};
+  for(const [i,keel] of profile.appendages.entries()){
+  const keelPolygon=rectangle([keel.x,keel.y,keel.z],keel.area/keel.span,keel.span);
+  assert.ok(Math.abs(polygonArea(keelPolygon)-keel.area)<1e-10,keel.id);
+  const k=metadataGroup(profile.appendages.length===1?'Quille - aire equivalente':`Quille longue - section ${i+1}`,'keel');k.userData={...raw.appendages[i],role:'physical-element',selectable:true,quantity:'foil',contour:'rectangle preserving area and span, not CAD'};
   k.add(meshPolys([keelPolygon],C.keel,.72));k.add(linePath([...keelPolygon,keelPolygon[0]],C.keel));
   const keelCenter=[keel.x,keel.y,keel.z];
   centers.add(point3(keelCenter,C.ink));
   const keelAxis=bidirectionalAxis3(keelCenter,[0,.52,0],C.keel);
   keelAxis.name='Quille - normale hydrodynamique bidirectionnelle';
-  keelAxis.userData={directionKind:'bidirectional-lateral-axis',elementId:'fin-keel',axes:['+y','-y'],forceDirection:'dynamic-from-relative-flow'};
+  keelAxis.userData={directionKind:'bidirectional-lateral-axis',elementId:keel.id,axes:['+y','-y'],forceDirection:'dynamic-from-relative-flow'};
   directions.add(keelAxis);
-  annotations.add(label3('QUILLE 3.15 m2',[-.18,-.62,-1.9],C.keel,.17));
-  const r=metadataGroup('Safran - cinq bandes','rudder');
+  annotations.add(label3(`Q${i+1} ${keel.area.toFixed(2)} m2`,[keel.x,keel.y-.62,keel.z-keel.span/2-.12],C.keel,.13));
+  scene.add(k);
+  }
+  for(const [rudderIndex,rudder] of profile.rudders.entries()){
+  const stripCount=rudder.slipstream.stripCount,stripHeight=rudder.span/stripCount;
+  const rudderBottom=rudder.z-rudder.span/2,rudderTop=rudder.z+rudder.span/2;
+  const strips=Array.from({length:stripCount},(_,i)=>{
+    const z=rudder.z+(i+.5-stripCount/2)*stripHeight;
+    const code=profile.rudders.length===1?`R${i+1}`:`R${rudderIndex+1}.${i+1}`;
+    return {index:i,code,area:rudder.area/stripCount,z,center:[rudder.x,rudder.y,z],
+      polygon:rectangle([rudder.x,rudder.y,z],rudder.area/rudder.span,stripHeight)};
+  });
+  const r=metadataGroup(`Safran ${rudder.id} - ${stripCount} bandes`,'rudder');
   const stockLine=linePath([[rudder.stock.x,rudder.stock.y,rudderBottom],[rudder.stock.x,rudder.stock.y,rudderTop]],C.force);
   stockLine.name='Mèche de safran - axe fixe';
   stockLine.userData={role:'rudder-stock',chordFraction:rudder.stockChordFraction,
@@ -295,7 +326,8 @@ function buildWaterScene(){
   r.add(stockLine);
   for(const [i,s] of strips.entries()){
     const g=metadataGroup(`${s.code} - bande safran`,'physical-element');
-    g.userData={...s,role:'physical-element',selectable:true,quantity:'rudder-strip',rudderProfile:raw.rudders[0],
+    assert.ok(Math.abs(polygonArea(s.polygon)-s.area)<1e-10,s.code);
+    g.userData={...s,role:'physical-element',selectable:true,quantity:'rudder-strip',rudderProfile:raw.rudders[rudderIndex],
       stockPosition:{x:rudder.stock.x,y:rudder.stock.y},stockChordFraction:rudder.stockChordFraction,meanChord:rudder.meanChord,
       contour:'rectangle preserving area and span; strip center z is exact'};
     g.add(meshPolys([s.polygon],i%2?'#68b9a3':C.rudder,.82));g.add(linePath([...s.polygon,s.polygon[0]],C.rudder));r.add(g);
@@ -304,11 +336,15 @@ function buildWaterScene(){
     axis.name=`${s.code} - normale de safran bidirectionnelle`;
     axis.userData={directionKind:'bidirectional-lateral-axis',elementId:s.code,axes:['+y','-y'],rudderAngle:'zero-in-static-view',forceDirection:'dynamic-from-flow-angle-and-slipstream'};
     directions.add(axis);
-    annotations.add(label3(s.code,[rudder.x-.58,-.4,s.z],C.rudder,.12));
+    annotations.add(label3(s.code,[rudder.x-.58,rudder.y-.4,s.z],C.rudder,.12));
   }
-  annotations.add(label3(`MECHE ${format(100*rudder.stockChordFraction,0)}% CORDE`,[rudder.stock.x,-.42,rudderTop+.12],C.force,.115));
-  const prop=metadataGroup('Helice - disque de diametre 0.406 m','propeller');
-  prop.userData={...raw.propulsors[0],role:'physical-element',selectable:true,quantity:'propeller-disk',contour:'disk, not blade shape'};
+  annotations.add(label3(`MECHE ${format(100*rudder.stockChordFraction,0)}% CORDE`,[rudder.stock.x,rudder.y-.42,rudderTop+.12],C.force,.115));
+  scene.add(r);
+  }
+  for(const [propellerIndex,propeller] of profile.propulsors.entries()){
+  const prop=metadataGroup(`Helice - disque de diametre ${propeller.diameter} m`,'propeller');
+  prop.userData={...raw.propulsors[propellerIndex],role:'physical-element',selectable:true,quantity:'propeller-disk',contour:'disk, not blade shape',
+    slipstreamTargets:profile.rudders.filter(r=>r.slipstreamSources.includes(propeller.id)).map(r=>r.id)};
   const disc=new THREE.Mesh(new THREE.CircleGeometry(propeller.diameter/2,40),material(C.propeller,.72));
   disc.position.fromArray(gltfPoint([propeller.x,propeller.y,propeller.z]));prop.add(disc);
   const rim=Array.from({length:49},(_,i)=>[propeller.x,propeller.y+Math.cos(i*Math.PI/24)*propeller.diameter/2,propeller.z+Math.sin(i*Math.PI/24)*propeller.diameter/2]);
@@ -316,23 +352,27 @@ function buildWaterScene(){
   prop.add(linePath(rim,C.propeller));
   const thrustAxis=arrow3(propellerCenter,add(propellerCenter,[.62,0,0]),C.propeller);
   thrustAxis.name='Helice - axe de poussee +x';
-  thrustAxis.userData={directionKind:'propeller-thrust-axis',elementId:'shaft-propeller',direction:'+x'};
+  thrustAxis.userData={directionKind:'propeller-thrust-axis',elementId:propeller.id,direction:'+x'};
   directions.add(thrustAxis);
   annotations.add(label3('AXE POUSSEE +x',add(propellerCenter,[.82,0,.08]),C.propeller,.12));
-  annotations.add(label3('HELICE D=0.406 m',[propeller.x,.55,propeller.z],C.propeller,.13));
+  annotations.add(label3(`HELICE D=${propeller.diameter} m`,[propeller.x,propeller.y+.55,propeller.z],C.propeller,.13));
   // Jet envelope is a geometry aid, not a CFD wake or a force vector.
   const jet=metadataGroup('Enveloppe geometrique du jet vers le safran','jet');
+  for(const rudder of profile.rudders.filter(r=>r.slipstreamSources.includes(propeller.id))){
   for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]){
     const delta=Math.abs(rudder.x-propeller.x),t=THREE.MathUtils.smoothstep(delta,0,4*propeller.diameter);
     const radius=propeller.diameter/2*(1-(1-rudder.slipstream.contractionRatio)*t);
-    const flow=arrow3([propeller.x,Math.cos(a)*propeller.diameter/2,propeller.z+Math.sin(a)*propeller.diameter/2],
-      [rudder.x,Math.cos(a)*radius,propeller.z+Math.sin(a)*radius],C.propeller,.009);
+    const flow=arrow3([propeller.x,propeller.y+Math.cos(a)*propeller.diameter/2,propeller.z+Math.sin(a)*propeller.diameter/2],
+      [rudder.x,propeller.y+Math.cos(a)*radius,propeller.z+Math.sin(a)*radius],C.propeller,.009);
     flow.name='Jet helice - ecoulement vers -x';
-    flow.userData={directionKind:'propeller-jet-flow',elementId:'shaft-propeller',direction:'-x',illustrative:true};
+    flow.userData={directionKind:'propeller-jet-flow',elementId:propeller.id,direction:'-x',illustrative:true};
     jet.add(flow);
   }
+  }
   jet.userData={illustrative:true,applies:'forward thrust, jet convected downstream',notCFD:true};
-  scene.add(hull,k,r,prop,jet,centers,annotations,directions);return scene;
+  scene.add(prop,jet);
+  }
+  scene.add(hull,centers,annotations,directions);return scene;
 }
 
 class Drawing {
@@ -523,6 +563,12 @@ function waterInventory(){
   d.footer();return d;
 }
 
+if(process.argv.includes('--viewer-only')){
+  await writeStandaloneViewer();
+  console.log('Lecteur autonome reconstruit pour Sun Odyssey 36i, Contessa 26 et Dufour 310 ; moteur, GLB séparés, dessins et PDF inchangés.');
+  process.exit(0);
+}
+const scratch = await fs.mkdtemp('/tmp/kjp-physics-illustrations-');
 await fs.mkdir(output,{recursive:true});await fs.mkdir(pdfOutput,{recursive:true});
 const scenes={fardage:buildWindScene(),'parties-immergees':buildWaterScene()};
 const exported={};
@@ -560,7 +606,7 @@ await fs.writeFile(operationsPath,JSON.stringify(Object.fromEntries(Object.entri
 const pythonFlag=process.argv.indexOf('--python');const python=pythonFlag>=0?process.argv[pythonFlag+1]:'python3';
 execFileSync(python,[path.join(root,'scripts/render-physics-model-pdfs.py'),operationsPath,pdfOutput],{stdio:'inherit'});
 await writeStandaloneViewer(exported);
-await fs.writeFile(path.join(output,'lire-les-modeles.md'),`# Lire les modèles de fardage et d’eau\n\nLes deux GLB et les planches SVG sont générés depuis le profil ${profile.id} ${profile.version}, moteur ${Physics.VERSION}. Les PDF comportent chacun une planche multi-axe et un catalogue des valeurs exactes.\n\nOuvrir **explorer-les-modeles.html** pour tourner les modèles, sélectionner un panneau, lire ses coordonnées et afficher les normales. Ce lecteur est autonome et fonctionne sans réseau. Les dessins **fardage.svg** et **parties-immergees.svg** utilisent les mêmes coordonnées que les GLB.\n\nRepère bateau : x vers l’étrave, y vers tribord, z vers le haut. Repère GLB : X=-y, Y=z, Z=x. Les points noirs sont les centres. Pour l’eau, les flèches doubles montrent les axes latéraux ±y : elles ne fixent pas le sens de la force. La flèche orange avant montre l’axe propulsif +x et les flèches orange arrière le jet -x. Toutes les longueurs de flèche sont illustratives.\n\n## Exactitude\n\n- Fardage : les 28 flancs et le tableau reprennent leurs contours exacts. Les 4 panneaux de rouf et les 2 de bôme sont des rectangles équivalents conservant exactement aire, centre et normale. Le mât/gréement est omnidirectionnel : son symbole représente le centre et son aire est une valeur de calcul, pas celle de la sphère.\n- Eau : les 11 rubans bleus représentent l’aire efficace de résistance latérale, pas des morceaux de carène. Quilles et bandes de safran préservent aire, centre et envergure sous une forme rectangulaire équivalente. Le disque d’hélice conserve son diamètre.\n- Gris : silhouette extraite du GLB visuel versionné ; elle ne sert à aucun calcul physique.\n- Les surfaces aérodynamiques totalisent ${format(totalArea,3)} m² en additionnant les deux bords. Ce total n’est pas une aire de fardage projetée sous un vent donné.\n- Les aires de cross-flow totalisent ${format(crossFlowArea,3)} m² ; les 28,5 m² de surface mouillée globale désignent une autre grandeur.\n\n## Reproduire\n\n\`node scripts/export-physics-model-illustrations.mjs --python <python-avec-reportlab>\`\n\nSources internes : \`src/simulateur-port/vessel-profiles.js\`, \`src/simulateur-port/physics-core.js\`, \`kjp_sun_odyssey_36i.glb\`. Les sources et dépendances locales sont exclues de la bibliographie externe. Le fichier \`donnees-modele.json\` conserve les valeurs et le classement exact/équivalent/illustratif.\n`);
+await fs.writeFile(path.join(output,'lire-les-modeles.md'),`# Lire les modèles de fardage et d’eau\n\nLes deux GLB séparés et les planches SVG concernent le Sun Odyssey 36i. Ils sont générés depuis le profil ${profile.id} ${profile.version}, moteur ${Physics.VERSION}. Les PDF comportent chacun une planche multi-axe et un catalogue des valeurs exactes.\n\n## Explorer les trois bateaux\n\nOuvrir [explorer-les-modeles.html](explorer-les-modeles.html), puis choisir **Sun Odyssey 36i**, **Contessa 26** ou **Dufour 310 Grand Large 2014** dans le menu **Bateau**. Le menu **Modèle** donne accès au fardage et aux parties immergées du bateau choisi. Les modèles embarqués sont construits depuis les profils versionnés du dépôt ; le nom et la version du profil actif figurent en bas du panneau latéral.\n\nTourner le modèle par glisser, zoomer à la molette et déplacer avec le bouton droit. Les boutons **Perspective**, **Profil**, **Plan** et **Coupe** offrent des vues prédéfinies. Cliquer sur une surface colorée pour lire ses données ; les légendes, les compteurs et l'explication de la hauteur des panneaux suivent le bateau choisi.\n\nLe Contessa comporte sept sections équivalentes de quille longue. Le Dufour affiche ses deux safrans, avec cinq bandes chacun ; son profil ne relie aucune hélice directement aux safrans. Le lecteur reste autonome et fonctionne sans réseau : ses six modèles sont inclus dans le fichier HTML. Le lien **GLB** télécharge le modèle du bateau et de la vue actifs. Le lien **Dessin vectoriel** concerne uniquement les planches du Sun Odyssey 36i.\n\nLes dessins **fardage.svg** et **parties-immergees.svg** utilisent les mêmes coordonnées que les GLB séparés du Sun Odyssey 36i. Les nombres ci-dessous décrivent ces planches.\n\nRepère bateau : x vers l’étrave, y vers tribord, z vers le haut. Repère GLB : X=-y, Y=z, Z=x. Les points noirs sont les centres. Pour l’eau, les flèches doubles montrent les axes latéraux ±y : elles ne fixent pas le sens de la force. La flèche orange avant montre l’axe propulsif +x et les flèches orange arrière le jet -x. Toutes les longueurs de flèche sont illustratives.\n\n## Exactitude\n\n- Fardage : les 28 flancs et le tableau reprennent leurs contours exacts. Les 4 panneaux de rouf et les 2 de bôme sont des rectangles équivalents conservant exactement aire, centre et normale. Le mât/gréement est omnidirectionnel : son symbole représente le centre et son aire est une valeur de calcul, pas celle de la sphère.\n- Eau : les 11 rubans bleus représentent l’aire efficace de résistance latérale, pas des morceaux de carène. Quilles et bandes de safran préservent aire, centre et envergure sous une forme rectangulaire équivalente. Le disque d’hélice conserve son diamètre.\n- Gris : silhouette extraite du GLB visuel versionné ; elle ne sert à aucun calcul physique.\n- Les surfaces aérodynamiques totalisent ${format(totalArea,3)} m² en additionnant les deux bords. Ce total n’est pas une aire de fardage projetée sous un vent donné.\n- Les aires de cross-flow totalisent ${format(crossFlowArea,3)} m² ; les 28,5 m² de surface mouillée globale désignent une autre grandeur.\n\n## Reproduire\n\nReconstruire uniquement le lecteur autonome et ses trois bateaux :\n\n\`node scripts/export-physics-model-illustrations.mjs --viewer-only\`\n\nRégénérer aussi les GLB séparés, les planches, le catalogue JSON et les PDF du Sun Odyssey 36i :\n\n\`node scripts/export-physics-model-illustrations.mjs --python <python-avec-reportlab>\`\n\nLes sources du lecteur sont \`scripts/physics-model-viewer.html\` et \`scripts/physics-model-viewer.mjs\` ; modifier ces sources puis relancer l'export, plutôt que le HTML généré.\n\nSources internes : \`src/simulateur-port/vessel-profiles.js\`, \`src/simulateur-port/physics-core.js\`, \`kjp_sun_odyssey_36i.glb\`, \`KJP_Contessa26_rouge_lazybag.glb\`, \`kjp_dufour_310_gl_2014_dimfix_rudders.glb\`. Les sources et dépendances locales sont exclues de la bibliographie externe. Le fichier \`donnees-modele.json\` conserve les valeurs du Sun Odyssey 36i et le classement exact/équivalent/illustratif.\n`);
 await fs.appendFile(path.join(output,'lire-les-modeles.md'),`
 ## Mèche du safran
 
@@ -570,8 +616,35 @@ console.log(JSON.stringify({output,pdfOutput,panels:panels.length,sections:secti
   glbSizes:Object.fromEntries(Object.entries(exported).map(([k,v])=>[k,v.length])),checks:'areas, element counts, GLB roundtrip and lengths passed'}));
 
 async function writeStandaloneViewer(exported){
+  const vessels={};
+  for(const [id,sourceFile,offsetX] of [
+    [profile.id,'kjp_sun_odyssey_36i.glb',0],
+    ['contessa-26-long-keel-experimental','KJP_Contessa26_rouge_lazybag.glb',.135],
+    ['dufour-310-gl-2014-deep-keel-experimental','kjp_dufour_310_gl_2014_dimfix_rudders.glb',.2075]
+  ]){
+    const data=id===profile.id?defaultData:modelData(Physics.COMPILED_PROFILES[id]);
+    const triangles=id===profile.id?sourceTriangles:await loadContextTriangles(sourceFile,offsetX);
+    const models={};
+    for(const [kind,scene] of Object.entries({fardage:buildWindScene(data,triangles,sourceFile),'parties-immergees':buildWaterScene(data,triangles,sourceFile)})){
+      scene.traverse(n=>{if(n.userData.selectable)n.userData.displayName=n.name;});
+      const bytes=id===profile.id&&exported?exported[kind]:Buffer.from(await new GLTFExporter().parseAsync(scene,{binary:true,onlyVisible:false}));
+      const parsed=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+      let count=0,stockCount=0;
+      parsed.scene.traverse(n=>{if(n.userData.selectable)count++;if(n.userData.role==='rudder-stock')stockCount++;});
+      const rudderStrips=data.profile.rudders.reduce((sum,r)=>sum+r.slipstream.stripCount,0);
+      assert.equal(count,kind==='fardage'?data.panels.length:data.sections.length+data.profile.appendages.length+rudderStrips+data.profile.propulsors.length,`${id}/${kind}: element count`);
+      assert.equal(stockCount,kind==='fardage'?0:data.profile.rudders.length,`${id}/${kind}: rudder stocks`);
+      assert.equal(bytes.readUInt32LE(8),bytes.length);
+      models[kind]=bytes.toString('base64');
+    }
+    vessels[id]={name:data.profile.name,version:data.profile.version,physicsVersion:Physics.VERSION,models,
+      counts:data.counts,sections:data.sections.length,appendages:data.profile.appendages.length,
+      rudders:data.profile.rudders.length,rudderStrips:data.profile.rudders.reduce((sum,r)=>sum+r.slipstream.stripCount,0),
+      propellers:data.profile.propulsors.length,windHeight:{referenceHeight:data.profile.aerodynamics.referenceWindHeight,...data.profile.aerodynamics.verticalProfile},
+      drawings:id===profile.id};
+  }
   const bundle=await build({entryPoints:[path.join(root,'scripts/physics-model-viewer.mjs')],bundle:true,write:false,format:'iife',target:'es2020',minify:true});
-  const boot=`window.KJP_PHYSICAL_MODELS=${JSON.stringify(Object.fromEntries(Object.entries(exported).map(([k,v])=>[k,v.toString('base64')])))};\nwindow.KJP_WIND_HEIGHT_PROFILE=${JSON.stringify({referenceHeight:profile.aerodynamics.referenceWindHeight,...profile.aerodynamics.verticalProfile})};`;
+  const boot=`window.KJP_PHYSICAL_VESSELS=${JSON.stringify(vessels)};`;
   const html=await fs.readFile(path.join(root,'scripts/physics-model-viewer.html'),'utf8');
   const inlineScript=(boot+'\n'+bundle.outputFiles[0].text).replace(/<\/script/gi,'<\\/script');
   new Script(inlineScript,{filename:'explorer-les-modeles-inline.js'});

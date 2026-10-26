@@ -9,14 +9,18 @@ const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(36,1,.01,200);
 scene.add(new THREE.HemisphereLight(0xffffff,0x667788,2.6));const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(-3,8,7);scene.add(sun);
 const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.dampingFactor=.12;
 const loader=new GLTFLoader(),models={},raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+const vessels=window.KJP_PHYSICAL_VESSELS,boatSelect=document.getElementById('boat');
+for(const [id,vessel] of Object.entries(vessels))boatSelect.add(new Option(vessel.name,id));
 let model=null,kind='fardage',highlight=null,dragStart=null;
 let heightPanel=null,heightTrial=null;
-const heightProfile=window.KJP_WIND_HEIGHT_PROFILE;
+let heightProfile=null;
 const heightInput=document.getElementById('wind-height');
 const defaults='Cliquez sur une surface colorée. Les points noirs sont les centres. Les flèches donnent une direction, pas une intensité.';
 const rgba={freeboard:'#da772e',coachroof:'#8255b7',boom:'#208c70',rig:'#b24783',transom:'#c69b25',hull:'#278eaa',keel:'#6958ae',rudder:'#19886b',propeller:'#cf782b'};
-const legends={fardage:[['freeboard','28 panneaux de flanc'],['coachroof','4 panneaux de rouf'],['boom','2 panneaux de bôme'],['rig','1 mât / gréement isotrope'],['transom','1 tableau arrière']],
-  'parties-immergees':[['hull','11 aires de cross-flow'],['keel','1 quille'],['rudder','5 bandes de safran'],['propeller','1 disque d’hélice + jet']]};
+function legends(vessel){return {fardage:[['freeboard',`${vessel.counts.freeboard.count} panneaux de flanc`],['coachroof',`${vessel.counts.coachroof.count} panneaux de rouf`],
+  ['boom',`${vessel.counts.boom.count} panneaux de bôme`],['rig',`${vessel.counts.rig.count} mât / gréement isotrope`],['transom',`${vessel.counts.transom.count} tableau arrière`]],
+  'parties-immergees':[['hull',`${vessel.sections} aires de cross-flow`],['keel',vessel.appendages===1?'1 quille':`${vessel.appendages} sections de quille longue`],
+  ['rudder',`${vessel.rudderStrips} bandes · ${vessel.rudders===1?'1 safran':`${vessel.rudders} safrans`}`],['propeller',`${vessel.propellers} disque d’hélice`]]};}
 const fmt=(x,n=3)=>Number(x).toLocaleString('fr-FR',{minimumFractionDigits:n,maximumFractionDigits:n});
 // Read-only explanation of addWindForces' height law; never fed to the simulator.
 function windHeightFactor(z){
@@ -99,9 +103,11 @@ function select(element){
   }else if(d.quantity==='rudder-strip'){
     row('Aire de bande',`${fmt(d.area)} m²`);row('Centre de bande',`${fmt(d.center[0])} ; ${fmt(d.center[1])} ; ${fmt(d.z)} m`);
     row('Corde moyenne',`${fmt(d.meanChord)} m`);row('Position de mèche',`${fmt(100*d.stockChordFraction,1)} % depuis le bord d’attaque ; x = ${fmt(d.stockPosition.x)} m`);
-    row('Axes représentés','Corde +x et normale ±y à 0° de barre');row('Écoulement','Translation + lacet + jet axial / tourbillon de l’hélice, intégré sur corde × hauteur');
+    row('Axes représentés','Corde +x et normale ±y à 0° de barre');
+    row('Écoulement',d.rudderProfile.slipstreamSources.length?'Translation + lacet + jet axial / tourbillon de l’hélice, intégré sur corde × hauteur':'Translation + lacet ; aucune hélice reliée à ce safran');
   }else if(d.quantity==='propeller-disk'){
-    row('Centre',`${fmt(d.position.x)} ; ${fmt(d.position.y)} ; ${fmt(d.position.z)} m`);row('Diamètre',`${fmt(d.propeller.diameter)} m`);row('Directions','Poussée +x ; jet d’eau -x vers le safran');row('Loi','Hélice quatre quadrants');
+    row('Centre',`${fmt(d.position.x)} ; ${fmt(d.position.y)} ; ${fmt(d.position.z)} m`);row('Diamètre',`${fmt(d.propeller.diameter)} m`);
+    row('Directions','Poussée +x ; jet d’eau -x');row('Safrans reliés au jet',d.slipstreamTargets.length?d.slipstreamTargets.join(', '):'Aucun');row('Loi','Hélice quatre quadrants');
   }else{
     row('Aire',`${fmt(d.area)} m²`);row('Envergure',`${fmt(d.span)} m`);row('Centre',`${fmt(d.position.x)} ; ${fmt(d.position.y)} ; ${fmt(d.position.z)} m`);row('Axes représentés','Corde +x et normale bidirectionnelle ±y');row('Loi','Profil portant : portance, traînée, décrochage progressif');
   }
@@ -109,15 +115,22 @@ function select(element){
     d.quantity==='aerodynamic-panel'&&d.omnidirectional?'Le symbole sphérique situe le centre ; son rayon ne représente pas l’aire aérodynamique.':'Contour équivalent de présentation ; positions et quantités de calcul exactes.';
   document.getElementById('detail').innerHTML=`<h3>${d.displayName??element.name}</h3><dl>${rows}</dl><small>${note}</small>`;
 }
-function changeModel(){clearHighlight();if(model)scene.remove(model);kind=document.getElementById('model').value;model=models[kind];scene.add(model);
+function changeModel(){clearHighlight();if(model)scene.remove(model);
+  const boat=boatSelect.value,vessel=vessels[boat];heightProfile=vessel.windHeight;
+  kind=document.getElementById('model').value;model=models[boat][kind];scene.add(model);
   let rudderStockPercent=null;model.traverse(n=>{if(n.userData.quantity==='rudder-strip')rudderStockPercent=100*n.userData.stockChordFraction;});
   heightPanel=null;heightTrial=null;document.getElementById('wind-height-card').hidden=kind!=='fardage';
-  document.getElementById('legend').innerHTML=legends[kind].map(([k,label])=>`<span style="--swatch:${rgba[k]}">${label}</span>`).join('');
+  document.getElementById('legend').innerHTML=legends(vessel)[kind].map(([k,label])=>`<span style="--swatch:${rgba[k]}">${label}</span>`).join('');
+  document.querySelector('#model option[value="fardage"]').textContent=`Fardage - ${Object.values(vessel.counts).reduce((sum,c)=>sum+c.count,0)} panneaux`;
+  document.getElementById('profile-note').textContent=`Repère : +x avant, +y tribord, +z haut. Profil ${vessel.name} ${vessel.version} ; moteur ${vessel.physicsVersion}.`;
+  viewport.setAttribute('aria-label',`${vessel.name} : modèle 3D interactif ${kind==='fardage'?'du fardage':'des parties immergées'}`);
   document.getElementById('detail').textContent=defaults;
   document.getElementById('geometry-note').textContent=kind==='fardage'?'Flancs et tableau : contours exacts. Rouf / bôme : rectangles équivalents. Mât / gréement : centre isotrope.':
-    `Flèches doubles : axes latéraux ±y, pas des forces imposées. Trait rouge : mèche fixe du safran à ${fmt(rudderStockPercent,0)} % de corde. Orange : poussée +x et jet d’eau -x.`;
-  document.getElementById('glb-link').href=kind+'.glb';document.getElementById('drawing-link').href=kind+'.svg';syncVisibility();setView('iso');
-  if(kind==='fardage'){let rig;model.traverse(n=>{if(n.userData.code==='P35'&&n.userData.selectable)rig=n;});select(rig);}
+    `Flèches doubles : axes latéraux ±y, pas des forces imposées. Rouge : ${vessel.rudders===1?'mèche fixe du safran':'mèches fixes des safrans'} à ${fmt(rudderStockPercent,0)} % de corde. Orange : axe de poussée +x de l’hélice.`;
+  document.getElementById('glb-link').href='data:model/gltf-binary;base64,'+vessel.models[kind];
+  document.getElementById('glb-link').download=boat+'-'+kind+'.glb';
+  document.getElementById('drawing-link').hidden=!vessel.drawings;document.getElementById('drawing-link').href=kind+'.svg';syncVisibility();setView('iso');
+  if(kind==='fardage'){let rig;model.traverse(n=>{if(n.userData.omnidirectional&&n.userData.selectable)rig=n;});select(rig);}
 }
 renderer.domElement.addEventListener('pointerdown',event=>{dragStart=[event.clientX,event.clientY];});
 renderer.domElement.addEventListener('pointerup',event=>{
@@ -128,15 +141,20 @@ renderer.domElement.addEventListener('pointerup',event=>{
   }
 });
 document.getElementById('model').addEventListener('change',changeModel);
+boatSelect.addEventListener('change',changeModel);
 heightInput.addEventListener('input',()=>{heightTrial=Number(heightInput.value);updateHeightExplanation();});
 document.getElementById('wind-height-reset').addEventListener('click',()=>{if(heightPanel){heightTrial=null;heightInput.value=heightPanel.center.z;updateHeightExplanation();}});
 for(const id of ['context','normals','annotations','waterline'])document.getElementById(id).addEventListener('change',syncVisibility);
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 const resize=new ResizeObserver(()=>{const box=viewport.getBoundingClientRect();camera.aspect=box.width/box.height;camera.updateProjectionMatrix();renderer.setSize(box.width,box.height,false);fitCamera();});resize.observe(viewport);
-for(const [key,value] of Object.entries(window.KJP_PHYSICAL_MODELS)){
-  const b=Uint8Array.from(atob(value),c=>c.charCodeAt(0));models[key]=(await loader.parseAsync(b.buffer,'')).scene;
+for(const [id,vessel] of Object.entries(vessels)){
+  models[id]={};
+  for(const [key,value] of Object.entries(vessel.models)){
+    const b=Uint8Array.from(atob(value),c=>c.charCodeAt(0));models[id][key]=(await loader.parseAsync(b.buffer,'')).scene;
+  }
 }
 changeModel();document.getElementById('loading').hidden=true;
+boatSelect.disabled=false;document.getElementById('model').disabled=false;
 renderer.setAnimationLoop(()=>{orbit.update();if(model)model.traverse(n=>{if(n.userData.billboard)n.quaternion.copy(camera.quaternion);});renderer.render(scene,camera);});
 window.__KJP_MODEL_VIEWER__={models,get model(){return model;},camera,renderer,select,changeModel,setView};
 }

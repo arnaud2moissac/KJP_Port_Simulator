@@ -148,7 +148,7 @@ The **Boat** settings study sensitivity to important quantities. They do not cha
 
 After **Boat**, **Controls** offers **Mouse helm sensitivity** (25 to 300%, default 100%), then **Touch control size** (100 to 200%, default 175% on a tablet and 100% on a smartphone). Their `↺` buttons restore these defaults too.
 
-The extremes help understand trends or bracket uncertainty. They do not imply that a real boat corresponds to that combination. For the exact model, open [Explore the Sun Odyssey 36i physical model — French content](../output/modeles-physiques/explorer-les-modeles.html). It details the **Sun Odyssey 36i** windage panels, submerged hull and appendages, propeller, rudder wash, axes, positions and force conventions.
+The extremes help understand trends or bracket uncertainty. They do not imply that a real boat corresponds to that combination. For the exact model, open [Explore the physical models — French content](../output/modeles-physiques/explorer-les-modeles.html). Select **Sun Odyssey 36i**, **Contessa 26** or **Dufour 310 Grand Large 2014** under **Bateau** (boat), then **Fardage** (windage) or **Eau** (water) under **Modèle**. The page details the selected boat's windage panels, submerged hull and appendages, propeller, wash connections to rudders, axes, positions and force conventions. Rotate the model and click a coloured surface to read its data; the legends follow the selected boat. The file works offline, and **GLB** downloads the displayed model. Vector drawings remain specific to the Sun Odyssey 36i.
 
 ## Loading or restoring a harbour
 
