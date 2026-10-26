@@ -10,7 +10,7 @@ Les langues livrées sont le français (`fr`, `FR`), l'anglais (`en`, `EN`) et l
 2. Traduire toutes les valeurs de `messages`, sans modifier les clés ni les paramètres entre accolades. Les valeurs plurielles exigent `other` ; elles peuvent aussi définir les catégories de la langue (`one`, `two`, `few`, `many`, `zero`) reconnues par `Intl.PluralRules`. Ne pas introduire de HTML.
 3. Traduire le guide Markdown et ses textes alternatifs. Fournir quatre captures localisées, dans l'ordre : ordinateur, tablette tactile, Comprendre/Rotation et appareillage sur pendille. Les liens vers les autres produits indiquent leur langue lorsque nécessaire.
 4. Exécuter `npm run check:i18n`, puis `npm run build:simulator`. Le sélecteur découvre automatiquement la nouvelle langue. Aucun changement du code applicatif n'est nécessaire.
-5. Pour refaire les captures, lancer `node scripts/capture-simulator-localized-guide.js <code>`, puis reconstruire. Les images utilisent le suffixe `.<code>.jpg`.
+5. Pour refaire les captures, lancer `node scripts/capture-simulator-localized-guide.js <code>` avec `fr`, `en` ou `br`, puis reconstruire. Les images anglaises et bretonnes utilisent le suffixe `.<code>.jpg` ; les françaises gardent les noms sans suffixe. Le script suit les quatre chemins d'image du guide et vérifie le renderer natif ainsi que l'absence d'erreur console.
 
 La première construction nécessite que les images référencées existent. Pour créer les premières captures, le guide peut temporairement référencer les images françaises ; après la capture, remplacer ces références par les fichiers localisés et reconstruire avant livraison.
 

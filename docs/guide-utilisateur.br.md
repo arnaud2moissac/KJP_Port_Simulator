@@ -4,24 +4,28 @@ Gant KJP Port Simulator e c'hallit klask un deleviadenn, evezhiañ respont ar va
 
 ## Anavezout an etrefas
 
-E kreiz ar prenestr e weler ar porzh hag ar vag. En nec'h a-gleiz e tiskouez ar binvioù an tizhoù, al ligon, an driv ha tizh al lusker. Ar vandenn en nec'h a ro digor d'ar gwelioù, d'ar mod **Kompren**, d'ar son, d'an neuz sklaer pe teñval, d'ar skoazell-mañ, d'ar paouez, d'an adkregiñ ha d'an adkreizañ ar c'hamera.
+E kreiz ar prenestr e weler ar porzh hag ar vag. En nec'h a-gleiz e tiskouez ar binvioù an tizhoù, al ligon, an driv ha tizh al lusker ; kuzh eo titouroù zo war ar skrammoù bihan. Ar bouton bras **Paouez / kenderc'hel**, diouzhtu a-zehou da dizh al lusker, a ziskouez `Ⅱ` evit paouez ha `▶` evit kenderc'hel. Hegerz eo ivez war ar skrammoù strizh. Ar vandenn en nec'h a ro digor d'ar gwelioù, d'ar mod **Kompren**, d'ar son, d'an neuz sklaer pe teñval, d'ar skoazell-mañ, d'an adkregiñ ha d'an adkreizañ ar c'hamera.
 
-Ar banell a-zehou a stroll ar porzh oberiant, an degouezh pe ar bleustradenn, ar c'huzulioù, an dielfennadur war-eeun, an avel hag ar redenn. Ar bouton `☰` a ziskouez pe a guzh anezhi. War un dabletezenn pe ur pellgomzer e tigor a-us d'ar gwel evit lezel muioc'h a lec'h d'an deleviadenn.
+Ar banell a-zehou a stroll ar porzh oberiant, an degouezh pe ar bleustradenn, ar c'huzulioù, an dielfennadur war-eeun, an avel hag ar redenn. Ar bouton `☰` a ziskouez pe a guzh anezhi. War ar skrammoù strizh e tigor a-us d'ar gwel evit lezel muioc'h a lec'h d'an deleviadenn.
 
 **Gwel war urzhiataer, gant ar reolerezhioù dindan ar vag :**
 
 ![Gwel hollek an drevezer war urzhiataer](images/01-navigation-generale.br.jpg)
 
-## Dibab ar reolerezhioù diouzh ho skramm
+## Dibab ar yezh
 
 Ar dibaber `FR / EN / Bzh` er vandenn en nec'h a cheñch diouzhtu yezh an etrefas hag ar sturlevr-mañ : galleg, saozneg pe brezhoneg. **Bzh** a dalvez **Brezhoneg**. Er gweladenn gentañ e vez implijet ur yezh skoret eus ho merdeer, pe ar galleg ma n'eus hini dereat ebet. Miret eo ho tibab pa vez hegerz kadaviñ ar merdeer. Cheñch yezh ne adderaoueka ket an deleviadenn nag an arventennoù. An anvioù, an evezhiadennoù hag ar c'huzulioù skrivet gant aozer ur porzh enporzhiet a chom en o yezh orin.
+
+## Dibab ar reolerezhioù diouzh ho skramm
+
+Savet eo KJP evit bezañ implijet war **dabletezenn pe urzhiataer**. War ur pellgomzer poell e vez diskouezet ur gemennadenn pa loc'h an drevezer ; **Kenderc'hel** a zigor anezhañ gant ar reolerezhioù en o ment bihanañ dre ziouer.
 
 **War urzhiataer :**
 
 - `←` ha `→` a zilec'h ar stur. Mirout a ra e gorn ; ar bouton **Adkreizañ** a laka anezhañ en ahel en-dro.
 - `Alt` war Windows, `Option` war Mac pe ur c'hlik dehou er gwel a cheñch etre ar mod normal hag ar **stur gant al logodenn**. Ar reti a zeu da vezañ ur rod-stur wenn gant ur c'hontour teñval. Hep derc'hel ur bouton, dilec'hiit al logodenn a-zehou evit sturiañ da dribourzh pe a-gleiz evit sturiañ da vabourzh ; dilec'hiañ a-serzh ne ra netra. Mirout a ra ar stur ar c'horn tizhet. Cheñchit mod en-dro evit implijout ar c'hamera, an oserioù hag ar c'hlampoù, pe pouezit war `Escape` evit distreiñ d'ar mod normal.
-- **Arventennoù araokaet → Sensidigezh ar stur gant al logodenn** a reol ar respont etre 25 % ha 300 %. Gant 100 %, 100 piksel a-blaen a glot gant 10° stur. Miret eo an dibab er merdeer. Harz a ra ar sturiañ er-maez eus ar gwel ; distreiñ ne ra lamm ebet. Digoriñ ar sturlevr, cheñch degouezh pe koll ar fokus a adlaka ar mod normal. Diweredekaet eo ar stur gant al logodenn e-pad **Lec'hiañ** hag **Amarrañ**.
-- `↑` pe `Q` a gresk ar gaz war-raok. `↓` pe `W` a gresk ar gaz a-dreñv.
+- **Arventennoù araokaet → Urzhioù → Sensidigezh ar stur gant al logodenn** a reol ar respont etre 25 % ha 300 %. Gant 100 %, 100 piksel a-blaen a glot gant 10° stur. Miret eo an dibab er merdeer. Harz a ra ar sturiañ er-maez eus ar gwel ; distreiñ ne ra lamm ebet. Digoriñ ar sturlevr, cheñch degouezh pe koll ar fokus a adlaka ar mod normal. Diweredekaet eo ar stur gant al logodenn e-pad **Lec'hiañ** hag **Amarrañ**.
+- `↑` pe `Q` a gresk ar gaz war-raok. `↓` pe `W` a gresk ar gaz a-dreñv. Gallout a rit derc'hel un alc'hwez gaz hag un alc'hwez stur asambles.
 - Eus an neptu, ar pouez kentañ a zibab **RA gorrek** pe **DR gorrek** : gweredekaet eo an treuzkas hep kreskiñ tizh troiñ al lusker. Lezit an alc'hwez da vont evit chom en harz ; ur pouez all a gresk ar gaz. Derc'hel an alc'hwez a verk ur paouez a **0,5 s** en harz a-raok kenderc'hel. Ar memes paouez a vez pa zigresker ar gaz.
 - Evit cheñch tu, distroit da gentañ d'an neptu, lezit an alc'hwez da vont ha pouezit en-dro en tu all.
 - `Esaouenn` pe `P` a laka an drevezadur e paouez pe a laka anezhañ da genderc'hel. Gallout a rit reoliñ an oserioù e-pad ar paouez evit drevezañ ur skipad.
@@ -31,14 +35,22 @@ Ar dibaber `FR / EN / Bzh` er vandenn en nec'h a cheñch diouzhtu yezh an etrefa
 **War dabletezenn pe bellgomzer :**
 
 - Implijit ar reoler **Stur** en traoñ a-gleiz. Diskouez a ra ur rod-stur pe ur barr-stur hervez ar vag dibabet. Ar barr-stur a heuilh ar biz war-eeun en-dro d'e ziaz : ur jest a 20° a c'houlenn 20° stur. Mirout a ra e gorn pa vez lezet da vont. Ar rod-stur a vir he jest kelc'hiek digresket ; stekit ouzh `0` evit he adkreizañ.
-- Riklit dornell al **Lusker** war-du **RA** (war-raok) pe **DR** (a-dreñv). Stekit ouzh `N` evit distreiñ d'an neptu.
+- Riklit dornell al **Lusker** war-du **RA** (war-raok) pe **DR** (a-dreñv). War dabletezenn e kemer an dornell reizhkornek ledander ar reoler : kroget e c'haller enni war he ledander a-bezh. Diskouez a ra **Neptu** pe dregantad ar gaz ; ar merkoù **RA** ha **DR** a ziskouez an tu. Stekit ouzh an dornell evit distreiñ d'an neptu.
 - An daou verk tost d'an neptu a glot gant **RA gorrek** ha **DR gorrek**. Ur zonenn vihan hag ur paouez a **0,5 s** a sikour da chom en harz. Lezit an dornell da vont evit chom eno ; kendalc'hit ar jest en tu-hont evit kreskiñ ar gaz. Pa zigresker ar gaz e vez ar memes paouez a-raok an neptu. An neptu a harz ar jest : lezit da vont a-raok cheñch tu. Stekiñ ouzh an dornell a c'houlenn an neptu diouzhtu, hep gortoz.
 - Pincit gant daou viz da greskiñ pe da zigreskiñ ar gwel. Dilec'hiañ an daou viz asambles a zilec'h ar gwel.
+- Stekit ouzh `Ⅱ` e bandenn ar binvioù evit paouez ha stagañ pe reoliñ un oser ; `▶` a laka an drevezadur da genderc'hel.
+- Ar ment dre ziouer zo **175 % war dabletezenn** (+75 %) ha **100 % war bellgomzer poell**. **Arventennoù araokaet → Urzhioù → Ment an urzhioù dre stok**, dindan sensidigezh al logodenn, a ro tro da zibab etre **100 ha 200 %**, dre bazennoù a **25 %**. Ar brasañ a dalvez evit ar gwel stekiñ ledan ; war ar skrammoù bihan e vir ar reolerezhioù o ment vihan. Miret eo dibaboù an dabletezenn hag ar pellgomzer a-ziforc'h er merdeer.
 - Digorit an arventennoù gant `☰`. War ur pellgomzer eo sklaeroc'h ar gwel gant ar skramm a-led.
 
 **Gwel war dabletezenn, gant ar reoler stur hag an dornell lusker stekiñ :**
 
 ![Reolerezhioù stekiñ war dabletezenn](images/02-commandes-et-vues.br.jpg)
+
+## Dibab ar vag
+
+Digorit **Arventennoù araokaet → Bag → Profil ar vag**, pe klikit war deskrivadur ar vag er vandenn en nec'h evit tizhout an arventenn-se. C'hwec'h bag zo hegerz : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** hag **Oceanis 48**. Ar Sun Odyssey 36i eo ar profil dave ; ar pemp all zo merket **arnodel**. O statud a weler e-kichen an dibaber profil.
+
+Miret eo dibab ar vag. Cheñch bag a vir ar porzh oberiant, a adkrog an degouezh gant ar vag nevez hag a adlaka arventennoù **Bag** he frofil. Ma n'eo ket kenglotus he lec'hiadur kentañ gant ar skoilhoù, e tigor **Lec'hiañ ar vag** evit he zilec'hiañ a-raok loc'hañ. Ar stur dre stok a ziskouez ur rod-stur pe ur barr-stur hervez ar profil.
 
 ## Ober un deleviadenn gentañ e pemp munutenn
 
@@ -99,7 +111,7 @@ An avel a weler dre e weredoù war ar staon ha penn a-dreñv ar vag. N'eus ket u
 
 Evit stagañ un oser, klikit pe stekit ouzh un taked war ar vag ha goude ouzh un taked war ar ponton — pe krogit gant ar ponton. Ret eo d'ar vag fiñval goustadik-kenañ : gant an arventenn reizh e vez aotreet ar stagañ dindan **0,6 sk a dizh war ar foñs**. Ma nac'h an drevezer an oser, distroit d'an neptu, lezit al lañs da zigreskiñ ha klaskit en-dro.
 
-Gallout a rit lakaat an drevezadur e paouez evit diskouez labour ur skipad : e-pad ar paouez e c'haller stagañ, reoliñ pe largañ un oser.
+Stekit ouzh `Ⅱ`, diouzhtu goude tizh al lusker, evit diskouez labour ur skipad : e-pad ar paouez e c'haller stagañ, reoliñ pe largañ un oser. Stekit goude ouzh `▶` evit kenderc'hel an deleviadenn.
 
 Un oser a c'hall chom laosk, bezañ stignet hag astenn dindan bec'h. Riklit e linenn pe e jauj war-du an nec'h da reiñ laosk, war-du an traoñ da adkemer anezhañ. An tric'horn dehou a ziskouez an hirder goulennet ; an tric'horn kleiz, an hirder tizhet e gwirionez. Ur linenn o labourat a gemer ul liv tommoc'h. Klikit pe stekit ouzh ul linenn hep riklañ evit he largañ.
 
@@ -117,7 +129,9 @@ An avel hag ar redenn a vez reoliet dre o nerzh ha dre an tu **ma'z eont**. An t
 
 An avel a vez diskouezet gant neudennigoù ha roudoù o vont da get ; ar redenn gant stummoù hir ha treuzwelus gant ur beg digor, dindan an avel. Unvan eo pep hini war an holl gorread dour. An elfennoù a zilec'h gant tizh an avel pe ar redenn ha gant amzer an drevezadur : ar pausa a baouez anezho ha ×2 a buana o dilec'hiadur. Azasaet eo o hirder evit ma vo aes o lenn. En tem sklaer e weler gwelloc'h an avel hag ur glas dousoc'h a vez implijet evit ar redenn ; e Kompren e vez diskretoc'h an daou evit lezel an nerzhioù lennus. Ne cheñch ket ar c'heflusker fizik gant an diskouezadurioù-se.
 
-Ar rann nemeti **Arventennoù araokaet** a stroll sensidigezh an urzhioù dindan **Urzhioù**, ha goude ar mas karget, ar fardellad, efedusted al lev, ar rezistañs a-gostez, efed ar paz hag an tizh uhelañ aotreet da stagañ un oser dindan **Bag**. Mirit an talvoudoù kinniget evit dizoleiñ an drevezer ; goude cheñchit anezho unan hag unan da ziskouez ur vag pe un degouezh disheñvel.
+Ar rann **Arventennoù araokaet** a ziskouez da gentañ **Bag** : profil, mas karget, fardellad, efedusted al lev, rezistañs a-gostez, efed ar paz hag an tizh uhelañ aotreet da stagañ un oser. **Urzhioù** a zeu goude, gant sensidigezh ar stur gant al logodenn ha ment an urzhioù dre stok. Mirit an talvoudoù kinniget evit dizoleiñ an drevezer ; goude cheñchit anezho unan hag unan da ziskouez ur vag pe un degouezh disheñvel.
+
+Pep arventenn he deus ur bouton `↺` a-zehou d'he zalvoud pe d'an dibaber profil evit adlakaat ar werzh dre ziouer. Ar mas a adkav gwerzh ar vag dibabet ; ment an urzhioù dre stok a adkav 175 % war dabletezenn pe 100 % war bellgomzer poell. Adlakaat efed ar paz a adlaka ivez tu rod-viñs ar profil. Bouton **Profil ar vag** a zibab ar Sun Odyssey 36i ; cheñch profil a adlaka arventennoù **Bag** ar profil-se.
 
 Ar bouton bihan a-us da rikler efed ar paz a zibab ur rod-viñs **Dehou** pe **Kleiz** hep cheñch an dregantad. A-dreñv, ur rod-viñs dehou a denn da gas penn a-dreñv ar vag da vabourzh hag unan gleiz da dribourzh. Pep lusker en deus e du dezhañ : war ur vag gant meur a rod-viñs, pep bouton anavezet a reol efed ar paz ha troiadur a-dreuz jet ar rod-viñs stag outañ. Ne cheñch ket ar bount a-hed nag an tizh ahel sinet.
 
@@ -125,26 +139,32 @@ Ar bouton bihan a-us da rikler efed ar paz a zibab ur rod-viñs **Dehou** pe **K
 
 Arventennoù ar stroll **Bag** a servij da studiañ kizidigezh ar vag ouzh un nebeud mentoù pouezus. Ne cheñchont ket ar profil kadavet ha ne gemeront ket plas ur muzul war ar vag : an dibaboù a dalvez evit an drevezadur o vont en-dro hag a chom pa adkroger pe pa cheñcher degouezh. Evit keñveriañ daou dalvoud en un doare reizh, dilec'hiit ur rikler hepken, adkrogit ar memes degouezh ha mirit an hevelep avel, redenn, stur ha reolerezh lusker.
 
-- **Mas karget** — etre **5 700 ha 7 800 kg**, gant **6 500 kg** evel talvoud kinniget. Ur mas brasoc'h a zigresk ar buanaat roet gant an hevelep nerzh hag a gresk an inertiezh en treuzlec'hiadur hag en troiadur.
+- **Mas karget** — ar bevennoù hag ar werzh dre ziouer a heuilh ar vag dibabet : etre **5 700 ha 7 800 kg**, gant **6 500 kg** dre ziouer evit ar **Sun Odyssey 36i**. Ur mas brasoc'h a zigresk ar buanaat roet gant an hevelep nerzh hag a gresk an inertiezh en treuzlec'hiadur hag en troiadur.
 - **Fardellad** — etre **60 ha 140 %**, gant **100 %** evel dave. Ar gwezhiader-mañ a liesk an nerzhioù hag ar momentoù roet gant an avel war ar panelloù digor dezhañ ; n'en deus ket a efed pa n'eus ket a avel.
 - **Efedusted al lev** — etre **60 ha 140 %**, gant **100 %** evel dave. Lieskiñ a ra gwered hidrodinamek al lev. Ret eo c'hoazh d'al lev resev red dour eus al lañs pe eus jet ar rod-viñs evit gwerediñ.
 - **Rezistañs a-gostez** — etre **60 ha 140 %**, gant **100 %** evel dave. Un talvoud uhel a greñva rezistañs ar c'houc'h hag ar c'hein ouzh an driv ; ne cheñch ket tizh ar redenn war-eeun.
 - **Efed ar paz · rod-viñs** — etre **0 ha 100 %**, gant **60 %** evel talvoud kinniget. Reoliñ a ra ar c'homponant a gas dreist-holl penn a-dreñv ar vag da vabourzh gant ur rod-viñs dehou, pe da dribourzh gant unan gleiz, pa'z aer a-dreñv. An talvoud 0 % a zigresk an efed hep dilemel ar c'homponant a-dreuz bihanañ eus patrom ar rod-viñs.
 - **Stagañ un oser dindan** — etre **0,1 ha 1,0 sk**, gant **0,6 sk** evel talvoud kinniget. Un treuzell etregwerediñ eo, diazezet war an tizh war ar foñs : aotren pe nac'hañ a ra stagañ un oser, met ne frein ket ar vag en un doare fizikel.
 
+Ar stroll **Urzhioù**, goude **Bag**, a ginnig **Sensidigezh ar stur gant al logodenn** (25 betek 300 %, 100 % dre ziouer), ha goude **Ment an urzhioù dre stok** (100 betek 200 %, 175 % war dabletezenn ha 100 % war bellgomzer poell dre ziouer). O boutonoù `↺` a adlaka ar gwerzhioù-se ivez.
+
 An talvoudoù penn-da-benn a servij dreist-holl da gompren un tu pe da enc'hiañ un ansurentez. Ne dalvezont ket e klot ur vag wirion gant an holl dalvoudoù-se asambles. Evit gwelet resis pezh a reol ar gwezhiaderioù, digorit [Dizoleiñ patrom fizikel ar Sun Odyssey 36i — endalc'had e galleg](../output/modeles-physiques/explorer-les-modeles.html). Ar bajenn-mañ a zispleg patrom ar **Sun Odyssey 36i** : panelloù fardellad, kouc'h ha stagadennoù dindan an dour, rod-viñs, jet war al lev, ahelioù, lec'hioù ha emglevioù an nerzhioù. E galleg eo an endalc'had-se, n'eo ket troet gant dibaber yezh an drevezer.
 
 ## Kargañ pe adkavout ur porzh
 
-Ar dibaber **Porzh oberiant** a ro tro da zistreiñ d'ar porzh pleustriñ, da gargañ La Trinité-sur-Mer pe da zigeriñ ar saver porzhioù. Ar bouton kargañ a zegemer ivez ur restr `.kjp` savet gant ar saver.
+Ar dibaber **Porzh oberiant** a ro tro da zistreiñ d'ar porzh pleustriñ, da zigeriñ **Levraoueg ar porzhioù**, da gargañ La Trinité-sur-Mer pe da zigeriñ ar saver porzhioù. Ar bouton **Kargañ** a zegemer ivez ur restr `.kjp` lec'hel savet gant ar saver.
+
+Al levraoueg a vod porzhioù **KJP** ha porzhioù **Kumuniezh** embannet war pCloud. Ar bann **Mammenn** a zisparti anezho. Gallout a reer urzhiañ dre anv, aozer, mammenn, deiziad krouiñ pe deiziad hizivaat : war urzhiataer, klikit war titl ar bann ha klikit en-dro evit eilpennañ an urzh ; war ur skramm bihan, implijit **Urzhiañ dre** ha bouton tu an urzh. Dibabit goude bouton kargañ ar porzh c'hoantaet.
+
+Ehanet eo an drevezadur e-pad ma vez digor al levraoueg. Serriñ hep kargañ a adkav stad ar paouez diaraok ; ur c'hargadur deuet da benn vat a zigor ar porzh hag a adloc'h an drevezadur. Ma vez ur fazi, miret eo ar porzh oberiant hag ar gemennadenn a ro tro da glask en-dro. Ret eo kaout ur genrouedad evit sellet ouzh al levraouegoù ; porzhioù KJP a chom hegerz ma n'eo ket hegerz mammenn ar Gumuniezh. Ar porzh pleustriñ hag ar restroù lec'hel a ya en-dro hep kenrouedad.
 
 An drevezer a wir ar restr a-raok kemer plas ar gwel. Lakaet eo ar vag er poent antre dibabet gant an aozer, en neptu, hep avel na redenn. Ar bouton bihan `?` e-kichen ar porzh a ziskouez titouroù merdeiñ ar porzh ; ar `?` er vandenn en nec'h a zigor ar sturlevr-mañ.
 
-Ar porzh karget ne chom nemet er memor e-pad ar sesioun. Evit adkavout an endro pleustriñ, dibabit **Porzh pleustriñ** en-dro.
+Ma kinnigo ar porzh **Plasoù ar weladennerien**, o dibaber a greiz ar gwel war ur plas anavezet. Ar porzh karget ne chom nemet er memor e-pad ar sesioun ; goude distreiñ d'ar **Porzh pleustriñ**, e anv e **Porzh oberiant** a ro tro d'e adkargañ. Goude serriñ pe adkargañ ar bajenn, kargit ar porzh en-dro.
 
 ## Perak eo kredus respont ar vag
 
-Ar patrom a glask ur respont mor reizh pa vez izel an tizh, n'eo ket ur fiñvadur arvestus. Ne heuilh ket ar vag un hent skrivet en a-raok : he zizh hag he zu a zisoc'h bep pred eus holl weredoù al lusker, an dour, an avel, ar stokoù hag an ereoù.
+Ar patrom a glask ur respont mor reizh pa vez izel an tizh, n'eo ket ur fiñvadur arvestus. Ne heuilh ket ar vag un hent skrivet en a-raok : he zizh hag he zu a zisoc'h bep pred eus holl weredoù al lusker, an dour, an avel, ar stokoù hag an ereoù. Ar sifroù amañ dindan a zispleg profil dave ar **Sun Odyssey 36i** ; ar bagoù all o deus o frofiloù arnodel dezho.
 
 - **Ur vag dave muzuliet.** Ar profil pennañ a ziskouez ur Sun Odyssey 36i a **10,94 m** a hirder en holl, **9,84 m** ouzh ar floderezh, **3,59 m** a ledander ha **1,94 m** a gal an dour. He dilec'hiadenn zo **5,7 t** hep karg ha **6,5 t** karget, gant ur gorread glebiet priziet da **28,5 m²**. Ur priz eo ar mas karget c'hoazh, gant un ansurentez a war-dro **8 %**, n'eo ket ur muzul resis.
 - **Un takad implijout termenet.** Ar kalibradur a sell ouzh deleviadoù er porzh betek **4 sk a dizh en dour**. Ne vez ket drevezet ar gwagennoù nag an etregwered hidrodinamek gant ur c'hae.
@@ -163,9 +183,9 @@ Ar patrom a glask ur respont mor reizh pa vez izel an tizh, n'eo ket ur fiñvadu
 
 Ar mentoù pennañ hag ar chadenn lusker–kempennerez tu a zeu eus roadennoù ar saver. An elfennoù a c'houlennfe amprouennoù gant binvioù — gwezhiaderioù ar c'houc'h, ar fardellad, ar stokoù pe ar rod-viñs — zo merket evel prizioù pe galibradurioù, gant o zachenn talvoudegezh hag o ansurentez. Gwiriet eo o efed goude dre cheñch arventennoù ha deleviadoù dave. An hentenn a harp dreist-holl war [patrom mor Fossen](https://www.fossen.biz/html/marineCraftModel.html), [standard MMG](https://doi.org/10.1007/s00773-014-0293-y) ha doareoù gwiriañ an [ITTC](https://www.ittc.info/media/11868/75-02-06-03.pdf).
 
-Ar raktres zo herberc'hiet e : [https://github.com/arnaud2moissac/KJP_Port_Simulator](https://github.com/arnaud2moissac/KJP_Port_Simulator)
+Ar raktres zo herberc'hiet e : [KJP Port Simulator war GitHub](https://github.com/arnaud2moissac/KJP_Port_Simulator)
 
-Muioc'h a ditouroù e : [https://arnaud2moissac.github.io/KJP_Port_Simulator/README.md](https://arnaud2moissac.github.io/KJP_Port_Simulator/README.md)
+Muioc'h a ditouroù : [README ar raktres — endalc'had e galleg](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/README.md).
 
 N'eo ket an drevezer ur studiadenn hidrodinamek resis nag ur c'houblad niverel kadarnaet eus ho pag. Ar garg wirion, ar gwagennoù, stad ar rod-viñs, ar barradoù avel ha labour ar skipailh a c'hall cheñch kalz un deleviadenn. Implijit anezhañ da brientiñ mennozhioù ha da gompren tuioù, ha goude gwiriit anezho goustadik ha gant evezh war ar vag.
 

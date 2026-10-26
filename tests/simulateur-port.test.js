@@ -772,7 +772,7 @@ browserCase("simulator:guide.02", async ({ page, browser, context, runtimeErrors
       dialogOpen: document.querySelector("#readmeDialog")?.open
     }));
     assert.equal(initial.kicker, "KJP Port Simulator");
-    assert.equal(initial.title, "comprendre son bateau au port");
+    assert.equal(initial.title, require("../src/simulateur-port/locales/fr.json").messages["ui.boat.description.sun36"]);
     assert.match(initial.logo, /^data:image\/png;base64,/);
     assert.equal(initial.favicon, initial.logo);
     assert.equal(initial.dialogOpen, false);

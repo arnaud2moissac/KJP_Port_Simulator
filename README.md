@@ -17,7 +17,18 @@ ou
 2. Ouvrez `simulateur-port.html` dans un navigateur récent.
 3. Choisissez une situation ou un défi, larguez les amarres si nécessaire, puis manœuvrez avec les flèches ou les commandes tactiles.
 
-Le [guide utilisateur](docs/guide-utilisateur.md) présente la prise en main, les aussières, les pendilles méditerranéennes et les principes du moteur physique sans répéter toute l'interface.
+Le guide utilisateur est disponible en [français](docs/guide-utilisateur.md),
+[anglais](docs/guide-utilisateur.en.md) et [breton](docs/guide-utilisateur.br.md),
+ainsi que dans l'aide embarquée du simulateur. Il présente les six bateaux, les
+commandes, les aussières, les pendilles méditerranéennes, les bibliothèques de
+ports KJP et Communauté et les principes du moteur physique.
+
+Privilégiez une tablette ou un ordinateur. Les commandes tactiles sont proposées
+à 175 % sur tablette et au minimum de 100 % sur smartphone, avec un message au
+lancement sur téléphone. Leur taille se règle dans **Réglages avancés →
+Commandes**, après le groupe **Bateau** ; chaque réglage avancé possède un bouton
+de retour à sa valeur par défaut. **Pause / reprise** est accessible directement
+après le régime moteur pour manipuler les amarres.
 
 Le rendu intégré à `main` le 9 octobre 2026 représente le vent par des filaments
 à traînée progressive et le courant par des fuseaux translucides à pointe ouverte.

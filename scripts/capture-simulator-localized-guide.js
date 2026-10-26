@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
+const { stubSimulatorAnalytics } = require("../tests/helpers/simulator-network.js");
 const root = path.resolve(__dirname, "..");
 async function capture(code) {
   const catalog = JSON.parse(fs.readFileSync(path.join(root, "src/simulateur-port/locales", `${code}.json`), "utf8"));
@@ -12,11 +13,26 @@ async function capture(code) {
   try {
     const errors = [];
     const prepare = async page => {
+      page.setDefaultTimeout(30000);
       page.on("pageerror", error => errors.push(error.message));
       page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
-      await page.route("https://www.googletagmanager.com/**", route => route.fulfill({ status: 200, body: "", contentType: "application/javascript" }));
-      await page.goto(pathToFileURL(path.join(root, "simulateur-port.html")).href + "?test=1");
-      await page.waitForFunction(() => window.__PORTANCE_TEST__?.worldRendererReport().player?.model?.ready);
+      await stubSimulatorAnalytics(page);
+      await page.addInitScript(() => {
+        const raf = window.requestAnimationFrame.bind(window);
+        let frozen = false;
+        const pending = [];
+        window.requestAnimationFrame = callback => {
+          if (!frozen) return raf(callback);
+          pending.push(callback);
+          return 0;
+        };
+        window.__KJP_GUIDE_CAPTURE__ = {
+          freeze() { frozen = true; },
+          resume() { frozen = false; pending.splice(0).forEach(callback => raf(callback)); }
+        };
+      });
+      await page.goto(pathToFileURL(path.join(root, "simulateur-port.html")).href + "?test=1", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => window.__PORTANCE_TEST__?.worldRendererReport().player?.model?.ready, null, { timeout: 60000 });
       await page.evaluate(code => {
         window.__PORTANCE_TEST__.selectLocale(code);
         window.__PORTANCE_TEST__.loadScenario("dockForward");
@@ -34,6 +50,14 @@ async function capture(code) {
     await flows(page);
     const save = async index => {
       if (process.argv[3] !== undefined && index !== Number(process.argv[3])) return;
+      await page.evaluate(() => {
+        // The scenario test hook pauses time after the normal UI update.
+        const button = document.getElementById("pauseButton");
+        if (button.getAttribute("aria-pressed") !== String(window.__PORTANCE_TEST__.snapshot().controls.paused)) {
+          button.click();
+          button.click();
+        }
+      });
       await page.evaluate(() => document.fonts.ready);
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const report = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
@@ -41,7 +65,13 @@ async function capture(code) {
         throw new Error(`Capture ${code}/${index} invalide : ${JSON.stringify({ active: report.active, glError: report.glError, errors })}`);
       }
       const target = images[index];
-      await page.screenshot({ path: target, type: "jpeg", quality: 88 });
+      // Keep the native frame still while Chromium copies it into the capture.
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => {
+        window.__KJP_GUIDE_CAPTURE__.freeze();
+        setTimeout(resolve, 100);
+      })));
+      try { await page.screenshot({ path: target, type: "jpeg", quality: 88 }); }
+      finally { await page.evaluate(() => window.__KJP_GUIDE_CAPTURE__.resume()); }
       console.log(path.relative(root, target));
     };
     await save(0);

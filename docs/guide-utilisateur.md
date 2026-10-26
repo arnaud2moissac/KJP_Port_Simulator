@@ -4,24 +4,28 @@ KJP Port Simulator permet d'essayer une manœuvre, d'observer la réaction du ba
 
 ## Repérer l'interface
 
-La zone centrale représente le port et le bateau. En haut à gauche, les instruments indiquent les vitesses, le cap, la dérive et le régime moteur. Le bandeau supérieur donne accès aux vues, au mode **Comprendre**, au son, au thème clair ou foncé, à cette aide, à la pause, au redémarrage de la situation et au recentrage de la caméra.
+La zone centrale représente le port et le bateau. En haut à gauche, les instruments indiquent les vitesses, le cap, la dérive et le régime moteur ; certaines indications sont masquées sur les petits écrans. Le grand bouton **Pause / reprise**, juste à droite du régime moteur, affiche `Ⅱ` pour suspendre la simulation et `▶` pour la reprendre. Il reste accessible sur les écrans étroits. Le bandeau supérieur donne accès aux vues, au mode **Comprendre**, au son, au thème clair ou foncé, à cette aide, au redémarrage de la situation et au recentrage de la caméra.
 
-Le panneau de droite regroupe le port actif, la situation ou l'exercice, les consignes, l'analyse instantanée, le vent et le courant. Le bouton `☰` l'affiche ou le masque. Sur une tablette ou un téléphone, il s'ouvre par-dessus la scène afin de laisser davantage de place à la manœuvre.
+Le panneau de droite regroupe le port actif, la situation ou l'exercice, les consignes, l'analyse instantanée, le vent et le courant. Le bouton `☰` l'affiche ou le masque. Sur les écrans étroits, il s'ouvre par-dessus la scène afin de laisser davantage de place à la manœuvre.
 
 **Vue sur ordinateur, avec les commandes sous le bateau :**
 
 ![Vue générale du simulateur sur ordinateur](images/01-navigation-generale.jpg)
 
-## Choisir les commandes adaptées à votre écran
+## Choisir la langue
 
 Le sélecteur `FR / EN / Bzh` du bandeau supérieur change immédiatement la langue de l'interface et de ce guide : français, anglais ou breton. Au premier lancement, le simulateur utilise une langue compatible du navigateur, sinon le français. Le choix manuel est mémorisé lorsque le stockage du navigateur est disponible. Changer de langue conserve la manœuvre et les réglages en cours. Les noms, commentaires et consignes fournis par l'auteur d'un port importé restent dans leur langue d'origine.
+
+## Choisir les commandes adaptées à votre écran
+
+KJP est conçu pour être utilisé sur **tablette ou ordinateur**. Sur smartphone, une fenêtre le rappelle au lancement ; **Continuer** permet d'accéder au simulateur avec des commandes réglées au minimum par défaut.
 
 **Sur ordinateur :**
 
 - `←` et `→` déplacent la barre. Elle conserve son angle ; le bouton **Recentrer** la remet dans l'axe.
 - `Alt` sur Windows, `Option` sur Mac ou un clic droit dans la scène bascule entre le mode normal et la **barre à la souris**. Le curseur devient une roue blanche à contour sombre. Sans maintenir de bouton, déplacez la souris à droite pour commander tribord ou à gauche pour commander bâbord ; les mouvements verticaux ne font rien. La barre conserve l'angle atteint. Rebasculez pour utiliser la caméra, les aussières et les taquets, ou appuyez sur `Échap` pour revenir au mode normal.
-- **Réglages avancés → Sensibilité de la barre à la souris** dose la réponse de 25 % à 300 %. À 100 %, 100 pixels horizontaux correspondent à 10° de barre. Ce choix est mémorisé dans le navigateur. Le pilotage s'arrête hors de la scène ; y revenir ne provoque aucun saut. L'ouverture du guide, un changement de situation ou la perte de focus rétablit le mode normal. La barre à la souris est désactivée pendant **Placer** et **Amarrer**.
-- `↑` ou `Q` augmentent la marche avant. `↓` ou `W` augmentent la marche arrière.
+- **Réglages avancés → Commandes → Sensibilité de la barre à la souris** dose la réponse de 25 % à 300 %. À 100 %, 100 pixels horizontaux correspondent à 10° de barre. Ce choix est mémorisé dans le navigateur. Le pilotage s'arrête hors de la scène ; y revenir ne provoque aucun saut. L'ouverture du guide, un changement de situation ou la perte de focus rétablit le mode normal. La barre à la souris est désactivée pendant **Placer** et **Amarrer**.
+- `↑` ou `Q` augmentent la marche avant. `↓` ou `W` augmentent la marche arrière. Vous pouvez maintenir une touche de gaz et une touche de barre ensemble.
 - Depuis le neutre, le premier appui sélectionne **AV ralenti** ou **AR ralenti** : le moteur embraye sans augmenter sa consigne de régime. Relâchez pour rester au cran ; un nouvel appui augmente les gaz. Une touche maintenue marque une pause de **0,5 s** au cran, puis poursuit le réglage. Ce cran se ressent également lorsqu'on réduit les gaz.
 - Pour inverser la marche, revenez d'abord au neutre, relâchez la touche, puis appuyez de nouveau dans l'autre sens.
 - `Espace` ou `P` met la simulation en pause ou la reprend. On peut manipuler les aussières pendant la pause pour "simuler" un équipier.
@@ -31,14 +35,22 @@ Le sélecteur `FR / EN / Bzh` du bandeau supérieur change immédiatement la lan
 **Sur tablette ou téléphone :**
 
 - Utilisez la commande **Barre** en bas à gauche. Elle affiche une roue ou une barre franche selon le bateau sélectionné. La barre franche suit directement le doigt autour de son embase : 20° de geste commandent 20° de barre. Elle conserve son angle au relâchement. La roue garde son geste circulaire démultiplié ; touchez `0` pour la recentrer.
-- Faites glisser la poignée **Moteur** vers **AV** ou **AR**. Touchez `N` pour revenir au neutre.
+- Faites glisser la poignée **Moteur** vers **AV** ou **AR**. Sur tablette, la poignée rectangulaire occupe la largeur de la commande : saisissez-la sur toute sa largeur. Elle indique **Neutre** ou le pourcentage de gaz ; les repères **AV** et **AR** donnent le sens. Touchez la poignée pour revenir au neutre.
 - Les deux repères près du neutre correspondent à **AV ralenti** et **AR ralenti**. Une petite zone d'accroche et une pause de **0,5 s** facilitent leur sélection. Relâchez au cran pour le conserver ; poursuivez le geste au-delà pour accélérer. En réduisant les gaz, la poignée marque la même pause avant le neutre. Le neutre arrête le geste : relâchez avant d'inverser. Toucher la poignée demande directement le neutre, sans attendre.
 - Pincez avec deux doigts pour zoomer. Le même geste déplacé fait glisser la vue.
+- Touchez `Ⅱ`, dans le bandeau des instruments, pour mettre en pause et prendre ou régler une amarre ; `▶` reprend la simulation.
+- La taille proposée est **175 % sur tablette** (+75 %) et **100 % sur smartphone**. **Réglages avancés → Commandes → Taille des commandes tactiles**, sous la sensibilité de la souris, permet de choisir de **100 à 200 %**, par pas de **25 %**. L'agrandissement s'applique à la disposition tactile large ; les petits écrans conservent leur présentation compacte. Les préférences tablette et smartphone sont mémorisées séparément dans le navigateur.
 - Ouvrez les réglages avec `☰`. Sur un téléphone, le mode paysage offre la meilleure visibilité.
 
 **Vue sur tablette, avec la commande de barre et la poignée moteur tactiles :**
 
 ![Commandes tactiles sur tablette](images/02-commandes-et-vues.jpg)
+
+## Choisir le bateau
+
+Ouvrez **Réglages avancés → Bateau → Profil du bateau**, ou cliquez sur la description du bateau dans le bandeau supérieur pour atteindre ce réglage. Six bateaux sont disponibles : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** et **Oceanis 48**. Le Sun Odyssey 36i est le profil de référence ; les cinq autres sont signalés **expérimentaux**. Leur fiche dans les réglages précise leur statut.
+
+Le choix du bateau est mémorisé. Un changement conserve le port actif, recommence la situation avec le nouveau bateau et rétablit les réglages **Bateau** propres à son profil. Si sa position de départ est incompatible avec les obstacles, le simulateur ouvre **Placer le bateau** pour l'ajuster avant de démarrer. La commande tactile affiche une roue ou une barre franche selon le profil.
 
 ## Réaliser une première manœuvre en cinq minutes
 
@@ -99,7 +111,7 @@ Le vent apparaît par ses actions sur la proue et la poupe. Le courant ne possè
 
 Pour frapper une aussière, cliquez ou touchez un taquet du bateau, puis un taquet du ponton — ou commencez par le ponton. Le bateau doit se déplacer très lentement : avec le réglage standard, la prise est autorisée en dessous de **0,6 nd de vitesse fond**. Si le simulateur refuse l'aussière, revenez au neutre, laissez tomber l'erre et réessayez.
 
-Vous pouvez aussi mettre la simulation en pause pour représenter l'intervention d'un équipier : pendant la pause, on peut frapper, regler ou larguer une aussiere.
+Vous pouvez aussi toucher `Ⅱ`, juste après le régime moteur, pour représenter l'intervention d'un équipier : pendant la pause, on peut frapper, régler ou larguer une aussière. Touchez ensuite `▶` pour reprendre la manœuvre.
 
 Une aussière peut rester molle, se tendre et s'allonger sous charge. Faites glisser son tracé ou sa jauge vers le haut pour donner du mou, vers le bas pour reprendre. Le triangle droit indique la longueur demandée ; le triangle gauche, la longueur réellement atteinte. Une ligne qui travaille prend une couleur plus chaude. Cliquez ou touchez une ligne sans la faire glisser pour la larguer.
 
@@ -117,7 +129,9 @@ Le vent et le courant se règlent par leur force et par leur **direction de dép
 
 Le vent apparaît sous forme de filaments avec une traînée progressive ; le courant, sous forme de fuseaux translucides à pointe ouverte, sous le vent. Chaque champ est uniforme sur tout le plan d'eau. Les particules se déplacent à la vitesse du flux et suivent le temps de simulation : la pause les fige et ×2 accélère leur déplacement. Leur longueur est adaptée à la lisibilité. En thème clair, le vent est plus contrasté et le courant bleu adouci ; dans Comprendre, les deux sont atténués pour laisser les forces lisibles. Ces représentations ne changent pas le moteur physique.
 
-La section unique **Réglages avancés** rassemble la sensibilité des commandes sous **Commandes**, puis la masse en charge, le fardage, l'efficacité du safran, la résistance latérale, l'effet de pas et la vitesse maximale autorisée pour frapper une aussière sous **Bateau**. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
+La section **Réglages avancés** présente d'abord **Bateau** : profil, masse en charge, fardage, efficacité du safran, résistance latérale, effet de pas et vitesse maximale autorisée pour frapper une aussière. **Commandes** vient ensuite, avec la sensibilité de la barre à la souris puis la taille des commandes tactiles. Gardez les valeurs proposées pour découvrir le simulateur ; modifiez-les ensuite une par une pour représenter un bateau ou une situation différente.
+
+Chaque réglage possède un bouton `↺` à droite de sa valeur, ou du sélecteur de profil, pour rétablir sa valeur par défaut. Pour la masse, il retrouve celle du bateau sélectionné ; pour la taille tactile, 175 % sur tablette ou 100 % sur smartphone. Le bouton de l'effet de pas rétablit aussi le sens d'hélice du profil. Celui de **Profil du bateau** sélectionne le Sun Odyssey 36i ; un changement de profil rétablit les réglages **Bateau** correspondants.
 
 Le bouton compact placé au-dessus du réglage d'effet de pas choisit une hélice **Droitière** ou **Gauchère** sans modifier le pourcentage. En marche arrière, une hélice droitière tend à chasser la poupe vers bâbord et une gauchère vers tribord. Ce sens est propre à chaque propulseur : sur un bateau à plusieurs hélices, chaque bouton identifié commande l'effet de pas et la rotation tangentielle du jet de l'hélice correspondante. La poussée longitudinale et le régime signé restent inchangés.
 
@@ -125,26 +139,32 @@ Le bouton compact placé au-dessus du réglage d'effet de pas choisit une hélic
 
 Les réglages du groupe **Bateau** servent à étudier la sensibilité du bateau à quelques grandeurs importantes. Ils ne changent pas le profil enregistré et ne remplacent pas une mesure à bord : les choix s'appliquent à la simulation en cours et sont conservés lorsque vous recommencez ou changez de situation. Pour comparer proprement deux valeurs, ne déplacez qu'un curseur à la fois, recommencez la même situation et conservez le même vent, le même courant, la même barre et la même commande moteur.
 
-- **Masse en charge** — de **5 700 à 7 800 kg**, avec **6 500 kg** comme valeur proposée. Une masse plus élevée réduit l'accélération produite par une même force et augmente l'inertie en translation comme en rotation.
+- **Masse en charge** — la plage et la valeur proposée suivent le bateau sélectionné : de **5 700 à 7 800 kg**, avec **6 500 kg** par défaut pour le **Sun Odyssey 36i**. Une masse plus élevée réduit l'accélération produite par une même force et augmente l'inertie en translation comme en rotation.
 - **Fardage** — de **60 à 140 %**, avec **100 %** comme référence. Ce coefficient multiplie les forces et les moments produits par le vent sur les panneaux exposés ; il n'a donc pas d'effet lorsqu'il n'y a pas de vent.
 - **Efficacité du safran** — de **60 à 140 %**, avec **100 %** comme référence. Elle multiplie l'action hydrodynamique du safran. Le safran doit toujours recevoir un écoulement dû à l'erre ou au jet d'hélice pour agir.
 - **Résistance latérale** — de **60 à 140 %**, avec **100 %** comme référence. Une valeur élevée renforce l'opposition de la coque et de la quille à la dérive ; elle ne modifie pas directement la vitesse du courant.
 - **Effet de pas · hélice** — de **0 à 100 %**, avec **60 %** comme valeur proposée. Il dose la composante réglable qui chasse surtout la poupe vers bâbord avec une hélice droitière, ou vers tribord avec une hélice gauchère, en marche arrière. La valeur 0 % réduit cet effet sans supprimer la composante transversale minimale du modèle d'hélice.
 - **Frapper une aussière sous** — de **0,1 à 1,0 nd**, avec **0,6 nd** comme valeur proposée. C'est un seuil d'interaction fondé sur la vitesse fond : il autorise ou refuse la prise d'une aussière, mais ne ralentit pas physiquement le bateau.
 
+Le groupe **Commandes**, placé après **Bateau**, propose **Sensibilité de la barre à la souris** (25 à 300 %, 100 % par défaut) puis **Taille des commandes tactiles** (100 à 200 %, 175 % sur tablette et 100 % sur smartphone par défaut). Leurs boutons `↺` rétablissent également ces valeurs.
+
 Les extrêmes servent surtout à comprendre une tendance ou à encadrer une incertitude. Ils ne signifient pas qu'un bateau réel correspond nécessairement à cette combinaison de valeurs. Pour voir précisément ce que ces coefficients modulent, ouvrez [Explorer le modèle physique du Sun Odyssey 36i](../output/modeles-physiques/explorer-les-modeles.html). Cette page détaille le modèle utilisé pour le **Sun Odyssey 36i** : panneaux de fardage, coque et appendices immergés, hélice, jet sur le safran, axes, positions et conventions de forces.
 
 ## Charger ou retrouver un port
 
-Le sélecteur **Port actif** permet de revenir au port pédagogique, de charger La Trinité-sur-Mer ou d'ouvrir le générateur de ports. Le bouton de chargement accepte aussi un fichier `.kjp` préparé avec le générateur.
+Le sélecteur **Port actif** permet de revenir au port pédagogique, d'ouvrir la **Bibliothèque de ports**, de charger La Trinité-sur-Mer ou d'ouvrir le générateur de ports. Le bouton **Charger** accepte aussi un fichier `.kjp` local préparé avec le générateur.
+
+La bibliothèque réunit les ports **KJP** et ceux de la **Communauté** publiés sur pCloud. La colonne **Source** les distingue. Triez par nom, auteur, source, date de création ou de mise à jour : sur ordinateur, cliquez sur l'en-tête, puis de nouveau pour inverser l'ordre ; sur petit écran, utilisez **Trier par** et le bouton de sens du tri. Choisissez ensuite le bouton de chargement du port souhaité.
+
+La simulation est suspendue pendant la consultation de la bibliothèque. Fermer sans charger retrouve l'état de pause précédent ; un chargement réussi ouvre le port et reprend la simulation. En cas d'erreur, le port en cours est conservé et le message permet de réessayer. Une connexion Internet est nécessaire pour consulter les bibliothèques ; les ports KJP restent accessibles si la source Communauté est indisponible. Le port pédagogique et le chargement d'un fichier local sont utilisables hors ligne.
 
 Le simulateur vérifie le fichier avant de remplacer la scène. Le bateau est placé au point d'entrée prévu par l'auteur, au neutre, sans vent ni courant. Le petit bouton `?` situé à côté du port affiche les informations nautiques de ce port ; le `?` du bandeau supérieur ouvre le présent guide.
 
-Le port chargé reste uniquement en mémoire pendant la session. Pour retrouver l'environnement d'apprentissage, choisissez de nouveau **Port pédagogique**.
+Si le port fournit des **Places visiteurs**, leur sélecteur permet de centrer la vue sur une place identifiée. Le port chargé reste uniquement en mémoire pendant la session ; après un retour au **Port pédagogique**, son nom dans **Port actif** permet de le retrouver. Après fermeture ou rechargement de la page, chargez-le de nouveau.
 
 ## Pourquoi le comportement est crédible
 
-Le modèle recherche une réaction nautique cohérente à basse vitesse, pas une animation spectaculaire. Le bateau ne suit aucune trajectoire pré-écrite : sa vitesse et son orientation résultent à chaque instant de l'ensemble des actions du moteur, de l'eau, du vent, des contacts et des amarres.
+Le modèle recherche une réaction nautique cohérente à basse vitesse, pas une animation spectaculaire. Le bateau ne suit aucune trajectoire pré-écrite : sa vitesse et son orientation résultent à chaque instant de l'ensemble des actions du moteur, de l'eau, du vent, des contacts et des amarres. Les valeurs chiffrées ci-dessous décrivent le profil de référence **Sun Odyssey 36i** ; les autres bateaux possèdent leurs propres profils expérimentaux.
 
 - **Un bateau de référence mesuré.** Le profil principal représente un Sun Odyssey 36i de **10,94 m** hors tout, **9,84 m** à la flottaison, **3,59 m** de large et **1,94 m** de tirant d'eau. Son déplacement est de **5,7 t** à lège et de **6,5 t** en charge, avec une surface mouillée estimée à **28,5 m²**. La masse en charge reste une estimation, annoncée avec une incertitude de l'ordre de **8 %** plutôt que présentée comme une mesure exacte.
 - **Un domaine d'emploi explicite.** La calibration vise les manœuvres portuaires jusqu'à **4 nd de vitesse surface**. Les vagues et l'interaction hydrodynamique avec un quai ne sont pas simulées.
@@ -163,9 +183,9 @@ Le modèle recherche une réaction nautique cohérente à basse vitesse, pas une
 
 Les dimensions principales et la chaîne moteur–inverseur proviennent des données constructeur. Les grandeurs qui exigeraient des essais instrumentés — coefficients de coque, de fardage, de contact ou d'hélice — sont identifiées comme des estimations ou des calibrations, avec leur domaine de validité et leur incertitude. Leur influence est ensuite contrôlée par des variations de paramètres et des manœuvres de référence. L'approche s'appuie notamment sur le [modèle marin de Fossen](https://www.fossen.biz/html/marineCraftModel.html), le [standard MMG](https://doi.org/10.1007/s00773-014-0293-y) et les procédures de validation de l'[ITTC](https://www.ittc.info/media/11868/75-02-06-03.pdf).
 
-Projet hébergé sur : [https://github.com/arnaud2moissac/KJP_Port_Simulator](https://github.com/arnaud2moissac/KJP_Port_Simulator)
+Projet hébergé sur : [KJP Port Simulator sur GitHub](https://github.com/arnaud2moissac/KJP_Port_Simulator)
 
-Plus d'informations sur : [https://arnaud2moissac.github.io/KJP_Port_Simulator/README.md](https://arnaud2moissac.github.io/KJP_Port_Simulator/README.md)
+Plus d'informations : [README du projet](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/README.md).
 
 
 Le simulateur n'est ni une étude hydrodynamique détaillée, ni un jumeau numérique certifié de votre bateau. Le chargement réel, les vagues, l'état de l'hélice, les rafales et les gestes de l'équipage peuvent modifier fortement une manœuvre. Utilisez-le pour préparer des hypothèses et comprendre des tendances, puis validez-les lentement et prudemment à bord.
