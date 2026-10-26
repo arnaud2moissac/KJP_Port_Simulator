@@ -2,7 +2,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
-const { chromium } = require("playwright");
+const { chromium, devices } = require("playwright");
 const { stubSimulatorAnalytics } = require("../tests/helpers/simulator-network.js");
 const root = path.resolve(__dirname, "..");
 async function capture(code) {
@@ -76,7 +76,7 @@ async function capture(code) {
     };
     await save(0);
     const desktopPage = page;
-    page = await browser.newPage({ viewport: { width: 1024, height: 768 }, locale: code, hasTouch: true });
+    page = await browser.newPage({ ...devices["iPad Pro 11 landscape"], locale: code });
     await prepare(page);
     await flows(page);
     await page.evaluate(() => window.__PORTANCE_TEST__.selectVisualTheme("chart"));

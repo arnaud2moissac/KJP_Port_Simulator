@@ -42,9 +42,9 @@ Savet eo KJP evit bezañ implijet war **dabletezenn pe urzhiataer**. War ur pell
 - Ar ment dre ziouer zo **175 % war dabletezenn** (+75 %) ha **100 % war bellgomzer poell**. **Arventennoù araokaet → Urzhioù → Ment an urzhioù dre stok**, dindan sensidigezh al logodenn, a ro tro da zibab etre **100 ha 200 %**, dre bazennoù a **25 %**. Ar brasañ a dalvez evit ar gwel stekiñ ledan ; war ar skrammoù bihan e vir ar reolerezhioù o ment vihan. Miret eo dibaboù an dabletezenn hag ar pellgomzer a-ziforc'h er merdeer.
 - Digorit an arventennoù gant `☰`. War ur pellgomzer eo sklaeroc'h ar gwel gant ar skramm a-led.
 
-**Gwel war dabletezenn, gant ar reoler stur hag an dornell lusker stekiñ :**
+**Gwel a-led war iPad Pro 11 pouces, gant ar reoler stur hag an dornell lusker stekiñ :**
 
-![Reolerezhioù stekiñ war dabletezenn](images/02-commandes-et-vues.br.jpg)
+![Reolerezhioù stekiñ war iPad Pro 11 pouces a-led](images/02-commandes-et-vues.br.jpg)
 
 ## Dibab ar vag
 

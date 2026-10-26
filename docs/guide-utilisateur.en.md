@@ -42,9 +42,9 @@ KJP is designed for a **tablet or computer**. On a smartphone, a startup message
 - The default size is **175% on a tablet** (+75%) and **100% on a smartphone**. **Advanced settings → Controls → Touch control size**, below mouse sensitivity, offers **100 to 200%** in **25%** steps. Enlargement applies to the wider touch layout; small screens retain their compact controls. Tablet and smartphone preferences are remembered separately in the browser.
 - Open settings with `☰`. Landscape orientation gives the best visibility on a phone.
 
-**Tablet view with touch steering and engine controls:**
+**11-inch iPad Pro landscape view with touch steering and engine controls:**
 
-![Touch controls on a tablet](images/02-commandes-et-vues.en.jpg)
+![Touch controls on an 11-inch iPad Pro in landscape](images/02-commandes-et-vues.en.jpg)
 
 ## Choosing the boat
 

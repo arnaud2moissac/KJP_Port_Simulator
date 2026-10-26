@@ -42,9 +42,9 @@ KJP est conçu pour être utilisé sur **tablette ou ordinateur**. Sur smartphon
 - La taille proposée est **175 % sur tablette** (+75 %) et **100 % sur smartphone**. **Réglages avancés → Commandes → Taille des commandes tactiles**, sous la sensibilité de la souris, permet de choisir de **100 à 200 %**, par pas de **25 %**. L'agrandissement s'applique à la disposition tactile large ; les petits écrans conservent leur présentation compacte. Les préférences tablette et smartphone sont mémorisées séparément dans le navigateur.
 - Ouvrez les réglages avec `☰`. Sur un téléphone, le mode paysage offre la meilleure visibilité.
 
-**Vue sur tablette, avec la commande de barre et la poignée moteur tactiles :**
+**Vue sur iPad Pro 11 pouces en paysage, avec la commande de barre et la poignée moteur tactiles :**
 
-![Commandes tactiles sur tablette](images/02-commandes-et-vues.jpg)
+![Commandes tactiles sur iPad Pro 11 pouces en paysage](images/02-commandes-et-vues.jpg)
 
 ## Choisir le bateau
 
