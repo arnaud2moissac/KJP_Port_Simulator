@@ -25,6 +25,7 @@ import { fromLonLat, toLonLat, transformExtent } from "ol/proj.js";
 import { getCenter } from "ol/extent.js";
 
 const KJPCodec = require("../ports/kjp-codec.js");
+import { installLibraryInterface } from "./library-ui.js";
 const EditorCore = require("../ports/port-editor-core.js");
 const OSMPortImport = require("../ports/osm-import.js");
 const PontoonDecomposition = require("../ports/pontoon-decomposition.js");
@@ -1308,6 +1309,7 @@ function scheduleAutosave() {
 
 function afterEdit({ selectId = editor.selection, fit = false } = {}) {
   editor.select(selectId || null);
+  renderBoatSizeDistribution(undefined, { syncFields: true });
   renderObjects();
   scheduleAutosave();
   if (fit) fitDocument();
@@ -2303,8 +2305,10 @@ $("#generateCleatsButton").addEventListener("click", () => {
 
 $("#computeBerthsButton").addEventListener("click", () => {
   const width = clamp(Number($("#berthWidth").value), 2.8, 20);
+  const length = clamp(Number($("#berthLength").value || 12), 3, 200);
   $("#berthWidth").value = width.toFixed(1);
-  editor.recomputeBerths({ defaultWidth: width });
+  $("#berthLength").value = length.toFixed(1);
+  editor.recomputeBerths({ defaultWidth: width, defaultLength: length });
   afterEdit();
   showToast(
     msg("toast.berths", { count: editor.document.berths.length, width: num(width) }),
@@ -2315,12 +2319,17 @@ $("#computeBerthsButton").addEventListener("click", () => {
 $("#populateBoatsButton").addEventListener("click", () => {
   if (!editor.document.berths.length) {
     editor.recomputeBerths({
-      defaultWidth: clamp(Number($("#berthWidth").value), 2.8, 20)
+      defaultWidth: clamp(Number($("#berthWidth").value), 2.8, 20),
+      defaultLength: clamp(Number($("#berthLength").value || 12), 3, 200)
     });
   }
+  const previousSeed = Number(editor.document.editor.occupancySeed) >>> 0;
+  let seed = 1 + Math.floor(Math.random() * 0xffffffff);
+  if (seed === previousSeed) seed = seed === 0xffffffff ? 1 : seed + 1;
   editor.populateBoats({
     occupancyRate: Number($("#occupancyRate").value) / 100,
-    seed: editor.document.editor.occupancySeed
+    seed,
+    boatSizeDistribution: readBoatSizeDistribution()
   });
   afterEdit();
   showToast(msg("toast.boats", { count: editor.document.staticBoats.length }), "ok");
@@ -2328,6 +2337,46 @@ $("#populateBoatsButton").addEventListener("click", () => {
 
 $("#occupancyRate").addEventListener("input", event => {
   setText($("#occupancyValue"), msg("metric.percent", { value: num(event.target.value, 0) }));
+});
+
+function readBoatSizeDistribution() {
+  return EditorCore.normalizeBoatSizeDistribution(Object.fromEntries(
+    $$("[data-boat-size]").map(input => [input.dataset.boatSize, input.valueAsNumber])
+  ));
+}
+
+function renderBoatSizeDistribution(parameters = editor.document.editor.boatSizeDistribution, { syncFields = false } = {}) {
+  const distribution = EditorCore.normalizeBoatSizeDistribution(parameters);
+  if (syncFields) {
+    $$("[data-boat-size]").forEach(input => { input.value = distribution[input.dataset.boatSize]; });
+  }
+  const { minLength, maxLength, center } = distribution;
+  $("#boatMinLength").max = (maxLength - 0.2).toFixed(1);
+  $("#boatMaxLength").min = (minLength + 0.2).toFixed(1);
+  $("#boatSizeCenter").min = (minLength + 0.1).toFixed(1);
+  $("#boatSizeCenter").max = (maxLength - 0.1).toFixed(1);
+  $("#boatSizeCenter").value = center;
+  for (const [selector, value] of [
+    ["#boatSizeCenterValue", center], ["#boatSizeMinValue", minLength], ["#boatSizeMaxValue", maxLength]
+  ]) setText($(selector), msg("metric.meters", { value: num(value) }));
+  const points = Array.from({ length: 121 }, (_, index) => {
+    const fraction = index / 120;
+    const length = minLength + fraction * (maxLength - minLength);
+    return `${index ? "L" : "M"}${(3 + fraction * 274).toFixed(2)},${(94 - 82 * EditorCore.boatSizeDensity(length, distribution)).toFixed(2)}`;
+  }).join(" ");
+  $("#boatSizeCurve .boat-size-line").setAttribute("d", points);
+  $("#boatSizeCurve .boat-size-area").setAttribute("d", `M3,94 ${points.replace(/^M/, "L")} L277,94 Z`);
+}
+
+$$("[data-boat-size]").forEach(input => {
+  input.addEventListener("input", () => renderBoatSizeDistribution(readBoatSizeDistribution()));
+  input.addEventListener("change", () => {
+    const distribution = readBoatSizeDistribution();
+    editor.transaction(t("ui.boat.size.distribution"), next => {
+      next.editor.boatSizeDistribution = distribution;
+    });
+    afterEdit();
+  });
 });
 
 function removeSelected() {
@@ -2928,6 +2977,10 @@ function syncMetadataForm() {
   $("#berthWidth").value = Number(
     editor.document.editor.defaultBerthWidth ?? 4
   ).toFixed(1);
+  $("#berthLength").value = Number(
+    editor.document.editor.defaultBerthLength ?? 12
+  ).toFixed(1);
+  renderBoatSizeDistribution(undefined, { syncFields: true });
 }
 
 function writeMetadataFromForm({ commit = true } = {}) {
@@ -2955,6 +3008,7 @@ $$("input, textarea", $("#metadataForm")).forEach(input => {
 function exportText() {
   writeMetadataFromForm({ commit: false });
   editor.document.editor.occupancyRate = Number($("#occupancyRate").value) / 100;
+  editor.document.editor.boatSizeDistribution = readBoatSizeDistribution();
   editor.document.metadata.revision = Math.max(1, Number(editor.document.metadata.revision) || 1);
   editor.document.generatorVersion = GENERATOR_VERSION;
   editor.document.bounds = KJPCodec.geometryBounds(editor.document);
@@ -3014,7 +3068,7 @@ function validationTargetLabel(target) {
   })[target.collection] || msg("ui.objet");
 }
 
-$("#exportButton").addEventListener("click", () => {
+function downloadPort() {
   try {
     const text = exportText();
     const blob = new Blob([text], { type: "application/json;charset=utf-8" });
@@ -3043,7 +3097,7 @@ $("#exportButton").addEventListener("click", () => {
       } : null
     );
   }
-});
+}
 
 function importText(text) {
   const document = KJPCodec.parse(text, { freeze: false });
@@ -3098,7 +3152,10 @@ readmeDialog.addEventListener("click", event => {
 });
 
 $("#newPortButton").addEventListener("click", () => resetWorkspace());
-$("#importButton").addEventListener("click", () => $("#importInput").click());
+const portFileInterface = installLibraryInterface({ exportText, importText, downloadPort,
+  filename: () => `${safeFilename(editor.document.metadata.name)}.kjp`, showToast, exportError: downloadPort });
+$("#importButton").addEventListener("click", () => portFileInterface.open("load"));
+$("#exportButton").addEventListener("click", () => portFileInterface.open("save"));
 $("#importInput").addEventListener("change", event => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -3501,6 +3558,7 @@ for (const locale of i18n.supportedLocales()) {
 languageSelect.addEventListener("change", () => i18n.setLocale(languageSelect.value));
 function localizeInterface() {
   refreshTranslations();
+  renderBoatSizeDistribution();
   languageSelect.value = i18n.getLocale();
   $(".project-help-content").innerHTML = i18n.getCatalog().guideHtml;
   refreshInspectorLabels();

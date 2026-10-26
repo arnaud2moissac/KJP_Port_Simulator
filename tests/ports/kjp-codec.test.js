@@ -652,6 +652,172 @@ test("largeur des places et gabarit des bateaux restent cohérents et rééditab
   assert.equal(roundTrip.editor.defaultBerthWidth, 7.2);
 });
 
+test("longueur des places: dimension demandée, ancrage et sauvegarde des réglages", () => {
+  const editor = new Editor.PortEditor(createValidPort());
+  editor.document.structures.obstacles = [];
+  editor.document.structures.landAreas = [];
+  const original = editor.snapshot();
+  editor.recomputeBerths({ defaultWidth: 7, defaultLength: 30 });
+  assert.equal(editor.document.editor.defaultBerthLength, 30);
+  assert.ok(editor.document.berths.length > 0);
+  for (const berth of editor.document.berths) {
+    assert.equal(berth.length, 30);
+    assert.equal(berth.maxLength, 30);
+    const parent = editor.document.structures.catways.find(item => item.id === berth.parentId);
+    const local = Codec.worldToLocal(parent, berth.center);
+    assert.ok(Math.abs(local.longitudinal - berth.length / 2 + parent.length / 2 - 0.4) < 1e-9);
+    const fitted = Editor.fitBoatToBerth(editor.document, berth, () => 0.5);
+    const fittedLocal = Codec.worldToLocal(parent, fitted.center);
+    assert.ok(Math.abs(fittedLocal.longitudinal - local.longitudinal) < 1e-9);
+  }
+  const restored = Codec.parse(Codec.serialize(editor.document));
+  assert.equal(restored.editor.defaultBerthLength, 30);
+  editor.undo();
+  assert.deepEqual(editor.document.berths, original.berths);
+  assert.equal(editor.document.editor.defaultBerthLength, undefined);
+  editor.redo();
+  editor.recomputeBerths();
+  assert.ok(editor.document.berths.every(berth => berth.length === 30));
+  editor.recomputeBerths({ defaultLength: 9.5 });
+  assert.ok(editor.document.berths.every(berth => berth.length === 9.5));
+});
+
+test("dégagement des places: réduction devant une digue et conservation du point d'ancrage", () => {
+  const document = Codec.createEmpty();
+  document.structures.catways = [{ id: "finger-a", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0 }];
+  document.structures.obstacles = [{ points: [{ east: 20.9, north: -30 }, { east: 20.9, north: 30 }], width: 1 }];
+  const berths = Editor.inferBerths(document, { defaultWidth: 4, defaultLength: 12 });
+  assert.equal(berths.length, 2);
+  for (const berth of berths) {
+    assert.ok(Math.abs(berth.length - 10) < 1e-8);
+    assert.equal(berth.maxLength, berth.length);
+    assert.ok(Math.abs(berth.center.east - berth.length / 2 - 0.4) < 1e-8);
+    assert.ok(20.4 - (berth.center.east + berth.length / 2) >= berth.length - 1e-8);
+  }
+  document.structures.obstacles[0].points.forEach(point => { point.east = 60; });
+  assert.ok(Editor.inferBerths(document, { defaultLength: 12 }).every(berth => berth.length === 12));
+  document.structures.obstacles[0].points.forEach(point => { point.east = 1.9; });
+  assert.equal(Editor.inferBerths(document, { defaultLength: 12 }).length, 0, "aucune place inutilisable ou sans dégagement n'est conservée");
+});
+
+test("dégagement des places: toute la largeur est contrôlée devant une terre concave", () => {
+  const document = Codec.createEmpty();
+  document.structures.catways = [{ id: "finger-a", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0 }];
+  document.structures.landAreas = [{ points: [
+    { east: 16.4, north: 4 }, { east: 22, north: 4 }, { east: 22, north: 8 },
+    { east: 10.4, north: 8 }, { east: 10.4, north: 5 }, { east: 16.4, north: 5 }
+  ] }];
+  const berths = Editor.inferBerths(document, { defaultWidth: 4, defaultLength: 12 });
+  assert.equal(berths.length, 2);
+  assert.ok(Math.abs(berths.find(berth => berth.side === "port").length - 8) < 1e-8);
+  assert.equal(berths.find(berth => berth.side === "starboard").length, 12);
+});
+
+test("dégagement des places face à face: les deux longueurs diminuent et partagent une allée suffisante", () => {
+  for (const heading of [0, Math.PI / 3]) {
+    const document = Codec.createEmpty();
+    const transform = point => Codec.localToWorld({ center: { east: 20, north: -15 }, heading }, {
+      longitudinal: point.east, transverse: point.north
+    });
+    document.structures.catways = [
+      { id: "finger-a", center: transform({ east: 5, north: 0 }), length: 10, width: 1, heading },
+      { id: "finger-b", center: transform({ east: 25, north: 0 }), length: 10, width: 1, heading: heading + Math.PI }
+    ];
+    const settings = { defaultWidth: 4, defaultLength: 20 };
+    const berths = Editor.inferBerths(document, settings);
+    assert.equal(berths.length, 4, "les places opposées sont réduites au lieu d'être supprimées par ordre de parcours");
+    for (const berth of berths) assert.ok(Math.abs(berth.length - 29.2 / 3) < 1e-7);
+    const first = berths.find(berth => berth.parentId === "finger-a" && berth.side === "port");
+    const second = berths.find(berth => berth.parentId === "finger-b" && berth.side === "starboard");
+    const firstEnd = Codec.localToWorld(first, { longitudinal: first.length / 2, transverse: 0 });
+    const secondEnd = Codec.localToWorld(second, { longitudinal: second.length / 2, transverse: 0 });
+    const gap = Math.hypot(firstEnd.east - secondEnd.east, firstEnd.north - secondEnd.north);
+    assert.ok(gap >= Math.max(first.length, second.length) - 1e-7);
+    document.structures.catways.reverse();
+    const reversed = Editor.inferBerths(document, settings);
+    for (const berth of berths) {
+      const other = reversed.find(item => item.parentId === berth.parentId && item.side === berth.side);
+      assert.ok(Math.abs(berth.length - other.length) < 1e-7);
+    }
+  }
+});
+
+test("dégagement des places de longueurs différentes: le dégagement couvre la plus grande", () => {
+  const document = Codec.createEmpty();
+  document.structures.catways = [
+    { id: "finger-a", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0 },
+    { id: "finger-b", center: { east: 20, north: 0 }, length: 20, width: 1, heading: Math.PI }
+  ];
+  const berths = Editor.inferBerths(document, { defaultWidth: 4 });
+  assert.equal(berths.length, 4);
+  const first = berths.find(berth => berth.parentId === "finger-a" && berth.side === "port");
+  const second = berths.find(berth => berth.parentId === "finger-b" && berth.side === "starboard");
+  assert.ok(first.length < 9.2 && second.length < 19.2);
+  assert.ok(Math.abs(first.length / second.length - 9.2 / 19.2) < 1e-8);
+  assert.ok(29.2 - first.length - second.length >= Math.max(first.length, second.length) - 1e-7);
+});
+
+test("dégagement des places: un bateau débordant d'une place raccourcie n'est pas conservé", () => {
+  const document = Codec.createEmpty();
+  document.structures.catways = [{ id: "finger-a", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0 }];
+  const editor = new Editor.PortEditor(document);
+  editor.recomputeBerths({ defaultWidth: 4, defaultLength: 12 });
+  const berth = editor.document.berths.find(item => item.side === "port");
+  editor.document.staticBoats = [{ id: "boat-existing", berthId: berth.id, center: { east: berth.center.east, north: 2 }, heading: 0, length: 6, beam: 2 }];
+  editor.document.structures.obstacles = [{ points: [{ east: 16.9, north: -30 }, { east: 16.9, north: 30 }], width: 1 }];
+  editor.recomputeBerths();
+  assert.ok(editor.document.berths.every(item => Math.abs(item.length - 8) < 1e-8));
+  assert.equal(editor.document.staticBoats.length, 0);
+});
+
+test("tailles des bateaux: cloche décentrée, hauteurs aux limites et tirage borné", () => {
+  const distribution = Editor.normalizeBoatSizeDistribution({
+    minLength: 4, maxLength: 20, minPercent: 15, maxPercent: 5, center: 8
+  });
+  assert.ok(Math.abs(Editor.boatSizeDensity(4, distribution) - 0.15) < 1e-12);
+  assert.ok(Math.abs(Editor.boatSizeDensity(20, distribution) - 0.05) < 1e-12);
+  assert.equal(Editor.boatSizeDensity(8, distribution), 1);
+  const drawMean = center => {
+    const settings = { ...distribution, center };
+    const random = Editor.xorshift32(42);
+    const values = Array.from({ length: 4000 }, () => Editor.sampleBoatLength(settings, 30, random));
+    assert.ok(values.every(value => value >= 4 && value <= 20));
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  };
+  assert.ok(drawMean(15) > drawMean(7) + 2, "le centre déplace effectivement les longueurs tirées");
+  const random = Editor.xorshift32(77);
+  const limited = Array.from({ length: 1000 }, () => Editor.sampleBoatLength(distribution, 7, random));
+  assert.ok(limited.every(value => value >= 4 && value <= 7 * 0.96));
+  assert.equal(limited.filter(value => value === 7 * 0.96).length, 0, "aucun écrêtage à la limite de la place");
+  assert.equal(Editor.sampleBoatLength(distribution, 3, random), null);
+  for (const percent of [0, 100]) {
+    const edge = Editor.normalizeBoatSizeDistribution({ minLength: 7, maxLength: 7.2, center: 20, minPercent: percent, maxPercent: percent });
+    const length = Editor.sampleBoatLength(edge, 10, random);
+    assert.ok(Number.isFinite(length) && length >= 7 && length <= 7.2);
+    assert.equal(Editor.boatSizeDensity(edge.minLength, edge), percent / 100);
+    assert.equal(Editor.boatSizeDensity(edge.maxLength, edge), percent / 100);
+  }
+});
+
+test("tailles des bateaux: placement reproductible, sauvegarde et annulation des réglages", () => {
+  const editor = new Editor.PortEditor(createValidPort());
+  const settings = { minLength: 4, maxLength: 6, minPercent: 20, maxPercent: 10, center: 5 };
+  editor.populateBoats({ occupancyRate: 1, seed: 123, boatSizeDistribution: settings });
+  const boats = cloneBoats(editor.document.staticBoats);
+  assert.ok(boats.length > 0);
+  assert.ok(boats.every(boat => boat.length >= 4 && boat.length <= 6));
+  assert.ok(boats.every(boat => !editor.document.berths.find(berth => berth.id === boat.berthId).isVisitor));
+  editor.populateBoats({ occupancyRate: 1, seed: 123 });
+  assert.deepEqual(editor.document.staticBoats, boats);
+  const restored = Codec.parse(Codec.serialize(editor.document));
+  assert.deepEqual(restored.editor.boatSizeDistribution, settings);
+  editor.populateBoats({ boatSizeDistribution: { ...settings, minLength: 15, maxLength: 18, center: 16 } });
+  assert.equal(editor.document.staticBoats.length, 0, "les places trop courtes restent libres");
+  editor.undo();
+  assert.deepEqual(editor.document.editor.boatSizeDistribution, settings);
+  assert.deepEqual(editor.document.staticBoats, boats);
+});
+
 test("apparence IALA A: les catégories standard imposent forme et couleurs", () => {
   assert.deepEqual(
     Codec.recommendedBuoyAppearance("buoy_lateral", "port"),

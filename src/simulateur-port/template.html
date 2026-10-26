@@ -2605,6 +2605,7 @@
           <select id="portLibrarySortSelect">
             <option value="name" data-i18n="library.name">Nom du port</option>
             <option value="author" data-i18n="ui.author">Auteur</option>
+            <option value="source" data-i18n="library.source">Source</option>
             <option value="createdAt" data-i18n="library.created">Date de création</option>
             <option value="updatedAt" data-i18n="library.updated">Date de mise à jour</option>
           </select>
@@ -2615,6 +2616,7 @@
         <thead><tr>
           <th scope="col" aria-sort="ascending"><button type="button" data-library-sort="name"><span data-i18n="library.name">Nom du port</span><span data-sort-indicator aria-hidden="true">↑</span></button></th>
           <th scope="col" aria-sort="none"><button type="button" data-library-sort="author"><span data-i18n="ui.author">Auteur</span><span data-sort-indicator aria-hidden="true"></span></button></th>
+          <th scope="col" aria-sort="none"><button type="button" data-library-sort="source"><span data-i18n="library.source">Source</span><span data-sort-indicator aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button type="button" data-library-sort="createdAt"><span data-i18n="library.created">Date de création</span><span data-sort-indicator aria-hidden="true"></span></button></th>
           <th scope="col" aria-sort="none"><button type="button" data-library-sort="updatedAt"><span data-i18n="library.updated">Date de mise à jour</span><span data-sort-indicator aria-hidden="true"></span></button></th>
           <th scope="col" data-i18n="ui.load">Charger</th>
@@ -2627,6 +2629,9 @@
 
   <script>
 /*__KJP_I18N__*/
+  </script>
+  <script>
+/*__PORT_LIBRARY__*/
   </script>
   <script data-port-topology src="ports/la-trinite-pedagogique.js"></script>
 
@@ -9987,13 +9992,16 @@
     const LA_TRINITE_KJP_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/la_Trinite.kjp";
     const PORT_GENERATOR_URL = "https://arnaud2moissac.github.io/KJP_Port_Simulator/generateur-port.html";
     const PORT_LIBRARY_API_URL = "https://api.github.com/repos/arnaud2moissac/KJP_Port_Simulator/contents/ports";
+    const PORT_LIBRARY_RAW_URL = "https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/ports/";
+    const publicPortLibrary = KJPPortLibrary.createPublicLibrary();
     const portLibraryDialog = $("#portLibraryDialog");
     const portLibrary = {
       sortKey: "name", descending: false, rows: [], state: "loading",
-      error: null, loadingPath: null, session: null, request: null
+      error: null, sourceErrors: [], loadingPath: null, session: null, request: null
     };
     const portLibraryColumns = [
       ["name", "library.name"], ["author", "ui.author"],
+      ["source", "library.source"],
       ["createdAt", "library.created"], ["updatedAt", "library.updated"]
     ];
 
@@ -10007,6 +10015,7 @@
     }
 
     function librarySortValue(row, key) {
+      if (key === "source") return row.source === "editor" ? "KJP" : t("library.community");
       const value = libraryMetadataValue(row, key);
       if (key === "createdAt" || key === "updatedAt") {
         const timestamp = value ? Date.parse(value) : NaN;
@@ -10016,6 +10025,7 @@
     }
 
     function libraryErrorText(error) {
+      if (error.libraryCode) return t(`storage.${error.libraryCode}`);
       if (error.libraryKey) return t(error.libraryKey);
       if (error.rateLimited) return t("library.rate.limit");
       return resolveMessage(errorMessage(error, "network"));
@@ -10032,7 +10042,7 @@
           ? first - second : collator.compare(first, second);
         return comparison * (portLibrary.descending ? -1 : 1)
           || collator.compare(libraryPortName(a), libraryPortName(b))
-          || collator.compare(a.name, b.name) || a.name.localeCompare(b.name);
+          || collator.compare(a.name, b.name) || a.key.localeCompare(b.key);
       });
       const arrow = portLibrary.descending ? "↓" : "↑";
       for (const button of $$("[data-library-sort]")) {
@@ -10052,10 +10062,11 @@
         const values = portLibraryColumns.map(([key]) => key === "name" ? libraryPortName(row)
           : key === "createdAt" || key === "updatedAt"
             ? librarySortValue(row, key) === null ? "—" : i18n.formatDate(libraryMetadataValue(row, key))
-            : libraryMetadataValue(row, key) || "—");
+            : key === "source" ? librarySortValue(row, key) : libraryMetadataValue(row, key) || "—");
         const tr = document.createElement("tr");
         const card = document.createElement("article");
         tr.dataset.libraryFile = card.dataset.libraryFile = row.name;
+        tr.dataset.librarySource = card.dataset.librarySource = row.source;
         card.className = "port-library-card";
         card.setAttribute("role", "listitem");
         const name = document.createElement("strong");
@@ -10089,8 +10100,8 @@
         for (const parent of [action, card]) {
           const button = document.createElement("button");
           button.type = "button";
-          button.dataset.libraryLoad = row.name;
-          button.textContent = portLibrary.loadingPath === row.name ? t("library.loading.port") : t("ui.load");
+          button.dataset.libraryLoad = row.key;
+          button.textContent = portLibrary.loadingPath === row.key ? t("library.loading.port") : t("ui.load");
           button.setAttribute("aria-label", t("library.load.named", { name: values[0] }));
           button.disabled = !row.ready || Boolean(portLibrary.loadingPath);
           parent.append(button);
@@ -10105,12 +10116,14 @@
           .find(button => button.dataset.libraryLoad === focusedPath)?.focus({ preventScroll: true });
       }
       const status = $("#portLibraryStatus");
-      status.dataset.error = String(Boolean(portLibrary.error));
+      status.dataset.error = String(Boolean(portLibrary.error || portLibrary.sourceErrors.length));
       status.textContent = portLibrary.loadingPath ? t("library.loading.port")
         : portLibrary.error ? t("library.error", { detail: libraryErrorText(portLibrary.error) })
-        : portLibrary.state === "loading" ? t("library.loading")
-        : rows.length ? t("library.count", { count: rows.length }) : t("library.empty");
-      $("#retryPortLibrary").hidden = !portLibrary.error && !rows.some(row => row.error);
+        : portLibrary.state === "loading" && !rows.length ? t("library.loading")
+        : (rows.length ? t("library.count", { count: rows.length }) : t("library.empty"))
+          + (portLibrary.sourceErrors.length ? " · " + portLibrary.sourceErrors.map(({ source, error }) =>
+            `${source === "editor" ? "KJP" : t("library.community")}: ${libraryErrorText(error)}`).join(" · ") : "");
+      $("#retryPortLibrary").hidden = !portLibrary.error && !portLibrary.sourceErrors.length && !rows.some(row => row.error);
       $("#retryPortLibrary").disabled = Boolean(portLibrary.loadingPath);
     }
 
@@ -10128,13 +10141,45 @@
     }
 
     async function libraryKjpText(url, request, size, accept) {
+      const limit = KJPCodec.LIMITS.fileBytes;
       const tooLarge = () => Object.assign(new Error(), { libraryKey: "library.too.large" });
-      if (size > KJPCodec.LIMITS.fileBytes) throw tooLarge();
+      if (size > limit) throw tooLarge();
       const response = await libraryResponse(url, request, accept);
-      if (Number(response.headers.get("content-length")) > KJPCodec.LIMITS.fileBytes) throw tooLarge();
-      const contents = await response.blob();
-      if (contents.size > KJPCodec.LIMITS.fileBytes) throw tooLarge();
-      return contents.text();
+      return KJPPortLibrary.responseText(response, limit);
+    }
+
+    async function readEditorPortLibrary(request) {
+      const response = await libraryResponse(`${PORT_LIBRARY_API_URL}?ref=main`, request);
+      const entries = JSON.parse(await KJPPortLibrary.responseText(response, 2 * 1024 * 1024));
+      if (!Array.isArray(entries)) throw Object.assign(new Error(), { libraryKey: "library.invalid.list" });
+      const files = entries.filter(entry => entry.type === "file" && !entry.submodule_git_url
+        && typeof entry.name === "string" && entry.name.length <= 240 && !/[\\/\u0000-\u001f]/.test(entry.name)
+        && /\.kjp$/i.test(entry.name) && entry.path === `ports/${entry.name}`
+        && Number.isSafeInteger(entry.size) && entry.size >= 0);
+      const rows = files.map(entry => ({ source: "editor", key: `editor:${entry.name}`,
+        filename: entry.name, name: entry.name, size: entry.size, metadata: null,
+        ready: entry.size <= KJPCodec.LIMITS.fileBytes,
+        error: entry.size > KJPCodec.LIMITS.fileBytes ? { libraryKey: "library.too.large" } : null }));
+      let next = 0;
+      async function readMetadata() {
+        while (next < rows.length && isCurrentLibraryRequest(request)) {
+          const row = rows[next++];
+          if (!row.ready) continue;
+          try {
+            const text = await libraryKjpText(`${PORT_LIBRARY_RAW_URL}${encodeURIComponent(row.filename)}`, request, row.size);
+            const preview = JSON.parse(text);
+            if (!preview?.metadata || typeof preview.metadata !== "object" || Array.isArray(preview.metadata)) {
+              throw Object.assign(new Error(), { libraryKey: "library.invalid.file" });
+            }
+            row.metadata = preview.metadata;
+          } catch (error) {
+            row.error = error instanceof SyntaxError ? { libraryKey: "library.invalid.file" } : error;
+            row.ready = false;
+          }
+        }
+      }
+      await Promise.all(Array.from({ length: Math.min(3, rows.length) }, readMetadata));
+      return rows;
     }
 
     async function refreshPortLibrary() {
@@ -10144,57 +10189,25 @@
       portLibrary.rows = [];
       portLibrary.state = "loading";
       portLibrary.error = null;
+      portLibrary.sourceErrors = [];
       portLibrary.loadingPath = null;
       renderPortLibrary();
-      try {
-        const response = await libraryResponse(`${PORT_LIBRARY_API_URL}?ref=main`, request);
-        const entries = await response.json();
-        if (!Array.isArray(entries)) throw Object.assign(new Error(), { libraryKey: "library.invalid.list" });
-        if (!isCurrentLibraryRequest(request)) return;
-        const rows = entries.filter(entry => entry.type === "file" && !entry.submodule_git_url
-          && typeof entry.name === "string" && !entry.name.includes("/") && /\.kjp$/i.test(entry.name)
-          && entry.path === `ports/${entry.name}`).map(entry => ({
-            name: entry.name, size: entry.size, downloadUrl: entry.download_url,
-            url: `${PORT_LIBRARY_API_URL}/${encodeURIComponent(entry.name)}?ref=main`,
-            metadata: null, ready: false, error: null
-          }));
-        portLibrary.rows = rows;
-        renderPortLibrary();
-        let next = 0;
-        async function readMetadata() {
-          while (next < rows.length && isCurrentLibraryRequest(request)) {
-            const row = rows[next++];
-            try {
-              if (typeof row.downloadUrl !== "string" || !row.downloadUrl.startsWith(
-                "https://raw.githubusercontent.com/arnaud2moissac/KJP_Port_Simulator/main/ports/"
-              )) throw Object.assign(new Error(), { libraryKey: "library.invalid.file" });
-              const text = await libraryKjpText(row.downloadUrl, request, row.size);
-              let preview;
-              try { preview = JSON.parse(text); }
-              catch { throw Object.assign(new Error(), { libraryKey: "library.invalid.file" }); }
-              if (!preview || typeof preview !== "object" || Array.isArray(preview)) {
-                throw Object.assign(new Error(), { libraryKey: "library.invalid.file" });
-              }
-              if (!isCurrentLibraryRequest(request)) return;
-              row.metadata = preview.metadata;
-              row.ready = true;
-            } catch (error) {
-              if (!isCurrentLibraryRequest(request)) return;
-              row.error = error;
-            }
-            renderPortLibrary();
-          }
+      const sources = [
+        ["editor", () => readEditorPortLibrary(request)],
+        ["community", async () => (await publicPortLibrary.catalog(request.controller.signal)).rows]
+      ];
+      await Promise.all(sources.map(async ([source, read]) => {
+        try {
+          const rows = await read();
+          if (isCurrentLibraryRequest(request)) portLibrary.rows.push(...rows);
+        } catch (error) {
+          if (isCurrentLibraryRequest(request)) portLibrary.sourceErrors.push({ source, error });
         }
-        await Promise.all(Array.from({ length: Math.min(3, rows.length) }, () => readMetadata()));
-        if (!isCurrentLibraryRequest(request)) return;
-        portLibrary.state = "ready";
-        renderPortLibrary();
-      } catch (error) {
-        if (!isCurrentLibraryRequest(request)) return;
-        portLibrary.state = "error";
-        portLibrary.error = error;
-        renderPortLibrary();
-      }
+        if (isCurrentLibraryRequest(request)) renderPortLibrary();
+      }));
+      if (!isCurrentLibraryRequest(request)) return;
+      portLibrary.state = "ready";
+      renderPortLibrary();
     }
 
     function finishPortLibrary() {
@@ -10230,11 +10243,13 @@
     async function loadLibraryPort(row) {
       const request = portLibrary.request;
       if (!row?.ready || portLibrary.loadingPath || !request || !isCurrentLibraryRequest(request)) return;
-      portLibrary.loadingPath = row.name;
+      portLibrary.loadingPath = row.key;
       portLibrary.error = null;
       renderPortLibrary();
       try {
-        const text = await libraryKjpText(row.url, request, row.size, "application/vnd.github.raw+json");
+        const text = row.source === "community" ? await publicPortLibrary.load(row, request.controller.signal)
+          : await libraryKjpText(`${PORT_LIBRARY_API_URL}/${encodeURIComponent(row.filename)}?ref=main`, request,
+            row.size, "application/vnd.github.raw+json");
         if (!isCurrentLibraryRequest(request)) return;
         const document = KJPCodec.parse(text);
         if (isPreparingDeparture()) cancelBoatPlacement();
@@ -10274,7 +10289,7 @@
     portLibraryDialog.addEventListener("click", event => {
       if (event.target === portLibraryDialog) { closePortLibrary(); return; }
       const button = event.target.closest("[data-library-load]");
-      if (button && !button.disabled) void loadLibraryPort(portLibrary.rows.find(row => row.name === button.dataset.libraryLoad));
+      if (button && !button.disabled) void loadLibraryPort(portLibrary.rows.find(row => row.key === button.dataset.libraryLoad));
     });
 
     function activePortMetadata() {

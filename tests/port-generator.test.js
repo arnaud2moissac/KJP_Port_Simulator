@@ -6,6 +6,109 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const Codec = require("../src/ports/kjp-codec.js");
+const { libraryFixture } = require("./helpers/port-library-fixture.js");
+
+async function openSaveLibrary(page) {
+  await page.locator("#exportButton").click();
+  await page.waitForFunction(() => !document.querySelector("#publicSaveButton").disabled);
+  assert.equal(await page.locator("#driveSignInButton, #driveSignOutButton").count(), 0);
+  assert.equal(await page.evaluate(() => typeof window.google), "undefined");
+}
+
+browserCase("generator:library.01", async ({ page }, t) => {
+  const state = await libraryFixture(page, "generator");
+  await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+  const text = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.exportText());
+  state.community = [{ name: "port-test.kjp", text }];
+  await page.locator("#importButton").click();
+  await page.waitForFunction(() => document.querySelector("#publicPortList button"));
+  await page.locator("#publicPortList button").click();
+  await page.waitForFunction(() => !document.querySelector("#portFileDialog").open);
+  assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).metadata.name, JSON.parse(text).metadata.name);
+  assert.equal(state.requests.some(url => url.includes("api.github.com")), false, "the generator never accesses the editor library");
+  await page.locator("#exportButton").click();
+  const downloaded = page.waitForEvent("download");
+  await page.locator("#localExportButton").click();
+  const download = await downloaded;
+  assert.match(download.suggestedFilename(), /\.kjp$/);
+  await page.locator("#importButton").click();
+  const chooser = page.waitForEvent("filechooser");
+  await page.locator("#localImportButton").click();
+  await (await chooser).setFiles({ name: "local.kjp", mimeType: "application/json", buffer: Buffer.from(text) });
+  await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("importé"));
+  state.community = [];
+  await openSaveLibrary(page);
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Port enregistré"));
+  assert.deepEqual(state.writes.map(w => [w.method, w.name.endsWith(".kjp") ? "port" : w.name]), [["POST", "port"], ["POST", "catalog.json"]]);
+  assert.ok(state.pcloudRequests.every(r => !r.headers.authorization && !r.headers.cookie));
+  assert.ok(state.pcloudRequests.filter(r => r.method === "POST").every(r => r.headers["content-type"].startsWith("multipart/form-data;")));
+  assert.equal(state.savedCatalog.ports[0].name, JSON.parse(text).metadata.name);
+  assert.equal(Codec.parse(state.writes[0].text).metadata.name, JSON.parse(text).metadata.name);
+  assert.equal(state.savedCatalog.ports[0].size, Buffer.byteLength(state.writes[0].text));
+  assert.match(state.savedCatalog.ports[0].sha256, /^[a-f0-9]{64}$/);
+  const captureDir = process.env.KJP_LIBRARY_CAPTURE_DIR;
+  await page.locator("#importButton").click();
+  await page.waitForFunction(() => document.querySelector("#publicPortList button"));
+  if (captureDir) await page.screenshot({ path: path.join(captureDir, "generator-library.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.locator("#portFileDialog").evaluate(d => d.scrollWidth <= d.clientWidth), true);
+  await page.locator("#closePortFile").click();
+  await page.route("https://generator.example.test/editor.html*", route => route.fulfill({
+    contentType: "text/html", body: fs.readFileSync(generatorPath, "utf8")
+  }));
+  for (const address of [testUrl(generatorPath), "https://generator.example.test/editor.html?test=1"]) {
+    await page.goto(address);
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+    await openSaveLibrary(page);
+    assert.equal(await page.locator("#localExportButton").isEnabled(), true);
+    const writesBefore = state.writes.length;
+    page.once("dialog", dialog => dialog.accept());
+    await page.locator("#publicSaveButton").click();
+    await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Port enregistré"));
+    assert.equal(state.writes.length, writesBefore + 2, `public save from ${address}`);
+  }
+});
+
+browserCase("generator:library.02", async ({ page, runtimeErrors }) => {
+  const state = await libraryFixture(page, "generator");
+  await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+  await openSaveLibrary(page);
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Port enregistré"));
+  const filename = state.writes[0].name;
+  await page.locator("#exportButton").click();
+  page.once("dialog", dialog => { assert.match(dialog.message(), /existe déjà/); return dialog.dismiss(); });
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("annulé"));
+  assert.equal(state.writes.length, 2, "cancel never writes");
+  await page.locator("#exportButton").click();
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("Port enregistré"));
+  assert.deepEqual(state.writes.slice(2).map(w => [w.method, w.name]), [["POST", filename], ["POST", "catalog.json"]]);
+  assert.equal(state.community.length, 2, "older deposits remain in pCloud");
+  state.uploadError = 2003;
+  await page.locator("#exportButton").click();
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#publicLibraryStatus").dataset.error === "true");
+  assert.equal(state.writes.length, 4);
+  state.uploadError = 0;
+  state.dropPublication = true;
+  await page.evaluate(() => {
+    const api = window.__KJP_GENERATOR_TEST__, document = api.snapshot();
+    document.metadata.name = "Nouvelle publication";
+    api.setDocument(document);
+  });
+  page.once("dialog", dialog => dialog.accept());
+  await page.locator("#publicSaveButton").click();
+  await page.waitForFunction(() => document.querySelector("#publicLibraryStatus").textContent.includes("publication n’est pas encore visible"));
+  assert.equal(await page.locator("#portFileDialog").evaluate(d => d.open), true);
+  assert.equal(await page.locator("#publicSaveButton").isEnabled(), true);
+  assert.equal(state.pcloudRequests.some(r => r.headers.authorization), false);
+  assert.equal(state.requests.some(url => url.includes("api.github.com")), false);
+});
 
 const projectRoot = path.resolve(__dirname, "..");
 const generatorPath = path.join(projectRoot, "generateur-port.html");
@@ -915,13 +1018,16 @@ browserCase("generator:editing.16", async ({ page, browser, context, runtimeErro
 browserCase("generator:editing.17", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
     await page.locator("#berthWidth").fill("2.8");
+    await page.locator("#berthLength").fill("14");
     await page.locator("#computeBerthsButton").click();
     await page.locator("#occupancyRate").fill("100");
     await page.locator("#populateBoatsButton").click();
     const narrow = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
     assert.equal(narrow.editor.defaultBerthWidth, 2.8);
+    assert.equal(narrow.editor.defaultBerthLength, 14);
     assert.ok(narrow.berths.length > 0);
     assert.ok(narrow.berths.every(berth => Math.abs(berth.width - 2.8) < 1e-9));
+    assert.ok(narrow.berths.every(berth => berth.length === 14 && berth.maxLength === 14));
     assert.ok(narrow.staticBoats.length > 0);
     for (const boat of narrow.staticBoats) {
       const berth = narrow.berths.find(item => item.id === boat.berthId);
@@ -943,6 +1049,116 @@ browserCase("generator:editing.17", async ({ page, browser, context, runtimeErro
       "les bateaux des places larges doivent pouvoir être plus larges"
     );
 
+    await page.locator("#berthLength").fill("9.5");
+    await page.locator("#computeBerthsButton").click();
+    const saved = await page.evaluate(() => JSON.parse(window.__KJP_GENERATOR_TEST__.exportText()));
+    assert.ok(saved.berths.every(berth => berth.length === 9.5 && berth.maxLength === 9.5));
+    assert.equal(saved.editor.defaultBerthLength, 9.5);
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document), saved);
+    assert.equal(await page.locator("#berthLength").inputValue(), "9.5");
+    const captureDir = process.env.KJP_BERTH_DIMENSIONS_CAPTURE_DIR;
+    if (captureDir) await page.locator(".berth-dimensions").screenshot({ path: path.join(captureDir, "berth-dimensions.png") });
+    await page.setViewportSize({ width: 320, height: 844 });
+    assert.equal(await page.locator(".berth-dimensions").evaluate(panel => panel.scrollWidth <= panel.clientWidth), true);
+    await page.evaluate(document => {
+      document.berths = [];
+      window.__KJP_GENERATOR_TEST__.setDocument(document);
+    }, saved);
+    await page.locator("#berthLength").fill("13");
+    await page.locator("#populateBoatsButton").click();
+    const automatic = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(automatic.editor.defaultBerthLength, 13);
+    assert.ok(automatic.berths.every(berth => berth.length === 13));
+
+});
+
+browserCase("generator:editing.clearance", async ({ page, runtimeErrors }) => {
+    const document = Codec.createEmpty();
+    document.structures.catways = [
+      { id: "finger-a", type: "catway", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0, height: 0.5 },
+      { id: "finger-b", type: "catway", center: { east: 25, north: 0 }, length: 10, width: 1, heading: Math.PI, height: 0.5 }
+    ];
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document), document);
+    await page.locator("#berthLength").fill("20");
+    await page.locator("#computeBerthsButton").click();
+    const calculated = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(calculated.berths.length, 4);
+    assert.equal(calculated.editor.defaultBerthLength, 20, "la valeur demandée reste distincte des longueurs réellement possibles");
+    assert.ok(calculated.berths.every(berth => Math.abs(berth.length - 29.2 / 3) < 1e-7));
+    await page.locator("#occupancyRate").fill("100");
+    await page.locator("#populateBoatsButton").click();
+    const populated = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(populated.staticBoats.length, 4);
+    for (const boat of populated.staticBoats) {
+      const berth = populated.berths.find(item => item.id === boat.berthId);
+      assert.ok(boat.length <= berth.maxLength);
+    }
+    assert.deepEqual(runtimeErrors, []);
+});
+
+browserCase("generator:editing.boat-sizes", async ({ page, runtimeErrors }) => {
+    await page.route(/^https?:\/\//, route => route.fulfill({ status: 200, body: "" }));
+    await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());
+    assert.equal(await page.locator("#boatMinLength").inputValue(), "6");
+    const original = await page.locator("#boatSizeCurve .boat-size-line").getAttribute("d");
+    for (const [selector, value] of [["#boatMinLength", "4"], ["#boatMaxLength", "7"], ["#boatMinPercent", "20"], ["#boatMaxPercent", "10"], ["#boatSizeCenter", "5.5"]]) {
+      await page.locator(selector).fill(value);
+      await page.locator(selector).dispatchEvent("change");
+    }
+    assert.notEqual(await page.locator("#boatSizeCurve .boat-size-line").getAttribute("d"), original);
+    assert.match(await page.locator("#boatSizeCenterValue").textContent(), /5,5 m/);
+    await page.locator("#undoButton").click();
+    assert.equal(await page.locator("#boatSizeCenter").inputValue(), "6.9");
+    await page.locator("#redoButton").click();
+    assert.equal(await page.locator("#boatSizeCenter").inputValue(), "5.5");
+    await page.locator("#occupancyRate").fill("100");
+    await page.locator("#populateBoatsButton").click();
+    const saved = await page.evaluate(() => JSON.parse(window.__KJP_GENERATOR_TEST__.exportText()));
+    assert.ok(saved.staticBoats.length > 0);
+    assert.ok(saved.staticBoats.every(boat => boat.length >= 4 && boat.length <= 7));
+    assert.deepEqual(saved.editor.boatSizeDistribution, { minLength: 4, maxLength: 7, minPercent: 20, maxPercent: 10, center: 5.5 });
+    await page.locator("#populateBoatsButton").click();
+    const regenerated = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.notEqual(regenerated.editor.occupancySeed, saved.editor.occupancySeed);
+    assert.notDeepEqual(regenerated.staticBoats, saved.staticBoats, "un nouveau clic renouvelle la configuration");
+    assert.deepEqual(regenerated.editor.boatSizeDistribution, saved.editor.boatSizeDistribution);
+    assert.ok(regenerated.staticBoats.every(boat => boat.length >= 4 && boat.length <= 7));
+    await page.locator("#undoButton").click();
+    const undone = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.deepEqual(undone.staticBoats, saved.staticBoats, "l'annulation restaure la configuration précédente");
+    assert.equal(undone.editor.occupancySeed, saved.editor.occupancySeed);
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document), saved);
+    assert.equal(await page.locator("#boatSizeCenter").inputValue(), "5.5");
+    await page.locator("#languageSelect").selectOption("en");
+    assert.equal(await page.locator(".boat-size-preview figcaption").textContent(), "Boat size distribution");
+    assert.match(await page.locator("#boatSizeCenterValue").textContent(), /5\.5 m/);
+    await page.locator("#languageSelect").selectOption("fr");
+    const captureDir = process.env.KJP_BOAT_SIZE_CAPTURE_DIR;
+    if (captureDir) await page.locator("#boatSizeControls").screenshot({ path: path.join(captureDir, "boat-size-panel.png") });
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      const layout = await page.locator("#boatSizeControls").evaluate(panel => ({
+        overflow: panel.scrollWidth - panel.clientWidth,
+        clipped: Array.from(panel.querySelectorAll("input, svg, button")).filter(element => {
+          const box = element.getBoundingClientRect();
+          const parent = panel.getBoundingClientRect();
+          return box.left < parent.left || box.right > parent.right + 1;
+        }).map(element => element.id)
+      }));
+      assert.deepEqual(layout, { overflow: 0, clipped: [] }, `le panneau reste lisible à ${width}px`);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.locator("#boatMinLength").fill("10");
+    await page.locator("#boatMinLength").dispatchEvent("change");
+    const limits = await page.evaluate(() => ({
+      min: Number(document.querySelector("#boatMinLength").value),
+      max: Number(document.querySelector("#boatMaxLength").value),
+      center: Number(document.querySelector("#boatSizeCenter").value)
+    }));
+    assert.ok(limits.min < limits.center && limits.center < limits.max);
+    await page.locator("#populateBoatsButton").click();
+    assert.ok((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).staticBoats.every(boat => boat.length >= 10));
+    assert.deepEqual(runtimeErrors, []);
 });
 
 browserCase("generator:editing.18", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {

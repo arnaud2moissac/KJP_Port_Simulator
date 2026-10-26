@@ -259,6 +259,10 @@ function build() {
       () => `${profiles.trim()}\n\n${physics.trim()}`
     )
     .replace(codecMarker, () => codec.trim())
+    .replace("/*__PORT_LIBRARY__*/", () => esbuild.buildSync({
+      entryPoints: [path.join(root, "src/ports/port-library.js")], bundle: true, write: false,
+      platform: "browser", format: "iife", globalName: "KJPPortLibrary", target: "safari15"
+    }).outputFiles[0].text.trim())
     .replace("/*__BOAT_PLACEMENT__*/", () => fs.readFileSync(path.join(root, "src/simulateur-port/boat-placement.js"), "utf8").trim())
     .replace(threeMarker, () => threeRendering.trim())
     .replace("/*__KJP_I18N__*/", () =>
@@ -270,6 +274,7 @@ function build() {
   if (
     output.includes(marker)
     || output.includes(codecMarker)
+    || output.includes("/*__PORT_LIBRARY__*/")
     || output.includes("/*__BOAT_PLACEMENT__*/")
     || output.includes(threeMarker)
     || output.includes(readmeMarker)

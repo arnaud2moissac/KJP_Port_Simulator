@@ -24,7 +24,15 @@ Compute berths, mark visitor berths and set occupancy before placing boats. Undo
 
 The draft is saved locally when browser storage is available. New harbour replaces the draft after confirmation. Fill in the harbour name, author and sources. This information and imported names are preserved in their original language.
 
-Import a .kjp file to resume editing a harbour. Export to obtain a validated KJP file for the simulator. If an object prevents export, Show object selects it for correction. Maps are never included in the KJP file.
+Choose **Open**, then **Choose a .kjp file** to resume editing a local harbour. Choose **Save**, then **Download the .kjp file** to obtain a validated KJP file for the simulator. If an object prevents export, Show object selects it for correction. Maps are never included in the KJP file.
+
+The **Public library · Community** section also opens harbours stored on pCloud.
+The generator can publish there from a local HTML file or any hosting: choose **Save**, then **Save to
+the library**, with no pCloud account or sign-in required. If the harbour already
+exists, confirm publishing an update or cancel. The library shows the latest
+version, while pCloud keeps previous uploads. A catalogue accompanies each harbour, and the simulator
+lists it as **Community**. The **KJP** editor library remains in GitHub and is
+not accessible from the generator.
 
 ## Project and versions
 

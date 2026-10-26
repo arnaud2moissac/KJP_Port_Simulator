@@ -647,6 +647,8 @@
       20
     );
     const minimumLength = Math.max(3, Number(options.minimumLength ?? 5));
+    const requestedLength = options.defaultLength ?? document.editor.defaultBerthLength;
+    const defaultLength = Number.isFinite(requestedLength) ? clamp(requestedLength, 3, 200) : null;
     const existingVisitorByParent = new Map(
       (document.berths || []).filter(item => item.isVisitor)
         .map(item => [`${item.parentId}:${item.side}`, item])
@@ -655,8 +657,10 @@
     const addBerth = (catway, sideSign) => {
       const side = sideSign > 0 ? "port" : "starboard";
       const width = defaultWidth;
+      const length = defaultLength ?? Math.max(minimumLength, catway.length - 0.8);
       const center = KJPCodec.localToWorld(catway, {
-        longitudinal: 0,
+        // Keep the inner end 0.4 m clear of the catway root when resizing.
+        longitudinal: defaultLength === null ? 0 : (length - catway.length) / 2 + 0.4,
         transverse: sideSign * (catway.width / 2 + width / 2)
       });
       const previous = existingVisitorByParent.get(`${catway.id}:${side}`);
@@ -667,9 +671,9 @@
         name: previous?.name || "",
         center,
         heading: catway.heading,
-        length: Math.max(minimumLength, catway.length - 0.8),
+        length,
         width,
-        maxLength: Math.max(minimumLength, catway.length - 0.8),
+        maxLength: length,
         maxBeam: Math.max(2.2, width - 0.55),
         isVisitor: Boolean(previous?.isVisitor)
       });
@@ -678,23 +682,157 @@
       addBerth(catway, -1);
       addBerth(catway, 1);
     }
-    return berths.filter((berth, index, list) => {
-      const testRectangle = {
-        center: berth.center,
-        length: berth.length,
-        width: berth.width,
-        heading: berth.heading
-      };
-      return !list.slice(0, index).some(previous => rectanglesOverlap(testRectangle, {
-        center: previous.center,
-        length: previous.length,
-        width: previous.width,
-        heading: previous.heading
-      }, -0.1));
-    });
+    return limitBerthClearance(document, berths);
   }
 
-  function fitBoatToBerth(document, berth, random = Math.random) {
+  function limitBerthClearance(document, berths) {
+    const polygons = [
+      ...document.structures.pontoons.map(item => rectangleCorners(item)),
+      ...document.structures.catways.map(item => rectangleCorners(item)),
+      ...document.structures.landAreas.map(item => item.points),
+      ...document.staticBoats.filter(item => !item.berthId).map(item => rectangleCorners(boatRectangle(item)))
+    ];
+    for (const obstacle of document.structures.obstacles) {
+      for (let index = 1; index < obstacle.points.length; index += 1) {
+        const start = obstacle.points[index - 1], end = obstacle.points[index];
+        polygons.push(rectangleCorners({
+          center: { east: (start.east + end.east) / 2, north: (start.north + end.north) / 2 },
+          heading: Math.atan2(end.north - start.north, end.east - start.east),
+          length: pointDistance(start, end) + obstacle.width,
+          width: obstacle.width
+        }));
+      }
+    }
+    const frames = berths.map(berth => ({
+      berth,
+      root: KJPCodec.localToWorld(berth, { longitudinal: -berth.length / 2, transverse: 0 }),
+      length: berth.length
+    }));
+    const rectangle = (frame, length = frame.length, forward = 1) => ({
+      ...frame.berth,
+      center: KJPCodec.localToWorld({ center: frame.root, heading: frame.berth.heading }, {
+        longitudinal: length * forward / 2, transverse: 0
+      }),
+      length: length * forward
+    });
+    for (const frame of frames) {
+      const reference = { center: frame.root, heading: frame.berth.heading };
+      for (const polygon of polygons) {
+        const distance = obstacleDistanceInBerthStrip(reference, frame.berth.width, polygon);
+        // The occupied length plus the free space ahead must both fit.
+        frame.length = Math.min(frame.length, distance / 2);
+      }
+    }
+    const usable = frames.filter(frame => frame.length >= 1);
+    const conflicts = (first, second, firstLength, secondLength) => (
+      rectanglesOverlap(rectangle(first, firstLength, 2), rectangle(second, secondLength))
+      || rectanglesOverlap(rectangle(second, secondLength, 2), rectangle(first, firstLength))
+    );
+    for (let firstIndex = 0; firstIndex < usable.length; firstIndex += 1) {
+      const first = usable[firstIndex];
+      if (!first.length) continue;
+      for (let secondIndex = firstIndex + 1; secondIndex < usable.length; secondIndex += 1) {
+        const second = usable[secondIndex];
+        const reach = 2 * Math.max(first.length, second.length) + Math.min(first.length, second.length)
+          + (first.berth.width + second.berth.width) / 2;
+        if ((first.root.east - second.root.east) ** 2 + (first.root.north - second.root.north) ** 2 > reach ** 2) continue;
+        if (!second.length || !conflicts(first, second, first.length, second.length)) continue;
+        // Coincident roots cannot form two usable places, even after shortening.
+        if (conflicts(first, second, 1, 1)) { second.length = 0; continue; }
+        const firstLength = first.length, secondLength = second.length;
+        let low = 0, high = 1;
+        for (let step = 0; step < 36; step += 1) {
+          const scale = (low + high) / 2;
+          if (conflicts(first, second, Math.max(1, firstLength * scale), Math.max(1, secondLength * scale))) high = scale;
+          else low = scale;
+        }
+        // Shrink both reservations together; their free areas may overlap.
+        first.length = Math.max(1, firstLength * low);
+        second.length = Math.max(1, secondLength * low);
+      }
+    }
+    return usable.filter(frame => frame.length >= 1).map(frame => ({
+      ...rectangle(frame),
+      maxLength: Math.min(frame.berth.maxLength, frame.length)
+    }));
+  }
+
+  function obstacleDistanceInBerthStrip(reference, width, polygon) {
+    let points = polygon.map(point => KJPCodec.worldToLocal(reference, point));
+    // Clip against the whole berth width, then the forward half-plane. This
+    // also catches an off-centre obstacle or a concave shore crossing the strip.
+    const halfWidth = width / 2 - 1e-7;
+    for (const [coordinate, sign, limit] of [
+      ["transverse", 1, halfWidth], ["transverse", -1, halfWidth], ["longitudinal", -1, 0]
+    ]) {
+      const clipped = [];
+      for (let index = 0; index < points.length; index += 1) {
+        const start = points[index], end = points[(index + 1) % points.length];
+        const startDistance = sign * start[coordinate] - limit;
+        const endDistance = sign * end[coordinate] - limit;
+        if (startDistance <= 0) clipped.push(start);
+        if ((startDistance < 0 && endDistance > 0) || (startDistance > 0 && endDistance < 0)) {
+          const fraction = startDistance / (startDistance - endDistance);
+          clipped.push({
+            longitudinal: start.longitudinal + fraction * (end.longitudinal - start.longitudinal),
+            transverse: start.transverse + fraction * (end.transverse - start.transverse)
+          });
+        }
+      }
+      points = clipped;
+    }
+    if (points.length < 3) return Infinity;
+    const area = points.reduce((sum, point, index) => {
+      const next = points[(index + 1) % points.length];
+      return sum + point.longitudinal * next.transverse - next.longitudinal * point.transverse;
+    }, 0);
+    if (Math.abs(area) < 1e-10) return Infinity;
+    return Math.max(0, Math.min(...points.map(point => point.longitudinal)));
+  }
+
+  function normalizeBoatSizeDistribution(options = {}) {
+    const number = (key, fallback) => Number.isFinite(Number(options?.[key]))
+      ? Number(options[key]) : fallback;
+    const minLength = clamp(number("minLength", 6), 1, 79);
+    const maxLength = clamp(number("maxLength", 18), minLength + 0.2, 80);
+    return {
+      minLength,
+      maxLength,
+      minPercent: clamp(number("minPercent", 15), 0, 100),
+      maxPercent: clamp(number("maxPercent", 5), 0, 100),
+      center: clamp(number("center", 10.5), minLength + 0.1, maxLength - 0.1)
+    };
+  }
+
+  // Two Gaussian halves keep the centre and both endpoint heights independent.
+  // A zero endpoint uses a negligible tail, drawn exactly at zero at the limit.
+  function boatSizeDensity(length, distribution) {
+    const { minLength, maxLength, minPercent, maxPercent, center } = distribution;
+    if (length < minLength || length > maxLength) return 0;
+    const left = length <= center;
+    const percent = left ? minPercent : maxPercent;
+    if (percent === 0 && (length === minLength || length === maxLength)) return 0;
+    const distance = (length - center) / (left ? center - minLength : maxLength - center);
+    return Math.exp(Math.log(Math.max(0.000001, percent / 100)) * distance * distance);
+  }
+
+  function sampleBoatLength(distribution, availableLength, random = Math.random) {
+    const minimum = distribution.minLength;
+    const maximum = Math.min(distribution.maxLength, availableLength * 0.96);
+    if (maximum < minimum) return null;
+    if (maximum === minimum) return minimum;
+    const peak = clamp(distribution.center, minimum, maximum);
+    const ceiling = boatSizeDensity(peak, distribution);
+    // Sample the part of the bell that fits this berth, without accumulating
+    // oversized draws at the berth limit by clamping them afterwards.
+    for (let attempt = 0; attempt < 256; attempt += 1) {
+      const length = minimum + random() * (maximum - minimum);
+      if (random() * ceiling <= boatSizeDensity(length, distribution)) return length;
+    }
+    return peak;
+  }
+
+  function fitBoatToBerth(document, berth, random = Math.random, distribution = null) {
     const availableLength = Math.max(
       0.5,
       Math.min(Number(berth.length) || 0, Number(berth.maxLength) || Number(berth.length) || 0)
@@ -703,11 +841,12 @@
       0.5,
       Math.min(Number(berth.width) || 0, Number(berth.maxBeam) || Number(berth.width) || 0)
     );
-    const length = clamp(
+    const length = distribution ? sampleBoatLength(distribution, availableLength, random) : clamp(
       availableLength * (0.72 + random() * 0.2),
       Math.min(3.2, availableLength * 0.72),
       availableLength * 0.96
     );
+    if (length === null) return null;
     const beamCeiling = Math.max(0.45, Math.min(availableBeam, (Number(berth.width) || availableBeam) - 0.3));
     const beam = clamp(
       length * (0.27 + random() * 0.055),
@@ -720,7 +859,7 @@
       const berthLocal = KJPCodec.worldToLocal(parent, berth.center);
       const sideSign = berth.side === "port" ? 1 : -1;
       center = KJPCodec.localToWorld(parent, {
-        longitudinal: clamp(berthLocal.longitudinal, -parent.length / 2, parent.length / 2),
+        longitudinal: berthLocal.longitudinal,
         transverse: sideSign * (parent.width / 2 + 0.18 + beam / 2)
       });
     }
@@ -735,11 +874,14 @@
     );
     const seed = Number(options.seed ?? document.editor.occupancySeed ?? 1) >>> 0;
     const random = xorshift32(seed);
+    const parameters = options.boatSizeDistribution ?? document.editor.boatSizeDistribution;
+    const distribution = parameters ? normalizeBoatSizeDistribution(parameters) : null;
     const boats = [];
     const sortedBerths = [...document.berths].sort((first, second) => first.id.localeCompare(second.id));
     for (const berth of sortedBerths) {
       if (berth.isVisitor || random() > occupancyRate) continue;
-      const fitted = fitBoatToBerth(document, berth, random);
+      const fitted = fitBoatToBerth(document, berth, random, distribution);
+      if (!fitted) continue;
       const boat = {
         id: createId("boat", { ...document, staticBoats: boats }),
         berthId: berth.id,
@@ -1084,9 +1226,19 @@
           2.8,
           20
         );
+        const length = options.defaultLength ?? next.editor.defaultBerthLength;
+        if (Number.isFinite(length)) next.editor.defaultBerthLength = clamp(length, 3, 200);
         next.berths = inferBerths(next, options);
-        const berthIds = new Set(next.berths.map(item => item.id));
-        next.staticBoats = next.staticBoats.filter(item => !item.berthId || berthIds.has(item.berthId));
+        const berthById = new Map(next.berths.map(item => [item.id, item]));
+        next.staticBoats = next.staticBoats.filter(boat => {
+          if (!boat.berthId) return true;
+          const berth = berthById.get(boat.berthId);
+          return berth && boat.length <= berth.maxLength + 1e-8 && rectangleCorners(boatRectangle(boat)).every(point => {
+            const local = KJPCodec.worldToLocal(berth, point);
+            return Math.abs(local.longitudinal) <= berth.length / 2 + 1e-8
+              && Math.abs(local.transverse) <= berth.width / 2 + 1e-8;
+          });
+        });
       });
     }
 
@@ -1098,6 +1250,9 @@
           1
         );
         next.editor.occupancySeed = Number(options.seed ?? next.editor.occupancySeed) >>> 0;
+        if (options.boatSizeDistribution) {
+          next.editor.boatSizeDistribution = normalizeBoatSizeDistribution(options.boatSizeDistribution);
+        }
         next.staticBoats = populateBoats(next, options);
       });
     }
@@ -1125,6 +1280,10 @@
     redistributePendilleGroup,
     pendilleStationGeometry,
     inferBerths,
+    limitBerthClearance,
+    normalizeBoatSizeDistribution,
+    boatSizeDensity,
+    sampleBoatLength,
     fitBoatToBerth,
     populateBoats,
     findObject,

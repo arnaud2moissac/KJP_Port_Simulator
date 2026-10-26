@@ -47,9 +47,9 @@
         <button type="button" class="button ghost" id="newPortButton" aria-label="Créer un nouveau port" data-i18n-attr="aria-label:ui.creer.un.nouveau.port">
           <span class="new-port-label" data-i18n="ui.nouveau.port">Nouveau port</span><span class="new-port-short" aria-hidden="true">＋</span>
         </button>
-        <button type="button" class="button ghost" id="importButton" data-i18n="ui.importer.kjp">Importer .kjp</button>
+        <button type="button" class="button ghost" id="importButton" data-i18n="files.open" aria-label="Ouvrir un port" data-i18n-attr="aria-label:files.load">Ouvrir</button>
         <input type="file" id="importInput" accept=".kjp,application/json" hidden>
-        <button type="button" class="button primary" id="exportButton" data-i18n="ui.exporter.kjp">Exporter .kjp</button>
+        <button type="button" class="button primary" id="exportButton" data-i18n="files.save.short" aria-label="Enregistrer le port" data-i18n-attr="aria-label:files.save">Enregistrer</button>
         <button type="button" class="button ghost square" id="readmeHelpButton" aria-label="Ouvrir l’aide et les informations du projet" title="Aide et informations du projet" data-i18n-attr="aria-label:ui.ouvrir.laide.et.les.informations.du.projet;title:ui.aide.et.informations.du.projet">?</button>
       </div>
     </header>
@@ -356,10 +356,29 @@
           <output id="occupancyValue">62 %</output>
         </div>
         <input id="occupancyRate" type="range" min="0" max="100" value="62">
-        <label><span data-i18n="ui.largeur.des.places.m">Largeur des places (m)</span><input id="berthWidth" type="number" min="2.8" max="20" step="0.1" value="4.0"></label>
-        <div class="inspector-actions">
-          <button type="button" class="button ghost" id="computeBerthsButton" data-i18n="ui.calculer.les.places">Calculer les places</button>
-          <button type="button" class="button ghost" id="populateBoatsButton" data-i18n="ui.placer.les.bateaux">Placer les bateaux</button>
+        <div class="two-columns berth-dimensions">
+          <label><span data-i18n="ui.largeur.des.places.m">Largeur des places (m)</span><input id="berthWidth" type="number" min="2.8" max="20" step="0.1" value="4.0"></label>
+          <label><span data-i18n="ui.longueur.des.places.m">Longueur des places (m)</span><input id="berthLength" type="number" min="3" max="200" step="0.1" value="12.0"></label>
+        </div>
+        <button type="button" class="button ghost full" id="computeBerthsButton" data-i18n="ui.calculer.les.places">Calculer les places</button>
+        <div id="boatSizeControls" class="boat-size-controls">
+          <h3 data-i18n="ui.boat.sizes">Répartition des longueurs</h3>
+          <div class="two-columns">
+            <div class="boat-size-bound">
+              <label><span data-i18n="ui.boat.size.min">Longueur mini (m)</span><input id="boatMinLength" type="number" min="1" max="79" step="0.1" value="6" data-boat-size="minLength"></label>
+              <label><span data-i18n="ui.boat.size.min.percent">% de mini</span><input id="boatMinPercent" type="number" min="0" max="100" step="1" value="15" data-boat-size="minPercent"></label>
+            </div>
+            <div class="boat-size-bound">
+              <label><span data-i18n="ui.boat.size.max">Longueur maxi (m)</span><input id="boatMaxLength" type="number" min="1.2" max="80" step="0.1" value="18" data-boat-size="maxLength"></label>
+              <label><span data-i18n="ui.boat.size.max.percent">% de maxi</span><input id="boatMaxPercent" type="number" min="0" max="100" step="1" value="5" data-boat-size="maxPercent"></label>
+            </div>
+          </div>
+          <figure class="boat-size-preview">
+            <svg id="boatSizeCurve" role="img" data-i18n-attr="aria-label:ui.boat.size.distribution" aria-label="Répartition des tailles de bateaux" viewBox="0 0 280 100" preserveAspectRatio="none"><path class="boat-size-area"></path><path class="boat-size-line"></path></svg>
+            <figcaption data-i18n="ui.boat.size.distribution">Répartition des tailles de bateaux</figcaption>
+          </figure>
+          <label class="boat-size-center"><span class="occupancy-line"><span data-i18n="ui.boat.size.center">Centre de la répartition</span><output id="boatSizeCenterValue"></output></span><input id="boatSizeCenter" type="range" min="6.1" max="17.9" step="0.1" value="10.5" data-boat-size="center"><span class="boat-size-limits"><output id="boatSizeMinValue"></output><output id="boatSizeMaxValue"></output></span></label>
+          <button type="button" class="button primary full" id="populateBoatsButton" data-i18n="ui.placer.les.bateaux">Placer les bateaux</button>
         </div>
       </section>
 
@@ -383,6 +402,30 @@
       <span data-i18n="ui.les.cartes.ne.sont.jamais.incluses.dans.le.fichier.kjp">Les cartes ne sont jamais incluses dans le fichier KJP.</span>
     </footer>
   </div>
+
+  <dialog class="port-file-dialog" id="portFileDialog" aria-labelledby="portFileTitle">
+    <div class="project-help-header">
+      <strong id="portFileTitle" data-i18n="files.load">Ouvrir un port</strong>
+      <button type="button" class="icon-button" id="closePortFile" aria-label="Fermer" data-i18n-attr="aria-label:files.close">×</button>
+    </div>
+    <div class="port-file-content">
+      <section>
+        <h2 data-i18n="files.local">Sur cet appareil</h2>
+        <button type="button" class="button primary" id="localImportButton" data-i18n="files.local.open">Choisir un fichier .kjp</button>
+        <button type="button" class="button primary" id="localExportButton" data-i18n="files.local.save">Télécharger le fichier .kjp</button>
+      </section>
+      <section>
+        <h2 data-i18n="files.community">Bibliothèque publique · Communauté</h2>
+        <p data-i18n="files.public.hint">Les ports enregistrés ici sont accessibles à tous dans le simulateur.</p>
+        <p id="publicLibraryStatus" role="status" aria-live="polite"></p>
+        <div class="port-file-actions">
+          <button type="button" class="button ghost" id="refreshPublicLibrary" data-i18n="files.refresh">Actualiser</button>
+          <button type="button" class="button primary" id="publicSaveButton" data-i18n="files.publish">Enregistrer dans la bibliothèque</button>
+        </div>
+        <ul class="public-port-list" id="publicPortList"></ul>
+      </section>
+    </div>
+  </dialog>
 
   <dialog class="project-help-dialog" id="readmeDialog" aria-labelledby="readmeDialogTitle">
     <div class="project-help-header">

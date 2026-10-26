@@ -24,7 +24,15 @@ Jedit al lec’hioù, merkit al lec’hioù evit gweladennerien ha reolit an dal
 
 Enrollet e vez ar brouilhed en un doare lec’hel pa vez tu gant ar merdeer. Porzh nevez a erlec’h ar brouilhed goude kadarnaat. Skrivit anv ar porzh, an aozer hag ar mammennoù. An titouroù-mañ hag an anvioù enporzhiet a chom en o yezh orin.
 
-Enporzhiit ur restr .kjp evit adkemer labour war ur porzh. Ezporzhiit evit kaout ur restr KJP gwiriekaet, implijadus er simulator. Ma vir un dra ouzh an ezporzhiañ, Diskouez an dra a ziuz anezhañ evit e reizhañ. N’eus kartenn ebet er restr KJP.
+Diuzit **Digeriñ**, ha **Dibab ur restr .kjp** evit adkemer labour war ur porzh lec’hel. Diuzit **Enrollañ**, ha **Pellgargañ ar restr .kjp** evit kaout ur restr KJP gwiriekaet, implijadus er simulator. Ma vir un dra ouzh an ezporzhiañ, Diskouez an dra a ziuz anezhañ evit e reizhañ. N’eus kartenn ebet er restr KJP.
+
+Er rann **Levraoueg foran · Kumuniezh** e c’haller digeriñ porzhioù pCloud.
+Embann enni diwar ar ganererez digoret en ur restr HTML lec’hel pe herberc’hiet : diuzit **Enrollañ**, ha
+**Enrollañ el levraoueg**, hep kont pe kevreañ pCloud. Ma’z eus ar porzh dija,
+kadarnait embann un hizivadenn pe nullit. Diskouezet e vez ar stumm diwezhañ el
+levraoueg ha miret e vez ar c’hasoù kozh e pCloud. Kaset e vez ur c’hatalog gant pep porzh ; er
+simulator e vez diskouezet ar vammenn **Kumuniezh**. Levraoueg an embanner **KJP**
+a chom e GitHub ha n’eo ket hegerz diwar ar ganererez.
 
 ## Raktres ha stummoù
 

@@ -13,7 +13,7 @@ function check(catalogs = loadCatalogs({ directory: path.join(root, "src/generat
   const known = key => {
     if (!(key in reference)) failures.push(`Unknown generator translation key: ${key}`);
   };
-  for (const file of ["src/generateur-port/main.js", "src/ports/kjp-codec.js",
+  for (const file of ["src/generateur-port/main.js", "src/generateur-port/library-ui.js", "src/ports/port-library.js", "src/ports/kjp-codec.js",
     "src/ports/osm-import.js", "src/ports/pontoon-decomposition.js"]) {
     const source = fs.readFileSync(path.join(root, file), "utf8");
     traverse(babelParse(source, file), {

@@ -25,6 +25,20 @@ body { color: var(--ink); background: var(--paper); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
+.port-file-dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--paper); box-shadow: var(--shadow); }
+.port-file-dialog::backdrop { background: rgba(10, 32, 40, .5); }
+.port-file-content { padding: 0 20px 20px; }
+.port-file-content section { padding: 16px 0; border-bottom: 1px solid var(--line); }
+.port-file-content h2 { margin: 0 0 12px; font-size: 17px; }
+.port-file-content p { font-size: 14px; line-height: 1.5; }
+.port-file-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.port-file-actions button, .public-port-list button { min-height: 44px; }
+.public-port-list { padding: 0; list-style: none; }
+.public-port-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.public-port-list span { overflow-wrap: anywhere; min-width: 0; }
+.public-port-list button { flex-shrink: 0; }
+#publicLibraryStatus[data-error="true"] { color: var(--danger); }
+
 .app-shell {
   display: grid;
   grid-template:
@@ -414,6 +428,23 @@ input[type="range"] { min-height: 22px; padding: 0; border: 0; background: trans
 .visitor-field { display: none; }
 .visitor-field.visible { display: grid; }
 .occupancy-line { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 9px; }
+.berth-dimensions label, .berth-dimensions input { min-width: 0; }
+.boat-size-controls { display: grid; gap: 14px; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
+.boat-size-controls h3 { margin: 0; font-size: 12px; }
+.boat-size-controls .two-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.boat-size-bound { display: grid; gap: 12px; min-width: 0; }
+.boat-size-bound input { min-width: 0; }
+.boat-size-preview { margin: 0; }
+#boatSizeCurve { display: block; width: 100%; height: 100px; }
+.boat-size-area { fill: var(--accent); opacity: .14; }
+.boat-size-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.boat-size-preview figcaption, .boat-size-limits { color: var(--ink-soft); font-size: 9px; font-weight: 400; }
+.boat-size-preview figcaption { margin-top: 5px; }
+.boat-size-center { gap: 7px; }
+.boat-size-center input[type="range"] { margin: 0; }
+#boatSizeCenterValue { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+.boat-size-center .occupancy-line { align-items: center; gap: 8px; }
+.boat-size-limits { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
 .metadata-panel { margin-top: 16px; border-top: 1px solid var(--line); }
 .metadata-panel summary { padding: 14px 2px; color: var(--accent-dark); font-size: 11px; font-weight: 800; cursor: pointer; }
 

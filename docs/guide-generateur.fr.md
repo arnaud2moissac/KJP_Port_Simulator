@@ -26,7 +26,7 @@ Une saisie numérique se valide en quittant le champ : **Tab** sur PC, ou un tou
 
 ![Générateur hébergé sur tablette en paysage, avec le port d’exercice et les panneaux repliés](images/generateur/13-tablette-paysage.fr.jpg)
 
-**À repérer sur l’image :** les flèches blanches aux deux bords de la carte rouvrent les panneaux ; les outils restent à gauche ; Importer et Exporter restent en haut. Le compteur du bas distingue structures, bateaux et places. Les taquets ne sont pas additionnés au nombre de structures.
+**À repérer sur l’image :** les flèches blanches aux deux bords de la carte rouvrent les panneaux ; les outils restent à gauche ; les commandes de fichier restent en haut. Dans la version actuelle, elles s’appellent **Ouvrir** et **Enregistrer**. Le compteur du bas distingue structures, bateaux et places. Les taquets ne sont pas additionnés au nombre de structures.
 
 ## 2. Localiser Port Tudy et choisir les fonds de carte
 
@@ -257,11 +257,20 @@ Le cap nautique vaut **0° au nord**, **90° à l’est**, **180° au sud**, **2
 
 Le **brouillon local** est enregistré automatiquement lorsque le navigateur autorise le stockage. Le message **Brouillon enregistré** confirme cet enregistrement local. Il ne remplace pas un fichier conservé dans vos documents : la suppression des données du site ou un autre appareil ne vous donne pas accès à ce brouillon.
 
-1. Cliquez sur **Exporter .kjp**.
+1. Cliquez sur **Enregistrer**, puis sur **Télécharger le fichier .kjp** dans la section **Sur cet appareil**.
 2. Attendez le téléchargement et le message **Fichier KJP validé et exporté**.
 3. Vérifiez où le navigateur a enregistré le fichier. Sur tablette, retrouvez-le dans le gestionnaire de téléchargements ou l’application Fichiers.
 4. Conservez des versions avec des noms distincts avant les changements importants, par exemple `port-tudy-01.kjp`, puis `port-tudy-02.kjp`.
-5. Pour reprendre un fichier, cliquez sur **Importer .kjp**, choisissez-le et vérifiez le nom du port ainsi que les objets de la carte.
+5. Pour reprendre un fichier, cliquez sur **Ouvrir**, puis **Choisir un fichier .kjp**, choisissez-le et vérifiez le nom du port ainsi que les objets de la carte.
+
+La section **Bibliothèque publique · Communauté** permet aussi d’ouvrir un port
+stocké sur pCloud. Vous pouvez y publier depuis le générateur ouvert en local ou hébergé :
+choisissez **Enregistrer**, puis **Enregistrer dans la bibliothèque**, sans compte
+ni connexion pCloud. Si le port existe déjà, confirmez la publication d’une mise
+à jour ou annulez. La bibliothèque affiche la version la plus récente ; pCloud
+conserve les anciens dépôts. Le port est accompagné de son catalogue et le
+simulateur l’affiche avec la source **Communauté**. Les ports **KJP** du dépôt
+restent dans une bibliothèque éditeur séparée, inaccessible depuis le générateur.
 
 L’import charge un document de travail ; il ne l’ajoute pas au port déjà ouvert. L’historique Annuler / Rétablir de la session précédente n’est pas reconstitué. Exportez les modifications que vous voulez garder avant de charger un autre fichier.
 

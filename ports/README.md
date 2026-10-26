@@ -1,5 +1,10 @@
 # Topologies de port
 
+La bibliothèque **KJP** du simulateur lit directement les fichiers `.kjp` du
+dossier Git `ports/`, sans catalogue à générer ou à synchroniser. La bibliothèque **Communauté**
+est stockée séparément sur pCloud ; le générateur publie uniquement dans
+cette dernière. Voir [la configuration des bibliothèques](../docs/bibliotheques-ports.md).
+
 Deux formats coexistent :
 
 - la topologie pédagogique historique `schemaVersion: 2`, chargée comme module

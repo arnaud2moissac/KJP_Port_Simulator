@@ -3,13 +3,13 @@
     "product": "simulator",
     "id": "ports.library-list",
     "group": "ports",
-    "name": "la bibliothèque liste les métadonnées, limite les téléchargements et adapte sa présentation"
+    "name": "les ports Git et le catalogue pCloud affichent leurs métadonnées et leur source"
   },
   {
     "product": "simulator",
     "id": "ports.library-sort",
     "group": "ports",
-    "name": "les quatre colonnes de la bibliothèque se trient dans les deux sens"
+    "name": "les colonnes de la bibliothèque se trient dans les deux sens"
   },
   {
     "product": "simulator",
@@ -22,6 +22,30 @@
     "id": "ports.library-errors",
     "group": "ports",
     "name": "les erreurs et réponses tardives de la bibliothèque préservent le port actif"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.library-community",
+    "group": "ports",
+    "name": "un port pCloud se charge et une source indisponible laisse les autres ports accessibles"
+  },
+  {
+    "product": "simulator",
+    "id": "ports.library-git",
+    "group": "ports",
+    "name": "les fichiers KJP du Git sont découverts directement et restent chargeables sans pCloud"
+  },
+  {
+    "product": "generator",
+    "id": "library.01",
+    "group": "library",
+    "name": "le générateur ouvre et enregistre localement ou dans la bibliothèque publique"
+  },
+  {
+    "product": "generator",
+    "id": "library.02",
+    "group": "library",
+    "name": "les mises à jour pCloud, les refus et les publications manquantes ne produisent pas de faux succès"
   },
   {
     "product": "simulator",
@@ -511,6 +535,18 @@
     "id": "editing.17",
     "group": "editing",
     "name": "la largeur demandée dimensionne les places et les bateaux s'y adaptent"
+  },
+  {
+    "product": "generator",
+    "id": "editing.boat-sizes",
+    "group": "editing",
+    "name": "la répartition des tailles affiche sa courbe et pilote les bateaux ajoutés"
+  },
+  {
+    "product": "generator",
+    "id": "editing.clearance",
+    "group": "editing",
+    "name": "le calcul raccourcit les places opposées pour conserver le dégagement nécessaire"
   },
   {
     "product": "generator",
