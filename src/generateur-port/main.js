@@ -70,6 +70,7 @@ let editor = new EditorCore.PortEditor(KJPCodec.createEmpty({
   generatorVersion: GENERATOR_VERSION
 }));
 let activeTool = "select";
+let selectedIds = [];
 let drawInteraction = null;
 let measurement = null;
 let mapsEnabled = false;
@@ -338,8 +339,13 @@ function buoyPointStyles(object, { selected, label }) {
   }));
 }
 
-function selectedId() {
-  return editor.selection;
+function setSelection(ids) {
+  selectedIds = [...new Set(ids)].filter(id => EditorCore.findObject(editor.document, id));
+  editor.select(selectedIds.length === 1 ? selectedIds[0] : null);
+}
+
+function selectedObjects() {
+  return selectedIds.map(id => EditorCore.findObject(editor.document, id)).filter(Boolean);
 }
 
 function dimensionLabel(object, collection) {
@@ -432,7 +438,7 @@ function entryStyles(feature, object, isSelected) {
 function objectStyle(feature) {
   const collection = feature.get("collection");
   const object = feature.get("object");
-  const isSelected = feature.get("objectId") === selectedId();
+  const isSelected = selectedIds.includes(feature.get("objectId"));
   const connectionStatus = feature.get("connectionStatus");
   let colors = palette[collection === "pontoons"
     ? "pontoon"
@@ -730,6 +736,9 @@ const map = new Map({
 const selectInteraction = new Select({
   layers: [objectLayer],
   hitTolerance: 8,
+  toggleCondition: event => map.hasFeatureAtPixel(event.pixel, {
+    hitTolerance: 8, layerFilter: layer => layer === objectLayer
+  }),
   style: objectStyle
 });
 const translateInteraction = new Translate({
@@ -755,18 +764,17 @@ map.addInteraction(snapInteraction);
 
 function syncMapSelection() {
   const selectedFeatures = selectInteraction.getFeatures();
-  const selectedFeature = editor.selection
-    ? objectSource.getFeatures().find(feature => feature.get("objectId") === editor.selection)
-    : null;
+  const features = objectSource.getFeatures().filter(feature => selectedIds.includes(feature.get("objectId")));
+  const selectedFeature = features.length === 1 ? features[0] : null;
+  const editableLine = ["entries", "pendilles"].includes(selectedFeature?.get("collection"));
+  modifyInteraction.setActive(activeTool === "select" && editableLine);
+  translateInteraction.setActive(activeTool === "select" && Boolean(selectedFeature) && selectedFeature.get("collection") !== "pendilles");
   if (
-    selectedFeatures.getLength() === (selectedFeature ? 1 : 0)
-    && (!selectedFeature || selectedFeatures.item(0) === selectedFeature)
+    selectedFeatures.getLength() === features.length
+    && features.every(feature => selectedFeatures.getArray().includes(feature))
   ) return;
   selectedFeatures.clear();
-  if (selectedFeature) selectedFeatures.push(selectedFeature);
-  const editableLine = ["entries", "pendilles"].includes(selectedFeature?.get("collection"));
-  modifyInteraction.setActive(editableLine);
-  translateInteraction.setActive(activeTool === "select" && selectedFeature?.get("collection") !== "pendilles");
+  selectedFeatures.extend(features);
 }
 
 function featureForObject(object, collection) {
@@ -1166,6 +1174,7 @@ function refreshInspectorLabels(found = selectedObject()) {
         : t("ui.bouee.de.navigation"),
       pendilles: t("ui.pendille")
     }[found.collection] || t("ui.objet") : msg("ui.aucun.objet.selectionne"));
+  if (selectedIds.length > 1) setText($("#inspectorTitle"), msg("selection.count", { count: selectedIds.length }));
   if (!found) return;
   setText($("#lengthPropertyLabel"), found.collection === "buoys" ? msg("ui.longueur") : msg("ui.longueur.m"));
   setText($("#widthPropertyLabel"), found.collection === "buoys" ? msg("ui.diametre.m") : msg("ui.largeur.m"));
@@ -1175,25 +1184,8 @@ function refreshInspectorLabels(found = selectedObject()) {
   setText($("#verticalLevelLabel"), floatingStructure ? msg("ui.niveau.du.pont.au.dessus.de.leau.m") : msg("ui.altitude.de.base.m"));
 }
 
-function updateInspector() {
-  renderMeasurement();
-  const found = selectedObject();
-  $("#emptyInspector").hidden = Boolean(found);
-  $("#objectInspector").hidden = !found;
-  refreshInspectorLabels(found);
-  if (!found) {
-    $("#catwayGenerator").hidden = true;
-    $("#buoyFields").hidden = true;
-    $("#pendilleFields").hidden = true;
-    $("#pendilleGenerator").hidden = true;
-    $("#verticalLevelField").hidden = true;
-    setText($("#lengthPropertyLabel"), msg("ui.longueur.m"));
-    setText($("#widthPropertyLabel"), msg("ui.largeur.m"));
-    $("#selectionMetrics").hidden = true;
-    return;
-  }
+function inspectorPropertyValues(found) {
   const object = found.object;
-  $("#objectId").value = object.id;
   const pendilleParentObject = found.collection === "pendilles"
     ? editor.document.structures.pontoons.find(item => item.id === object.parentId)
       || editor.document.structures.obstacles.find(item => item.id === object.parentId)
@@ -1209,7 +1201,7 @@ function updateInspector() {
       }
       : null
   );
-  const propertyValues = {
+  return {
     length: found.collection === "buoys"
       ? ""
       : object.length ?? (object.points ? OSMPortImport.polylineLength(object.points) : ""),
@@ -1230,8 +1222,40 @@ function updateInspector() {
     east: center?.east ?? "",
     north: center?.north ?? ""
   };
+}
+
+function updateInspector() {
+  renderMeasurement();
+  const selection = selectedObjects();
+  const multiple = selection.length > 1;
+  const found = selection.length && selection.every(item => item.collection === selection[0].collection) ? selection[0] : null;
+  $("#emptyInspector").hidden = Boolean(found);
+  $("#objectInspector").hidden = !found;
+  $("#deleteButton").disabled = !selection.length;
+  $("#duplicateButton").disabled = multiple || !found;
+  $("#objectId").closest("label").hidden = multiple;
+  $("#multipleSelectionHint").hidden = !multiple;
+  $("#multipleCatwayHint").hidden = !(multiple && selection.some(item => item.collection === "catways" && item.object.groupId));
+  setText($("#emptyInspector p"), selection.length
+    ? msg("selection.mixed.types")
+    : msg("ui.selectionnez.un.objet.sur.la.carte.pour.afficher.ses.dimensions.et.ses.reglages"));
+  refreshInspectorLabels(found);
+  if (!found) {
+    for (const selector of ["#catwayGenerator", "#buoyFields", "#pendilleFields", "#pendilleGenerator", "#verticalLevelField"]) $(selector).hidden = true;
+    setText($("#lengthPropertyLabel"), msg("ui.longueur.m"));
+    setText($("#widthPropertyLabel"), msg("ui.largeur.m"));
+    $("#selectionMetrics").hidden = !selection.length;
+    if (selection.length) setText($("#selectionMetrics"), msg("selection.count", { count: selection.length }));
+    return;
+  }
+  const object = found.object;
+  $("#objectId").value = object.id;
+  const values = selection.map(inspectorPropertyValues);
   for (const input of $$("[data-property]", $("#objectInspector"))) {
-    input.value = propertyValues[input.dataset.property];
+    const value = values[0][input.dataset.property];
+    const common = values.every(item => item[input.dataset.property] === value);
+    input.value = common ? value : "";
+    input.placeholder = common ? "" : t("selection.mixed.values");
     input.disabled = (
       (["length", "headingDeg", "east", "north"].includes(input.dataset.property)
         && ["obstacles", "landAreas", "cleats", "pendilles"].includes(found.collection))
@@ -1244,18 +1268,18 @@ function updateInspector() {
     );
   }
   const visitorFields = $$(".visitor-field");
-  visitorFields.forEach(field => field.classList.toggle("visible", found.collection === "berths"));
+  visitorFields.forEach(field => field.classList.toggle("visible", !multiple && found.collection === "berths"));
   $("#visitorToggle").checked = Boolean(object.isVisitor);
   $("#visitorName").value = object.name || "";
-  $("#generateCleatsButton").hidden = !["pontoons", "catways"].includes(found.collection);
-  $("#cleatGenerationFields").hidden = !["pontoons", "catways"].includes(found.collection);
-  $("#groupActions").hidden = !(found.collection === "catways" && object.groupId);
-  $("#catwayGenerator").hidden = found.collection !== "pontoons";
-  $("#buoyFields").hidden = found.collection !== "buoys";
-  $("#pendilleFields").hidden = found.collection !== "pendilles";
+  $("#generateCleatsButton").hidden = multiple || !["pontoons", "catways"].includes(found.collection);
+  $("#cleatGenerationFields").hidden = multiple || !["pontoons", "catways"].includes(found.collection);
+  $("#groupActions").hidden = multiple || !(found.collection === "catways" && object.groupId);
+  $("#catwayGenerator").hidden = multiple || found.collection !== "pontoons";
+  $("#buoyFields").hidden = multiple || found.collection !== "buoys";
+  $("#pendilleFields").hidden = multiple || found.collection !== "pendilles";
   const pendilleParentSelected = found.collection === "pontoons"
     || (found.collection === "obstacles" && object.type === "quay");
-  $("#pendilleGenerator").hidden = !pendilleParentSelected;
+  $("#pendilleGenerator").hidden = multiple || !pendilleParentSelected;
   $("#verticalLevelField").hidden = !["pontoons", "catways", "obstacles"].includes(found.collection);
   if (found.collection === "buoys") {
     $("#buoySeamarkType").value = object.seamarkType;
@@ -1271,7 +1295,8 @@ function updateInspector() {
 
   const metrics = $("#selectionMetrics");
   metrics.hidden = false;
-  setText(metrics, `${object.id} · ${dimensionLabel(object, found.collection) || t("ui.position.locale.metrique")}`);
+  setText(metrics, multiple ? msg("selection.count", { count: selection.length })
+    : `${object.id} · ${dimensionLabel(object, found.collection) || t("ui.position.locale.metrique")}`);
 }
 
 function updateStatus() {
@@ -1307,8 +1332,10 @@ function scheduleAutosave() {
   }, 450);
 }
 
-function afterEdit({ selectId = editor.selection, fit = false } = {}) {
-  editor.select(selectId || null);
+function afterEdit({ selectId, fit = false } = {}) {
+  if (selectId !== undefined) setSelection(selectId ? [selectId] : []);
+  else if (editor.selection && !selectedIds.includes(editor.selection)) setSelection([editor.selection]);
+  else setSelection(selectedIds);
   renderBoatSizeDistribution(undefined, { syncFields: true });
   renderObjects();
   scheduleAutosave();
@@ -1322,6 +1349,7 @@ function setEditorDocument(document, { fit = true, autosave = true } = {}) {
   if (!Array.isArray(compatible.structures.pendilles)) compatible.structures.pendilles = [];
   if (!Array.isArray(compatible.editor.pendilleGroups)) compatible.editor.pendilleGroups = [];
   editor = new EditorCore.PortEditor(compatible);
+  setSelection([]);
   syncMetadataForm();
   renderObjects();
   if (fit) fitDocument();
@@ -1350,8 +1378,7 @@ function setActiveTool(tool) {
   renderMeasurement();
   $$("[data-tool]").forEach(button => button.classList.toggle("active", button.dataset.tool === tool));
   selectInteraction.setActive(tool === "select");
-  translateInteraction.setActive(tool === "select");
-  modifyInteraction.setActive(tool === "select" && ["entries", "pendilles"].includes(selectedObject()?.collection));
+  syncMapSelection();
   snapInteraction.setActive(tool !== "measure");
   if (drawInteraction) {
     map.removeInteraction(drawInteraction);
@@ -1687,34 +1714,17 @@ function addObjectAt(coordinate) {
     };
     editor.add("buoys", object, "Ajouter une bouée");
     afterEdit({ selectId: object.id });
-  } else if (activeTool === "visitor") {
-    const nearest = nearestRectangle(point, editor.document.structures.catways, 35);
-    if (!nearest) {
-      showToast(msg("ui.placez.la.place.visiteurs.contre.un.catway"), "danger");
+  } else if (activeTool === "berth") {
+    const result = editor.addManualBerth(point, {
+      width: clamp(Number($("#berthWidth").value) || 4, 2.8, 20),
+      length: clamp(Number($("#berthLength").value) || 12, 3, 200),
+      parentId: selectedObject()?.object.id
+    });
+    if (result.error) {
+      showToast(result.error === "parent" ? msg("berth.manual.parent") : msg("berth.manual.clearance"), "danger");
       return;
     }
-    const catway = nearest.rectangle;
-    const sideSign = Math.sign(nearest.local.transverse || 1);
-    const width = 4;
-    const center = KJPCodec.localToWorld(catway, {
-      longitudinal: clamp(nearest.local.longitudinal, -catway.length / 3, catway.length / 3),
-      transverse: sideSign * (catway.width / 2 + width / 2)
-    });
-    const object = {
-      id: EditorCore.createId("berth", editor.document),
-      parentId: catway.id,
-      side: sideSign > 0 ? "port" : "starboard",
-      name: t("default.visitor", { count: editor.document.berths.filter(item => item.isVisitor).length + 1 }),
-      center,
-      heading: catway.heading,
-      length: Math.max(5, catway.length - 0.8),
-      width,
-      maxLength: Math.max(5, catway.length - 0.8),
-      maxBeam: width - 0.55,
-      isVisitor: true
-    };
-    editor.add("berths", object, t("ui.ajouter.une.place.visiteurs"));
-    afterEdit({ selectId: object.id });
+    afterEdit({ selectId: result.berth.id });
   } else if (activeTool === "boat") {
     const berth = editor.document.berths
       .map(item => ({ item, distance: Math.hypot(point.east - item.center.east, point.north - item.center.north) }))
@@ -1751,7 +1761,7 @@ function addObjectAt(coordinate) {
     setActiveTool("select");
     if (createdSelection) {
       queueMicrotask(() => {
-        editor.select(createdSelection);
+        setSelection([createdSelection]);
         objectLayer.changed();
         updateInspector();
       });
@@ -1783,25 +1793,22 @@ map.on("pointermove", event => {
 });
 
 selectInteraction.on("select", event => {
-  const feature = event.selected[0];
-  editor.select(feature?.get("objectId") || null);
-  const editableLine = ["entries", "pendilles"].includes(feature?.get("collection"));
-  modifyInteraction.setActive(editableLine);
-  translateInteraction.setActive(activeTool === "select" && feature?.get("collection") !== "pendilles");
+  setSelection(selectInteraction.getFeatures().getArray().map(feature => feature.get("objectId")));
+  syncMapSelection();
   objectLayer.changed();
   updateInspector();
   renderEditHandles();
-  if (!feature) $("#selectionMetrics").hidden = true;
 });
 
 translateInteraction.on("translateend", event => {
+  if (event.coordinate.every((value, index) => value === event.startCoordinate[index])) return;
   const feature = event.features.item(0);
   const id = feature?.get("objectId");
   const found = id && EditorCore.findObject(editor.document, id);
   if (!found) return;
   if (found.collection === "catways" && found.object.groupId) {
     renderObjects();
-    editor.select(id);
+    setSelection([id]);
     updateInspector();
     showToast(msg("ui.ce.catway.appartient.a.une.serie.modifiez.la.serie.ou.detachez.le"), "danger", 3300);
     return;
@@ -1945,17 +1952,28 @@ modifyInteraction.on("modifyend", event => {
 });
 
 function applyInspectorChange(input) {
-  const found = selectedObject();
-  if (!found) return;
+  const selection = selectedObjects();
+  if (!selection.length || input.disabled || input.value.trim() === "") return;
+  if (!selection.every(item => item.collection === selection[0].collection)) return;
   const value = Number(input.value);
   if (!Number.isFinite(value)) return;
-  const object = found.object;
-  if (found.collection === "catways" && object.groupId) {
+  if (selection.length === 1 && selection[0].collection === "catways" && selection[0].object.groupId) {
     updateInspector();
     showToast(msg("ui.choisissez.modifier.la.serie.ou.detacher.ce.catway"), "danger", 3000);
     return;
   }
   const property = input.dataset.property;
+  const changes = selection.map(found => ({
+    id: found.object.id,
+    patch: inspectorPatch(found, property, value),
+    detachFromSeries: selection.length > 1 && found.collection === "catways" && Boolean(found.object.groupId)
+  }));
+  editor.updateMany(changes, "Modifier les dimensions");
+  afterEdit();
+}
+
+function inspectorPatch(found, property, value) {
+  const object = found.object;
   let patch = {};
   if (property === "headingDeg") {
     const rawHeading = found.collection === "entries"
@@ -1963,9 +1981,7 @@ function applyInspectorChange(input) {
       : value * Math.PI / 180;
     if (found.collection === "entries") {
       patch.heading = rawHeading;
-      editor.update(object.id, patch, "Modifier le cap d’entrée");
-      afterEdit({ selectId: object.id });
-      return;
+      return patch;
     }
     const candidates = [Math.round(value / 15) * Math.PI / 12];
     if (found.collection === "catways") {
@@ -2066,8 +2082,7 @@ function applyInspectorChange(input) {
       );
     }
   }
-  editor.update(object.id, patch, "Modifier les dimensions");
-  afterEdit({ selectId: object.id });
+  return patch;
 }
 
 $$("[data-property]", $("#objectInspector")).forEach(input => {
@@ -2380,8 +2395,8 @@ $$("[data-boat-size]").forEach(input => {
 });
 
 function removeSelected() {
-  if (!editor.selection) return;
-  editor.remove(editor.selection);
+  if (!selectedIds.length) return;
+  editor.removeMany(selectedIds);
   afterEdit({ selectId: null });
   $("#selectionMetrics").hidden = true;
 }
@@ -3039,7 +3054,7 @@ function validationTarget(path) {
 function focusObject(id) {
   if (!EditorCore.findObject(editor.document, id)) return false;
   setActiveTool("select");
-  editor.select(id);
+  setSelection([id]);
   renderObjects();
   setPanelCollapsed("right", false);
   const feature = objectSource.getFeatures().find(item => item.get("objectId") === id);
@@ -3338,8 +3353,8 @@ function installTestApi() {
     snapshot: () => editor.snapshot(),
     exportText,
     importText,
-    setDocument(document) {
-      setEditorDocument(clone(document), { fit: false, autosave: false });
+    setDocument(document, { fit = false } = {}) {
+      setEditorDocument(clone(document), { fit, autosave: false });
       return editor.snapshot();
     },
     createDemonstrationDocument,
@@ -3469,13 +3484,19 @@ function installTestApi() {
       return { added: result.added, document: editor.snapshot() };
     },
     select(id) {
-      editor.select(id);
+      setSelection(id ? [id] : []);
       syncMapSelection();
       objectLayer.changed();
       updateInspector();
       renderEditHandles();
       return selectedObject()?.object || null;
     },
+    objectPixel(id) {
+      const feature = objectSource.getFeatures().find(item => item.get("objectId") === id);
+      if (!feature) return null;
+      return map.getPixelFromCoordinate(getCenter(feature.getGeometry().getExtent()));
+    },
+    pointPixel: point => map.getPixelFromCoordinate(localToMap(point)),
     setTool(tool) {
       setActiveTool(tool);
       return activeTool;
@@ -3526,6 +3547,7 @@ function installTestApi() {
       buoys: editor.document.structures.buoys?.length || 0,
       decompositionFeatures: decompositionSource.getFeatures().length,
       selected: editor.selection,
+      selectedIds: [...selectedIds],
       mapSelected: selectInteraction.getFeatures().getArray().map(feature => feature.get("objectId")),
       tool: activeTool,
       entries: objectSource.getFeatures()
@@ -3561,7 +3583,7 @@ function localizeInterface() {
   renderBoatSizeDistribution();
   languageSelect.value = i18n.getLocale();
   $(".project-help-content").innerHTML = i18n.getCatalog().guideHtml;
-  refreshInspectorLabels();
+  updateInspector();
   updateStatus();
   updateCandidateBulkControls();
   const found = selectedObject();

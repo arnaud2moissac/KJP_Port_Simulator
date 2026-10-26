@@ -12,6 +12,13 @@ Zoom to an area no larger than 2 × 2 km. Analyse the visible area or draw a pol
 
 Choose a tool in the side rail, then click or draw on the map. Select an object to adjust its dimensions, position and orientation. Distances are in metres. For an entrance, nautical heading is 0° north and 90° east.
 
+Clicking another element adds it to the selection. Click a selected element to
+remove it, or empty space to clear the selection. **Delete** removes the whole
+selection in one operation. Elements of the same type share editable properties;
+**Different values** means the entered value will apply to all of them. Finger
+pontoons edited together are detached from their series. **Undo** restores the
+whole operation. Keep one object selected to move it or use its handles.
+
 To add a pontoon, click its two endpoints. Drag its body to move it, or drag either endpoint freely to adjust its length and orientation while keeping the other endpoint fixed.
 
 Choose **Measure**, then click two map points, including on the satellite layer. The distance remains visible in metres. To measure finger spacing, pick the same reference on two adjacent fingers, such as their centreline. With a pontoon selected, **Use as spacing** copies the measurement into the series settings; create the series when ready. Clear removes the measurement, and Escape cancels a measurement in progress. Measurements are excluded from KJP exports.
@@ -19,6 +26,11 @@ Choose **Measure**, then click two map points, including on the satellite layer.
 A pontoon can generate a series of finger pontoons. Edit the whole series or detach a finger to adjust it individually. Select a pontoon or quay to create lazy line berths. Advanced settings specify the mooring anchor distance and depth. Buoys offer OpenSeaMap categories and shapes.
 
 Compute berths, mark visitor berths and set occupancy before placing boats. Undo and Redo preserve editing history. Shortcuts: V to select, D to duplicate, Delete to delete, Ctrl/⌘ Z to undo and Ctrl/⌘ Shift Z to redo.
+
+To add a berth manually, set its width and length under **Berths and surroundings**,
+choose **Berth**, then click in the water near a pontoon, finger pontoon or quay.
+Move it or edit its angle and dimensions in the properties. Clearance checks may
+shorten it. Manual berths survive automatic recalculation and saving to KJP.
 
 ## Save, import and export
 

@@ -92,6 +92,16 @@ Si une proposition de ponton complexe présente **Découper le ponton**, examine
 
 Revenez à **Sélection**, puis cliquez sur un ponton intégré. L’inspecteur affiche son identifiant, ses dimensions et ses réglages.
 
+Chaque clic sur un nouvel élément l’ajoute à la sélection. Cliquez à nouveau
+sur un élément sélectionné pour le retirer, ou dans une zone vide pour tout
+désélectionner. **Supprimer** retire tous les éléments sélectionnés en une seule
+opération. Si les éléments sont du même type, leurs propriétés communes sont
+modifiables ensemble : un champ marqué **Valeurs différentes** applique la
+nouvelle valeur à tous. Les catways modifiés en groupe sont détachés de leur
+série ; les éléments non sélectionnés restent dans la série. **Annuler** revient
+sur toute l’opération groupée. Gardez un seul objet sélectionné pour utiliser
+ses poignées et le déplacer.
+
 ![Ponton importé sélectionné, avec ses dimensions et les poignées de manipulation](images/generateur/04-ponton-proprietes.fr.jpg)
 
 **PC et tablette :** les carrés de longueur permettent d’ajuster un ponton ; la poignée ronde de rotation permet de l’orienter. Pour un réglage précis, saisissez la dimension ou l’angle dans le panneau, puis quittez le champ. Les coordonnées **Est / Nord** déplacent l’objet dans le repère local du port : elles ne sont pas des latitudes et longitudes.
@@ -184,6 +194,14 @@ Pour un seul catway, l’outil **Catway** permet un ajout manuel près d’un po
 
 **Objectif :** transformer les catways en places utilisables et préparer le décor.
 
+Pour ajouter une place à la main, réglez sa **largeur** et sa **longueur** dans
+**Places et ambiance**, choisissez l’outil **Place**, puis cliquez dans l’eau près
+d’un ponton, d’un catway ou d’un quai. La place s’aligne sur l’ouvrage proche ;
+vous pouvez ensuite la déplacer, changer son angle et ses dimensions dans les
+propriétés, ou la marquer comme place visiteurs. Le contrôle de dégagement peut
+réduire sa longueur. Les places manuelles sont conservées par **Calculer les
+places**, ainsi qu’à l’enregistrement et au chargement du fichier KJP.
+
 1. Dans **Places et ambiance**, indiquez une **Largeur des places de 4 m** pour l’exercice.
 2. Cliquez sur **Calculer les places**. La série de six catways de cet exemple produit **12 places** avant d’autres aménagements.
 3. Sélectionnez une place libre sur la carte, en cliquant à l’intérieur de son rectangle plutôt que sur un taquet ou un catway voisin.
@@ -198,7 +216,7 @@ Pour votre propre port, revenez à la comparaison satellite de l’étape 4 : el
 
 **Contrôle :** le titre de l’inspecteur doit être **Place**, et non **Taquet**, **Catway** ou **Bateau**. Zoomez si les objets sont trop proches. La place visiteurs doit rester reconnaissable et accessible.
 
-**Placer les bateaux** régénère le peuplement ; ce n’est pas un bouton qui ajoute uniquement un bateau supplémentaire. L’outil **Bateau** permet un ajout individuel sur une place existante, si elle est disponible. L’outil **Visiteur** crée une place près d’un catway ; pour marquer une place déjà calculée, utilisez plutôt sa case **Place visiteurs**.
+**Placer les bateaux** régénère le peuplement ; ce n’est pas un bouton qui ajoute uniquement un bateau supplémentaire. L’outil **Bateau** permet un ajout individuel sur une place existante, si elle est disponible. Pour réserver une place aux visiteurs, sélectionnez-la puis cochez **Place visiteurs** dans ses propriétés. Cette option est disponible pour les places calculées comme pour celles ajoutées avec l’outil **Place**.
 
 Le calcul automatique des places concerne les catways. Finalisez-le avant l’atelier pendilles : un nouveau **Calculer les places** reconstruit cette liste et peut retirer des places créées autrement. Après une modification des catways ou des places, contrôlez à nouveau les bateaux et les accès.
 

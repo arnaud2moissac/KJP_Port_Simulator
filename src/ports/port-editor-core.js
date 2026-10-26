@@ -650,12 +650,14 @@
     const requestedLength = options.defaultLength ?? document.editor.defaultBerthLength;
     const defaultLength = Number.isFinite(requestedLength) ? clamp(requestedLength, 3, 200) : null;
     const existingVisitorByParent = new Map(
-      (document.berths || []).filter(item => item.isVisitor)
+      (document.berths || []).filter(item => item.isVisitor && !item.manual)
         .map(item => [`${item.parentId}:${item.side}`, item])
     );
-    const berths = [];
+    const manual = (document.berths || []).filter(item => item.manual);
+    const berths = manual.map(clone);
     const addBerth = (catway, sideSign) => {
       const side = sideSign > 0 ? "port" : "starboard";
+      if (manual.some(item => item.parentId === catway.id && item.side === side)) return;
       const width = defaultWidth;
       const length = defaultLength ?? Math.max(minimumLength, catway.length - 0.8);
       const center = KJPCodec.localToWorld(catway, {
@@ -683,6 +685,57 @@
       addBerth(catway, 1);
     }
     return limitBerthClearance(document, berths);
+  }
+
+  function createManualBerth(document, point, options = {}) {
+    const candidates = [
+      ...document.structures.catways,
+      ...document.structures.pontoons
+    ].map(parent => {
+      const local = KJPCodec.worldToLocal(parent, point);
+      return { parent, heading: parent.heading, side: local.transverse < 0 ? "starboard" : "port", distance: distanceToRectangle(point, parent).distance };
+    });
+    for (const parent of document.structures.obstacles.filter(item => item.type === "quay")) {
+      for (let index = 1; index < parent.points.length; index += 1) {
+        const start = parent.points[index - 1], end = parent.points[index];
+        const nearest = nearestPointOnSegment(point, start, end);
+        const heading = Math.atan2(end.north - start.north, end.east - start.east);
+        const transverse = (point.north - nearest.north) * Math.cos(heading) - (point.east - nearest.east) * Math.sin(heading);
+        candidates.push({ parent, heading, side: transverse < 0 ? "starboard" : "port", distance: Math.max(0, pointDistance(point, nearest) - parent.width / 2) });
+      }
+    }
+    const nearby = candidates.filter(item => item.distance <= 35).sort((a, b) => a.distance - b.distance);
+    const candidate = nearby.find(item => item.parent.id === options.parentId) || nearby[0];
+    if (!candidate) return null;
+    const width = clamp(Number(options.width ?? document.editor.defaultBerthWidth) || 4, 2.8, 20);
+    const length = clamp(Number(options.length ?? document.editor.defaultBerthLength) || 12, 3, 200);
+    return {
+      id: createId("berth", document),
+      parentId: candidate.parent.id,
+      side: candidate.side,
+      name: "",
+      center: { ...point },
+      heading: candidate.heading,
+      length,
+      width,
+      maxLength: length,
+      maxBeam: Math.max(2.2, width - 0.55),
+      isVisitor: false,
+      manual: true
+    };
+  }
+
+  function boatsWithinBerths(document) {
+    const berthById = new Map(document.berths.map(item => [item.id, item]));
+    return document.staticBoats.filter(boat => {
+      if (!boat.berthId) return true;
+      const berth = berthById.get(boat.berthId);
+      return berth && boat.length <= berth.maxLength + 1e-8 && rectangleCorners(boatRectangle(boat)).every(point => {
+        const local = KJPCodec.worldToLocal(berth, point);
+        return Math.abs(local.longitudinal) <= berth.length / 2 + 1e-8
+          && Math.abs(local.transverse) <= berth.width / 2 + 1e-8;
+      });
+    });
   }
 
   function limitBerthClearance(document, berths) {
@@ -855,7 +908,7 @@
     );
     let center = { ...berth.center };
     const parent = document.structures.catways.find(item => item.id === berth.parentId);
-    if (parent) {
+    if (parent && !berth.manual) {
       const berthLocal = KJPCodec.worldToLocal(parent, berth.center);
       const sideSign = berth.side === "port" ? 1 : -1;
       center = KJPCodec.localToWorld(parent, {
@@ -1143,6 +1196,34 @@
       return this.commit(removeObject(this.document, id), "Suppression");
     }
 
+    removeMany(ids) {
+      let next = clone(this.document);
+      for (const id of new Set(ids)) {
+        if (findObject(next, id)) next = removeObject(next, id);
+      }
+      this.selection = null;
+      return this.commit(next, "Suppression groupée");
+    }
+
+    updateMany(changes, label = "Modification groupée") {
+      const draft = new PortEditor(this.document, { historyLimit: 10 });
+      for (const change of changes) {
+        const before = findObject(draft.document, change.id);
+        draft.update(change.id, change.patch, label);
+        const after = findObject(draft.document, change.id);
+        if (before && after && ["pontoons", "catways"].includes(after.collection)) {
+          for (const cleat of draft.document.structures.cleats) {
+            if (cleat.parentId !== change.id) continue;
+            cleat.localPosition.longitudinal *= after.object.length / before.object.length;
+            cleat.localPosition.transverse *= after.object.width / before.object.width;
+            if (change.patch.vertical || change.patch.height !== undefined) cleat.z = resolvedVertical(after.object).deckZ;
+          }
+        }
+        if (change.detachFromSeries) draft.detachCatway(change.id);
+      }
+      return this.commit(draft.document, label);
+    }
+
     duplicate(id) {
       const next = duplicateObject(this.document, id);
       return this.commit(next, "Duplication");
@@ -1229,17 +1310,23 @@
         const length = options.defaultLength ?? next.editor.defaultBerthLength;
         if (Number.isFinite(length)) next.editor.defaultBerthLength = clamp(length, 3, 200);
         next.berths = inferBerths(next, options);
-        const berthById = new Map(next.berths.map(item => [item.id, item]));
-        next.staticBoats = next.staticBoats.filter(boat => {
-          if (!boat.berthId) return true;
-          const berth = berthById.get(boat.berthId);
-          return berth && boat.length <= berth.maxLength + 1e-8 && rectangleCorners(boatRectangle(boat)).every(point => {
-            const local = KJPCodec.worldToLocal(berth, point);
-            return Math.abs(local.longitudinal) <= berth.length / 2 + 1e-8
-              && Math.abs(local.transverse) <= berth.width / 2 + 1e-8;
-          });
-        });
+        next.staticBoats = boatsWithinBerths(next);
       });
+    }
+
+    addManualBerth(point, options = {}) {
+      const candidate = createManualBerth(this.document, point, options);
+      if (!candidate) return { error: "parent" };
+      const next = clone(this.document);
+      next.editor.defaultBerthWidth = candidate.width;
+      next.editor.defaultBerthLength = candidate.length;
+      next.berths = limitBerthClearance(next, [...next.berths, candidate]);
+      const berth = next.berths.find(item => item.id === candidate.id);
+      if (!berth) return { error: "clearance" };
+      next.staticBoats = boatsWithinBerths(next);
+      this.commit(next, "Ajouter une place manuelle");
+      this.selection = berth.id;
+      return { berth: clone(berth) };
     }
 
     populateBoats(options = {}) {
@@ -1280,6 +1367,7 @@
     redistributePendilleGroup,
     pendilleStationGeometry,
     inferBerths,
+    createManualBerth,
     limitBerthClearance,
     normalizeBoatSizeDistribution,
     boatSizeDensity,

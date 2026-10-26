@@ -106,6 +106,101 @@ function expectValidationError(mutator, code) {
   );
 }
 
+test("édition groupée: dimensions et suppressions en une seule étape d'historique", () => {
+  const editor = new Editor.PortEditor(createValidPort());
+  const originals = editor.snapshot();
+  const selected = originals.structures.catways.slice(0, 2);
+  editor.updateMany(selected.map(item => ({ id: item.id, patch: { length: 8, width: 0.6 }, detachFromSeries: true })));
+  assert.equal(editor.past.length, 1);
+  for (const item of selected) {
+    const changed = Editor.findObject(editor.document, item.id).object;
+    assert.equal(changed.length, 8);
+    assert.equal(changed.width, 0.6);
+    assert.equal(changed.groupId, undefined);
+    const cleats = editor.document.structures.cleats.filter(cleat => cleat.parentId === item.id);
+    assert.ok(cleats.length > 0);
+    assert.ok(cleats.every(cleat => Math.abs(cleat.localPosition.longitudinal) <= 4 && Math.abs(cleat.localPosition.transverse) <= 0.3));
+    assert.equal(editor.document.editor.catwayGroups.some(group => group.memberIds.includes(item.id)), false);
+  }
+  const unselected = originals.structures.catways[2];
+  assert.doesNotThrow(() => Codec.serialize(editor.document));
+  assert.deepEqual(Editor.findObject(editor.document, unselected.id).object, unselected);
+  editor.undo();
+  assert.deepEqual(editor.document, originals);
+  editor.redo();
+  const updated = editor.snapshot();
+  const history = editor.past.length;
+  const pontoon = editor.document.structures.pontoons[0];
+  editor.removeMany([pontoon.id, unselected.id]);
+  assert.equal(editor.past.length, history + 1);
+  assert.equal(Editor.findObject(editor.document, pontoon.id), null);
+  assert.equal(Editor.findObject(editor.document, unselected.id), null);
+  editor.undo();
+  assert.deepEqual(editor.document, updated);
+});
+
+test("places manuelles: création libre, dimensions, persistance et annulation", () => {
+  const document = Codec.createEmpty();
+  document.navigation.entries = [{ id: "entry-main", name: "Entrée", position: { east: -20, north: -20 }, heading: 0 }];
+  document.structures.catways = [{ id: "finger-a", type: "catway", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0, height: 0.5 }];
+  const editor = new Editor.PortEditor(document);
+  const result = editor.addManualBerth({ east: 6.4, north: 3 }, { width: 4, length: 12 });
+  assert.equal(result.error, undefined);
+  assert.equal(result.berth.parentId, "finger-a");
+  assert.equal(result.berth.manual, true);
+  assert.equal(result.berth.isVisitor, false);
+  assert.equal(result.berth.length, 12);
+  assert.deepEqual(result.berth.center, { east: 6.4, north: 3 });
+  assert.equal(editor.past.length, 1);
+  assert.deepEqual(Editor.fitBoatToBerth(editor.document, result.berth, () => 0.5).center, result.berth.center);
+  editor.undo();
+  assert.equal(editor.document.berths.length, 0);
+  editor.redo();
+  editor.document.berths[0].isVisitor = true;
+  editor.document.berths[0].name = "Manuelle";
+  editor.recomputeBerths({ defaultWidth: 7, defaultLength: 20 });
+  const preserved = editor.document.berths.find(item => item.id === result.berth.id);
+  assert.equal(preserved.length, 12);
+  assert.equal(preserved.width, 4);
+  assert.equal(preserved.name, "Manuelle");
+  assert.equal(preserved.isVisitor, true);
+  assert.equal(editor.document.berths.filter(item => item.parentId === "finger-a" && item.side === "port").length, 1);
+  assert.equal(Codec.parse(Codec.serialize(editor.document)).berths.find(item => item.id === preserved.id).manual, true);
+});
+
+test("places manuelles: pontons et quais acceptés, erreurs sans modification du document", () => {
+  for (const kind of ["pontoon", "quay"]) {
+    const document = Codec.createEmpty();
+    if (kind === "pontoon") document.structures.pontoons = [{ id: "parent", type: "pontoon", center: { east: 0, north: 0 }, length: 40, width: 2, heading: 0, height: 0.5 }];
+    else document.structures.obstacles = [{ id: "parent", type: "quay", points: [{ east: -20, north: 0 }, { east: 20, north: 0 }], width: 2, height: 1 }];
+    const editor = new Editor.PortEditor(document);
+    assert.equal(editor.addManualBerth({ east: 0, north: 5 }).berth.parentId, "parent");
+    const before = editor.snapshot(), count = editor.past.length;
+    assert.equal(editor.addManualBerth({ east: 1000, north: 1000 }).error, "parent");
+    assert.equal(editor.addManualBerth({ east: 0, north: 0 }).error, "clearance");
+    assert.deepEqual(editor.document, before);
+    assert.equal(editor.past.length, count);
+  }
+});
+
+test("places manuelles face à face: le nouvel ajout réduit les deux places en une seule opération", () => {
+  const document = Codec.createEmpty();
+  document.structures.catways = [
+    { id: "finger-a", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0 },
+    { id: "finger-b", center: { east: 25, north: 0 }, length: 10, width: 1, heading: Math.PI }
+  ];
+  const editor = new Editor.PortEditor(document);
+  const first = editor.addManualBerth({ east: 6.4, north: 2.5 }, { parentId: "finger-a", length: 12, width: 4 });
+  assert.equal(first.berth.length, 12);
+  const second = editor.addManualBerth({ east: 23.6, north: 2.5 }, { parentId: "finger-b", length: 12, width: 4 });
+  assert.ok(second.berth);
+  assert.equal(editor.document.berths.length, 2);
+  assert.ok(editor.document.berths.every(berth => Math.abs(berth.length - 29.2 / 3) < 1e-7));
+  editor.undo();
+  assert.equal(editor.document.berths.length, 1);
+  assert.equal(editor.document.berths[0].length, 12);
+});
+
 test("projection locale azimutale: aller-retour et distance sous 0,10 m sur 4 km", () => {
   const projection = Codec.createLocalProjection(47.586, -3.03);
   const targets = [

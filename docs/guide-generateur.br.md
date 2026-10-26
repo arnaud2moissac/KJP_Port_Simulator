@@ -12,6 +12,13 @@ Zoumit war ur gorread 2 × 2 km d’ar muiañ. Dielfennit ar gorread gwelet pe t
 
 Dibabit un ostilh er varrenn gostez, ha klikit pe tresit war ar gartenn. Diuzit un dra evit reoliañ e ventoù, e lec’hiadur hag e reteradur. E metroù eo ar pellderioù. Evit un antre, 0° a dalvez norzh ha 90° reter.
 
+Klikañ war un elfenn all a ouzhpenn anezhi d’an diuzadenn. Klikañ en-dro war un
+elfenn diuzet a ziziuz anezhi ; klikañ en ul lec’h goullo a ziziuz pep tra.
+**Dilemel** a zilemel an holl elfennoù diuzet en un oberiadenn. Elfennoù eus ar
+memes seurt a c’haller kemmañ a-gevret. Ar pontonoù bihan kemmet a-gevret a vez
+distaget diouzh o rummad. **Dizober** a null an oberiadenn a-bezh. Mirout un dra
+hepken diuzet evit e zilec’hiañ pe implijout e zornelloù.
+
 Evit ouzhpennañ ur ponton, klikit war e zaou benn. Riklit e gorf evit e zilec’hiañ, pe riklit ur penn evit kemmañ e hirder hag e reteradur, en ur virout ar penn all diloc’h.
 
 Dibabit **Muzuliañ**, ha klikit war daou boent war ar gartenn pe ar skeudenn loarell. Diskouezet e vez ar pellder e metroù. Gant ur ponton diuzet, **Implijout evel etre-hed** a laka ar muzul e arventennoù ar rummad. **Diverkañ** a skarz ar muzul ; Escape a null ur muzul war ober. N’eo ket ezporzhiet ar muzul er restr KJP.
@@ -19,6 +26,12 @@ Dibabit **Muzuliañ**, ha klikit war daou boent war ar gartenn pe ar skeudenn lo
 Gant ur ponton e c’haller krouiñ ur rummad pontonoù bihan. Kemmit ar rummad a-bezh pe distagit ur ponton bihan evit e reoliañ e-unan. Diuzit ur ponton pe ur c’hae evit krouiñ lec’hioù gant ereoù ar c’horf-marv. An arventennoù araokaet a resisa pellder ar c’horf-marv hag an donder. Rummadoù ha stummoù OpenSeaMap zo evit ar bouedoù.
 
 Jedit al lec’hioù, merkit al lec’hioù evit gweladennerien ha reolit an daliadenn a-raok lec’hiañ ar bagoù. Dizober hag Adober a vir istor ar c’hemmoù. Berradennoù : V evit diuzañ, D evit eilañ, Suppr evit dilemel, Ctrl/⌘ Z evit dizober ha Ctrl/⌘ Pennlizh Z evit adober.
+
+Evit ouzhpennañ ul lec’h dre zorn, reolit e ledander hag e hirder, dibabit
+**Lec’h**, ha klikit en dour e-kichen ur ponton, ur ponton bihan pe ur c’hae.
+Gallout a rit e zilec’hiañ ha kemmañ e reteradur hag e ventoù er perzhioù.
+Kontrol an esaouenn a c’hall bihanaat e hirder. Miret e vez al lec’hioù dre zorn
+pa vez adjedet al lec’hioù pe enrollet ar restr KJP.
 
 ## Enrollañ, enporzhiañ hag ezporzhiañ
 

@@ -67,6 +67,9 @@
       <button type="button" class="tool" data-tool="catway" title="Ajouter un catway" data-i18n-attr="title:ui.ajouter.un.catway">
         <span aria-hidden="true">━</span><small data-i18n="ui.catway">Catway</small>
       </button>
+      <button type="button" class="tool" data-tool="berth" title="Ajouter une place manuellement" data-i18n-attr="title:berth.manual.tool">
+        <span aria-hidden="true">▱</span><small data-i18n="ui.place">Place</small>
+      </button>
       <button type="button" class="tool" data-tool="cleat" title="Ajouter un taquet" data-i18n-attr="title:ui.ajouter.un.taquet">
         <span aria-hidden="true">⊥</span><small data-i18n="ui.taquet">Taquet</small>
       </button>
@@ -84,9 +87,6 @@
       </button>
       <button type="button" class="tool" data-tool="boat" title="Ajouter un bateau générique" data-i18n-attr="title:ui.ajouter.un.bateau.generique">
         <span aria-hidden="true">◢</span><small data-i18n="ui.bateau">Bateau</small>
-      </button>
-      <button type="button" class="tool" data-tool="visitor" title="Ajouter une place visiteurs" data-i18n-attr="title:ui.ajouter.une.place.visiteurs">
-        <span aria-hidden="true">V</span><small data-i18n="ui.visiteur">Visiteur</small>
       </button>
       <button type="button" class="tool" data-tool="entry" title="Placer et orienter l’entrée" data-i18n-attr="title:ui.placer.et.orienter.lentree">
         <span aria-hidden="true">↗</span><small data-i18n="ui.entree">Entrée</small>
@@ -225,6 +225,8 @@
       </div>
 
       <form id="objectInspector" class="inspector-form" hidden>
+        <p id="multipleSelectionHint" class="multiple-selection-hint" hidden data-i18n="selection.edit.hint">Les modifications s’appliquent à tous les éléments sélectionnés.</p>
+        <p id="multipleCatwayHint" class="multiple-selection-hint" hidden data-i18n="selection.catways.hint">Les catways modifiés seront détachés de leur série.</p>
         <label><span data-i18n="ui.nom.identifiant">Nom / identifiant</span><input id="objectId" readonly></label>
         <div class="two-columns">
           <label><span id="lengthPropertyLabel" data-i18n="ui.longueur.m">Longueur (m)</span><input data-property="length" type="number" min="0.2" step="0.1"></label>

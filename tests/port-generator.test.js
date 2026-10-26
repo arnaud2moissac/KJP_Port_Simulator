@@ -1096,6 +1096,148 @@ browserCase("generator:editing.clearance", async ({ page, runtimeErrors }) => {
     assert.deepEqual(runtimeErrors, []);
 });
 
+browserCase("generator:editing.manual-berth", async ({ page, runtimeErrors }) => {
+    assert.equal(await page.locator('[data-tool="visitor"]').count(), 0, "le statut visiteurs est une option de place, sans outil dédié");
+    const document = Codec.createEmpty();
+    document.structures.catways = [{ id: "finger-a", type: "catway", center: { east: 5, north: 0 }, length: 10, width: 1, heading: 0, height: 0.5 }];
+    document.navigation.entries = [{ id: "entry-main", name: "Entrée", position: { east: -20, north: -20 }, heading: 0 }];
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document, { fit: true }), document);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const clickPoint = async point => {
+      const pixel = await page.evaluate(point => window.__KJP_GENERATOR_TEST__.pointPixel(point), point);
+      const box = await page.locator("#map").boundingBox();
+      await page.mouse.click(box.x + pixel[0], box.y + pixel[1]);
+    };
+    await page.locator("#berthWidth").fill("5");
+    await page.locator("#berthLength").fill("14");
+    await page.locator('[data-tool="berth"]').click();
+    await clickPoint({ east: 7.4, north: 4 });
+    await page.waitForFunction(() => window.__KJP_GENERATOR_TEST__.snapshot().berths.length === 1);
+    const created = (await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).berths[0];
+    assert.equal(created.manual, true);
+    assert.equal(created.isVisitor, false);
+    assert.equal(created.width, 5);
+    assert.ok(Math.abs(created.length - 14) < 1e-8);
+    assert.ok(Math.hypot(created.center.east - 7.4, created.center.north - 4) < 0.2);
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.renderReport())).selected, created.id);
+    assert.equal(await page.locator("#inspectorTitle").textContent(), "Place");
+    await page.locator("#undoButton").click();
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).berths.length, 0);
+    await page.locator("#redoButton").click();
+    await page.locator("#occupancyRate").fill("100");
+    await page.locator("#populateBoatsButton").click();
+    const populated = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(populated.staticBoats.length, 1);
+    assert.ok(Math.hypot(populated.staticBoats[0].center.east - created.center.east, populated.staticBoats[0].center.north - created.center.north) < 1e-8);
+    await page.evaluate(id => window.__KJP_GENERATOR_TEST__.select(id), created.id);
+    await page.locator("#visitorToggle").check();
+    await page.locator("#visitorName").fill("Place manuelle du test");
+    await page.locator("#visitorName").dispatchEvent("change");
+    await page.locator("#computeBerthsButton").click();
+    const text = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.exportText());
+    const saved = Codec.parse(text), manual = saved.berths.find(item => item.id === created.id);
+    assert.equal(manual.manual, true);
+    assert.equal(manual.isVisitor, true);
+    assert.equal(manual.name, "Place manuelle du test");
+    assert.equal(saved.berths.filter(item => item.parentId === "finger-a" && item.side === "port").length, 1);
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document), saved);
+    await page.evaluate(id => window.__KJP_GENERATOR_TEST__.select(id), created.id);
+    assert.equal(await page.locator("#visitorToggle").isChecked(), true);
+    await page.locator("#visitorToggle").uncheck();
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).berths.find(item => item.id === created.id).isVisitor, false);
+    await page.locator("#undoButton").click();
+    await page.evaluate(id => window.__KJP_GENERATOR_TEST__.select(id), created.id);
+    assert.equal(await page.locator("#visitorToggle").isChecked(), true);
+    await page.locator('[data-tool="berth"]').click();
+    await clickPoint({ east: 8, north: 0 });
+    await page.waitForFunction(() => document.querySelector("#toast").textContent.includes("dégagement"));
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).berths.length, saved.berths.length);
+    assert.deepEqual(runtimeErrors, []);
+});
+
+browserCase("generator:editing.multi-selection", async ({ page, runtimeErrors }) => {
+    const document = Codec.createEmpty();
+    document.structures.pontoons = [
+      { id: "pontoon-a", type: "pontoon", center: { east: 0, north: 0 }, length: 20, width: 4, height: 0.5, heading: 0 },
+      { id: "pontoon-b", type: "pontoon", center: { east: 0, north: 30 }, length: 30, width: 4, height: 0.5, heading: 0 },
+      { id: "pontoon-c", type: "pontoon", center: { east: 45, north: 15 }, length: 20, width: 4, height: 0.5, heading: 0 }
+    ];
+    document.structures.buoys = [{ id: "buoy-a", type: "buoy", position: { east: 40, north: 45 }, radius: 0.5, height: 1, seamarkType: "buoy_lateral", category: "port", shape: "can", colours: ["red"] }];
+    await page.evaluate(document => window.__KJP_GENERATOR_TEST__.setDocument(document, { fit: true }), document);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const click = async (id, expected) => {
+      const pixel = await page.evaluate(id => id ? window.__KJP_GENERATOR_TEST__.objectPixel(id) : window.__KJP_GENERATOR_TEST__.emptyMapPixel(), id);
+      assert.ok(pixel);
+      const box = await page.locator("#map").boundingBox();
+      await page.mouse.click(box.x + pixel[0], box.y + pixel[1]);
+      await page.waitForFunction(ids => {
+        const selected = window.__KJP_GENERATOR_TEST__.renderReport().mapSelected;
+        return selected.length === ids.length && ids.every(id => selected.includes(id));
+      }, expected);
+    };
+    await click("pontoon-a", ["pontoon-a"]);
+    await click("pontoon-b", ["pontoon-a", "pontoon-b"]);
+    assert.equal(await page.locator('[data-property="length"]').inputValue(), "");
+    assert.equal(await page.locator('[data-property="length"]').getAttribute("placeholder"), "Valeurs différentes");
+    assert.equal(await page.locator('[data-property="width"]').inputValue(), "4");
+    assert.match(await page.locator("#inspectorTitle").textContent(), /2 éléments/);
+    assert.equal((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.historyReport())).past, 0);
+    await click("pontoon-a", ["pontoon-b"]);
+    await click("pontoon-a", ["pontoon-a", "pontoon-b"]);
+    await click(null, []);
+    assert.equal(await page.locator("#deleteButton").isDisabled(), true);
+    await click("pontoon-a", ["pontoon-a"]);
+    await click("pontoon-b", ["pontoon-a", "pontoon-b"]);
+    await page.locator('[data-property="length"]').fill("25");
+    await page.locator('[data-property="length"]').dispatchEvent("change");
+    let state = await page.evaluate(() => ({ document: window.__KJP_GENERATOR_TEST__.snapshot(), report: window.__KJP_GENERATOR_TEST__.renderReport(), history: window.__KJP_GENERATOR_TEST__.historyReport() }));
+    assert.deepEqual(state.document.structures.pontoons.map(item => item.length), [25, 25, 20]);
+    assert.equal(state.report.mapSelected.length, 2);
+    assert.equal(state.history.past, 1);
+    await page.locator("#undoButton").click();
+    assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).structures.pontoons.map(item => item.length), [20, 30, 20]);
+    await page.locator("#redoButton").click();
+    await click("pontoon-a", ["pontoon-a"]);
+    await click("buoy-a", ["pontoon-a", "buoy-a"]);
+    assert.equal(await page.locator("#objectInspector").isVisible(), false);
+    assert.match(await page.locator("#emptyInspector").textContent(), /plusieurs types/);
+    await page.locator("#deleteButton").click();
+    state = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(state.structures.pontoons.some(item => item.id === "pontoon-a"), false);
+    assert.equal(state.structures.buoys.length, 0);
+    assert.equal(state.structures.pontoons.length, 2);
+    await page.locator("#undoButton").click();
+    state = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.equal(state.structures.pontoons.length, 3);
+    assert.equal(state.structures.buoys.length, 1);
+    await click("pontoon-a", ["pontoon-a"]);
+    await click("pontoon-b", ["pontoon-a", "pontoon-b"]);
+    await page.locator("#languageSelect").selectOption("en");
+    assert.match(await page.locator("#inspectorTitle").textContent(), /2 selected elements/);
+    const captureDir = process.env.KJP_MULTI_SELECTION_CAPTURE_DIR;
+    if (captureDir) await page.locator("#propertiesPanel").screenshot({ path: path.join(captureDir, "multi-selection.png") });
+    const fingers = await page.evaluate(() => {
+      const api = window.__KJP_GENERATOR_TEST__, document = api.createDemonstrationDocument();
+      document.berths = [];
+      document.staticBoats = [];
+      document.structures.cleats = [];
+      api.setDocument(document, { fit: true });
+      return document.structures.catways.slice(0, 2).map(item => item.id);
+    });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await click(fingers[0], [fingers[0]]);
+    await click(fingers[1], fingers);
+    assert.equal(await page.locator("#multipleCatwayHint").isVisible(), true);
+    await page.locator('[data-property="length"]').fill("8");
+    await page.locator('[data-property="length"]').dispatchEvent("change");
+    const changed = await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot());
+    assert.ok(changed.structures.catways.filter(item => fingers.includes(item.id)).every(item => item.length === 8 && !item.groupId));
+    assert.ok(changed.structures.catways.filter(item => !fingers.includes(item.id)).every(item => Boolean(item.groupId)));
+    await page.locator("#undoButton").click();
+    assert.ok((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.snapshot())).structures.catways.every(item => Boolean(item.groupId)));
+    assert.deepEqual(runtimeErrors, []);
+});
+
 browserCase("generator:editing.boat-sizes", async ({ page, runtimeErrors }) => {
     await page.route(/^https?:\/\//, route => route.fulfill({ status: 200, body: "" }));
     await page.evaluate(() => window.__KJP_GENERATOR_TEST__.loadDemonstration());

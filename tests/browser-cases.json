@@ -550,6 +550,18 @@
   },
   {
     "product": "generator",
+    "id": "editing.multi-selection",
+    "group": "editing",
+    "name": "les clics alternent la sélection et permettent la modification et la suppression groupées"
+  },
+  {
+    "product": "generator",
+    "id": "editing.manual-berth",
+    "group": "editing",
+    "name": "une place manuelle se crée sur la carte et reste présente après recalcul et sauvegarde"
+  },
+  {
+    "product": "generator",
     "id": "editing.18",
     "group": "editing",
     "name": "sélection, dimensions, annulation/rétablissement et raccourcis clavier restent opérationnels",
