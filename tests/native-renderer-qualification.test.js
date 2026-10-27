@@ -17,7 +17,7 @@ const simulatorUrl = new URL(pathToFileURL(path.join(root, "simulateur-port.html
 simulatorUrl.searchParams.set("test", "1");
 const viewport = { width: 1280, height: 800 };
 const sha256 = value => crypto.createHash("sha256").update(value).digest("hex");
-const baselineDirectory = path.join(root, "tests", "visual-baselines", "native-v2.1.0");
+const baselineDirectory = path.join(root, "tests", "visual-baselines", "native-v3.0.0");
 const baseline = JSON.parse(fs.readFileSync(path.join(baselineDirectory, "manifest.json"), "utf8"));
 
 async function createPage(browser, dpr = 1) {

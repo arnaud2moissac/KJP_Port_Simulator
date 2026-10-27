@@ -70,23 +70,25 @@ Validez selon le risque : `npm run validate:patch -- --product simulator` pour u
 
 `npm run verify:release` est une qualification complète explicite, à lancer **une fois** pour une release, pas après chaque modification. Les budgets CPU sont réservés à `npm run qualify:performance`.
 
-## Versions de la release 2.1
+## Versions de la release 3.0
 
-- date de publication : 11 octobre 2026 ;
-- produit : `2.1.0` ;
+- date de publication : 27 octobre 2026 ;
+- produit : `3.0.0` ;
 - moteur physique : `6.0.0` ;
-- profil pédagogique Sun Odyssey 36i : `6.0.1` ;
+- profil pédagogique Sun Odyssey 36i : `6.1.0` ;
+- schéma des profils de bateau : `5` ;
 - générateur et schéma KJP courant : `1.1.0` et schéma `3`.
 
-La version 2.1 ajoute le placement libre du bateau suivi d'une préparation des
-amarres, la localisation du simulateur en français, anglais et breton, et les
-particules de vent et de courant. Elle affine le modèle du safran et du Sun
-Odyssey 36i, renforce l'import KJP et fournit un explorateur illustré des modèles
-physiques. Le renderer Three.js natif, son secours Canvas 2D et les livrables HTML
-autonomes sont conservés.
+La version 3.0 propose six bateaux, leurs modèles visuels, des commandes à roue
+ou à barre franche et deux bibliothèques de ports. Le générateur trilingue ajoute
+la multisélection, les places manuelles, les mesures et la publication dans la
+bibliothèque Communauté. L'explorateur des modèles physiques présente désormais
+le Sun Odyssey 36i, le Contessa 26 et le Dufour 310. Les profils ajoutés restent
+expérimentaux, plausibles mais non calibrés. Le détail et les limites figurent
+dans le [changelog](CHANGELOG.md).
 
-Les [notes de release](https://github.com/arnaud2moissac/KJP_Port_Simulator/releases/tag/v2.1.0)
-recensent les changements depuis la version officielle 2.0.0.
+Les [notes de release](https://github.com/arnaud2moissac/KJP_Port_Simulator/releases/tag/v3.0.0)
+recensent les changements depuis la version officielle 2.1.0.
 
 Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.
 Le [rapport de recalibration aérodynamique](docs/validation/rapport-recalibration-aerodynamique.md)

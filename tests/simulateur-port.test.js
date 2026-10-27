@@ -809,7 +809,7 @@ browserCase("simulator:guide.02", async ({ page, browser, context, runtimeErrors
     assert.match(help.text, /Sur ordinateur/);
     assert.match(help.text, /Sur tablette ou téléphone/);
     assert.match(help.text, /Comprendre les « Réglages avancés »/);
-    assert.match(help.text, /modèle utilisé pour le Sun Odyssey 36i/);
+    assert.match(help.text, /Choisissez le Sun Odyssey 36i, le Contessa 26 ou le Dufour 310 Grand Large 2014/);
     assert.doesNotMatch(help.text, /Profondeur du port|petit fond|garde sous quille/);
     for (const heading of [
       "Manœuvrer au port avec KJP Port Simulator",
@@ -2216,27 +2216,29 @@ browserCase("simulator:calibration.23", async ({ page, browser, context, runtime
     assert.deepEqual(
       advancedRanges.map(input => input.id),
       [
-        "mouseHelmSensitivity",
         "boatMass",
         "windage",
         "rudderEfficiency",
         "lateralResistance",
         "propWalk",
-        "mooringAttachSpeed"
+        "mooringAttachSpeed",
+        "mouseHelmSensitivity",
+        "tabletControlsSize"
       ]
     );
     assert.deepEqual(advancedRanges, [
-      { id: "mouseHelmSensitivity", min: "25", max: "300", step: "5", value: "100" },
       { id: "boatMass", min: "5700", max: "7800", step: "50", value: "6500" },
       { id: "windage", min: "60", max: "140", step: "1", value: "100" },
       { id: "rudderEfficiency", min: "60", max: "140", step: "1", value: "100" },
       { id: "lateralResistance", min: "60", max: "140", step: "1", value: "100" },
       { id: "propWalk", min: "0", max: "100", step: "1", value: "60" },
-      { id: "mooringAttachSpeed", min: "0.1", max: "1", step: "0.1", value: "0.6" }
+      { id: "mooringAttachSpeed", min: "0.1", max: "1", step: "0.1", value: "0.6" },
+      { id: "mouseHelmSensitivity", min: "25", max: "300", step: "5", value: "100" },
+      { id: "tabletControlsSize", min: "100", max: "200", step: "25", value: "175" }
     ]);
     assert.deepEqual(
       await advanced.locator(".advanced-group-title").allTextContents(),
-      ["Commandes", "Bateau"]
+      ["Bateau", "Commandes"]
     );
     assert.equal(await advanced.locator("#propWalk").count(), 1);
     assert.equal(await page.locator('label[for="propWalk"]').textContent(), "Effet de pas · hélice");

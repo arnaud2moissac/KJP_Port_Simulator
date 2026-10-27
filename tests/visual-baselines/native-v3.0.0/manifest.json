@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "renderer": "three-native",
+  "sourcePath": "/Users/arnaud/Codex_main/KJP_Port_Simulator/simulateur-port.html",
+  "sourceSha256": "c8f67b573b1b2edfd197bd69cab9e7afb49f4cc80402130b86e6cfd753d09894",
+  "sourceCommit": "fa68151bae3d5ec5b552a0b9b4870db7aaf66dd9",
+  "browser": "Chromium 149.0.7827.55",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 1,
+  "locale": "fr-FR",
+  "fixedTime": 12345,
+  "scenes": [
+    {
+      "id": "built-in-dark-top-navigation",
+      "port": "built-in",
+      "theme": "dark",
+      "view": "top",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v3.0.0/built-in-dark-top-navigation.png",
+      "imageBytes": 47588,
+      "imageSha256": "8167cc37235b21e6bfb01f42cee44e2e17ac61daf6b06cd24f1e11349aeeadd1",
+      "reportSha256": "7f11e336ee4ff8a8f66376361326579bdd7dfb66cb12532697e0c37d164de5a5"
+    },
+    {
+      "id": "built-in-chart-top-understand",
+      "port": "built-in",
+      "theme": "chart",
+      "view": "top",
+      "mode": "understand",
+      "environment": {
+        "windSpeedKn": 12,
+        "windFromDeg": 300,
+        "currentSpeedKn": 1.4,
+        "currentFromDeg": 215
+      },
+      "image": "tests/visual-baselines/native-v3.0.0/built-in-chart-top-understand.png",
+      "imageBytes": 128162,
+      "imageSha256": "6f8e3684df662f5d041dbf99c77461031effe4e50c8ba7bff8b8997950aead66",
+      "reportSha256": "6dea14b43c76da06b5404fd68d42eb75d54710d1d000c04a3d2d56babf53696e"
+    },
+    {
+      "id": "built-in-chart-skipper-navigation",
+      "port": "built-in",
+      "theme": "chart",
+      "view": "skipper",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v3.0.0/built-in-chart-skipper-navigation.png",
+      "imageBytes": 97349,
+      "imageSha256": "62ff0ceaabeb9a42d10ee3867cd24195d38b55f5ad1aedc62dea37ecbec28f11",
+      "reportSha256": "fb05737041b4b5a5658e351fabe2be2ac8ffb3fece43383fcdf87aeaad1864d1"
+    },
+    {
+      "id": "la-trinite-dark-top-navigation",
+      "port": "la-trinite-sur-mer",
+      "theme": "dark",
+      "view": "top",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v3.0.0/la-trinite-dark-top-navigation.png",
+      "imageBytes": 27589,
+      "imageSha256": "5c34296bb27aa479bf000513b109eee62bee6874c21bd922d33a13f52ef58253",
+      "reportSha256": "bc95017d1a9d136c20d4426e2fbfe3885cbc79305dd9e0c48f17606937936171"
+    },
+    {
+      "id": "la-trinite-chart-skipper-navigation",
+      "port": "la-trinite-sur-mer",
+      "theme": "chart",
+      "view": "skipper",
+      "mode": "navigation",
+      "image": "tests/visual-baselines/native-v3.0.0/la-trinite-chart-skipper-navigation.png",
+      "imageBytes": 90037,
+      "imageSha256": "67b33cf9566e8a6106cbdaf34cf5db91407da16424a29ede89af3680b14e3e3a",
+      "reportSha256": "de1bb95d7378a38bd83abe63f78c70fda5a0815193bc7c08ae3683848c9fe9ca"
+    }
+  ],
+  "sourceTag": "v3.0.0",
+  "referenceNotes": "Cinq vues inspectées ; rapports 2.1 reproduits exactement avant comparaison ; nouveaux diagnostics et cadrage Skipper documentés dans docs/renderer-three.md. Références historiques et trajectoires conservées."
+}

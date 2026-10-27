@@ -24,7 +24,7 @@ test("local routes cannot implicitly escalate to release or performance", () => 
   assert.equal(plan(["--route", "patch-local", "--product", "generator"])[0].label, "build:generator");
   const controls = plan(["--route", "ui-check", "--group", "controls"]);
   assert.equal(controls.length, 2);
-  assert.equal(controls[1].expected.length, 16);
+  assert.equal(controls[1].expected.length, 18);
   const one = plan(["--route", "ui-check", "--case", "controls.48"]);
   assert.equal(one[1].expected.length, 1);
   const hull = plan(["--route", "physics-check", "--component", "hull"]);

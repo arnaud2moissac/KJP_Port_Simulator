@@ -336,6 +336,14 @@ réécrites pendant cette qualification. Les contextes fixent la langue françai
 et neutralisent localement le seul script Analytics connu, tout autre accès HTTP
 restant un échec.
 
+La qualification de la release 3.0 utilise `tests/visual-baselines/native-v3.0.0/`,
+après inspection des cinq vues. Les cinq rapports historiques 2.1 ont d'abord
+été reproduits exactement depuis son HTML publié. Les écarts avec le produit
+3.0 se limitent aux nouveaux champs de diagnostic (marche, sens d'hélice,
+identifiant de profil), au cadrage Skipper documenté ci-dessus et aux objets
+visibles dans ce cadrage. Les états dynamiques communs restent identiques.
+Les références 2.1 et les trajectoires physiques sont conservées sans réécriture.
+
 La fidélité porte sur la présence, les dimensions, l'occlusion, la lisibilité,
 l'information et les interactions. Les références raster natives protègent ce
 backend ; les mutations significatives doivent rester détectées. Les snapshots

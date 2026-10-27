@@ -11,7 +11,7 @@ const scenes = require("./simulator-render-scenes.js");
 const { isSimulatorAnalyticsRequest, stubSimulatorAnalytics } = require("../tests/helpers/simulator-network.js");
 
 const root = path.resolve(__dirname, "..");
-const outputDirectory = path.join(root, "tests", "visual-baselines", "native-v2.1.0");
+const outputDirectory = path.join(root, "tests", "visual-baselines", "native-v3.0.0");
 const update = process.argv.includes("--update");
 const htmlIndex = process.argv.indexOf("--html");
 if (htmlIndex >= 0 && (!process.argv[htmlIndex + 1] || process.argv[htmlIndex + 1].startsWith("--"))) {

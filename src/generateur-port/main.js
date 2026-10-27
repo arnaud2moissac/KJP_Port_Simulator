@@ -3583,7 +3583,10 @@ function localizeInterface() {
   renderBoatSizeDistribution();
   languageSelect.value = i18n.getLocale();
   $(".project-help-content").innerHTML = i18n.getCatalog().guideHtml;
-  updateInspector();
+  refreshInspectorLabels();
+  for (const input of $$("[data-property]", $("#objectInspector"))) {
+    if (input.placeholder) input.placeholder = t("selection.mixed.values");
+  }
   updateStatus();
   updateCandidateBulkControls();
   const found = selectedObject();

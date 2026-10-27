@@ -372,8 +372,8 @@ browserCase("generator:guide.01", async ({ page, browser, context, runtimeErrors
       text: document.querySelector("#readmeDialog").textContent
     }));
     assert.equal(help.open, true);
-    const releaseSeries = require("../package.json").version.split(".").slice(0, 2).join(".");
-    assert.ok(help.text.includes("Versions de la release " + releaseSeries));
+    assert.match(help.text, /Créer un port de A à Z avec le générateur KJP/);
+    assert.match(help.text, /Enregistrer, importer et exporter/);
     assert.match(help.text, /Arnaud de Moissac/);
     await page.click("#closeReadmeHelp");
 
