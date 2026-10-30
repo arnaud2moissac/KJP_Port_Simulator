@@ -3379,7 +3379,8 @@ browserCase("simulator:controls.55", async ({ page }) => {
   const box = await scene.boundingBox();
   const x = box.x + box.width * .45, y = box.y + box.height * .3;
   const angle = () => page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget);
-  const close = (actual, degrees) => assert.ok(Math.abs(actual - degrees * Math.PI / 180) < 1e-10);
+  const close = (actual, degrees) => assert.ok(Math.abs(actual - degrees * Math.PI / 180) < 1e-10,
+    `angle attendu : ${degrees}°, obtenu : ${actual * 180 / Math.PI}°`);
   await page.mouse.move(x, y);
   await page.mouse.click(x, y, { button: "right" });
   const camera = await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport());
@@ -3439,6 +3440,26 @@ browserCase("simulator:controls.55", async ({ page }) => {
   await page.mouse.move(x + 230, y + 20);
   await page.mouse.up({ button: "middle" });
   assert.notDeepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.cameraReport()), camera);
+
+  await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("free"));
+  for (const [profile, rightSign] of [
+    ["sun-odyssey-24-2-fixed-keel-experimental", 1],
+    ["contessa-26-long-keel-experimental", 1],
+    ["pogo-40-s4-twin-rudder-experimental", 1],
+    ["sun-odyssey-36i-pedagogical", -1]
+  ]) {
+    await page.evaluate(profile => window.__PORTANCE_TEST__.selectVesselProfile(profile), profile);
+    await page.mouse.move(x, y);
+    await page.mouse.click(x, y, { button: "right" });
+    assert.equal(await scene.getAttribute("data-mouse-mode"), "helm", profile);
+    await page.mouse.move(x + 100, y);
+    close(await angle(), rightSign * 10);
+    await page.mouse.move(x - 100, y);
+    close(await angle(), -rightSign * 10);
+    const held = await angle();
+    await page.keyboard.press("Escape");
+    assert.equal(await angle(), held, `${profile}: quitter le mode souris conserve la barre`);
+  }
 });
 
 browserCase("simulator:controls.56", async ({ page, context }) => {
@@ -3566,6 +3587,33 @@ browserCase("simulator:controls.47", async ({ page, browser, context, runtimeErr
     );
     await page.keyboard.press("Space");
     assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.paused, false);
+
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("free"));
+    for (const [profile, rightSign] of [
+      ["sun-odyssey-24-2-fixed-keel-experimental", 1],
+      ["contessa-26-long-keel-experimental", 1],
+      ["pogo-40-s4-twin-rudder-experimental", 1],
+      ["sun-odyssey-36i-pedagogical", -1]
+    ]) {
+      await page.evaluate(profile => window.__PORTANCE_TEST__.selectVesselProfile(profile), profile);
+      for (const [key, button, sign] of [
+        ["ArrowRight", "#helmStarboard", rightSign],
+        ["ArrowLeft", "#helmPort", -rightSign]
+      ]) {
+        for (const input of ["keyboard", "button"]) {
+          await page.locator("#centerRudder").click();
+          if (input === "keyboard") await page.keyboard.press(key);
+          else await page.locator(button).click();
+          const angle = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget);
+          assert.ok(Math.abs(angle - sign * 2.5 * Math.PI / 180) < 1e-10,
+            `${profile}: ${input} ${key} doit déplacer la commande comme le geste tactile`);
+          const position = await page.locator("#rudderIndicator").evaluate(node =>
+            parseFloat(node.style.getPropertyValue("--position")));
+          assert.equal(position > 50, key === "ArrowRight",
+            `${profile}: l'indicateur doit suivre le déplacement de la commande`);
+        }
+      }
+    }
 
 });
 

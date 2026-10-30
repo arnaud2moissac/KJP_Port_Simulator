@@ -6076,9 +6076,14 @@
       });
     });
 
+    function helmInputSign() {
+      // Les entrées déplacent la commande : la barre franche inverse le safran.
+      return BOAT_PROFILE.steering.type === "tiller" ? -1 : 1;
+    }
+
     function adjustRudder(direction) {
       controls.rudderTarget = clamp(
-        controls.rudderTarget + direction * 2.5 * DEG,
+        controls.rudderTarget + direction * helmInputSign() * 2.5 * DEG,
         -BOAT_PROFILE.maxRudder,
         BOAT_PROFILE.maxRudder
       );
@@ -9915,7 +9920,7 @@
       const rudderDeg = controls.rudderTarget * RAD;
       const rudderSide = Math.abs(rudderDeg) < .5 ? "" : rudderDeg > 0 ? t("ui.port") : t("ui.stbd");
       setText("#rudderValue", `${fmt(Math.abs(rudderDeg), 0)}°${rudderSide}`);
-      setStyleProperty("#rudderIndicator", "--position", `${50 - rudderDeg / 35 * 46}%`);
+      setStyleProperty("#rudderIndicator", "--position", `${50 - rudderDeg * helmInputSign() / 35 * 46}%`);
       setStyleProperty("#touchHelmWheel", "--wheel-angle", `${-rudderDeg / .14}deg`);
       setStyleProperty("#touchHelmWheel", "--tiller-angle", `${rudderDeg}deg`);
       const touchHelmControl = $("#touchHelmWheel");
@@ -9924,7 +9929,7 @@
       touchHelmControl.setAttribute("aria-label", t(steeringType === "tiller"
         ? "ui.helm.tiller.move.to.adjust.angle"
         : "ui.helm.wheel.turn.to.adjust.angle"));
-      touchHelmControl.setAttribute("aria-valuenow", String(Math.round(-rudderDeg)));
+      touchHelmControl.setAttribute("aria-valuenow", String(Math.round(-rudderDeg * helmInputSign())));
       setText("#touchRudderValue", Math.abs(rudderDeg) < .5
         ? "0°"
         : `${Math.round(Math.abs(rudderDeg))}° ${rudderSide.trim()}`);
@@ -11409,7 +11414,7 @@
         mouseHelm.positionX = event.clientX;
         if (mouseHelm.mode === "helm") {
           if (mouseHelm.lastX !== null) controls.rudderTarget = clamp(
-            controls.rudderTarget - (event.clientX - mouseHelm.lastX) * .1 * DEG * mouseHelm.sensitivity / 100,
+            controls.rudderTarget - (event.clientX - mouseHelm.lastX) * helmInputSign() * .1 * DEG * mouseHelm.sensitivity / 100,
             -BOAT_PROFILE.maxRudder, BOAT_PROFILE.maxRudder
           );
           mouseHelm.lastX = event.clientX;
