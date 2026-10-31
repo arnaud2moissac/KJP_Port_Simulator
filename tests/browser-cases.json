@@ -356,6 +356,13 @@
   },
   {
     "product": "simulator",
+    "id": "controls.64",
+    "group": "controls",
+    "name": "la roue tactile suit le doigt sur iPad sans saut au centre ni blocage après interruption",
+    "hasTouch": true
+  },
+  {
+    "product": "simulator",
     "id": "controls.62",
     "group": "controls",
     "name": "le smartphone démarre avec les commandes minimales et un conseil tablette ou ordinateur",

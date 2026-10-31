@@ -27458,6 +27458,16 @@ void main() {
 
     const touchHelm = $(".touch-helm");
     const touchWheel = $("#touchHelmWheel");
+    function touchWheelPointerAngle(event) {
+      const rect = touchWheel.getBoundingClientRect();
+      const dx = event.clientX - (rect.left + rect.width / 2);
+      const dy = event.clientY - (rect.top + rect.height / 2);
+      // Le moyeu n'a pas de direction fiable. Sa taille suit le zoom du panneau,
+      // sans dépendre du rectangle englobant de la roue qui tourne.
+      const scale = touchHelm.getBoundingClientRect().width / touchHelm.offsetWidth;
+      const hubRadius = Math.min(touchWheel.offsetWidth, touchWheel.offsetHeight) * scale * .2;
+      return Math.hypot(dx, dy) < hubRadius ? null : Math.atan2(dy, dx);
+    }
     function touchTillerPointerAngle(event) {
       const rect = touchWheel.getBoundingClientRect();
       const style = getComputedStyle(touchWheel);
@@ -27476,20 +27486,20 @@ void main() {
     touchHelm.addEventListener("pointerdown", event => {
       if (event.target.closest("button") || helmGesture) return;
       event.preventDefault();
-      const rect = touchWheel.getBoundingClientRect();
       const tiller = BOAT_PROFILE.steering.type === "tiller";
       const angle = tiller ? touchTillerPointerAngle(event)
-        : Math.atan2(event.clientY - (rect.top + rect.height / 2),
-          event.clientX - (rect.left + rect.width / 2));
+        : touchWheelPointerAngle(event);
       helmGesture = { id: event.pointerId, angle, tiller };
       try { touchHelm.setPointerCapture(event.pointerId); } catch {}
     });
     touchHelm.addEventListener("pointermove", event => {
       if (helmGesture?.id !== event.pointerId) return;
-      const rect = touchWheel.getBoundingClientRect();
       const angle = helmGesture.tiller ? touchTillerPointerAngle(event)
-        : Math.atan2(event.clientY - (rect.top + rect.height / 2),
-          event.clientX - (rect.left + rect.width / 2));
+        : touchWheelPointerAngle(event);
+      if (angle === null || helmGesture.angle === null) {
+        helmGesture.angle = angle;
+        return;
+      }
       const delta = Math.atan2(Math.sin(angle - helmGesture.angle),
         Math.cos(angle - helmGesture.angle));
       if (helmGesture.tiller) {
@@ -27506,6 +27516,7 @@ void main() {
     };
     touchHelm.addEventListener("pointerup", endHelmGesture);
     touchHelm.addEventListener("pointercancel", endHelmGesture);
+    touchHelm.addEventListener("lostpointercapture", endHelmGesture);
     touchWheel.addEventListener("keydown", event => {
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();

@@ -3958,6 +3958,75 @@ browserCase("simulator:controls.61", async ({ page }) => {
   assert.equal(await size.inputValue(), "175");
 });
 
+browserCase("simulator:controls.64", async ({ page, context }) => {
+  const touch = await context.newCDPSession(page);
+  const angle = () => page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.rudderTarget * 180 / Math.PI);
+  const close = (actual, expected, message) => assert.ok(Math.abs(actual - expected) < .001,
+    `${message}: attendu ${expected}°, obtenu ${actual}°`);
+  const send = async (type, point) => {
+    await touch.send("Input.dispatchTouchEvent", {
+      type, touchPoints: point ? [{ ...point, id: 1, radiusX: 10, radiusY: 10, force: 1 }] : []
+    });
+    await page.waitForTimeout(40);
+  };
+  for (const [width, height, percent] of [[1024, 768, 100], [1024, 768, 175], [1024, 768, 200], [768, 1024, 175]]) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(percent => {
+      window.__PORTANCE_TEST__.loadScenario("free");
+      const input = document.querySelector("#tabletControlsSize");
+      input.value = String(percent);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }, percent);
+    const wheel = await page.locator("#touchHelmWheel").evaluate(node => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius: rect.width * .43 };
+    });
+    const point = degrees => ({ x: wheel.x + Math.cos(degrees * Math.PI / 180) * wheel.radius,
+      y: wheel.y + Math.sin(degrees * Math.PI / 180) * wheel.radius });
+    await send("touchStart", point(0));
+    for (const degrees of [-15, -30, -45, -60, -90, -120, -150, -180]) {
+      await send("touchMove", point(degrees));
+      close(await angle(), -degrees * .14, `suivi circulaire ${percent} %, ${width} px`);
+    }
+    await send("touchEnd");
+    await send("touchStart", point(-180));
+    close(await angle(), 25.2, "reprendre la roue conserve la consigne");
+    for (const degrees of [-150, -120, -90, -60, -30, 0]) await send("touchMove", point(degrees));
+    await send("touchEnd");
+    close(await angle(), 0, "rotation inverse");
+
+    await send("touchStart", point(0));
+    await send("touchMove", { x: wheel.x + 2, y: wheel.y });
+    await send("touchMove", { x: wheel.x - 2, y: wheel.y });
+    close(await angle(), 0, "traverser le moyeu de 4 px ne doit pas provoquer un demi-tour");
+    await send("touchMove", point(180));
+    close(await angle(), 0, "sortir du moyeu reprend le geste sans saut");
+    await send("touchMove", point(150));
+    close(await angle(), 4.2, "la rotation reprend immédiatement sur la couronne");
+    await send("touchEnd");
+    close(await angle(), 4.2, "relâcher conserve la consigne");
+  }
+  await touch.detach();
+  const helm = page.locator(".touch-helm");
+  const wheel = await page.locator("#touchHelmWheel").boundingBox();
+  const x = wheel.x + wheel.width / 2, y = wheel.y + wheel.height / 2;
+  const radius = wheel.width * .35;
+  for (const interruption of ["pointercancel", "lostpointercapture"]) {
+    await page.evaluate(() => window.__PORTANCE_TEST__.setControls({ rudderTarget: 0 }));
+    const start = { pointerId: 70, pointerType: "touch", clientX: x + radius, clientY: y };
+    await helm.dispatchEvent("pointerdown", start);
+    await helm.dispatchEvent("pointermove", { ...start, clientX: x, clientY: y - radius });
+    close(await angle(), 12.6, "premier geste avant interruption");
+    await helm.dispatchEvent(interruption, start);
+    const resumed = { ...start, pointerId: 71 };
+    await helm.dispatchEvent("pointerdown", resumed);
+    close(await angle(), 12.6, "reprendre après interruption conserve l'angle");
+    await helm.dispatchEvent("pointermove", { ...resumed, clientX: x, clientY: y - radius });
+    close(await angle(), 25.2, `${interruption} ne doit pas bloquer le geste suivant`);
+    await helm.dispatchEvent("pointerup", resumed);
+  }
+});
+
 browserCase("simulator:controls.63", async ({ page }) => {
   const reset = id => page.locator(`[data-reset-control="${id}"]`);
   await page.locator('#advancedDetails summary').click();
