@@ -89,6 +89,14 @@ function browserCase(definition, callback) {
     const engine = await browser;
     const context = await engine.newContext({ locale: "fr-FR", hasTouch: Boolean(definition.hasTouch), viewport: definition.product === "simulator"
       ? { width: 1280, height: 800 } : { width: 1440, height: 900 }, reducedMotion: "reduce" });
+    if (definition.product === "generator") {
+      const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=", "base64");
+      // Startup now enables maps. Keep independent browser cases off public services.
+      await context.route(/https:\/\/(?:tile\.openstreetmap\.org|tiles\.openseamap\.org|data\.geopf\.fr|ibasemaps-api\.arcgis\.com|tiles\.maps\.eox\.at)\//,
+        route => route.fulfill({ contentType: "image/png", body: pixel }));
+      await context.route(/https:\/\/.*\/api\/interpreter/, route => route.fulfill({ contentType: "application/json",
+        body: JSON.stringify({ elements: [{ type: "count", tags: { total: "0" } }] }) }));
+    }
     const raw = await context.newPage();
     const runtimeErrors = [], externalRequests = [];
     raw.on("pageerror", error => runtimeErrors.push(error.message));
@@ -107,8 +115,8 @@ function browserCase(definition, callback) {
     url.searchParams.set("test", "1");
     if (controlled) url.searchParams.set("renderer", "canvas");
     await page.goto(url.href);
-    await page.waitForFunction(product => Boolean(window[product === "simulator"
-      ? "__PORTANCE_TEST__" : "__KJP_GENERATOR_TEST__"]), definition.product);
+    await page.waitForFunction(product => product === "simulator" ? Boolean(window.__PORTANCE_TEST__)
+      : window.__KJP_GENERATOR_TEST__?.startupMapsReady(), definition.product);
     if (definition.product === "simulator") {
       await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("dockForward"));
       if (definition.renderer === "native") await page.waitForFunction(() =>

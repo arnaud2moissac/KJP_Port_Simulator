@@ -217,7 +217,7 @@
     "ui.replier.le.panneau": "Plegañ ar banell",
     "ui.ex.port.de.camaret": "Sk. Porzh Kameled",
     "ui.lancer.la.recherche": "Loc'hañ ar c'hlask",
-    "ui.opacite.du.satellite.ign": "Divoullded loarell IGN",
+    "ui.opacite.du.satellite.ign": "Divoullded loarell",
     "ui.carte.dedition.metrique.du.port": "Kartenn embann vetrek ar porzh",
     "ui.afficher.le.panneau.de.localisation": "Diskouez ar banell lec'hiañ",
     "ui.afficher.le.panneau.de.proprietes": "Diskouez panell ar perzhioù",
@@ -477,6 +477,22 @@
     "source.network.timeout": "amzer tremenet",
     "source.network.cors": "rouedad pe politikerezh CORS",
     "source.network.details": "{message}",
-    "source.network.error": "fazi rouedad"
+    "source.network.error": "fazi rouedad",
+    "satellite.provider": "Mammenn satellit",
+    "satellite.auto": "Emgefreek",
+    "satellite.esri": "Esri er bed",
+    "satellite.state.cache": "Krubuilh hepken",
+    "satellite.state.zoom": "Zoumit evit kargañ",
+    "satellite.state.checking": "O wiriañ an takad",
+    "satellite.state.unavailable": "Dinoiñ dihegerz",
+    "satellite.state.loading": "O kargañ ar satellit",
+    "satellite.state.ready": "Skeudennoù satellit hegerz",
+    "satellite.state.coarse": "Sikour gant nebeut a vunudoù",
+    "satellite.storage": "Kadaviñ lecʼhel dihegerz",
+    "satellite.ign": "IGN France",
+    "satellite.eox": "EOX",
+    "satellite.state.error": "Skeudennoù dihegerz",
+    "maps.osm.local": "OpenStreetMap dihegerz en ur restr lec’hel ; satellit hervez an takad.",
+    "satellite.refresh": "Nevesaat mammenn ar satellit"
   }
 }

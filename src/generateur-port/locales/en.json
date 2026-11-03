@@ -217,7 +217,7 @@
     "ui.replier.le.panneau": "Collapse panel",
     "ui.ex.port.de.camaret": "E.g. Camaret harbour",
     "ui.lancer.la.recherche": "Start search",
-    "ui.opacite.du.satellite.ign": "IGN satellite opacity",
+    "ui.opacite.du.satellite.ign": "Satellite opacity",
     "ui.carte.dedition.metrique.du.port": "Metric harbour editing map",
     "ui.afficher.le.panneau.de.localisation": "Show location panel",
     "ui.afficher.le.panneau.de.proprietes": "Show properties panel",
@@ -462,6 +462,22 @@
     "source.network.timeout": "request timed out",
     "source.network.cors": "network or CORS policy",
     "source.network.details": "{message}",
-    "source.network.error": "network error"
+    "source.network.error": "network error",
+    "satellite.provider": "Satellite source",
+    "satellite.auto": "Automatic",
+    "satellite.esri": "Esri worldwide",
+    "satellite.state.cache": "Cache only",
+    "satellite.state.zoom": "Zoom in to load",
+    "satellite.state.checking": "Checking the area",
+    "satellite.state.unavailable": "Detection unavailable",
+    "satellite.state.loading": "Loading satellite imagery",
+    "satellite.state.ready": "Satellite imagery available",
+    "satellite.state.coarse": "Low-detail fallback",
+    "satellite.storage": "Local storage unavailable",
+    "satellite.ign": "IGN France",
+    "satellite.eox": "EOX",
+    "satellite.state.error": "Imagery unavailable",
+    "maps.osm.local": "OpenStreetMap is unavailable in a local file; satellite imagery depends on the area.",
+    "satellite.refresh": "Refresh satellite source"
   }
 }

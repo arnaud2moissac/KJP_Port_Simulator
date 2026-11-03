@@ -126,16 +126,28 @@
         <div class="layer-row">
           <label><input type="checkbox" id="osmLayerToggle" checked> OpenStreetMap</label>
         </div>
+        <small id="osmLocalNotice" hidden data-i18n="maps.osm.local">OpenStreetMap indisponible en fichier local ; satellite selon la zone.</small>
         <div class="layer-row">
           <label><input type="checkbox" id="seamarkLayerToggle" checked> OpenSeaMap</label>
         </div>
         <div class="layer-row layer-row-satellite">
           <label><input type="checkbox" id="orthoLayerToggle"> <span data-i18n="ui.satellite">Satellite</span></label>
           <div class="layer-opacity">
-            <input id="orthoOpacity" type="range" min="0" max="100" value="45" aria-label="Opacité du satellite IGN" data-i18n-attr="aria-label:ui.opacite.du.satellite.ign">
+            <input id="orthoOpacity" type="range" min="0" max="100" value="45" aria-label="Opacité du satellite" data-i18n-attr="aria-label:ui.opacite.du.satellite.ign">
             <output id="orthoOpacityValue" for="orthoOpacity">45 %</output>
           </div>
         </div>
+        <label for="satelliteProvider" data-i18n="satellite.provider">Source satellite</label>
+        <div class="satellite-source-row">
+        <select id="satelliteProvider">
+          <option value="auto" data-i18n="satellite.auto">Automatique</option>
+          <option value="ign" data-i18n="satellite.ign">IGN France</option>
+          <option value="esri" data-i18n="satellite.esri">Esri mondial</option>
+          <option value="eox" data-i18n="satellite.eox">EOX</option>
+        </select>
+        <button id="satelliteRefresh" class="button ghost" type="button" data-i18n-attr="aria-label:satellite.refresh;title:satellite.refresh">↻</button>
+        </div>
+        <p id="satelliteStorageWarning" hidden data-i18n="satellite.storage">Conservation locale indisponible</p>
       </section>
 
       <section class="panel-section analysis-section">

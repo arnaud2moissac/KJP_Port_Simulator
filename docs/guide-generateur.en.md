@@ -4,7 +4,7 @@ Build a navigable harbour for KJP Port Simulator. Controls, properties, messages
 
 ## Locate and reconstruct
 
-The editor works offline. Enable online maps to use OpenStreetMap, OpenSeaMap and IGN satellite imagery. Search for a place or enter its coordinates. Adjust satellite opacity to check your drawings.
+The editor works offline. Online maps start automatically at valid coordinates after draft restoration. In a local HTML file, OpenStreetMap is disabled and satellite is selected; only Esri is subject to the zoom and presence rules described below. Hosted pages retain OpenStreetMap. Worldwide satellite imagery uses IGN in France, Esri elsewhere and EOX as fallback. Search for a place or enter its coordinates. Adjust satellite opacity to check your drawings.
 
 Zoom to an area no larger than 2 × 2 km. Analyse the visible area or draw a polygon. Proposed objects remain candidates: check their category and geometry, then integrate your selection. A pontoon decomposition preview may be offered before confirmation.
 
@@ -86,3 +86,13 @@ not accessible from the generator.
 Release 2.1 versions: generator 1.1.0, KJP schema 3. A project by Arnaud de Moissac, distributed under the Apache 2.0 licence. Contact: kjp.bzh@gmail.com.
 
 [Open the simulator](https://arnaud2moissac.github.io/KJP_Port_Simulator/simulateur-port.html) · [Full project information — French content](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/README.md) · [Apache 2.0 licence](https://github.com/arnaud2moissac/KJP_Port_Simulator/blob/main/LICENSE)
+
+## Satellite sources and local cache
+
+Choose **Automatic**, **IGN France**, **Esri worldwide** or **EOX**. Automatic prioritises IGN in France and Esri elsewhere, including Canada, with EOX as a lower-detail fallback. **IGN France** uses IGN exclusively, without falling back to Esri or EOX. IGN and EOX have no object-presence or minimum-view-zoom restriction. Only Esri requires zoom 16 and a visible port object, candidate or confirmed OpenSeaMap data. If Overpass is unavailable, the editor checks the visible area's transparent seamark tiles without displaying them, even when the OpenSeaMap layer is hidden. EOX remains available as a lower-detail fallback.
+
+IGN and EOX use a local 256 MiB cache, renewed after 90 days. Esri uses normal HTTP caching and page memory only. The ↻ button next to the source refreshes visible images and retries suspended sources without clearing the draft or the whole cache. Exports contain no imagery or API key. Keep pay-as-you-go disabled on the shared Esri account. EOX is provided under CC BY-NC-SA 4.0 for non-commercial use; keep all credits.
+
+Credits at the bottom of the map identify only imagery that is actually visible. Previously loaded sources and imagery fully covered by another source are excluded. Credits stay compact: **© IGN · BD ORTHO**, **Powered by Esri** or **© EOX · Copernicus 2025**. Click the Esri or EOX credit to expand its full attribution and related links. OpenStreetMap and OpenSeaMap keep their own credits while their layers are displayed. Satellite status and provider names are no longer repeated below the source selector.
+
+For local OpenStreetMap access, run `npm run serve:generator` in the repository and open http://127.0.0.1:4173/generateur-port.html. This supplies a genuine HTTP referrer. A file:// page cannot manufacture one; other sources remain available when opening the standalone HTML directly. The local server requires Node.js.

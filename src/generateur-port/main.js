@@ -4,6 +4,9 @@ import Map from "ol/Map.js";
 import View from "ol/View.js";
 import Feature from "ol/Feature.js";
 import TileLayer from "ol/layer/Tile.js";
+import ImageLayer from "ol/layer/Image.js";
+import ImageCanvasSource from "ol/source/ImageCanvas.js";
+const { Satellite, mapAttribution } = require("./satellite.js");
 import VectorLayer from "ol/layer/Vector.js";
 import OSM from "ol/source/OSM.js";
 import XYZ from "ol/source/XYZ.js";
@@ -74,6 +77,7 @@ let selectedIds = [];
 let drawInteraction = null;
 let measurement = null;
 let mapsEnabled = false;
+let startupMapsReady = false;
 let analyzedResponses = [];
 let candidates = [];
 let focusedCandidateIndex = -1;
@@ -225,15 +229,18 @@ const osmLayer = new TileLayer({
     attributions: t("ui.les.contributeurs.openstreetmap.odbl")
   })
 });
-const orthoLayer = new TileLayer({
-  visible: false,
-  opacity: 0.45,
-  source: new XYZ({
-    crossOrigin: "anonymous",
-    url: "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
-    attributions: "© IGN · BD ORTHO"
-  })
+let satellite = null;
+const orthoSource = new ImageCanvasSource({
+  ratio: 1,
+  projection: "EPSG:3857",
+  canvasFunction(extent, resolution, pixelRatio, size) {
+    const canvas = document.createElement("canvas");
+    canvas.width = size[0]; canvas.height = size[1];
+    satellite?.draw(canvas.getContext("2d"), extent, canvas.width, canvas.height);
+    return canvas;
+  }
 });
+const orthoLayer = new ImageLayer({ visible: false, opacity: 0.45, source: orthoSource });
 const seamarkLayer = new TileLayer({
   visible: false,
   source: new XYZ({
@@ -732,6 +739,40 @@ const map = new Map({
     pinchRotate: false
   })
 });
+
+function recordSatelliteSource(provider, info) {
+  if (editor.document.sources.some(source => source.provider === info.name)) return;
+  editor.transaction("Référencer l’imagerie", next => {
+    next.sources.push({ provider: info.name, kind: "orthophoto", attribution: info.attribution,
+      license: info.license, url: info.reference, retrievedAt: new Date().toISOString(), embedded: false });
+  });
+  scheduleAutosave();
+}
+function updateSatellite() {
+  if (!satellite || !map.getSize()) return;
+  const extent = map.getView().calculateExtent(map.getSize());
+  const local = [objectSource, candidateSource].some(source => source.getFeaturesInExtent(extent)
+    .some(feature => feature.getGeometry()?.intersectsExtent(extent)));
+  satellite.update({ extent, zoom: map.getView().getZoom(), local,
+    enabled: mapsEnabled && $("#orthoLayerToggle").checked,
+    mode: $("#satelliteProvider").value, at: Date.now() });
+}
+satellite = new Satellite({
+  changed: () => orthoSource.changed(),
+  used: recordSatelliteSource,
+  endpoint: () => (OSMPortImport.DEFAULT_OVERPASS_ENDPOINTS?.find(item => item.id === preferredOverpassEndpoint())
+    || { url: "https://overpass-api.de/api/interpreter" }).url,
+  status: report => {
+    $("#satelliteStorageWarning").hidden = !report.storageUnavailable;
+    orthoSource.setAttributions(report.providers.map(mapAttribution));
+  }
+});
+map.getView().on(["change:center", "change:resolution"], updateSatellite);
+map.on("change:size", updateSatellite);
+objectSource.on("change", updateSatellite);
+candidateSource.on("change", updateSatellite);
+$("#satelliteProvider").addEventListener("change", updateSatellite);
+$("#satelliteRefresh").addEventListener("click", () => satellite.retry());
 
 const selectInteraction = new Select({
   layers: [objectLayer],
@@ -2446,7 +2487,22 @@ function enableMaps() {
   osmLayer.setVisible($("#osmLayerToggle").checked);
   seamarkLayer.setVisible($("#seamarkLayerToggle").checked);
   orthoLayer.setVisible($("#orthoLayerToggle").checked);
+  updateSatellite();
   return true;
+}
+
+function enableStartupMaps() {
+  const { latitude, longitude } = editor.document.georeference.origin || {};
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)
+    || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return;
+  if (location.protocol === "file:") {
+    // Browser pages opened as files cannot send the HTTP Referer required by OSM.
+    $("#osmLayerToggle").checked = false;
+    $("#osmLayerToggle").disabled = true;
+    $("#osmLocalNotice").hidden = false;
+    $("#orthoLayerToggle").checked = true;
+  }
+  enableMaps();
 }
 
 $("#enableMapsButton").addEventListener("click", enableMaps);
@@ -2458,7 +2514,7 @@ $("#seamarkLayerToggle").addEventListener("change", event => {
 });
 $("#orthoLayerToggle").addEventListener("change", event => {
   if (mapsEnabled) orthoLayer.setVisible(event.target.checked);
-  if (event.target.checked) ensureOrthophotoSourceReference();
+  updateSatellite();
 });
 $("#orthoOpacity").addEventListener("input", event => {
   const opacity = Number(event.target.value) / 100;
@@ -2838,12 +2894,16 @@ function showCandidateDrawer({ focusFirst = true, fit = true } = {}) {
 }
 
 async function analyzeVisibleZone() {
+  satellite.analysis = true;
+  satellite.cancel();
   enableMaps();
   let scope;
   try {
     scope = activeAnalysisScope();
     OSMPortImport.validateAnalysisBounds(scope.bounds);
   } catch (error) {
+    satellite.analysis = false;
+    updateSatellite();
     showToast(msg("error.analysis.bounds", { reason: errorMessage(error) }), "danger", 3800);
     return;
   }
@@ -2898,6 +2958,8 @@ async function analyzeVisibleZone() {
     const attemptCount = error.attempts?.length || 0;
     setText($("#analysisStats"), attemptCount ? msg("analysis.no.data", { count: attemptCount }) : msg("ui.aucune.donnee.ajoutee.verifiez.la.zone.analysee"));
   } finally {
+    satellite.analysis = false;
+    updateSatellite();
     $("#analyzeButton").disabled = false;
     setText($("#analyzeButton"), msg("ui.analyser.cette.zone"));
   }
@@ -2959,22 +3021,6 @@ $("#integrateCandidates").addEventListener("click", () => {
   setCandidateDrawerOpen(false);
   showToast(msg("toast.integrated", { count: result.added }), "ok", 3200);
 });
-
-function ensureOrthophotoSourceReference() {
-  if (editor.document.sources.some(source => source.provider === "IGN BD ORTHO")) return;
-  editor.transaction("Référencer l’orthophoto", next => {
-    next.sources.push({
-      provider: "IGN BD ORTHO",
-      kind: "orthophoto",
-      attribution: "© IGN · BD ORTHO, utilisée uniquement comme aide visuelle",
-      license: "Licence ouverte Etalab 2.0",
-      url: "https://geoservices.ign.fr/bdortho",
-      retrievedAt: new Date().toISOString(),
-      embedded: false
-    });
-  });
-  afterEdit();
-}
 
 function syncMetadataForm() {
   const metadata = editor.document.metadata;
@@ -3154,7 +3200,7 @@ function resetWorkspace({ confirmReset = true } = {}) {
   setActiveTool("select");
   setPanelCollapsed("left", false);
   setPanelCollapsed("right", false);
-  if ($("#orthoLayerToggle").checked) ensureOrthophotoSourceReference();
+  updateSatellite();
   showToast(msg("ui.nouveau.port.pret.a.etre.modelise"), "ok");
   return true;
 }
@@ -3364,6 +3410,11 @@ function installTestApi() {
     },
     resetWorkspace: () => resetWorkspace({ confirmReset: false }),
     enableMaps,
+    startupMapsReady: () => startupMapsReady,
+    satelliteReport: () => satellite.report(),
+    clearSatelliteCache: () => satellite.clear(),
+    satelliteTestKey: key => { require("./satellite-config.json").esriApiKey = key; updateSatellite(); },
+    satelliteView: (longitude, latitude, zoom = 17) => { map.getView().setCenter(fromLonLat([longitude, latitude])); map.getView().setZoom(zoom); },
     layers: () => ({
       enabled: mapsEnabled,
       osm: osmLayer.getVisible(),
@@ -3618,4 +3669,7 @@ setActiveTool("select");
 setPanelCollapsed("right", innerWidth <= 1040);
 setPanelCollapsed("left", innerWidth <= 700);
 installTestApi();
-void restoreDraft();
+void restoreDraft().finally(() => {
+  enableStartupMaps();
+  startupMapsReady = true;
+});

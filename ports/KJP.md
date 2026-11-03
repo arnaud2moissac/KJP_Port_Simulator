@@ -98,8 +98,8 @@ des objets OpenStreetMap interrogés par Overpass après l’action explicite
 « Analyser cette zone ». Chaque requête est limitée à 2 × 2 km ; plusieurs
 réponses peuvent être fusionnées et dédupliquées.
 
-L’orthophoto IGN, disponible comme calque optionnel en France, n’est jamais
-utilisée pour détecter automatiquement l’occupation et n’est jamais embarquée
+Les images IGN (France), Esri (monde) et EOX (secours), proposées comme fonds optionnels, ne sont jamais
+utilisées pour détecter automatiquement l’occupation et ne sont jamais embarquées
 dans KJP. Google Satellite est volontairement absent : ses conditions
 interdisent l’analyse d’image et l’extraction de géodonnées prévues par ce
 workflow.

@@ -32,13 +32,13 @@ Une saisie numérique se valide en quittant le champ : **Tab** sur PC, ou un tou
 
 **Objectif :** afficher les bassins, les jetées et leurs abords avant de créer des objets.
 
-1. Cliquez sur **Afficher les cartes en ligne**. Cette activation nécessite une connexion Internet.
+1. Les cartes en ligne s’activent automatiquement au démarrage lorsque les coordonnées sont valides, après restauration du brouillon. Une connexion Internet est nécessaire. En fichier HTML local, le fond OpenStreetMap est désactivé et le satellite est sélectionné ; seul Esri est soumis aux conditions de zoom et de présence décrites ci-dessous.
 2. Saisissez **Port Tudy, Groix** dans **Rechercher un lieu**, puis cliquez sur la loupe.
 3. Attendez l’affichage du résultat et des tuiles cartographiques. Le texte renvoyé par la recherche permet de contrôler le lieu trouvé.
 4. Ajustez le cadrage pour voir les deux jetées et l’ensemble des bassins.
 5. Si nécessaire, saisissez un centre de vue dans **Latitude** et **Longitude**, puis cliquez sur **Centrer**. Pour le cadrage d’ensemble des captures : latitude **47,644200**, longitude **−3,446750**. Ce centre de travail n’est pas le point d’entrée du bateau, que vous placerez à l’étape 8.
 
-**OpenStreetMap** donne les contours et les noms ; **OpenSeaMap** ajoute des indications et symboles maritimes. **Satellite** propose un fond IGN lorsque le service est disponible ; son curseur d’opacité aide à comparer l’image aux tracés. Désactivez un calque s’il masque les détails que vous cherchez à lire.
+**OpenStreetMap** donne les contours et les noms ; **OpenSeaMap** ajoute des indications et symboles maritimes. **Satellite** propose IGN, Esri mondial ou EOX selon la source choisie ; son curseur d’opacité aide à comparer l’image aux tracés. Désactivez un calque s’il masque les détails que vous cherchez à lire.
 
 Utilisez aussi **Satellite** pour un premier repérage des pontons occupés, de la densité de bateaux et des équipements visibles. Vous referez cette comparaison après l’import, selon la méthode illustrée à l’étape 4, pour identifier ce qu’il reste à construire.
 
@@ -46,7 +46,7 @@ Utilisez aussi **Satellite** pour un premier repérage des pontons occupés, de 
 
 ![Recherche de Port Tudy et cadrage des bassins sur le générateur hébergé](images/generateur/01-port-tudy-localisation.fr.jpg)
 
-**Contrôle :** le port est reconnaissable, les deux jetées sont visibles et le compteur d’objets reste à zéro tant que vous n’avez rien intégré ou dessiné. Les crédits OpenStreetMap et OpenSeaMap sont visibles en bas de carte.
+**Contrôle :** le port est reconnaissable, les deux jetées sont visibles et le compteur d’objets reste à zéro tant que vous n’avez rien intégré ou dessiné. Les crédits des fonds et calques réellement affichés sont visibles en bas de carte.
 
 ## 3. Délimiter et analyser une zone
 
@@ -111,6 +111,18 @@ ses poignées et le déplacer.
 **Contrôle :** l’objet sélectionné correspond bien à l’ouvrage visé. Corrigez les dimensions à partir d’informations fiables ; les valeurs proposées par l’import restent des approximations.
 
 ### Utiliser Satellite pour contrôler l’occupation et les équipements
+
+La source **Automatique** privilégie IGN en France et Esri dans les autres pays, notamment au Canada. Le sélecteur permet aussi de choisir IGN, Esri ou EOX. **IGN France** reste exclusivement sur IGN, sans basculer vers Esri ou EOX. EOX est un secours mondial moins détaillé. La date et la précision des images varient selon les secteurs ; le masque de sélection IGN inclut les abords côtiers et le choix manuel reste disponible aux frontières.
+
+IGN et EOX chargent librement les images de la vue, sans condition de zoom ni de présence d’objet. Seul Esri est soumis au seuil de zoom 16 et à la présence d’un objet du port, d’un candidat ou de données OpenSeaMap dans la zone. Le générateur tente un comptage Overpass ; si ce serveur est indisponible, il inspecte les tuiles OpenSeaMap de la vue sans les afficher. Ce secours reste actif même lorsque le calque OpenSeaMap est masqué. Si Esri n’est pas autorisé ou disponible, EOX peut fournir un fond moins détaillé.
+
+Les images IGN et EOX sont conservées sur ce navigateur, jusqu’à 256 Mio, avec renouvellement après 90 jours. Esri utilise le cache HTTP du navigateur et la mémoire de la page. Le bouton **↻**, à droite de la source, actualise les images visibles et réessaie les sources suspendues sans effacer le brouillon ni tout le cache. Les images et la clé ne sont jamais exportées dans le fichier KJP.
+
+Pour utiliser OpenStreetMap avec les fichiers locaux, démarrez `npm run serve:generator` depuis le dépôt puis ouvrez [le générateur HTTP local](http://127.0.0.1:4173/generateur-port.html). Le navigateur transmet alors le référent HTTP réel de cette adresse. Depuis `file://`, ce référent ne peut pas être fabriqué : le fond OSM reste désactivé. Aucune extension ni modification de sécurité du navigateur n’est nécessaire. La commande nécessite Node.js ; le HTML peut toujours être ouvert directement pour utiliser les autres sources. [Politique des tuiles OSM](https://operations.osmfoundation.org/policies/tiles/).
+
+Le compte Esri commun partage son quota gratuit entre les contributeurs ; sa facturation à l’usage doit rester désactivée. Un refus ou un quota dépassé suspend la source pour la session ; le bouton **↻** permet une nouvelle tentative. En mode Automatique, un échec IGN entraîne un essai Esri puis EOX. EOX est utilisé sous CC BY-NC-SA 4.0 pour cet usage non commercial. Conservez les crédits affichés. Conditions : [IGN](https://geoservices.ign.fr/bdortho), [Esri](https://www.esri.com/en-us/legal/terms/full-master-agreement), [EOX](https://cloudless.eox.at/documentation/license).
+
+Les crédits en bas de carte concernent uniquement les images réellement visibles, sans cumuler les sources chargées auparavant ou entièrement recouvertes. Leur affichage est compact : **© IGN · BD ORTHO**, **Powered by Esri** ou **© EOX · Copernicus 2025**. Cliquez sur les crédits Esri ou EOX pour déplier leurs mentions détaillées et les liens associés. Les calques OpenStreetMap et OpenSeaMap conservent leurs propres crédits lorsqu’ils sont affichés. Le statut satellite et la liste des fournisseurs ne sont plus répétés sous le sélecteur.
 
 L’analyse OpenStreetMap peut fournir les grands pontons sans tous leurs équipements. La vue satellite permet de comparer ces objets à une image du port et de préparer les compléments manuels.
 
@@ -342,7 +354,7 @@ Le chargement réussi confirme que le fichier peut être utilisé. Il ne remplac
 
 **L’import ou l’export est refusé.** Lisez le premier diagnostic, vérifiez le nom du port, l’entrée et l’objet signalé. Un fichier renommé en `.kjp` sans être un document KJP valide n’est pas importable. Ne supprimez pas votre dernier fichier fonctionnel pendant la correction.
 
-**Le brouillon n’est plus disponible.** Réimportez votre dernier `.kjp`. Après réouverture, il peut aussi être nécessaire de réactiver les cartes en ligne ; le port et les fonds cartographiques n’ont pas le même rôle.
+**Le brouillon n’est plus disponible.** Réimportez votre dernier `.kjp`. Après réouverture, les cartes se réactivent automatiquement aux coordonnées du brouillon. En fichier local, le satellite prend le relais du fond OpenStreetMap, sous réserve des conditions de chargement.
 
 ## Mémo avant de partager un port
 
@@ -360,7 +372,7 @@ Le chargement réussi confirme que le fichier peut être utilisé. Il ne remplac
 
 Les captures de ce guide proviennent exclusivement des applications KJP hébergées sur GitHub : le générateur pour les étapes d’édition et le simulateur pour le contrôle final. Les vues ordinateur ont été prises en paysage, principalement en 1440 × 900 ; la vue tablette utilise 1024 × 768. Elles montrent une interface réellement manipulée, avec des légendes décrivant les points à vérifier.
 
-Les fonds des captures portent les attributions **© les contributeurs OpenStreetMap · ODbL** et, selon les calques actifs, **© OpenSeaMap** ou **© IGN · BD ORTHO**, conservées au bas des images. La vue dite Satellite utilise ici l’orthophotographie IGN ; son occupation est celle de la prise de vue. La carte peut être consultée sur [OpenStreetMap autour de Port Tudy](https://www.openstreetmap.org/#map=17/47.6442/-3.44675). Les géométries importées conservent leurs sources dans le fichier KJP. Les images des cartes ne sont pas embarquées dans ce fichier.
+Les fonds des captures portent les attributions **© les contributeurs OpenStreetMap · ODbL** et, selon les calques actifs, **© OpenSeaMap** ou **© IGN · BD ORTHO**, conservées au bas des images. Les captures de ce guide utilisent l’orthophotographie IGN ; le générateur propose également Esri et EOX. L’occupation visible correspond à la prise de vue. La carte peut être consultée sur [OpenStreetMap autour de Port Tudy](https://www.openstreetmap.org/#map=17/47.6442/-3.44675). Les géométries importées conservent leurs sources dans le fichier KJP. Les images des cartes ne sont pas embarquées dans ce fichier.
 
 **Versions de la release 2.1 :** générateur 1.1.0, schéma KJP 3. Projet de Arnaud de Moissac, distribué sous licence Apache 2.0. Contact : kjp.bzh@gmail.com.
 

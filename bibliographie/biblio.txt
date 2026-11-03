@@ -591,3 +591,12 @@ dupliquées. Les URL internes, fichiers de scénario, résultats de test, chemin
 de dépôt et GLB KJP restent exclus de la bibliographie. Les autres résultats de
 recherche non utilisés pour définir ou valider ces profils ne sont pas des sources
 de calibration.
+
+[archivé] osm-seamark-type.html
+URL : https://wiki.openstreetmap.org/wiki/Key:seamark:type
+Usage : définition du filtre de présence des données OpenSeaMap pour autoriser
+        les téléchargements satellite dans le générateur, indépendamment du
+        calque affiché (extension mondiale et cache local, novembre 2026).
+Les documentations des API de tuiles, licences et stockage navigateur utilisées
+pour cette interface relèvent de l’outillage/rendu et sont exclues du périmètre
+nautique ; leurs liens sont conservés dans le guide du générateur.

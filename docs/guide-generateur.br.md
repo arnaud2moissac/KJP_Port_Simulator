@@ -4,7 +4,7 @@ Savit ur porzh merdeus evit KJP Port Simulator. Ar yezh dibabet er roll FR / EN 
 
 ## Lec’hiañ hag adsevel
 
-Gallout a ra an embanner labourat hep kennask. Gweredekait ar c’hartennoù enlinenn evit implijout OpenStreetMap, OpenSeaMap ha skeudennoù loarell IGN. Klaskit ul lec’h pe skrivit e zaveennoù. Reolit divoullded al loarell evit gwiriañ ho tresoù.
+Gallout a ra an embanner labourat hep kennask. Gweredekaet e vez ar c’hartennoù enlinenn en un doare emgefreek gant daveennoù reizh, goude adsevel ar brouilhed. En ur restr HTML lec’hel e vez diweredekaet OpenStreetMap ha dibabet ar satellit ; Esri hepken a zo stag ouzh ar zoum ha bezañs traezennoù. IGN a vez implijet e Frañs, Esri e lec’h all hag EOX da sikour. Klaskit ul lec’h pe skrivit e zaveennoù. Reolit divoullded al loarell evit gwiriañ ho tresoù.
 
 Zoumit war ur gorread 2 × 2 km d’ar muiañ. Dielfennit ar gorread gwelet pe tresit ur poligon. Da gadarnaat eo an traoù kinniget : gwiriit o rummad hag o mentoniezh, ha goude-se enkorfit ho tiuzad. Gallout a ra ur rakwel eus rannadur ur ponton bezañ kinniget a-raok kadarnaat.
 
@@ -96,3 +96,13 @@ Stummoù an embann 2.1 : krouer 1.1.0, skouer KJP 3. Ur raktres gant Arnaud de M
 ## Geriaoueg
 
 Implijet eo geriaoueg ar simulator : Taked, Babourzh, Tribourzh, Porzh. Ponton bihan hag Ere ar c’horf-marv zo troiennoù displegus evit catway ha pendille. N’int ket termenoù testeniekaet gant al levr gerioù mor 2025. Da adlenn gant ur brezhonegour a anavez ar merdeiñ.
+
+## Mammennoù satellit ha krubuilh lec’hel
+
+Dibabit **Emgefreek**, **IGN France**, **Esri er bed** pe **EOX**. Gant Emgefreek e vez dibabet IGN e Frañs hag Esri e lec’h all, e Kanada da skouer, gant EOX da sikour. **IGN France** a implij IGN hepken, hep mont war Esri pe EOX. IGN hag EOX a garg skeudennoù hep amskouer zoum pe bezañs traezennoù. Esri hepken a c’houlenn zoum 16 hag un draezenn eus ar porzh, un danvez-traezenn pe roadennoù OpenSeaMap. Ma vez Overpass dihegerz, e vez gwiriaet teolioù OpenSeaMap an takad hep o diskouez. Labourat a ra pa vez kuzhet ar gwiskad ivez.
+
+IGN hag EOX a implij ur c’hrubuilh lec’hel 256 Mio, nevesaet goude 90 devezh. Esri a implij krubuilh HTTP ha memor ar bajenn hepken. Ar bouton ↻ e-kichen ar vammenn a nevesa ar skeudennoù hag a glask ar mammennoù en-dro, hep diverkañ ar brouilhed pe ar c’hrubuilh a-bezh. Ne vez ket ezporzhiet skeudennoù nag alc’hwez API er restr KJP. Ret eo lezel fakturadur dre implij diweredekaet evit Esri. EOX a zo ur sikour gant nebeut a vunudoù, dindan CC BY-NC-SA 4.0 evit an implij hep kenwerzh.
+
+An daveoù e traoñ ar gartenn a sell ouzh ar skeudennoù hewel hepken. Ne vez ket ouzhpennet ar mammennoù karget a-raok pe kuzhet penn-da-benn gant ur vammenn all. Berr eo an daveoù : **© IGN · BD ORTHO**, **Powered by Esri** pe **© EOX · Copernicus 2025**. Klikit war an daveoù Esri pe EOX evit digeriñ ar menegoù klok hag al liammoù. OpenStreetMap hag OpenSeaMap a vir o daveoù pa vez diskouezet o gwiskadoù. Ne vez ket mui adskrivet stad ar satellit pe anvioù ar mammennoù dindan an diuzer.
+
+Evit implijout OpenStreetMap e lec’hel, lañsit `npm run serve:generator` er c’havlec’h ha digorit http://127.0.0.1:4173/generateur-port.html. Kaset e vez un daveer HTTP gwirion gant ar merdeer. Ne c’hall ket ur bajenn file:// sevel unan. Ret eo kaout Node.js evit ar servijer lec’hel.

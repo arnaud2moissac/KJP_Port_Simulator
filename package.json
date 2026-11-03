@@ -55,6 +55,7 @@
     "verify:physics": "node scripts/run-validation.js --route physics-check --component transversal",
     "verify:simulator": "node scripts/run-validation.js --route release-check --product simulator",
     "verify:port-generator": "node scripts/run-validation.js --route release-check --product generator",
-    "verify:release": "node scripts/run-validation.js --route release-check --product all"
+    "verify:release": "node scripts/run-validation.js --route release-check --product all",
+    "serve:generator": "node scripts/serve-port-generator.js"
   }
 }

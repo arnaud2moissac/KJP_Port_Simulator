@@ -462,7 +462,7 @@
     "product": "generator",
     "id": "smoke.03",
     "group": "smoke",
-    "name": "aucune requête cartographique ou géographique n'est émise avant une action"
+    "name": "les coordonnées activent les cartes au démarrage local sans solliciter OSM"
   },
   {
     "product": "generator",
@@ -708,5 +708,71 @@
     "group": "measurement",
     "name": "la mesure tactile peut être recommencée, annulée et effacée",
     "hasTouch": true
+  },
+  {
+    "product": "generator",
+    "id": "maps.24",
+    "group": "maps",
+    "name": "le comptage invisible autorise le satellite et respecte le zoom"
+  },
+  {
+    "product": "generator",
+    "id": "maps.25",
+    "group": "maps",
+    "name": "objets locaux, résultat nul et cache évitent les requêtes inutiles"
+  },
+  {
+    "product": "generator",
+    "id": "maps.26",
+    "group": "maps",
+    "name": "le refus Esri active EOX sans archiver Esri ni exporter la clé"
+  },
+  {
+    "product": "generator",
+    "id": "maps.27",
+    "group": "maps",
+    "name": "le cache IGN persiste après réouverture"
+  },
+  {
+    "product": "generator",
+    "id": "maps.28",
+    "group": "maps",
+    "name": "Esri couvre le Canada sans archivage persistant"
+  },
+  {
+    "product": "generator",
+    "id": "maps.29",
+    "group": "maps",
+    "name": "le brouillon restaure ses coordonnées et affiche le satellite sans clic"
+  },
+  {
+    "product": "generator",
+    "id": "maps.30",
+    "group": "maps",
+    "name": "le démarrage HTTPS active OSM automatiquement"
+  },
+  {
+    "product": "generator",
+    "id": "maps.31",
+    "group": "maps",
+    "name": "le démarrage local reste fonctionnel sans IndexedDB"
+  },
+  {
+    "product": "generator",
+    "id": "maps.32",
+    "group": "maps",
+    "name": "le serveur HTTP local transmet un référent valide à OSM"
+  },
+  {
+    "product": "generator",
+    "id": "maps.33",
+    "group": "maps",
+    "name": "Pointe de l’Islet autorise Esri grâce au secours OpenSeaMap invisible"
+  },
+  {
+    "product": "generator",
+    "id": "maps.34",
+    "group": "maps",
+    "name": "IGN forcé exclut les crédits des fonds précédents et conserve une attribution courte"
   }
 ]

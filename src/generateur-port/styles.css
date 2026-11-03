@@ -544,3 +544,18 @@ input[type="range"] { min-height: 22px; padding: 0; border: 0; background: trans
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .001ms !important; }
 }
+
+#satelliteProvider { width: 100%; margin-top: .35rem; font-size: 12px; }
+
+#osmLocalNotice { display: block; font-size: 10px; line-height: 1.4; margin-top: 4px; }
+#osmLocalNotice[hidden] { display: none; }
+
+.satellite-source-row { display: flex; align-items: center; gap: 6px; }
+.satellite-source-row #satelliteProvider { min-width: 0; flex: 1; margin-top: 0; }
+#satelliteRefresh { flex: 0 0 34px; padding: 5px; font-size: 20px; line-height: 1; min-height: 34px; }
+
+.satellite-credit { display: inline-block; position: relative; }
+.satellite-credit summary { display: inline; cursor: pointer; list-style: none; text-decoration: underline dotted; }
+.satellite-credit summary::-webkit-details-marker { display: none; }
+.satellite-credit > span { display: none; }
+.satellite-credit[open] > span { display: block; position: absolute; bottom: 100%; right: 0; width: min(340px, 75vw); padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); white-space: normal; text-align: left; z-index: 60; box-shadow: 0 2px 8px #0002; }

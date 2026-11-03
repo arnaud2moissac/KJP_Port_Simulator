@@ -217,7 +217,7 @@
     "ui.replier.le.panneau": "Replier le panneau",
     "ui.ex.port.de.camaret": "Ex. Port de Camaret",
     "ui.lancer.la.recherche": "Lancer la recherche",
-    "ui.opacite.du.satellite.ign": "Opacité du satellite IGN",
+    "ui.opacite.du.satellite.ign": "Opacité du satellite",
     "ui.carte.dedition.metrique.du.port": "Carte d’édition métrique du port",
     "ui.afficher.le.panneau.de.localisation": "Afficher le panneau de localisation",
     "ui.afficher.le.panneau.de.proprietes": "Afficher le panneau de propriétés",
@@ -462,6 +462,22 @@
     "source.network.timeout": "délai dépassé",
     "source.network.cors": "réseau ou politique CORS",
     "source.network.details": "{message}",
-    "source.network.error": "erreur réseau"
+    "source.network.error": "erreur réseau",
+    "satellite.provider": "Source satellite",
+    "satellite.auto": "Automatique",
+    "satellite.esri": "Esri mondial",
+    "satellite.state.cache": "Cache uniquement",
+    "satellite.state.zoom": "Zoomez pour charger",
+    "satellite.state.checking": "Vérification de la zone",
+    "satellite.state.unavailable": "Détection indisponible",
+    "satellite.state.loading": "Chargement du satellite",
+    "satellite.state.ready": "Satellite disponible",
+    "satellite.state.coarse": "Secours peu détaillé",
+    "satellite.storage": "Conservation locale indisponible",
+    "satellite.ign": "IGN France",
+    "satellite.eox": "EOX",
+    "satellite.state.error": "Imagerie indisponible",
+    "maps.osm.local": "OpenStreetMap indisponible en fichier local ; satellite selon la zone.",
+    "satellite.refresh": "Actualiser la source satellite"
   }
 }

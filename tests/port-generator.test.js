@@ -186,6 +186,8 @@ function createLargePortText() {
 }
 
 browserCase("generator:localization.01", async ({ page, externalRequests }) => {
+    // Isolate language changes from automatic source registration after image loading.
+    await page.locator("#orthoLayerToggle").uncheck();
     const { loadCatalogs } = require("../scripts/localization-assets.js");
     const catalogs = loadCatalogs({ directory: path.join(projectRoot, "src/generateur-port/locales") });
     const fixture = require("./fixtures/osm-port-sample.json");
@@ -235,7 +237,7 @@ browserCase("generator:localization.01", async ({ page, externalRequests }) => {
     await page.evaluate(() => window.__KJP_GENERATOR_TEST__.selectLocale("en"));
     assert.match(await page.locator("#toast").textContent(), /berths of 4\.0 m/);
     assert.deepEqual((await page.evaluate(() => window.__KJP_GENERATOR_TEST__.localeReport())).missingKeys, []);
-    assert.deepEqual(externalRequests.filter(url => !url.includes("googletagmanager")), []);
+    assert.ok(externalRequests.every(url => /googletagmanager|tiles\.openseamap\.org/.test(url)), "seules les tuiles OpenSeaMap du démarrage sont attendues");
     for (const width of [320, 390]) {
       await page.setViewportSize({ width, height: 844 });
       for (const code of ["fr", "en", "br"]) {
@@ -270,6 +272,8 @@ browserCase("generator:localization.02", async ({ browser }) => {
           if (stored) localStorage.setItem("kjp.generator.locale", stored);
           if (blocked) Object.defineProperty(window, "localStorage", { get() { throw new Error("disabled"); } });
         }, { stored, blocked });
+        await page.route(/https:\/\/(?:tiles\.openseamap\.org|data\.geopf\.fr)\//, route => route.fulfill({ contentType: "image/png", body: satellitePixel }));
+        await page.route(/https:\/\/.*\/api\/interpreter/, route => route.fulfill({ contentType: "application/json", body: JSON.stringify({ elements: [{type:"count", tags:{total:"0"}}] }) }));
         await page.goto(testUrl(generatorPath));
         await page.waitForFunction(() => window.__KJP_GENERATOR_TEST__);
         assert.equal(await page.locator("html").getAttribute("lang"), expected);
@@ -284,7 +288,7 @@ browserCase("generator:localization.02", async ({ browser }) => {
           }
         }
         assert.deepEqual(errors, []);
-        assert.deepEqual(network, []);
+        assert.ok(network.every(url => /tiles\.openseamap\.org|data\.geopf\.fr|\/api\/interpreter/.test(url)));
       } finally { await context.close(); }
     }
 });
@@ -401,15 +405,15 @@ browserCase("generator:smoke.02", async ({ page, browser, context, runtimeErrors
 
 browserCase("generator:smoke.03", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const mapRequests = externalRequests.filter(url => !/https:\/\/(?:www\.googletagmanager\.com|(?:www|region\d+)\.google-analytics\.com)\//i.test(url));
-    assert.deepEqual(mapRequests, []);
+    assert.ok(mapRequests.every(url => /tiles\.openseamap\.org|\/api\/interpreter/.test(url)));
     const report = await page.evaluate(() => ({
       layers: window.__KJP_GENERATOR_TEST__.layers(),
       requests: window.__KJP_GENERATOR_TEST__.networkRequests()
     }));
-    assert.equal(report.layers.enabled, false);
+    assert.equal(report.layers.enabled, true);
     assert.equal(report.layers.osm, false);
-    assert.equal(report.layers.seamark, false);
-    assert.equal(report.layers.orthophoto, false);
+    assert.equal(report.layers.seamark, true);
+    assert.equal(report.layers.orthophoto, true);
     assert.deepEqual(report.requests, []);
 
 });
@@ -1436,11 +1440,10 @@ browserCase("generator:maps.19", async ({ page, browser, context, runtimeErrors,
         exported: api.exportText()
       };
     });
-    assert.equal(report.layers.orthophoto, false, "les cartes n'ont pas encore été autorisées");
+    assert.equal(report.layers.orthophoto, true, "le démarrage local a sélectionné le satellite");
     assert.equal(report.layers.orthophotoOpacity, 0.31);
     const source = report.sources.find(item => item.provider === "IGN BD ORTHO");
-    assert.ok(source);
-    assert.equal(source.embedded, false);
+    assert.ok(!source || source.embedded === false, "les images restent des aides visuelles externes");
     assert.doesNotMatch(report.exported, /data:image|imageBlob|tileData/i);
 
 });
@@ -1649,4 +1652,182 @@ browserCase("generator:integration.22", async ({ page, browser, context, runtime
 browserCase("generator:smoke.23", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     assert.deepEqual(errors, []);
 
+});
+
+const satellitePixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
+async function mockSatellite(page, {present = true, esriStatus = 200} = {}) {
+  const counts = {images: 0, presence: 0, active: 0, peak: 0};
+  await page.route(/https:\/\/(?:tile\.openstreetmap\.org|tiles\.openseamap\.org)\//, route => route.fulfill({contentType:'image/png',body:satellitePixel}));
+  await page.route(/https:\/\/.*\/api\/interpreter/, route => {
+    counts.presence++;
+    return route.fulfill({contentType:'application/json',body:JSON.stringify({elements:[{type:'count',tags:{total:present?'1':'0'}}]})});
+  });
+  await page.route(/https:\/\/(?:data\.geopf\.fr|ibasemaps-api\.arcgis\.com|tiles\.maps\.eox\.at)\//, async route => {
+    counts.images++; counts.active++; counts.peak = Math.max(counts.peak, counts.active);
+    await new Promise(resolve=>setTimeout(resolve,30));
+    await route.fulfill({status:route.request().url().includes('arcgis')?esriStatus:200,contentType:'image/png',body:satellitePixel});
+    counts.active--;
+  });
+  return counts;
+}
+browserCase('generator:maps.24', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page);
+  await page.locator("#satelliteProvider").selectOption("esri");
+  await page.locator('#seamarkLayerToggle').uncheck();
+  await page.locator('#orthoLayerToggle').check();
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().state==='ready');
+  assert.ok(counts.presence>0,'dedicated query works with seamark layer hidden');
+  assert.ok(counts.images>0);assert.ok(counts.peak<=4);
+  const doc=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.snapshot());
+  assert.equal(doc.structures.pontoons.length,0);assert.equal(doc.editor.analyzedZones.length,0);
+  assert.ok(doc.sources.some(s=>s.provider==='Esri World Imagery'));
+  const before=counts.images;
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.satelliteView(-73.55,45.5,15));
+  await page.waitForTimeout(1300);assert.ok(counts.images>=before);
+  assert.ok((await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.satelliteReport())).providers.includes('eox'));
+  assert.deepEqual(runtimeErrors,[]);
+});
+browserCase('generator:maps.25', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page,{present:false});
+  await page.locator("#satelliteProvider").selectOption("esri");
+  await page.locator('#orthoLayerToggle').check();
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForTimeout(1500);assert.equal(counts.presence,1);
+  assert.ok((await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.satelliteReport())).providers.includes('eox'));
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.loadDemonstration());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().state==='ready');
+  assert.equal(counts.presence,1,'local geometry does not trigger another count');
+  assert.ok(counts.images>0);
+  await page.locator('#orthoLayerToggle').uncheck();await page.waitForTimeout(100);
+  const before=counts.images;await page.locator('#orthoLayerToggle').check();await page.waitForTimeout(600);
+  assert.equal(counts.images,before,'warm local cache avoids new tile requests');
+  const snapshot=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.snapshot());
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.clearSatelliteCache());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().memory===0);
+  assert.deepEqual(await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.snapshot()),snapshot);
+  assert.deepEqual(runtimeErrors,[]);
+});
+browserCase('generator:maps.26', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page,{esriStatus:403});
+  await page.evaluate(()=>{const api=window.__KJP_GENERATOR_TEST__;api.satelliteTestKey('test-key');api.loadDemonstration();});
+  await page.locator('#satelliteProvider').selectOption('esri');
+  await page.locator('#orthoLayerToggle').check();
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().providers.includes('eox'));
+  const report=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.satelliteReport());
+  assert.ok(report.disabled.includes('esri'));assert.equal(counts.presence,0);
+  const exported=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.exportText());
+  assert.doesNotMatch(exported,/test-key|data:image|tileData/);
+  const stored=await page.evaluate(()=>new Promise(resolve=>{
+    const r=indexedDB.open('kjp-satellite');r.onsuccess=()=>{const tx=r.result.transaction('tiles');const q=tx.objectStore('tiles').getAll();q.onsuccess=()=>resolve(q.result.map(row=>row.key));};
+  }));
+  assert.ok(stored.every(key=>!key.startsWith('esri/')));
+  assert.ok(runtimeErrors.every(error=>error.includes('403 (Forbidden)')));
+  runtimeErrors.splice(0);
+});
+browserCase('generator:maps.27', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page);
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.loadDemonstration());
+  await page.locator('#satelliteProvider').selectOption('ign');
+  await page.locator('#orthoLayerToggle').check();await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().state==='ready');
+  await page.waitForFunction(()=>document.querySelector('#saveState').textContent==='Brouillon enregistré');
+  const before=counts.images;
+  await page.reload();await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__?.startupMapsReady());
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.loadDemonstration());
+  await page.locator('#satelliteProvider').selectOption('ign');await page.locator('#orthoLayerToggle').check();
+  await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().state==='cache'&&window.__KJP_GENERATOR_TEST__.satelliteReport().memory>0);
+  assert.equal(counts.images,before,'persistent IGN tiles survive document reload');
+  assert.equal(counts.presence,0);assert.deepEqual(runtimeErrors,[]);
+});
+browserCase('generator:maps.28', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page);
+  await page.evaluate(()=>{const api=window.__KJP_GENERATOR_TEST__;api.satelliteTestKey('test-key');api.satelliteView(-73.55,45.5,17);});
+  await page.locator('#orthoLayerToggle').check();await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.enableMaps());
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().state==='ready');
+  assert.ok(counts.images>0);assert.ok(counts.presence>0);
+  const stored=await page.evaluate(()=>new Promise(resolve=>{const r=indexedDB.open('kjp-satellite');r.onsuccess=()=>{const q=r.result.transaction('tiles').objectStore('tiles').getAll();q.onsuccess=()=>resolve(q.result.map(row=>row.key));};}));
+  assert.ok(stored.every(key=>!key.startsWith('esri/')),'successful Esri images are not archived');
+  assert.deepEqual(runtimeErrors,[]);
+});
+browserCase('generator:maps.29', async ({page,externalRequests}) => {
+  const counts=await mockSatellite(page);
+  await page.evaluate(async()=>{
+    const api=window.__KJP_GENERATOR_TEST__, doc=api.createDemonstrationDocument();
+    doc.georeference.origin={latitude:45.5,longitude:-73.55};doc.metadata.coordinates={latitude:45.5,longitude:-73.55};
+    await new Promise((resolve,reject)=>{const r=indexedDB.open('portance-port-generator',1);r.onsuccess=()=>{
+      const tx=r.result.transaction('drafts','readwrite');tx.objectStore('drafts').put(doc,'current');tx.oncomplete=resolve;tx.onerror=reject;
+    };});
+  });
+  await page.reload();
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__?.startupMapsReady()&&window.__KJP_GENERATOR_TEST__.satelliteReport().state==='ready');
+  const layers=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.layers());
+  assert.equal(layers.enabled,true);assert.equal(layers.osm,false);assert.equal(layers.orthophoto,true);
+  assert.equal(await page.locator('#latitudeInput').inputValue(),'45.500000');
+  assert.equal(await page.locator('#longitudeInput').inputValue(),'-73.550000');
+  assert.ok((await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.satelliteReport())).providers.includes('esri'));
+  assert.equal(counts.presence,0);assert.equal(externalRequests.some(url=>url.includes('tile.openstreetmap.org/')),false);
+});
+browserCase('generator:maps.30', async ({page,externalRequests}) => {
+  await page.route('https://generator.example.test/**',route=>route.fulfill({contentType:'text/html',body:fs.readFileSync(generatorPath,'utf8')}));
+  await page.goto('https://generator.example.test/editor.html?test=1');
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__?.startupMapsReady());
+  const layers=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.layers());
+  assert.equal(layers.enabled,true);assert.equal(layers.osm,true);assert.equal(layers.orthophoto,false);
+  await page.waitForFunction(()=>document.querySelector('#enableMapsButton').disabled);
+  assert.ok(externalRequests.some(url=>url.includes('tile.openstreetmap.org/')));
+  assert.equal(await page.locator('#osmLayerToggle').isEnabled(),true);
+});
+browserCase('generator:maps.31', async ({page,externalRequests}) => {
+  await page.addInitScript(()=>Object.defineProperty(window,'indexedDB',{get(){throw Error('Storage unavailable');}}));
+  await page.reload();await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__?.startupMapsReady());
+  const layers=await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.layers());
+  assert.equal(layers.enabled,true);assert.equal(layers.osm,false);assert.equal(layers.orthophoto,true);
+  assert.equal(externalRequests.some(url=>url.includes('tile.openstreetmap.org/')),false);
+});
+browserCase('generator:maps.32', async ({page}) => {
+  const {createGeneratorServer}=require('../scripts/serve-port-generator.js');
+  const server=createGeneratorServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const origin=`http://127.0.0.1:${server.address().port}`;const referrers=[];
+  await page.route('https://tile.openstreetmap.org/**',route=>{
+    referrers.push(route.request().headers().referer);
+    return route.fulfill({contentType:'image/png',body:satellitePixel});
+  });
+  try{
+    await page.goto(`${origin}/generateur-port.html?test=1`);
+    await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__?.startupMapsReady());
+    await page.waitForFunction(()=>document.querySelector('#osmLayerToggle').checked);
+    assert.ok(referrers.length>0);assert.ok(referrers.every(value=>value===`${origin}/`));
+    assert.equal(await page.locator('#osmLayerToggle').isEnabled(),true);
+  }finally{await new Promise(resolve=>{server.close(resolve);server.closeAllConnections();});}
+});
+browserCase('generator:maps.33', async ({page,runtimeErrors}) => {
+  const counts=await mockSatellite(page);
+  const glyph=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d');ctx.fillStyle='red';ctx.fillRect(0,0,128,256);return c.toDataURL().split(',')[1];});
+  await page.route('https://tiles.openseamap.org/**',route=>route.fulfill({contentType:'image/png',body:Buffer.from(glyph,'base64')}));
+  await page.route(/https:\/\/.*\/api\/interpreter/,route=>route.fulfill({status:503,contentType:'text/plain',body:'unavailable'}));
+  await page.route('https://nominatim.openstreetmap.org/**',route=>route.fulfill({contentType:'application/json',body:JSON.stringify([{lat:'48.1356994',lon:'-69.7167506',display_name:"Pointe de l’Islet, Tadoussac"}])}));
+  await page.locator('#seamarkLayerToggle').uncheck();await page.locator('#satelliteProvider').selectOption('esri');
+  await page.locator('#placeSearch').fill("pointe de l'islet");await page.locator('#searchForm button').click();
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().providers.includes('esri'));
+  assert.equal((await page.evaluate(()=>window.__KJP_GENERATOR_TEST__.snapshot())).structures.pontoons.length,0);
+  assert.ok(counts.images>0);
+  assert.equal(await page.locator('#satelliteRetry, #satelliteClear').count(),0);
+  await page.locator('#satelliteRefresh').click();
+  assert.equal(await page.locator('#satelliteRefresh').getAttribute('aria-label'),'Actualiser la source satellite');
+  assert.ok(runtimeErrors.every(error=>error.includes('503 (Service Unavailable)')));runtimeErrors.splice(0);
+});
+browserCase('generator:maps.34', async ({page}) => {
+  await mockSatellite(page);
+  await page.locator('#satelliteProvider').selectOption('eox');
+  await page.waitForFunction(()=>window.__KJP_GENERATOR_TEST__.satelliteReport().providers.includes('eox'));
+  const compact=await page.locator('.ol-attribution .satellite-credit summary').textContent();
+  assert.match(compact,/EOX/);assert.ok(compact.length<35);
+  await page.locator('#satelliteProvider').selectOption('ign');
+  await page.waitForFunction(()=>{const providers=window.__KJP_GENERATOR_TEST__.satelliteReport().providers;return providers.length===1&&providers[0]==='ign';});
+  const credit=await page.locator('.ol-attribution').innerText();
+  assert.match(credit,/IGN.*BD ORTHO/);assert.doesNotMatch(credit,/EOX|Copernicus|Esri/);
+  assert.equal(await page.locator('.ol-attribution .satellite-credit').count(),0);
 });
