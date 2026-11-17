@@ -341,6 +341,32 @@
     { id: "med-neighbor-east", x: -81, y: 38, heading: -Math.PI / 2, length: 11.1, beam: 3.55, color: "#e6e2d5", berth: "med-east", berthRow: 45, berthSlot: "south", catwayId: medQuay.id, mooringType: "pendille", pendilleId: "pendille-med-3" }
   );
 
+  // Poste longitudinal : 19,6 m libres, soit 2,5 m à chaque bout du 48.
+  const springPontoon = {
+    id: "ponton-spring", x: 49.1, y: 35.35, w: 0.8, h: 33.3,
+    z: 0.18, height: 0.36, baseZ: 0, topZ: 0.36, deckZ: 0.36,
+    kind: "ponton"
+  };
+  docks.push(springPontoon);
+  for (const y of [22, 27, 32, 38, 44, 50]) {
+    mooringCleats.push({
+      id: `cleat-ponton-spring-${y}`, parentId: springPontoon.id,
+      kind: "ponton", edge: "west", station: y,
+      x: 48.82, y, z: 0.48, orientation: Math.PI / 2
+    });
+  }
+  berthLanes["spring-alongside"] = {
+    x: 46.97, heading: Math.PI / 2, exitX: 30, fairway: "central-east"
+  };
+  for (const [end, y] of [["south", 22.45], ["north", 48.55]]) {
+    staticBoats.push({
+      id: `spring-neighbor-${end}`, x: 46.97, y, heading: Math.PI / 2,
+      length: 6.5, beam: 3.1, color: "#eee9dc",
+      berth: "spring-alongside", berthRow: y, berthSlot: end,
+      catwayId: springPontoon.id, mooringType: "alongside", fenderGap: 0.18
+    });
+  }
+
   const calm = {
     windSpeedKn: 0,
     windFromDeg: 0,
@@ -526,6 +552,31 @@
         speedKn: 1.4,
         kind: "rect"
       }
+    },
+    bowSpringDeparture: {
+      initial: { x: 46.605, y: 35.5, heading: -Math.PI / 2 },
+      alongsideBerth: { pontoonId: springPontoon.id, fenderGap: 0.3 },
+      initialMoorings: [
+        { id: "bow-spring-bow-line", boatCleatId: "bow-port", shoreCleatId: "cleat-ponton-spring-27" },
+        { id: "bow-spring-stern-line", boatCleatId: "stern-port", shoreCleatId: "cleat-ponton-spring-44" }
+      ],
+      environment: { ...calm, windFromDeg: 270 },
+      windLevelTwo: { windSpeedKn: 15 },
+      mooringChallenge: {
+        type: "spring-departure",
+        springEnd: "bow",
+        springBoatCleatId: "bow-port",
+        springShoreCleatId: "cleat-ponton-spring-38",
+        initialLineIds: ["bow-spring-bow-line", "bow-spring-stern-line"],
+        initialSlack: 0.8,
+        openingDirection: 1,
+        minimumOpeningDeg: 20,
+        idealOpeningDeg: 27,
+        maximumOpeningDeg: 35,
+        safeReleaseSpeedKn: 0.3,
+        maximumForwardCommand: 0.45
+      },
+      goal: { x: 35, y: 42, w: 10, h: 10, heading: -63 * Math.PI / 180, speedKn: 1.4, kind: "rect" }
     },
     medDock: {
 

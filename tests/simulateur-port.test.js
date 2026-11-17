@@ -2042,11 +2042,11 @@ browserCase("simulator:topology.19", async ({ page, browser, context, runtimeErr
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.geometryReport());
     assert.equal(report.ok, true, report.failures.join("\n"));
     assert.deepEqual(report.counts, {
-      docks: 5,
+      docks: 6,
       catways: 30,
-      mooringCleats: 226,
-      staticBoats: 18,
-      scenarios: 12
+      mooringCleats: 232,
+      staticBoats: 20,
+      scenarios: 13
     });
     assert.equal(report.connections.length, 30);
     assert.ok(report.connections.every(connection => (
@@ -2075,10 +2075,10 @@ browserCase("simulator:topology.19", async ({ page, browser, context, runtimeErr
 browserCase("simulator:topology.20", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const report = await page.evaluate(() => window.__PORTANCE_TEST__.geometryReport().mooring);
     assert.equal(report.ok, true, report.failures.join("\n"));
-    assert.equal(report.count, 226);
+    assert.equal(report.count, 232);
     assert.equal(report.catwayCleats, 180);
-    assert.equal(report.pontoonCleats, 40);
-    assert.equal(report.initialLines.length, 10);
+    assert.equal(report.pontoonCleats, 46);
+    assert.equal(report.initialLines.length, 12);
     assert.ok(report.initialLines.every(line => line.length <= 20));
 
     const parents = new Map([
@@ -2377,6 +2377,181 @@ browserCase("simulator:moorings.24", async ({ page, browser, context, runtimeErr
     assert.equal(result.afterThird.lines.length, 2);
     assert.equal(result.afterThird.policy.maximumLinesPerBoatCleat, 2);
 
+});
+
+browserCase("simulator:topology.bow-spring", async ({ page }) => {
+  const pontoon = portTopology.structures.docks.find(dock => dock.id === "ponton-spring");
+  const neighbors = portTopology.staticBoats.filter(boat => boat.mooringType === "alongside");
+  assert.equal(pontoon.w, .8);
+  assert.ok(Math.abs(pontoon.y - pontoon.h / 2 - 18.7) < 1e-9);
+  assert.equal(pontoon.y + pontoon.h / 2, 52);
+  const cleats = portTopology.structures.mooringCleats.filter(cleat => cleat.parentId === pontoon.id);
+  assert.deepEqual(cleats.map(cleat => cleat.y), [22, 27, 32, 38, 44, 50]);
+  assert.ok(cleats.slice(1).every((cleat, index) => {
+    const spacing = cleat.y - cleats[index].y;
+    return spacing >= 5 && spacing <= 6;
+  }));
+  assert.equal(portTopology.scenarios.bowSpringDeparture.mooringChallenge.springShoreCleatId,
+    "cleat-ponton-spring-38");
+  assert.equal(neighbors.length, 2);
+  const [south, north] = neighbors.sort((a, b) => a.y - b.y);
+  const opening = north.y - north.length / 2 - south.y - south.length / 2;
+  assert.ok(Math.abs(opening - 19.6) < 1e-9);
+
+  const profiles = await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    api.loadScenario("bowSpringDeparture");
+    return api.vesselProfileReport().commercialIds.map(id => {
+      api.selectVesselProfile(id);
+      const phase = api.placementReport().phase;
+      const state = api.loadScenario("bowSpringDeparture");
+      return { id, phase, state, boat: api.vesselProfileReport().presentation,
+        failures: api.geometryReport().failures.filter(failure => failure.startsWith("bowSpringDeparture")),
+        lines: api.mooringReport().lines };
+    });
+  });
+  assert.equal(profiles.length, 6);
+  for (const { id, phase, state, boat, failures, lines } of profiles) {
+    assert.equal(phase, "idle", id + ": le changement de profil doit conserver le défi");
+    assert.equal(state.motion.heading, -Math.PI / 2);
+    assert.ok(Math.abs(pontoon.x - pontoon.w / 2 - state.motion.x - boat.beam / 2 - .3) < 1e-9);
+    assert.ok((opening - boat.length) / 2 >= 2.5 - 1e-9, id);
+    assert.deepEqual(failures, [], id);
+    assert.deepEqual(lines.map(line => line.boatCleatId), ["bow-port", "stern-port"]);
+    assert.ok(lines.every(line => line.distance < 20));
+  }
+  for (const locale of ["fr", "en", "br"]) {
+    await page.selectOption("#languageSelect", locale);
+    await page.evaluate(() => window.__PORTANCE_TEST__.loadScenario("bowSpringDeparture"));
+    const options = await page.locator('#scenarioSelect optgroup:last-child option').evaluateAll(items =>
+      items.map(item => ({ id: item.value, label: item.textContent })));
+    assert.deepEqual(options.map(item => item.id), ["inertia", "dock", "starboardDock", "reverse", "mooring",
+      "bowSpringDeparture", "medDock", "medDeparture", "halfTurn", "approach"]);
+    assert.deepEqual(options.map(item => Number(/\d+/.exec(item.label)[0])), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const catalog = JSON.parse(fs.readFileSync(path.join(projectRoot, "src/simulateur-port/locales", locale + ".json"))).messages;
+    assert.equal(await page.locator("#lessonTitle").textContent(), catalog["scenario.bowSpringDeparture.title"]);
+    assert.equal(await page.locator("#objectiveText").textContent(), catalog["lesson.bow.spring.rig"]);
+    assert.equal(await page.locator("#lessonSteps li").count(), 3);
+  }
+});
+
+browserCase("simulator:scenarios.bow-spring", async ({ page }) => {
+  await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    api.loadScenario("bowSpringDeparture");
+    api.attachMooring("mid-port", "cleat-ponton-spring-38");
+    api.advance(1 / 120);
+  });
+  await page.click("#pauseButton");
+  assert.match(await page.locator("#diagnosticText").textContent(), /pas la garde avant/);
+  const rejected = await page.evaluate(() => {
+    const api = window.__PORTANCE_TEST__;
+    const wrong = api.snapshot();
+    api.loadScenario("bowSpringDeparture");
+    const report = api.attachMooring("bow-port", "cleat-ponton-spring-38");
+    const spring = report.lines.find(line => line.boatCleatId === "bow-port" && line.shoreCleatId === "cleat-ponton-spring-38");
+    api.advance(1 / 120);
+    api.detachMooring(spring.id);
+    const early = api.advance(.1);
+    api.loadScenario("bowSpringDeparture");
+    const goal = api.scenarioReport().bowSpringDeparture.goal;
+    api.reset({ x: goal.x, y: goal.y, heading: goal.heading, u: -.05 });
+    return { wrong, early, direct: api.advance(2), locked: api.replayPendilleStrongWind() };
+  });
+  assert.equal(rejected.wrong.scenario.phase, "rig-spring");
+  assert.equal(rejected.wrong.scenario.challenge.correctSpringEver, false);
+  assert.equal(rejected.early.scenario.challenge.unsafeReleases, 1);
+  assert.equal(rejected.early.scenario.challenge.safeRelease, false);
+  assert.equal(rejected.direct.scenario.complete, false);
+  assert.equal(rejected.locked, null);
+
+  for (const id of ["sun-odyssey-36i-pedagogical", "oceanis-48-fixed-keel-experimental"]) {
+    for (const level of [0, 1]) {
+      if (level) {
+        assert.equal(await page.locator("#strongWindReplay").isVisible(), true);
+        // Suspendre dès le clic, avant la première RAF : inspecter le départ
+        // réinitialisé, indépendamment du temps pris par le banc navigateur.
+        await page.evaluate(() => document.querySelector("#strongWindReplay").addEventListener("click",
+          () => window.__PORTANCE_TEST__.advance(0), { once: true }));
+        await page.click("#strongWindReplay");
+      }
+      const result = await page.evaluate(({ id, level }) => {
+        const api = window.__PORTANCE_TEST__;
+        if (!level) {
+          api.loadScenario("bowSpringDeparture");
+          api.selectVesselProfile(id);
+          api.loadScenario("bowSpringDeparture");
+        }
+        let state = api.advance(0);
+        const initial = state;
+        const challenge = api.scenarioReport().bowSpringDeparture.mooringChallenge;
+        const phases = [state.scenario.phase];
+        const neighborContacts = new Set();
+        const advance = seconds => {
+          state = api.advance(seconds);
+          for (const contact of api.placementReport().core.contacts.current) {
+            if (contact.id.includes("spring-neighbor")) neighborContacts.add(contact.id);
+          }
+          return state;
+        };
+        const report = api.attachMooring(challenge.springBoatCleatId, challenge.springShoreCleatId);
+        const spring = report.lines.find(line => line.boatCleatId === challenge.springBoatCleatId
+          && line.shoreCleatId === challenge.springShoreCleatId);
+        advance(1 / 120); phases.push(state.scenario.phase);
+        for (const line of challenge.initialLineIds) api.detachMooring(line);
+        advance(1 / 120); phases.push(state.scenario.phase);
+        api.setMooringLength(spring.id, spring.distance);
+        advance(2); phases.push(state.scenario.phase);
+        api.setControls({ throttleTarget: .12, rudderTarget: 30 * Math.PI / 180 });
+        let pivotSeconds = 0;
+        while ((state.motion.heading - initial.motion.heading) * 180 / Math.PI < 31 && pivotSeconds < 45) {
+          api.setControls({ throttleTarget: level && pivotSeconds > 5 ? .35 : .12 });
+          advance(.25); pivotSeconds += .25;
+        }
+        phases.push(state.scenario.phase);
+        api.setControls({ throttleTarget: 0, rudderTarget: 0 });
+        let neutralSeconds = 0;
+        while ((Math.abs(state.controls.throttleActual) > .05 || state.groundSpeed / .514444 > .3) && neutralSeconds < 10) {
+          advance(.25); neutralSeconds += .25;
+        }
+        phases.push(state.scenario.phase);
+        const releaseSpeedKn = state.groundSpeed / .514444;
+        const releaseOpening = (state.motion.heading - initial.motion.heading) * 180 / Math.PI;
+        api.detachMooring(spring.id);
+        advance(.1); phases.push(state.scenario.phase);
+        let exitSeconds = 0;
+        while (!state.scenario.complete && exitSeconds < 50) {
+          // Corriger le cap en marche arrière et adapter la poussée au vent.
+          const error = -40 * Math.PI / 180 - state.motion.heading;
+          const coast = state.groundSpeed > .6;
+          api.setControls({ gearTarget: coast ? 0 : -1,
+            throttleTarget: coast ? 0 : level && id === "sun-odyssey-36i-pedagogical" ? -.3 : -.1,
+            rudderTarget: Math.max(-.5, Math.min(.5, -error * 1.5)) });
+          advance(.25); exitSeconds += .25;
+        }
+        return { initial, phases, pivotSeconds, neutralSeconds, exitSeconds, releaseSpeedKn, releaseOpening,
+          neighborContacts: [...neighborContacts], final: state };
+      }, { id, level });
+      const label = id + "/niveau " + (level + 1);
+      assert.equal(result.initial.vesselProfileId, id);
+      assert.equal(result.initial.environment.windSpeedKn, level ? 15 : 0);
+      assert.equal(result.initial.environment.windFromDeg, 270);
+      assert.equal(result.initial.environment.currentSpeedKn, 0);
+      assert.equal(result.initial.moorings.current.length, 2);
+      assert.ok(Math.abs(result.initial.motion.heading + Math.PI / 2) < 1e-4);
+      assert.deepEqual(result.phases, ["rig-spring", "release-lines", "take-up", "pivot", "neutral", "release-spring", "exit"], label);
+      assert.ok(result.releaseSpeedKn <= .3, label);
+      assert.ok(result.releaseOpening >= 20 && result.releaseOpening <= 35, label);
+      assert.equal(result.final.scenario.complete, true, label + ": " + JSON.stringify(result.final.motion));
+      assert.equal(result.final.scenario.challenge.unsafeReleases, 0, label);
+      assert.ok(result.final.scenario.challenge.forwardWithSpringSeconds >= .5);
+      assert.equal(result.final.moorings.current.length, 0);
+      assert.ok(result.final.motion.u < -.03);
+      assert.equal(result.final.contacts.severe, 0, label);
+      assert.deepEqual(result.neighborContacts, [], label);
+      assert.equal(await page.locator("#strongWindReplay").isVisible(), !level);
+    }
+  }
 });
 
 browserCase("simulator:scenarios.25", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
@@ -2840,7 +3015,7 @@ browserCase("simulator:topology.29", async ({ page, browser, context, runtimeErr
       portTopology.structures.catways.map(catway => [catway.id, catway])
     );
     const intervals = new Map();
-    for (const boat of portTopology.staticBoats.filter(item => item.mooringType !== "pendille")) {
+    for (const boat of portTopology.staticBoats.filter(item => !["pendille", "alongside"].includes(item.mooringType))) {
       assert.ok(["south", "north"].includes(boat.berthSlot));
       assert.ok(Number.isFinite(boat.berthRow));
       const catway = catwayById.get(boat.catwayId);
@@ -2916,7 +3091,7 @@ browserCase("simulator:topology.31", async ({ page, browser, context, runtimeErr
     assert.equal(navigation.ok, true, navigation.failures.join("\n"));
     assert.equal(navigation.allBerthsAccessible, true);
     assert.equal(navigation.allExitLanesAccessible, true);
-    assert.equal(navigation.berthRoutes.length, 19);
+    assert.equal(navigation.berthRoutes.length, 21);
     assert.equal(navigation.exitLanes.length, 3);
     assert.ok(
       navigation.minimumFairway >= navigation.requiredFairway,

@@ -65,15 +65,16 @@ Les consignes du panneau de droite évoluent pendant la manœuvre. En cas de dif
 
 ## Progresser avec les situations et les défis
 
-Les deux sorties de ponton et **Placer le bateau** servent à expérimenter librement. Le placement est aussi disponible dans chaque port importé : la simulation est suspendue, le vent et le courant sont conservés. Glissez le bateau pour le déplacer et les deux poignées de la rosace pour le tourner ; le bateau glisse le long des obstacles sans les traverser et les collisions limitent la rotation. Vous pouvez aussi toucher le bateau puis sa destination. **Annuler** retrouve la situation précédente ; **Valider** ouvre la phase **Amarrer**, avec la simulation toujours suspendue. Frappez les amarres souhaitées et réglez leurs longueurs, puis cliquez sur **Démarrer**. **Recommencer** retrouve ce départ personnalisé avec les amarres préparées et leurs réglages, jusqu’au changement de port. Les neuf défis proposent ensuite une progression :
+Les deux sorties de ponton et **Placer le bateau** servent à expérimenter librement. Le placement est aussi disponible dans chaque port importé : la simulation est suspendue, le vent et le courant sont conservés. Glissez le bateau pour le déplacer et les deux poignées de la rosace pour le tourner ; le bateau glisse le long des obstacles sans les traverser et les collisions limitent la rotation. Vous pouvez aussi toucher le bateau puis sa destination. **Annuler** retrouve la situation précédente ; **Valider** ouvre la phase **Amarrer**, avec la simulation toujours suspendue. Frappez les amarres souhaitées et réglez leurs longueurs, puis cliquez sur **Démarrer**. **Recommencer** retrouve ce départ personnalisé avec les amarres préparées et leurs réglages, jusqu’au changement de port. Les dix défis proposent ensuite une progression :
 
 - **Défi 1 · Dompter l'inertie** : prendre de l'erre puis s'arrêter dans une zone précise.
 - **Défis 2 et 3 · Accostages bâbord et tribord** : préparer l'alignement, casser l'erre et utiliser le vent sans le subir.
 - **Défi 4 · Sortie en marche arrière** : composer avec l'effet de pas de l'hélice.
-- **Défi 5 · Sortir sur garde** : faire pivoter le bateau contre un vent qui le plaque au catway.
-- **Défis 6 et 7 · Pendille** : accoster cul au quai, puis appareiller en gardant la ligne claire de l'hélice.
-- **Défi 8 · Demi-tour sur place** : alterner de courtes poussées avant et arrière pour faire tourner le bateau avec peu d'erre.
-- **Défi 9 · Rejoindre sa place** : enchaîner chenal, approche, alignement et arrêt au poste.
+- **Défi 5 · Sortir sur garde arrière** : écarter l’étrave sur une garde arrière, puis sortir en marche avant.
+- **Défi 6 · Sortir sur garde avant** : étrave au sud et bâbord au ponton, frapper la garde avant vers l’arrière, larguer les pointes puis écarter la poupe en marche avant, barre vers le ponton. Larguer au neutre à moins de 0,3 nd et sortir en marche arrière sans toucher les voisins. Commencer sans vent, puis lancer le niveau 2 avec 15 nd de vent d’ouest plaquant le bateau contre le ponton.
+- **Défis 7 et 8 · Pendille** : accoster cul au quai, puis appareiller en gardant la ligne claire de l'hélice.
+- **Défi 9 · Demi-tour sur place** : alterner de courtes poussées avant et arrière pour faire tourner le bateau avec peu d'erre.
+- **Défi 10 · Rejoindre sa place** : enchaîner chenal, approche, alignement et arrêt au poste.
 
 La silhouette ou la zone verte indique l'objectif. Le score récompense surtout une arrivée lente, précise et sans choc. Après certains défis, un second niveau ajoute davantage de vent.
 

@@ -2458,11 +2458,12 @@
                 <option value="dock" data-i18n="ui.challenge.2.berth.to.port">Défi 2 · Accostage bâbord</option>
                 <option value="starboardDock" data-i18n="ui.challenge.3.berth.to.starboard">Défi 3 · Accostage tribord</option>
                 <option value="reverse" data-i18n="ui.challenge.4.depart.astern">Défi 4 · Sortie en marche arrière</option>
-                <option value="mooring" data-i18n="ui.challenge.5.leave.on.a.spring">Défi 5 · Sortir sur garde</option>
-                <option value="medDock" data-i18n="ui.challenge.6.berth.with.a.laid.mooring">Défi 6 · Accoster sur pendille</option>
-                <option value="medDeparture" data-i18n="ui.challenge.7.depart.from.a.laid.mooring">Défi 7 · Appareiller sur pendille</option>
-                <option value="halfTurn" data-i18n="ui.challenge.8.turn.through.180.on.the.spot">Défi 8 · Faire un demi-tour sur place</option>
-                <option value="approach" data-i18n="ui.challenge.9.reach.your.berth">Défi 9 · Rejoindre sa place</option>
+                <option value="mooring" data-i18n="ui.challenge.5.leave.on.a.spring">Défi 5 · Sortir sur garde arrière</option>
+                <option value="bowSpringDeparture" data-i18n="ui.challenge.6.leave.on.a.bow.spring">Défi 6 · Sortir sur garde avant</option>
+                <option value="medDock" data-i18n="ui.challenge.7.berth.with.a.laid.mooring">Défi 7 · Accoster sur pendille</option>
+                <option value="medDeparture" data-i18n="ui.challenge.8.depart.from.a.laid.mooring">Défi 8 · Appareiller sur pendille</option>
+                <option value="halfTurn" data-i18n="ui.challenge.9.turn.through.180.on.the.spot">Défi 9 · Faire un demi-tour sur place</option>
+                <option value="approach" data-i18n="ui.challenge.10.reach.your.berth">Défi 10 · Rejoindre sa place</option>
               </optgroup>
             </select>
           </div>
@@ -4629,11 +4630,11 @@
       let initialPendilles = scenario.initialPendilles || [];
       let requiresPlacement = false;
       try {
-        resetMotion(scenario.initial, initialMoorings, initialPendilles);
+        resetMotion(scenarioInitialPose(scenario), initialMoorings, initialPendilles);
       } catch {
         initialMoorings = [];
         initialPendilles = [];
-        resetMotion(scenario.initial);
+        resetMotion(scenarioInitialPose(scenario));
         requiresPlacement = true;
       }
       controls.paused = wasPaused;
@@ -4651,15 +4652,22 @@
           selectCanvasWorldRenderer();
         }
       }
+      const placementProfile = physicsSimulator.getProfile();
+      // Au départ amarré, les pare-battages du 48 peuvent déjà être comprimés.
+      // Vérifier la coque pour ce poste ; le profil de simulation reste intact.
       const placementCheck = KJPBoatPlacement.createController({
         physics: PortPhysics,
-        profile: physicsSimulator.getProfile(),
+        profile: scenario.alongsideBerth ? {
+          ...placementProfile,
+          contacts: { ...placementProfile.contacts, fenders: [] }
+        } : placementProfile,
         obstacles: physicsObstacles()
       });
+      const initial = scenarioInitialPose(scenario);
       requiresPlacement ||= !placementCheck.inspect({
-        east: scenario.initial.x,
-        north: scenario.initial.y,
-        heading: coreHeadingFromScene(scenario.initial.heading)
+        east: initial.x,
+        north: initial.y,
+        heading: coreHeadingFromScene(initial.heading)
       }).valid;
       if (remember) {
         try { localStorage.setItem(VESSEL_PROFILE_STORAGE_KEY, resolvedId); } catch {}
@@ -5031,6 +5039,7 @@
       if (!spring.taut && !progress.springTautEver) return "take-up";
       if (!progress.pivotAchieved) return "pivot";
       if (!propulsionIsNeutral()) return "neutral";
+      if (challenge.springEnd === "bow" && groundSpeedKn() > challenge.safeReleaseSpeedKn) return "neutral";
       return "release-spring";
     }
 
@@ -5048,6 +5057,13 @@
         "release-spring": msg("lesson.5.5.engine.in.neutral.release.the.spring"),
         exit: msg("lesson.spring.released.safely.move.ahead.into.the.green")
       };
+      if (scenario.mooringChallenge?.springEnd === "bow") {
+        if (!progress?.pivotAchieved) instructions["rig-spring"] = msg("lesson.bow.spring.rig");
+        instructions.pivot = msg("lesson.bow.spring.pivot");
+        instructions.neutral = msg("lesson.bow.spring.neutral");
+        instructions["release-spring"] = msg("lesson.bow.spring.release");
+        instructions.exit = msg("lesson.bow.spring.exit");
+      }
       return resolveMessage(instructions[phase] || scenario.objective);
     }
 
@@ -5061,7 +5077,7 @@
       );
       const handlingPenalty = (
         progress.unsafeReleases * 10
-        + progress.excessReverseSeconds * .35
+        + (progress.excessReverseSeconds + (progress.excessForwardSeconds || 0)) * .35
       );
       if (!final) {
         const timePenalty = Math.max(0, scenarioState.elapsed - 45) * .04;
@@ -5094,6 +5110,7 @@
     function updateMooringChallenge(scenario, dt, speedKn) {
       const challenge = scenario.mooringChallenge;
       const progress = scenarioState.challenge;
+      const bowSpring = challenge.springEnd === "bow";
       const spring = expectedSpringLine(scenario);
       const initialRemaining = moorings.current.some(
         line => challenge.initialLineIds.includes(line.id)
@@ -5110,14 +5127,14 @@
       if (
         spring?.taut
         && !initialRemaining
-        && controls.throttleActual < -.08
+        && (bowSpring ? controls.throttleActual > .08 : controls.throttleActual < -.08)
       ) {
-        progress.reverseWithSpringSeconds += dt;
-        if (Math.abs(controls.throttleActual) > challenge.maximumReverseCommand) {
-          progress.excessReverseSeconds += dt;
+        progress[bowSpring ? "forwardWithSpringSeconds" : "reverseWithSpringSeconds"] += dt;
+        if (Math.abs(controls.throttleActual) > (bowSpring ? challenge.maximumForwardCommand : challenge.maximumReverseCommand)) {
+          progress[bowSpring ? "excessForwardSeconds" : "excessReverseSeconds"] += dt;
         }
       }
-      if (progress.correctSpringEver && !progress.pivotAchieved) {
+      if (progress.correctSpringEver && (!progress.pivotAchieved || (bowSpring && spring))) {
         progress.maximumOpeningDeg = Math.max(
           progress.maximumOpeningDeg,
           openingDeg
@@ -5125,7 +5142,7 @@
       }
       if (
         progress.springTautEver
-        && progress.reverseWithSpringSeconds >= .5
+        && (bowSpring ? progress.forwardWithSpringSeconds : progress.reverseWithSpringSeconds) >= .5
         && openingDeg >= challenge.minimumOpeningDeg
         && openingDeg <= challenge.maximumOpeningDeg
       ) {
@@ -5136,6 +5153,7 @@
           progress.pivotAchieved
           && propulsionIsNeutral()
           && speedKn <= challenge.safeReleaseSpeedKn
+          && (!bowSpring || (openingDeg >= challenge.minimumOpeningDeg && openingDeg <= challenge.maximumOpeningDeg))
         ) {
           progress.safeRelease = true;
         } else {
@@ -5153,6 +5171,7 @@
         progress.pivotAchieved
         && progress.safeRelease
         && !spring
+        && (!bowSpring || (moorings.current.length === 0 && motion.u < -.03))
       );
       if (
         readyToFinish
@@ -5365,6 +5384,16 @@
       }));
     }
 
+    function scenarioInitialPose(scenario) {
+      const berth = scenario.alongsideBerth;
+      if (!berth) return scenario.initial;
+      const pontoon = docks.find(dock => dock.id === berth.pontoonId);
+      return {
+        ...scenario.initial,
+        x: pontoon.x - pontoon.w / 2 - BOAT_PROFILE.beam / 2 - berth.fenderGap
+      };
+    }
+
     function resetMotion(initial, initialMoorings = [], initialPendilles = []) {
       clearHeldKeyboardControls();
       cancelEngineGesture();
@@ -5408,6 +5437,7 @@
         initialLinesReleasedEver: false,
         reverseWithSpringSeconds: 0,
         excessReverseSeconds: 0,
+        ...(challenge.springEnd === "bow" ? { forwardWithSpringSeconds: 0, excessForwardSeconds: 0 } : {}),
         maximumOpeningDeg: 0,
         pivotAchieved: false,
         safeRelease: false,
@@ -5485,7 +5515,7 @@
       environment.currentFromDeg = scenario.environment.currentFromDeg;
       syncEnvironmentInputs();
       resetMotion(
-        scenario.initial,
+        scenarioInitialPose(scenario),
         scenario.initialMoorings || [],
         scenario.initialPendilles || []
       );
@@ -5554,7 +5584,7 @@
       environment.currentFromDeg = scenario.environment.currentFromDeg;
       syncEnvironmentInputs();
       resetMotion(
-        scenario.initial,
+        scenarioInitialPose(scenario),
         scenario.initialMoorings || [],
         scenario.initialPendilles || []
       );
@@ -6985,6 +7015,20 @@
       }
 
       const inspectBerth = (boat, source) => {
+        if (boat.mooringType === "alongside") {
+          const pontoon = dockById.get(boat.catwayId);
+          if (!pontoon || pontoon.kind !== "ponton") {
+            failures.push(`${source} ${boat.id}: ponton longitudinal absent`);
+            return;
+          }
+          const gap = pontoon.x - pontoon.w / 2 - boat.x - boat.beam / 2;
+          if (Math.abs(Math.cos(boat.heading)) > 1e-6
+            || Math.abs(gap - boat.fenderGap) > .015
+            || Math.abs(boat.y - pontoon.y) + boat.length / 2 > pontoon.h / 2) {
+            failures.push(`${source} ${boat.id}: poste longitudinal incohérent`);
+          }
+          return;
+        }
         if (boat.mooringType === "pendille") {
           const pendille = harborPendilles.find(item => item.id === boat.pendilleId);
           const quay = dockById.get(boat.catwayId);
@@ -7065,7 +7109,7 @@
       }
 
       const intervalOccupancy = new Map();
-      for (const boat of staticBoats.filter(item => item.mooringType !== "pendille")) {
+      for (const boat of staticBoats.filter(item => !["pendille", "alongside"].includes(item.mooringType))) {
         const key = `${boat.berth}:${boat.berthRow}`;
         const slots = intervalOccupancy.get(key) || [];
         slots.push(boat.berthSlot);
@@ -7262,7 +7306,7 @@
             continue;
           }
           const boatPoint = localPoint(
-            scenario.initial,
+            scenarioInitialPose(scenario),
             boatCleat.x,
             boatCleat.y,
             boatCleat.z
@@ -7387,7 +7431,7 @@
       }
       for (const [scenarioId, scenario] of Object.entries(scenarios)) {
         const player = {
-          ...scenario.initial,
+          ...scenarioInitialPose(scenario),
           length: BOAT_PROFILE.length,
           beam: BOAT_PROFILE.beam
         };
@@ -9648,7 +9692,9 @@
         if (wrongLine && phase === "rig-spring") {
           return {
             level: "warn",
-            text: msg("diagnostic.this.is.not.the.intended.spring.connect.the")
+            text: msg(activeScenario.mooringChallenge.springEnd === "bow"
+              ? "diagnostic.bow.spring.wrong.line"
+              : "diagnostic.this.is.not.the.intended.spring.connect.the")
           };
         }
         return {
@@ -12290,7 +12336,7 @@
           Object.entries(scenarios).map(([id, scenario]) => [
             id,
             {
-              initial: { ...scenario.initial },
+              initial: { ...scenarioInitialPose(scenario) },
               environment: { ...scenario.environment },
               goal: scenario.goal ? { ...scenario.goal } : null,
               mooringChallenge: scenario.mooringChallenge

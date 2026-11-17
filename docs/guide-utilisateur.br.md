@@ -65,15 +65,16 @@ Ar c'huzulioù er banell a-zehou a cheñch e-pad an deleviadenn. Ma vez diaes, s
 
 ## Mont war-raok gant an degouezhioù hag an daeoù
 
-An daou guitadenn ponton hag **Lec’hiañ ar vag** a servij da bleustriñ en un doare dieub. Gallout a reer lec’hiañ ar vag e pep porzh enporzhiet ivez : ehanet eo ar simuladur ha dalc’het eo reoladurioù an avel hag ar red. Riklit ar vag evit he dilec’hiañ hag unan eus an daou grog evit he zreiñ ; riklañ a ra ar vag a-hed ar skoilhoù hep treuziñ anezho, ha bevennet eo an treiñ gant ar stekiñ. Gallout a reer dibab ar vag ha goude ul lec’h. **Nullañ** a adkav ar stad diaraok ; **Gwiriañ** a zigor **Stagañ ar vag**, gant ar simuladur ehanet c’hoazh. Stagit an ereoù ha reolit o hirderioù, ha klikit war **Loc’hañ**. **Adkregiñ** a adkav ar penn-kentañ personelaet gant an ereoù prientet hag o reoladurioù betek cheñch porzh. An nav dae a ginnig ur hent pleustriñ :
+An daou guitadenn ponton hag **Lec’hiañ ar vag** a servij da bleustriñ en un doare dieub. Gallout a reer lec’hiañ ar vag e pep porzh enporzhiet ivez : ehanet eo ar simuladur ha dalc’het eo reoladurioù an avel hag ar red. Riklit ar vag evit he dilec’hiañ hag unan eus an daou grog evit he zreiñ ; riklañ a ra ar vag a-hed ar skoilhoù hep treuziñ anezho, ha bevennet eo an treiñ gant ar stekiñ. Gallout a reer dibab ar vag ha goude ul lec’h. **Nullañ** a adkav ar stad diaraok ; **Gwiriañ** a zigor **Stagañ ar vag**, gant ar simuladur ehanet c’hoazh. Stagit an ereoù ha reolit o hirderioù, ha klikit war **Loc’hañ**. **Adkregiñ** a adkav ar penn-kentañ personelaet gant an ereoù prientet hag o reoladurioù betek cheñch porzh. An dek dae a ginnig ur hent pleustriñ :
 
 - **Dae 1 · Mestroniañ an inertiezh** : kemer lañs hag en em harz en un takad resis.
 - **Daeoù 2 ha 3 · Kaeañ e babourzh hag e tribourzh** : prientiñ an ahel, digreskiñ al lañs hag implijout an avel hep bezañ dalc'het gantañ.
 - **Dae 4 · Kuitaat a-dreñv** : ober gant paz ar rod-viñs.
-- **Dae 5 · Kuitaat gant un ere beskell** : lakaat ar vag da dreiñ enep un avel a wask anezhi ouzh ar ponton bihan.
-- **Daeoù 6 ha 7 · Ere ar c'horf-marv** : kaeañ penn a-dreñv ouzh ar c'hae, ha kuitaat en ur virout an ere pell diouzh ar rod-viñs.
-- **Dae 8 · Ober un hanter-dro war al lec'h** : bountadennoù berr war-raok hag a-dreñv a bep eil da lakaat ar vag da dreiñ gant nebeut a lañs.
-- **Dae 9 · Tizhout ho plas** : heuliañ ar c'hanol, tostaat, lakaat ar vag en ahel hag en em harz er plas.
+- **Dae 5 · Kuitaat gant un ere beskell a-dreñv** : pellaat ar staon gant un ere beskell a-dreñv ha kuitaat war-raok.
+- **Dae 6 · Kuitaat gant un ere beskell a-raok** : ar staon war-du ar su ha babourzh ouzh ar ponton, stagit an ere beskell war-du an a-dreñv ha largit an daou oser. Kit dousik war-raok, ar stur war-du ar ponton, evit pellaat penn a-dreñv ar vag. Largit en neptu dindan 0,3 sk ha kuitait a-dreñv hep stokiñ ouzh ar bagoù all. Krogit hep avel ha loc’hit al live 2 goude-se gant 15 sk a avel kornôg a wask ar vag ouzh ar ponton.
+- **Daeoù 7 ha 8 · Ere ar c'horf-marv** : kaeañ penn a-dreñv ouzh ar c'hae, ha kuitaat en ur virout an ere pell diouzh ar rod-viñs.
+- **Dae 9 · Ober un hanter-dro war al lec'h** : bountadennoù berr war-raok hag a-dreñv a bep eil da lakaat ar vag da dreiñ gant nebeut a lañs.
+- **Dae 10 · Tizhout ho plas** : heuliañ ar c'hanol, tostaat, lakaat ar vag en ahel hag en em harz er plas.
 
 Ar stumm pe an takad glas a ziskouez ar pal. An niver a boentoù a ro talvoudegezh dreist-holl d'un donedigezh c'houstadik, resis ha hep stok. Goude daeoù zo e vez ouzhpennet muioc'h a avel en un eil live.
 

@@ -197,6 +197,18 @@
   },
   {
     "product": "simulator",
+    "id": "topology.bow-spring",
+    "group": "topology",
+    "name": "le poste longitudinal accueille les six bateaux et les dix défis sont traduits"
+  },
+  {
+    "product": "simulator",
+    "id": "scenarios.bow-spring",
+    "group": "scenarios",
+    "name": "la garde avant permet une sortie arrière sans vent puis à 15 nd, avec le 36 et le 48"
+  },
+  {
+    "product": "simulator",
     "id": "scenarios.25",
     "group": "scenarios",
     "name": "le défi 4 enseigne une sortie complète sur garde"

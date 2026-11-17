@@ -65,15 +65,16 @@ Instructions in the right-hand panel evolve during the manoeuvre. If you have di
 
 ## Progressing through scenarios and challenges
 
-The two pontoon departures and **Place the boat** allow free experimentation. Placement is also available in every imported harbour: simulation pauses and wind and current settings are preserved. Drag the boat to move it and either rose handle to rotate it; the boat slides along obstacles without passing through them, and collisions constrain rotation. Alternatively, select the boat then a destination. **Cancel** restores the previous situation; **Confirm** opens **Moor the boat**, with simulation still paused. Attach the desired lines and adjust their lengths, then select **Start**. **Restart** restores this custom departure with its prepared lines and their settings until the harbour changes. The nine challenges then provide a progression:
+The two pontoon departures and **Place the boat** allow free experimentation. Placement is also available in every imported harbour: simulation pauses and wind and current settings are preserved. Drag the boat to move it and either rose handle to rotate it; the boat slides along obstacles without passing through them, and collisions constrain rotation. Alternatively, select the boat then a destination. **Cancel** restores the previous situation; **Confirm** opens **Moor the boat**, with simulation still paused. Attach the desired lines and adjust their lengths, then select **Start**. **Restart** restores this custom departure with its prepared lines and their settings until the harbour changes. The ten challenges then provide a progression:
 
 - **Challenge 1 · Master inertia**: gain headway, then stop in a precise area.
 - **Challenges 2 and 3 · Berth to port and starboard**: prepare alignment, reduce headway and use the wind without being controlled by it.
 - **Challenge 4 · Depart astern**: work with prop walk.
-- **Challenge 5 · Leave on a spring**: turn against wind holding the boat on the finger pontoon.
-- **Challenges 6 and 7 · Laid moorings**: berth stern to the quay, then leave with the line clear of the propeller.
-- **Challenge 8 · Turn through 180° on the spot**: alternate short ahead and astern bursts to turn with little headway.
-- **Challenge 9 · Reach your berth**: combine fairway navigation, approach, alignment and stopping.
+- **Challenge 5 · Leave on a stern spring**: swing the bow out on a stern spring, then leave ahead.
+- **Challenge 6 · Leave on a bow spring**: facing south with port side alongside, rig the bow spring leading aft, release the initial lines, then swing the stern out with gentle ahead power and helm towards the pontoon. Release in neutral below 0.3 kn and leave astern without touching neighbouring boats. Start without wind, then select level 2 with a 15 kn westerly holding the boat against the pontoon.
+- **Challenges 7 and 8 · Laid moorings**: berth stern to the quay, then leave with the line clear of the propeller.
+- **Challenge 9 · Turn through 180° on the spot**: alternate short ahead and astern bursts to turn with little headway.
+- **Challenge 10 · Reach your berth**: combine fairway navigation, approach, alignment and stopping.
 
 The green outline or zone marks the objective. Scores mainly reward slow, precise arrivals without impacts. Some challenges offer a second level with stronger wind.
 

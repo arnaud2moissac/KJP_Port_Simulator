@@ -600,3 +600,33 @@ Usage : définition du filtre de présence des données OpenSeaMap pour autorise
 Les documentations des API de tuiles, licences et stockage navigateur utilisées
 pour cette interface relèvent de l’outillage/rendu et sont exclues du périmètre
 nautique ; leurs liens sont conservés dans le guide du générateur.
+
+Sortie sur garde avant — défi 6 (novembre 2026)
+
+[archivé] rya-day-skipper-practical-course-notes.pdf
+URL : https://static1.squarespace.com/static/6374c405b54cde721ddde4d1/t/65151874cf8090176f432f3e/1695881347097/Compressed_RYA%2BDay%2BSkipper%2BPractical%2BCourse%2BNotes.pdf
+Usage : RYA, Day Skipper Practical Course Notes, « Leaving a berth », p. 27 :
+        garde avant, protection de l'étrave, poussée avant pour écarter la poupe,
+        passage au neutre et sortie arrière. Référence de la séquence guidée ;
+        les angles, seuils et dimensions du défi restent des choix pédagogiques
+        KJP vérifiés dans le simulateur, pas des valeurs prescrites par la source.
+
+[archivé] instructor-toolkit-bow-spring-departure.html
+URL : https://www.instructortoolkit.co.uk/instructor-resources/powerboat-instructor-resources/powerboat-instructor-skills-assessment-prep/
+Usage : section « Leaving a pontoon using a Bow Spring » : recoupement de la
+        séquence garde avant, poussée avant, barre vers le ponton si nécessaire,
+        puis sortie arrière. Source de formation moteur, utilisée uniquement
+        pour la séquence de manœuvre, sans calibration des profils de voiliers.
+
+[archivé] pbo-springing-off-and-on-a-pontoon.html
+URL : https://www.pbo.co.uk/seamanship/springing-off-and-on-a-pontoon-90572
+Usage : David Rainsbury, « The bow spring » : garde allant de l'avant du voilier
+        vers l'arrière à terre, barre vers le ponton, dégagement de la poupe et
+        sortie arrière ; contrôle de la protection de l'étrave et de la terminologie.
+
+[archivé] rlymyc-easterly-wind-on-the-pontoon.html
+URL : https://rlymyc.org.uk/Site_Data/Club_News/May_2021/easterly-wind-on-the-pontoon
+Usage : Royal Lymington Yacht Club, « Departing » : recoupement de la sortie
+        sur garde avant lorsque le vent plaque le bateau au ponton. Justifie
+        le contexte du second niveau ; ne détermine ni un coefficient de vent
+        ni une limite universelle de manœuvre à 15 nd.
