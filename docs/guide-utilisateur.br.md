@@ -48,7 +48,7 @@ Savet eo KJP evit bezañ implijet war **dabletezenn pe urzhiataer**. War ur pell
 
 ## Dibab ar vag
 
-Digorit **Arventennoù araokaet → Bag → Profil ar vag**, pe klikit war deskrivadur ar vag er vandenn en nec'h evit tizhout an arventenn-se. C'hwec'h bag zo hegerz : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** hag **Oceanis 48**. Ar Sun Odyssey 36i eo ar profil dave ; ar pemp all zo merket **arnodel**. O statud a weler e-kichen an dibaber profil.
+Klikit war deskrivadur ar vag hag ar bir bihan er vandenn en nec'h evit dibab ur vag er roll. Ar rod-dantek e-kichen pep anv a zibab ar vag-se hag a zigor hec’h arventennoù araokaet. Gallout a rit implijout **Arventennoù araokaet → Bag → Profil ar vag** ivez. C'hwec'h bag zo hegerz : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** hag **Oceanis 48**. Ar Sun Odyssey 36i eo ar profil dave ; ar pemp all zo merket **arnodel**. O statud a weler e-kichen an dibaber profil.
 
 Miret eo dibab ar vag. Cheñch bag a vir ar porzh oberiant, a adkrog an degouezh gant ar vag nevez hag a adlaka arventennoù **Bag** he frofil. Ma n'eo ket kenglotus he lec'hiadur kentañ gant ar skoilhoù, e tigor **Lec'hiañ ar vag** evit he zilec'hiañ a-raok loc'hañ. Ar stur dre stok a ziskouez ur rod-stur pe ur barr-stur hervez ar profil.
 
@@ -125,6 +125,8 @@ Evit stagañ penn a-dreñv ouzh ar c'hae, reolit da gentañ penn a-dreñv ar vag
 ![Oserioù a-dreñv hag ere ar c'horf-marv en dae kuitaat](images/04-aussieres-et-taquets.br.jpg)
 
 ## Reoliñ an avel, ar redenn hag ar vag
+
+Ar bouton **Dre zegouezh**, gant biroù kroaziet e-kichen pep titl, a zibab un tu hag un nerzh nevez evit an avel pe ar redenn, pep hini dizalc'h diouzh egile. An holl durioù zo ken probabl. An nerzh a heuilh ul lezenn normal kreizennet war **12 sk evit an avel** (forc'h skouer 4 sk) ha **0,2 sk evit ar redenn** (forc'h skouer 0,1 sk), bevennet gant ar riklerioù ha rontaet diouzh o c'hammed. Pep klik a ra un tennadenn hepken.
 
 An avel hag ar redenn a vez reoliet dre o nerzh ha dre an tu **ma'z eont**. An titouroù war ar skramm hag ar biroù a ziskouez an hevelep tu : 000° etrezek an norzh, 090° etrezek ar reter, 180° etrezek ar su ha 270° etrezek ar c'hornôg. Krogit hep direizhderioù, ha goude ouzhpennit un aoz hepken. Evel-se e c'hallit liammañ ar respont gwellet ouzh ar pennkaoz reizh.
 

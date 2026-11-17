@@ -228,13 +228,15 @@
     }
 
     .brand-title {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       max-width: 100%;
       min-height: 0;
       margin-top: 2px;
       padding: 0;
       border: 0;
-      border-radius: 0;
+      border-radius: 4px;
       background: transparent;
       color: inherit;
       overflow: hidden;
@@ -249,9 +251,37 @@
       border: 0;
       background: transparent;
       color: var(--cyan);
-      text-decoration: underline;
-      text-underline-offset: 3px;
     }
+
+    .brand-title span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .brand-title::after {
+      content: ""; flex: 0 0 auto; width: 6px; height: 6px; margin: -3px 3px 0 1px;
+      border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg); opacity: .65;
+    }
+    .brand-title[aria-expanded="true"]::after { transform: rotate(225deg); margin-top: 3px; }
+    .boat-profile-menu {
+      position: fixed; inset: auto; margin: 0; padding: 6px;
+      width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 90px); overflow-y: auto;
+      border: 1px solid var(--line-strong); border-radius: 14px;
+      background: var(--panel-solid); color: var(--ink); box-shadow: var(--shadow);
+    }
+    .boat-profile-row { display: flex; align-items: stretch; gap: 4px; border-radius: 9px; }
+    .boat-profile-row + .boat-profile-row { margin-top: 3px; }
+    .boat-profile-option, .boat-profile-settings {
+      min-height: 44px; border: 0; border-radius: 9px; background: transparent;
+    }
+    .boat-profile-option {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      flex: 1; min-width: 0; padding: 10px 12px; text-align: left; font-size: 13px; line-height: 1.4;
+    }
+    .boat-profile-option[aria-checked="true"] { color: var(--cyan); background: var(--control-hover); }
+    .boat-profile-option[aria-checked="true"]::after { content: "✓"; flex-shrink: 0; }
+    .boat-profile-settings {
+      display: grid; place-items: center; flex: 0 0 40px; padding: 8px; color: var(--muted);
+    }
+    .boat-profile-settings:hover { color: var(--cyan); }
+    .boat-profile-settings svg { width: 19px; height: 19px; }
 
     .mode-tabs,
     .view-tabs,
@@ -1527,6 +1557,18 @@
 
     .control-row + .control-row { margin-top: 14px; }
 
+    .environment-title { flex-wrap: wrap; gap: 8px; }
+    .environment-heading { display: flex; align-items: center; gap: 8px; }
+    .environment-title > .control-value { margin-left: auto; white-space: nowrap; }
+    .environment-random {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      min-height: 30px; padding: 5px 8px; border-radius: 8px;
+      color: var(--muted); background: transparent; font-size: 11px; font-weight: 500; white-space: nowrap;
+    }
+    .environment-random svg { width: 18px; height: 18px; flex: none; }
+    .environment-random:hover { color: var(--cyan); border-color: var(--cyan); }
+    @media (pointer: coarse) { .environment-random { min-height: 44px; } }
+
     .control-meta {
       display: flex;
       align-items: baseline;
@@ -2192,7 +2234,8 @@
         <img class="brand-mark" src="__KJP_LOGO_DATA_URI__" alt="">
         <div class="brand-copy">
           <div class="brand-kicker">KJP Port Simulator</div>
-          <button type="button" class="brand-title" id="boatProfileShortcut" aria-controls="advancedDetails" title="Profil du bateau" data-i18n-attr="title:ui.boat.profile"></button>
+          <button type="button" class="brand-title" id="boatProfileShortcut" popovertarget="boatProfileMenu" aria-haspopup="menu" aria-expanded="false" aria-controls="boatProfileMenu" title="Profil du bateau" data-i18n-attr="title:ui.boat.profile"><span id="boatProfileLabel"></span></button>
+          <div id="boatProfileMenu" class="boat-profile-menu" popover role="menu" aria-label="Profil du bateau" data-i18n-attr="aria-label:ui.boat.profile"></div>
         </div>
       </div>
 
@@ -2502,7 +2545,10 @@
         </div>
 
         <section class="section">
-          <div class="section-title"><span data-i18n="ui.true.wind.at.10.m">Vent réel à 10 m</span><span id="windSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span></div>
+          <div class="section-title environment-title">
+            <div class="environment-heading"><span data-i18n="ui.true.wind.at.10.m">Vent réel à 10 m</span><button type="button" id="randomizeWind" class="environment-random" aria-label="Tirer le vent au hasard" title="Tirer le vent au hasard" data-i18n-attr="aria-label:ui.randomize.wind;title:ui.randomize.wind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 14 4 4-4 4M18 2l4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M2 6h2.5c2.4 0 4.3 1.9 6 4.4M14 15.6c1.7 1.5 3.5 2.4 5.5 2.4H22"/></svg><span data-i18n="ui.randomize">Au hasard</span></button></div>
+            <span id="windSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span>
+          </div>
           <div class="control-row">
             <div class="control-meta"><label for="windSpeed" data-i18n="ui.speed">Force</label><span class="control-value" data-value-for="windSpeed"></span></div>
             <input id="windSpeed" type="range" min="0" max="30" step="0.5" value="0">
@@ -2514,7 +2560,10 @@
         </section>
 
         <section class="section">
-          <div class="section-title"><span data-i18n="ui.current">Courant</span><span id="currentSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span></div>
+          <div class="section-title environment-title">
+            <div class="environment-heading"><span data-i18n="ui.current">Courant</span><button type="button" id="randomizeCurrent" class="environment-random" aria-label="Tirer le courant au hasard" title="Tirer le courant au hasard" data-i18n-attr="aria-label:ui.randomize.current;title:ui.randomize.current"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 14 4 4-4 4M18 2l4 4-4 4M2 18h2.5c6 0 9-12 15-12H22M2 6h2.5c2.4 0 4.3 1.9 6 4.4M14 15.6c1.7 1.5 3.5 2.4 5.5 2.4H22"/></svg><span data-i18n="ui.randomize">Au hasard</span></button></div>
+            <span id="currentSummary" class="control-value" data-i18n="ui.0.kn.000">0 nd · 000°</span>
+          </div>
           <div class="control-row">
             <div class="control-meta"><label for="currentSpeed" data-i18n="ui.speed">Force</label><span class="control-value" data-value-for="currentSpeed"></span></div>
             <input id="currentSpeed" type="range" min="0" max="2.5" step="0.1" value="0">
@@ -4574,7 +4623,42 @@
         return new Option(label, id);
       }));
       select.value = activeVesselProfileId;
-      $("#boatProfileShortcut").textContent = t(BOAT_PROFILE.descriptionKey);
+      $("#boatProfileLabel").textContent = t(BOAT_PROFILE.descriptionKey);
+      $("#boatProfileMenu").replaceChildren(...Array.from(select.options, option => {
+        const row = document.createElement("div");
+        row.className = "boat-profile-row";
+        row.setAttribute("role", "none");
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.className = "boat-profile-option";
+        choice.dataset.profileId = option.value;
+        choice.textContent = option.textContent;
+        choice.setAttribute("role", "menuitemradio");
+        choice.setAttribute("aria-checked", String(option.value === activeVesselProfileId));
+        choice.tabIndex = option.value === activeVesselProfileId ? 0 : -1;
+        choice.autofocus = option.value === activeVesselProfileId;
+        choice.addEventListener("click", () => {
+          $("#boatProfileMenu").hidePopover();
+          selectVesselProfile(option.value);
+          if (!isPreparingDeparture()) $("#boatProfileShortcut").focus({ preventScroll: true });
+        });
+        const settings = document.createElement("button");
+        settings.type = "button";
+        settings.className = "boat-profile-settings";
+        settings.dataset.settingsFor = option.value;
+        settings.setAttribute("role", "menuitem");
+        settings.setAttribute("aria-label", t("ui.advanced.settings"));
+        settings.title = t("ui.advanced.settings");
+        settings.tabIndex = -1;
+        settings.innerHTML = '<svg viewBox="0 0 24 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M10 3h4l.5 2.2 1.6.9 2.2-.7 2 3.4-1.7 1.5v1.8l1.7 1.5-2 3.4-2.2-.7-1.6.9L14 19h-4l-.5-2.2-1.6-.9-2.2.7-2-3.4 1.7-1.5V9.9L3.7 8.4l2-3.4 2.2.7 1.6-.9Z"/><circle cx="12" cy="11" r="3"/></svg>';
+        settings.addEventListener("click", () => {
+          $("#boatProfileMenu").hidePopover();
+          selectVesselProfile(option.value);
+          openAdvancedBoatSettings();
+        });
+        row.append(choice, settings);
+        return row;
+      }));
       $("#boatProfileStatus").textContent = BOAT_PROFILE.specificModel
         ? t("ui.boat.profile.specific.status")
         : BOAT_PROFILE.experimental
@@ -5678,7 +5762,7 @@
       setCameraView("top");
       camera.target = [initial.x, initial.y, 0];
       camera.follow = false;
-      placement.disabled = $$("#sidebar input:not([type='file']), #sidebar select, #propulsorRotationControls button, .setting-reset, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
+      placement.disabled = $$("#sidebar input:not([type='file']), #sidebar select, #boatProfileShortcut, #propulsorRotationControls button, .environment-random, .setting-reset, #pauseButton, #resetButton, #timeScaleButton, #topViewButton, #skipperViewButton, [data-mode], [data-understand-view]")
         .map(element => ({ element, disabled: element.disabled }));
       placement.disabled.forEach(({ element }) => element.disabled = true);
       document.querySelector(".app").classList.add("placing-boat");
@@ -10636,6 +10720,27 @@
       });
     });
 
+    function randomizeFlow(kind, mean, standardDeviation) {
+      const speed = $(`#${kind}Speed`);
+      const direction = $(`#${kind}Direction`);
+      if (speed.disabled || direction.disabled) return;
+      const min = Number(speed.min), max = Number(speed.max), step = Number(speed.step);
+      let draw;
+      do {
+        // Reject out-of-range normal draws instead of accumulating them at the limits.
+        const normal = Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+        draw = mean + standardDeviation * normal;
+      } while (draw < min || draw > max);
+      speed.value = String(Number((min + Math.round((draw - min) / step) * step).toFixed(2)));
+      direction.value = String(Math.floor(Math.random() * 360));
+      for (const input of [speed, direction]) {
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
+    $("#randomizeWind").addEventListener("click", () => randomizeFlow("wind", 12, 4));
+    $("#randomizeCurrent").addEventListener("click", () => randomizeFlow("current", .2, .1));
+
     $$("#advancedDetails input[type='range'], #boatProfileSelect").forEach(input => {
       const id = input.id;
       const button = document.createElement("button");
@@ -10720,7 +10825,8 @@
     $("#boatProfileSelect").addEventListener("change", event => {
       selectVesselProfile(event.target.value);
     });
-    $("#boatProfileShortcut").addEventListener("click", () => {
+    function openAdvancedBoatSettings() {
+      $("#boatProfileMenu").hidePopover();
       if ($("#sidebarToggle").getAttribute("aria-expanded") !== "true") {
         $("#sidebarToggle").click();
       }
@@ -10730,6 +10836,39 @@
         select.closest(".control-row").scrollIntoView({ block: "start", inline: "nearest" });
         select.focus({ preventScroll: true });
       });
+    }
+    $("#boatProfileMenu").addEventListener("beforetoggle", event => {
+      $("#boatProfileShortcut").setAttribute("aria-expanded", String(event.newState === "open"));
+      if (event.newState !== "open") return;
+      const bounds = $("#boatProfileShortcut").getBoundingClientRect();
+      const width = Math.min(360, innerWidth - 24);
+      $("#boatProfileMenu").style.left = Math.max(12, Math.min(bounds.left, innerWidth - width - 12)) + "px";
+      $("#boatProfileMenu").style.top = bounds.bottom + 8 + "px";
+      $("#boatProfileMenu").style.maxHeight = Math.max(44, innerHeight - bounds.bottom - 20) + "px";
+    });
+    $("#boatProfileShortcut").addEventListener("keydown", event => {
+      if (!["ArrowDown", "ArrowUp", "Escape"].includes(event.key)) return;
+      event.preventDefault(); event.stopPropagation();
+      const menu = $("#boatProfileMenu");
+      if (event.key === "Escape") { menu.hidePopover(); return; }
+      menu.showPopover();
+      menu.querySelector('[aria-checked="true"]').focus();
+    });
+    $("#boatProfileMenu").addEventListener("keydown", event => {
+      event.stopPropagation();
+      const menu = $("#boatProfileMenu");
+      if (event.key === "Tab") { menu.hidePopover(); return; }
+      if (event.key === "Escape") {
+        event.preventDefault(); menu.hidePopover(); $("#boatProfileShortcut").focus(); return;
+      }
+      if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const items = [...menu.querySelectorAll("button")];
+      const index = items.indexOf(document.activeElement);
+      const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1
+        : (index + (["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1) + items.length) % items.length;
+      items.forEach((item, itemIndex) => { item.tabIndex = itemIndex === next ? 0 : -1; });
+      items[next].focus();
     });
     $("#strongWindReplay").addEventListener("click", replayStrongWind);
     $("#loadPortButton").addEventListener("click", () => $("#portFileInput").click());
@@ -11052,6 +11191,7 @@
 
     window.addEventListener("keydown", event => {
       if (readmeDialog.open || portLibraryDialog.open || smartphoneNotice.open) return;
+      if (event.target.closest?.("#boatProfileMenu, #boatProfileShortcut")) return;
       if (event.target === $("#languageSelect")) return;
       if (event.target === $("#tabletControlsSize")) return;
       if (isPreparingDeparture()) {
@@ -12487,6 +12627,7 @@
     }
 
     window.addEventListener("resize", () => {
+      $("#boatProfileMenu").hidePopover();
       resizeCanvas();
       syncSidebarForViewport();
       if (placement.active) requestAnimationFrame(() => { updatePlacementStatus(); keepPlacementVisible(); });

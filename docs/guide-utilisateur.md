@@ -48,7 +48,7 @@ KJP est conçu pour être utilisé sur **tablette ou ordinateur**. Sur smartphon
 
 ## Choisir le bateau
 
-Ouvrez **Réglages avancés → Bateau → Profil du bateau**, ou cliquez sur la description du bateau dans le bandeau supérieur pour atteindre ce réglage. Six bateaux sont disponibles : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** et **Oceanis 48**. Le Sun Odyssey 36i est le profil de référence ; les cinq autres sont signalés **expérimentaux**. Leur fiche dans les réglages précise leur statut.
+Cliquez sur la description du bateau et sa petite flèche dans le bandeau supérieur pour choisir un bateau dans la liste. L’engrenage à côté de chaque nom sélectionne ce bateau et ouvre ses réglages avancés. Le choix reste aussi disponible dans **Réglages avancés → Bateau → Profil du bateau**. Six bateaux sont disponibles : **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** et **Oceanis 48**. Le Sun Odyssey 36i est le profil de référence ; les cinq autres sont signalés **expérimentaux**. Leur fiche dans les réglages précise leur statut.
 
 Le choix du bateau est mémorisé. Un changement conserve le port actif, recommence la situation avec le nouveau bateau et rétablit les réglages **Bateau** propres à son profil. Si sa position de départ est incompatible avec les obstacles, le simulateur ouvre **Placer le bateau** pour l'ajuster avant de démarrer. La commande tactile affiche une roue ou une barre franche selon le profil.
 
@@ -125,6 +125,8 @@ Pour un amarrage cul au quai, commencez par contrôler la poupe avec les aussiè
 ![Aussières arrière et pendille dans le défi d'appareillage](images/04-aussieres-et-taquets.jpg)
 
 ## Régler le vent, le courant et le bateau
+
+Le bouton **Au hasard**, avec ses flèches croisées à côté de chaque intitulé, tire une nouvelle direction et une nouvelle force pour le vent ou le courant uniquement. Toutes les directions sont équiprobables. La force suit une loi normale centrée sur **12 nd pour le vent** (écart type 4 nd) et **0,2 nd pour le courant** (écart type 0,1 nd), limitée aux bornes des curseurs et arrondie à leur pas. Chaque clic fait un seul tirage.
 
 Le vent et le courant se règlent par leur force et par leur **direction de déplacement**. Les indications à l'écran et leurs flèches montrent ce même sens : 000° vers le nord, 090° vers l'est, 180° vers le sud et 270° vers l'ouest. Commencez sans perturbation, puis ajoutez une seule condition. Cette méthode permet d'attribuer la réaction observée à la bonne cause.
 

@@ -1011,6 +1011,91 @@ browserCase("simulator:controls.53", async ({ page }) => {
     }
 });
 
+browserCase("simulator:controls.random-environment", async ({ page }) => {
+  await page.evaluate(() => {
+    window.__PORTANCE_TEST__.loadScenario("mooring");
+    window.__PORTANCE_TEST__.advance(0);
+  });
+  for (const [locale, label, windLabel] of [
+    ["fr", "Au hasard", "Tirer le vent au hasard"],
+    ["en", "Random", "Randomize wind"],
+    ["br", "Dre zegouezh", "Dibab an avel dre zegouezh"]
+  ]) {
+    await page.selectOption("#languageSelect", locale);
+    assert.equal(await page.locator("#randomizeWind").textContent(), label);
+    assert.equal(await page.locator("#randomizeCurrent").textContent(), label);
+    assert.equal(await page.locator("#randomizeWind").getAttribute("aria-label"), windLabel);
+  }
+  await page.selectOption("#languageSelect", "fr");
+  const initial = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  await page.locator("#randomizeWind").click();
+  let previous = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  assert.equal(previous.environment.currentSpeedKn, initial.environment.currentSpeedKn);
+  assert.equal(previous.environment.currentFromDeg, initial.environment.currentFromDeg);
+  await page.locator("#randomizeCurrent").focus();
+  await page.keyboard.press("Enter");
+  const current = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  assert.equal(current.environment.windSpeedKn, previous.environment.windSpeedKn);
+  assert.equal(current.environment.windFromDeg, previous.environment.windFromDeg);
+  for (const key of ["motion", "controls", "moorings", "scenario", "timing", "massMatrix", "vesselProfileId"]) {
+    assert.deepEqual(current[key], initial[key], `${key} preserved by both buttons`);
+  }
+
+  const samples = await page.evaluate(() => {
+    const originalRandom = Math.random;
+    try {
+      let seed = 81627;
+      const seeded = () => ((seed = (Math.imul(1664525, seed) + 1013904223) >>> 0) / 4294967296);
+      return ["wind", "current"].map(kind => {
+        // The first draw exceeds a bound; the next is exactly at the normal's centre.
+        const draws = [1 - Math.exp(-18), kind === "wind" ? 0 : .5, 0, 0, .999];
+        Math.random = () => draws.shift();
+        document.querySelector(`#randomize${kind === "wind" ? "Wind" : "Current"}`).click();
+        const speed = document.querySelector(`#${kind}Speed`);
+        const direction = document.querySelector(`#${kind}Direction`);
+        const centre = { speed: Number(speed.value), direction: Number(direction.value), remaining: draws.length };
+        Math.random = seeded;
+        const values = [], quadrants = [0, 0, 0, 0];
+        let valid = true;
+        for (let index = 0; index < 1200; index++) {
+          document.querySelector(`#randomize${kind === "wind" ? "Wind" : "Current"}`).click();
+          const value = Number(speed.value), heading = Number(direction.value);
+          const environment = window.__PORTANCE_TEST__.snapshot().environment;
+          values.push(value);
+          quadrants[Math.floor(heading / 90)]++;
+          valid &&= value >= Number(speed.min) && value <= Number(speed.max)
+            && Math.abs(value / Number(speed.step) - Math.round(value / Number(speed.step))) < 1e-9
+            && Number.isInteger(heading) && heading >= 0 && heading <= 359
+            && environment[`${kind}SpeedKn`] === value && environment[`${kind}FromDeg`] === (heading + 180) % 360;
+        }
+        const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+        return { kind, centre, mean, deviation: Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length),
+          quadrants, valid, summary: document.querySelector(`#${kind}Summary`).textContent,
+          heading: String(direction.value).padStart(3, "0") };
+      });
+    } finally { Math.random = originalRandom; }
+  });
+  for (const sample of samples) {
+    const wind = sample.kind === "wind";
+    assert.deepEqual(sample.centre, { speed: wind ? 12 : .2, direction: 359, remaining: 0 });
+    assert.ok(sample.valid, `${sample.kind}: limits, steps and bearing convention`);
+    assert.ok(Math.abs(sample.mean - (wind ? 12 : .2)) < (wind ? .5 : .025), JSON.stringify(sample));
+    assert.ok(Math.abs(sample.deviation - (wind ? 4 : .1)) < (wind ? .35 : .02), JSON.stringify(sample));
+    assert.ok(sample.quadrants.every(count => count > 240 && count < 360), JSON.stringify(sample));
+    assert.ok(sample.summary.endsWith(`· ${sample.heading}°`));
+  }
+  previous = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
+  await page.selectOption("#scenarioSelect", "placement");
+  for (const id of ["randomizeWind", "randomizeCurrent"]) assert.equal(await page.locator(`#${id}`).isEnabled(), false);
+  await page.evaluate(() => {
+    document.querySelector("#randomizeWind").click();
+    document.querySelector("#randomizeCurrent").click();
+  });
+  assert.deepEqual((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).environment, previous.environment);
+  await page.locator("#placementCancel").click();
+  for (const id of ["randomizeWind", "randomizeCurrent"]) assert.equal(await page.locator(`#${id}`).isEnabled(), true);
+});
+
 browserCase("simulator:interface.05", async ({ page, browser, context, runtimeErrors, externalRequests, errors, exported }, t) => {
     const initial = await page.evaluate(() => {
       const box = selector => {
@@ -4499,7 +4584,24 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
     }));
   await assertHeaderDescription("ui.boat.description.sun36", "Sun Odyssey 36i");
   await page.locator("#sidebarToggle").click();
+  const beforeMenu = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot());
   await page.locator("#boatProfileShortcut").click();
+  assert.equal(await page.locator("#boatProfileMenu").isVisible(), true);
+  assert.equal(await page.locator("#boatProfileShortcut").getAttribute("aria-expanded"), "true");
+  assert.equal(await page.locator("#advancedDetails").evaluate(node => node.open), false);
+  assert.equal(await page.locator("#sidebarToggle").getAttribute("aria-expanded"), "false");
+  assert.equal(await page.locator("#boatProfileMenu .boat-profile-option").count(), 6);
+  assert.equal(await page.locator("#boatProfileMenu .boat-profile-settings").count(), 6);
+  assert.deepEqual(await page.evaluate(() => window.__PORTANCE_TEST__.snapshot()), beforeMenu,
+    "ouvrir le sélecteur ne change ni commandes ni état physique");
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#boatProfileMenu").isVisible(), false);
+  await page.locator("#boatProfileShortcut").click();
+  const smallId = "sun-odyssey-24-2-fixed-keel-experimental";
+  await page.locator(`#boatProfileMenu [data-settings-for="${smallId}"]`).click();
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).vesselProfileId, smallId,
+    "l'engrenage sélectionne le bateau de sa ligne et ouvre ses réglages");
+  assert.equal(await page.locator("#boatProfileSelect").inputValue(), smallId);
   await page.waitForFunction(() => {
     const sidebar = document.querySelector("#sidebar").getBoundingClientRect();
     const select = document.querySelector("#boatProfileSelect");
@@ -4518,7 +4620,8 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
     topology: window.__PORTANCE_TEST__.topologyReport(),
     snapshot: window.__PORTANCE_TEST__.snapshot()
   }));
-  await page.selectOption("#boatProfileSelect", dufourId);
+  await page.locator("#boatProfileShortcut").click();
+  await page.locator(`#boatProfileMenu [data-profile-id="${dufourId}"]`).click();
   await page.waitForFunction(id => window.__PORTANCE_TEST__.snapshot().vesselProfileId === id
     && window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready, dufourId);
   const dufour = await page.evaluate(() => ({
@@ -4552,6 +4655,11 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   await assertHeaderDescription("ui.boat.description.dufour310", "Dufour 310 Grand Large 2014");
   await page.locator("#advancedDetails summary").click();
   await page.locator("#boatProfileShortcut").focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await page.locator("#boatProfileMenu").isVisible(), true);
+  await page.keyboard.press("ArrowDown");
+  assert.equal((await page.evaluate(() => window.__PORTANCE_TEST__.snapshot())).controls.rudderTarget, 0,
+    "les flèches naviguent dans le menu sans piloter le bateau");
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => document.querySelector("#advancedDetails").open
     && document.activeElement === document.querySelector("#boatProfileSelect"));
@@ -4587,7 +4695,7 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
     }
     const infrastructureBeforeSwitch = await page.evaluate(() => window.__PORTANCE_TEST__.worldRendererReport());
     await page.locator("#boatProfileShortcut").click();
-    await page.selectOption("#boatProfileSelect", id);
+    await page.locator(`#boatProfileMenu [data-profile-id="${id}"]`).click();
     await page.waitForFunction(id => window.__PORTANCE_TEST__.snapshot().vesselProfileId === id
       && window.__PORTANCE_TEST__.worldRendererReport().player?.model?.ready, id);
     const state = await page.evaluate(() => ({
@@ -4631,7 +4739,7 @@ browserCase("simulator:controls.60", async ({ page, context }) => {
   );
   const importedPaused = await page.evaluate(() => window.__PORTANCE_TEST__.snapshot().controls.paused);
   await page.locator("#boatProfileShortcut").click();
-  await page.selectOption("#boatProfileSelect", dufourId);
+  await page.locator(`#boatProfileMenu [data-profile-id="${dufourId}"]`).click();
   assert.equal(
     (await page.evaluate(() => window.__PORTANCE_TEST__.topologyReport())).id,
     importedPort.id

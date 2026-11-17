@@ -575,6 +575,9 @@
     "lesson.bow.spring.neutral": "Poupe suffisamment écartée : revenez au neutre et attendez moins de 0,3 nd avant de larguer.",
     "lesson.bow.spring.release": "5/5 · Moteur au neutre, à moins de 0,3 nd : larguez la garde, recentrez la barre puis engagez doucement la marche arrière.",
     "lesson.bow.spring.exit": "Garde larguée proprement : reculez vers la zone verte en gardant l’étrave et la poupe à distance du ponton et des voisins.",
-    "diagnostic.bow.spring.wrong.line": "Cette aussière n’est pas la garde avant recherchée : reliez le taquet avant bâbord au taquet surligné vers l’arrière, au nord du ponton."
+    "diagnostic.bow.spring.wrong.line": "Cette aussière n’est pas la garde avant recherchée : reliez le taquet avant bâbord au taquet surligné vers l’arrière, au nord du ponton.",
+    "ui.randomize": "Au hasard",
+    "ui.randomize.wind": "Tirer le vent au hasard",
+    "ui.randomize.current": "Tirer le courant au hasard"
   }
 }

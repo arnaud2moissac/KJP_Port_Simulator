@@ -590,6 +590,9 @@
     "lesson.bow.spring.neutral": "Penn a-dreñv pell a-walc’h : kit d’an neptu ha gortozit bezañ dindan 0,3 sk a-raok largañ.",
     "lesson.bow.spring.release": "5/5 · En neptu, dindan 0,3 sk : largit an ere, kreizit ar stur ha kit dousik a-dreñv.",
     "lesson.bow.spring.exit": "Ere laosket ervat : kit a-dreñv war-du an takad glas, o virout ar staon hag an a-dreñv pell diouzh ar ponton hag ar bagoù all.",
-    "diagnostic.bow.spring.wrong.line": "N’eo ket an ere beskell a-raok gortozet : stagit taked ar staon e babourzh ouzh an taked sklaeraet war-du an a-dreñv, en norzh ar ponton."
+    "diagnostic.bow.spring.wrong.line": "N’eo ket an ere beskell a-raok gortozet : stagit taked ar staon e babourzh ouzh an taked sklaeraet war-du an a-dreñv, en norzh ar ponton.",
+    "ui.randomize": "Dre zegouezh",
+    "ui.randomize.wind": "Dibab an avel dre zegouezh",
+    "ui.randomize.current": "Dibab ar red dre zegouezh"
   }
 }

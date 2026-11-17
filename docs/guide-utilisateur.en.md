@@ -48,7 +48,7 @@ KJP is designed for a **tablet or computer**. On a smartphone, a startup message
 
 ## Choosing the boat
 
-Open **Advanced settings → Boat → Boat profile**, or click the boat description in the top bar to reach that setting. Six boats are available: **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** and **Oceanis 48**. The Sun Odyssey 36i is the reference profile; the other five are marked **experimental**. Their status appears beside the profile setting.
+Click the boat description and its small arrow in the top bar to choose a boat from the list. The gear beside each name selects that boat and opens its advanced settings. You can also use **Advanced settings → Boat → Boat profile**. Six boats are available: **Sun Odyssey 36i**, **Dufour 310 Grand Large 2014**, **Sun Odyssey 24.2**, **Contessa 26**, **Pogo 40 S4** and **Oceanis 48**. The Sun Odyssey 36i is the reference profile; the other five are marked **experimental**. Their status appears beside the profile setting.
 
 The boat choice is remembered. Changing it keeps the active harbour, restarts the scenario with the new boat and restores that profile's **Boat** settings. If its starting position conflicts with obstacles, **Place the boat** opens so you can adjust it before starting. The touch helm shows a wheel or tiller according to the profile.
 
@@ -125,6 +125,8 @@ For stern-to berthing, first control the stern with stern lines. Then tap the pi
 ![Stern lines and laid mooring in the departure challenge](images/04-aussieres-et-taquets.en.jpg)
 
 ## Adjusting wind, current and the boat
+
+The **Random** button, with crossed arrows beside each heading, draws a new direction and speed for wind or current independently. All directions are equally likely. Speed follows a normal distribution centred on **12 kn for wind** (standard deviation 4 kn) and **0.2 kn for current** (standard deviation 0.1 kn), restricted to the slider limits and rounded to their steps. Each click draws once.
 
 Wind and current are set by speed and their **direction of travel**. The on-screen readings and arrows show the same direction: 000° towards north, 090° east, 180° south and 270° west. Start without disturbances, then add one condition at a time to identify its effect.
 

@@ -575,6 +575,9 @@
     "lesson.bow.spring.neutral": "Stern sufficiently clear: select neutral and wait until below 0.3 kn before releasing.",
     "lesson.bow.spring.release": "5/5 · In neutral, below 0.3 kn: release the spring, centre the helm, then gently engage astern.",
     "lesson.bow.spring.exit": "Spring released safely: reverse towards the green zone, keeping bow and stern clear of the pontoon and neighbouring boats.",
-    "diagnostic.bow.spring.wrong.line": "This is not the intended bow spring: connect the port bow cleat to the highlighted cleat aft, at the north end of the berth."
+    "diagnostic.bow.spring.wrong.line": "This is not the intended bow spring: connect the port bow cleat to the highlighted cleat aft, at the north end of the berth.",
+    "ui.randomize": "Random",
+    "ui.randomize.wind": "Randomize wind",
+    "ui.randomize.current": "Randomize current"
   }
 }

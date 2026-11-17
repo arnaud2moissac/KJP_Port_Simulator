@@ -415,6 +415,12 @@
   },
   {
     "product": "simulator",
+    "id": "controls.random-environment",
+    "group": "controls",
+    "name": "les boutons Au hasard règlent indépendamment vent et courant par tirage normal borné"
+  },
+  {
+    "product": "simulator",
     "id": "controls.54",
     "group": "controls",
     "name": "Alt, Option et clic droit basculent une seule fois entre caméra et barre"
