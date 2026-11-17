@@ -70,16 +70,18 @@ Validez selon le risque : `npm run validate:patch -- --product simulator` pour u
 
 `npm run verify:release` est une qualification complète explicite, à lancer **une fois** pour une release, pas après chaque modification. Les budgets CPU sont réservés à `npm run qualify:performance`.
 
-## Versions de la release 3.0
+## Versions de la release 3.1
 
-- date de publication : 27 octobre 2026 ;
-- produit : `3.0.0` ;
+- date de publication : 17 novembre 2026 ;
+- produit : `3.1.0` ;
 - moteur physique : `6.0.0` ;
 - profil pédagogique Sun Odyssey 36i : `6.1.0` ;
 - schéma des profils de bateau : `5` ;
 - générateur et schéma KJP courant : `1.1.0` et schéma `3`.
 
-La version 3.0 propose six bateaux, leurs modèles visuels, des commandes à roue
+La version 3.1 ajoute le défi de sortie sur garde avant, le choix du bateau
+dans l'en-tête, les tirages de vent et de courant et l'imagerie satellite
+mondiale du générateur. Elle conserve les six bateaux, leurs modèles visuels, les commandes à roue
 ou à barre franche et deux bibliothèques de ports. Le générateur trilingue ajoute
 la multisélection, les places manuelles, les mesures et la publication dans la
 bibliothèque Communauté. L'explorateur des modèles physiques présente désormais
@@ -87,8 +89,8 @@ le Sun Odyssey 36i, le Contessa 26 et le Dufour 310. Les profils ajoutés resten
 expérimentaux, plausibles mais non calibrés. Le détail et les limites figurent
 dans le [changelog](CHANGELOG.md).
 
-Les [notes de release](https://github.com/arnaud2moissac/KJP_Port_Simulator/releases/tag/v3.0.0)
-recensent les changements depuis la version officielle 2.1.0.
+Les [notes de release](https://github.com/arnaud2moissac/KJP_Port_Simulator/releases/tag/v3.1.0)
+recensent les changements depuis la version officielle 3.0.0.
 
 Ces numéros évoluent séparément : une amélioration scientifique du moteur ne change pas nécessairement le format des ports.
 Le [rapport de recalibration aérodynamique](docs/validation/rapport-recalibration-aerodynamique.md)

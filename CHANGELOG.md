@@ -1,5 +1,53 @@
 # Changelog
 
+## 3.1.0 — 17 novembre 2026
+
+Release mineure regroupant les changements depuis la version officielle 3.0.0.
+
+### Simulateur
+
+- Nouveau **défi 6 · Sortir sur garde avant**, sans vent puis avec 15 nd
+  de vent traversier plaquant le bateau contre le ponton. Poste longitudinal
+  dimensionné pour l'Oceanis 48, bateaux voisins, taquets et deux pointes au
+  départ ; le joueur démarre étrave au sud. La validation exige l'utilisation
+  de la garde, un largage sûr et une sortie en marche arrière.
+- Le défi 5 devient **Sortir sur garde arrière** ; les défis suivants sont
+  renumérotés jusqu'à 10. Consignes et guides actualisés en français, anglais
+  et breton.
+- Sélecteur de bateau dans l'en-tête, avec flèche discrète. L'engrenage de
+  chaque ligne sélectionne ce bateau et ouvre ses réglages avancés.
+- Boutons **Au hasard** à flèches croisées pour le vent et le courant :
+  directions équiprobables, forces normales centrées respectivement sur
+  **12 nd** et **0,2 nd**, avec écarts types de **4 nd** et **0,1 nd**.
+  Chaque bouton agit indépendamment, dans les limites et au pas des curseurs.
+- Le trait violet arrière montre l'angle du safran et sa longueur est réduite.
+  Un repère pointillé plus court à l'étrave reprend l'angle de barre, sans
+  inversion pour la barre franche.
+- Alignement des commandes de barre franche à la souris avec les commandes
+  tactiles et stabilisation de la roue tactile près de son centre sur iPad.
+
+### Générateur de ports
+
+- Imagerie satellite étendue au monde avec sélection des sources IGN, Esri
+  et EOX, chargement conditionnel d'Esri et cache local.
+- Démarrage automatique des cartes, détection OpenSeaMap plus robuste,
+  crédits des sources visibles et serveur HTTP local dédié.
+- Guides et traductions actualisés dans les trois langues.
+
+### Validation et téléchargements
+
+- Contrôles des builds autonomes et de localisation ; tests navigateur ciblés
+  du tirage vent/courant et de la convention des directions validés.
+- Inspection des nouveaux boutons sur ordinateur, tablette et mobile, dans
+  les trois langues et les thèmes clair/sombre, sans erreur console.
+- Suite complète de qualification non relancée pour cette release mineure,
+  conformément au périmètre demandé.
+- Livrables : les deux HTML autonomes, l'explorateur des modèles et les deux
+  planches PDF du Sun Odyssey 36i. Le moteur reste en version 6.0.0 et le
+  format des ports KJP en schéma 3.
+
+[Historique complet v3.0.0…v3.1.0](https://github.com/arnaud2moissac/KJP_Port_Simulator/compare/v3.0.0...v3.1.0).
+
 ## 3.0.0 — 27 octobre 2026
 
 Cette release majeure rassemble les changements depuis la dernière release
