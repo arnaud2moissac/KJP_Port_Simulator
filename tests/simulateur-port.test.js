@@ -1414,21 +1414,27 @@ browserCase("simulator:rendering.11", async ({ page, browser, context, runtimeEr
         rudderTarget: 35 * Math.PI / 180,
         rudderActual: 24 * Math.PI / 180
       });
-      const starboard = api.rudderAxisReport();
-      api.setControls({ rudderActual: -24 * Math.PI / 180 });
       const port = api.rudderAxisReport();
-      return { starboard, port };
+      api.setControls({ rudderActual: -24 * Math.PI / 180 });
+      const starboard = api.rudderAxisReport();
+      api.setControls({ rudderActual: 0 });
+      const centered = api.rudderAxisReport();
+      return { starboard, port, centered, controls: api.snapshot().controls };
     });
 
-    for (const axis of [result.starboard, result.port]) {
-      assert.equal(axis.lengthFactor, 1.2);
-      assert.ok(Math.abs(axis.length / axis.boatLength - 1.2) < 1e-12);
+    for (const axis of [result.starboard, result.port, result.centered]) {
+      assert.equal(axis.lengthFactor, .6);
+      assert.ok(Math.abs(axis.length / axis.boatLength - .6) < 1e-12);
       assert.ok(Math.abs(axis.worldLength - axis.length) < 1e-12);
       assert.ok(Math.abs(axis.startLocal[0] + 4.35) < 1e-12);
       assert.ok(Math.abs(axis.startLocal[1]) < 1e-12);
     }
     assert.ok(Math.abs(result.starboard.relativeAngle - 24 * Math.PI / 180) < 1e-12);
     assert.ok(Math.abs(result.port.relativeAngle + 24 * Math.PI / 180) < 1e-12);
+    assert.equal(result.centered.relativeAngle, 0);
+    assert.equal(result.centered.endLocal[1], result.centered.startLocal[1]);
+    assert.equal(result.controls.rudderTarget, 35 * Math.PI / 180,
+      "le trait suit le safran réel, même si la consigne de barre est différente");
     assert.match(
       fs.readFileSync(simulatorPath, "utf8"),
       /addRudderAxis\(\);/

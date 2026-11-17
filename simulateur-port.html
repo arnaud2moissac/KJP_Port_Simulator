@@ -19602,7 +19602,7 @@ void main() {
         staticDeckZ: .92,
         staticCabinRoofZ: 1.42,
         bowMarkerX: profile.geometry.gunwale.at(-2).x,
-        rudderAxisLengthFactor: 1,
+        rudderAxisLengthFactor: .5,
         usePlayerModel: true,
         playerModelAsset: additional.asset,
         playerModelOffsetX: additional.modelOffsetX || 0,
@@ -19622,7 +19622,7 @@ void main() {
         staticDeckZ: .92,
         staticCabinRoofZ: 1.42,
         bowMarkerX: 3.48,
-        rudderAxisLengthFactor: 1.0,
+        rudderAxisLengthFactor: .5,
         usePlayerModel: false,
         collision: {
           fenderRadius: profile.contacts.fenderRadius,
@@ -19639,7 +19639,7 @@ void main() {
         staticDeckZ: .92,
         staticCabinRoofZ: 1.42,
         bowMarkerX: 3.92,
-        rudderAxisLengthFactor: 1.2,
+        rudderAxisLengthFactor: .6,
         usePlayerModel: true,
         collision: {
           fenderRadius: .175,
@@ -24283,7 +24283,9 @@ void main() {
         BOAT_PROFILE.length
         * BOAT_PROFILE.visual.rudderAxisLengthFactor
       );
-      const angle = controls.rudderActual;
+      // Le repère de présentation inverse le transverse du repère physique.
+      // Prolonger le plan du safran, pas le côté où la barre fait tourner le bateau.
+      const angle = -controls.rudderActual;
       const axes = BOAT_PROFILE.rudders.map(rudder => {
         const startLocal = [rudder.x, rudder.y];
         const endLocal = [
