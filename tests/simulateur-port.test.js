@@ -1428,6 +1428,12 @@ browserCase("simulator:rendering.11", async ({ page, browser, context, runtimeEr
       assert.ok(Math.abs(axis.worldLength - axis.length) < 1e-12);
       assert.ok(Math.abs(axis.startLocal[0] + 4.35) < 1e-12);
       assert.ok(Math.abs(axis.startLocal[1]) < 1e-12);
+      assert.equal(axis.bow.length, axis.length / 2);
+      assert.ok(Math.abs(axis.bow.worldLength - axis.bow.length) < 1e-12);
+      assert.ok(axis.bow.startLocal[0] > 0);
+      assert.equal(axis.bow.startLocal[1], 0);
+      assert.ok(Math.abs(axis.bow.relativeAngle + axis.relativeAngle) < 1e-12,
+        "le trait avant reprend l'ancien angle, à l'opposé de l'axe du safran");
     }
     assert.ok(Math.abs(result.starboard.relativeAngle - 24 * Math.PI / 180) < 1e-12);
     assert.ok(Math.abs(result.port.relativeAngle + 24 * Math.PI / 180) < 1e-12);
@@ -1435,6 +1441,21 @@ browserCase("simulator:rendering.11", async ({ page, browser, context, runtimeEr
     assert.equal(result.centered.endLocal[1], result.centered.startLocal[1]);
     assert.equal(result.controls.rudderTarget, 35 * Math.PI / 180,
       "le trait suit le safran réel, même si la consigne de barre est différente");
+    const steeringTypes = await page.evaluate(() => {
+      const api = window.__PORTANCE_TEST__;
+      return ["sun-odyssey-36i-pedagogical", "sun-odyssey-24-2-fixed-keel-experimental"].map(id => {
+        api.selectVesselProfile(id);
+        api.reset({ x: 200, y: 200, heading: Math.PI / 2 });
+        api.setControls({ rudderTarget: -35 * Math.PI / 180, rudderActual: 24 * Math.PI / 180 });
+        return { type: api.vesselProfileReport().presentation.steering.type, axis: api.rudderAxisReport() };
+      });
+    });
+    assert.deepEqual(steeringTypes.map(item => item.type), ["wheel", "tiller"]);
+    for (const { axis } of steeringTypes) {
+      assert.ok(Math.abs(axis.bow.relativeAngle - 24 * Math.PI / 180) < 1e-12,
+        "aucune inversion du trait avant pour la barre franche");
+      assert.equal(axis.bow.length, axis.length / 2);
+    }
     assert.match(
       fs.readFileSync(simulatorPath, "utf8"),
       /addRudderAxis\(\);/

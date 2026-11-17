@@ -24301,18 +24301,34 @@ void main() {
         };
       });
       const primary = axes[0];
+      const bowLength = length / 2;
+      // Reprendre l'ancien angle de barre, sans inversion liée au type de commande.
+      const bowAngle = controls.rudderActual;
+      const bowStartLocal = [BOAT_PROFILE.gunwale.at(-1).x, 0];
+      const bowEndLocal = [
+        bowStartLocal[0] + Math.cos(bowAngle) * bowLength,
+        Math.sin(bowAngle) * bowLength
+      ];
       return {
         ...primary,
         axes,
         length,
-        angle
+        angle,
+        bow: {
+          start: localPoint(boatMotion, bowStartLocal[0], bowStartLocal[1], .16),
+          end: localPoint(boatMotion, bowEndLocal[0], bowEndLocal[1], .16),
+          startLocal: bowStartLocal,
+          endLocal: bowEndLocal,
+          length: bowLength,
+          angle: bowAngle
+        }
       };
     }
 
     function addRudderAxis() {
       const axis = rudderAxisGeometry();
       const palette = visualPalette();
-      for (const item of axis.axes) {
+      for (const item of [...axis.axes, axis.bow]) {
         addWorldLine(
           [item.start, item.end],
           ui.mode === "understand" ? palette.semantic.rudderGuide : palette.semantic.rudder,
@@ -28555,6 +28571,17 @@ void main() {
         end: [...axis.end],
         startLocal: [...axis.startLocal],
         endLocal: [...axis.endLocal],
+        bow: {
+          ...axis.bow,
+          worldLength: Math.hypot(
+            axis.bow.end[0] - axis.bow.start[0],
+            axis.bow.end[1] - axis.bow.start[1]
+          ),
+          relativeAngle: Math.atan2(
+            axis.bow.endLocal[1] - axis.bow.startLocal[1],
+            axis.bow.endLocal[0] - axis.bow.startLocal[0]
+          )
+        },
         axes: axis.axes.map(item => ({
           id: item.id,
           start: [...item.start],
